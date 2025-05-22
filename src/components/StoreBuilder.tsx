@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -269,7 +268,7 @@ const StoreBuilder = ({ onBack }: StoreBuilderProps) => {
             <CardContent className="py-12">
               <div className="text-center text-gray-500">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  {<steps[currentStep - 1].icon className="h-8 w-8 text-gray-400" />}
+                  {React.createElement(steps[currentStep - 1].icon, { className: "h-8 w-8 text-gray-400" })}
                 </div>
                 <p>This step will be implemented in the next phase</p>
               </div>
