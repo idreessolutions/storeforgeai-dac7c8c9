@@ -121,7 +121,7 @@ const StoreBuilder = ({ onBack }: StoreBuilderProps) => {
                       ? 'bg-blue-600 text-white' 
                       : 'bg-gray-200 text-gray-400'
                   }`}>
-                    <step.icon className="h-4 w-4" />
+                    {<step.icon className="h-4 w-4" />}
                   </div>
                   <div className="hidden sm:block">
                     <div className="font-medium text-sm">{step.title}</div>
@@ -269,9 +269,7 @@ const StoreBuilder = ({ onBack }: StoreBuilderProps) => {
             <CardContent className="py-12">
               <div className="text-center text-gray-500">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  {steps[currentStep - 1].icon && (
-                    <steps[currentStep - 1].icon className="h-8 w-8 text-gray-400" />
-                  )}
+                  {<steps[currentStep - 1].icon className="h-8 w-8 text-gray-400" />}
                 </div>
                 <p>This step will be implemented in the next phase</p>
               </div>
