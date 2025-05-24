@@ -1,13 +1,17 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Package, Check } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { addProductsToShopify } from "@/services/productService";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProductsStepProps {
   formData: {
     productsAdded: boolean;
+    shopifyUrl: string;
+    accessToken: string;
   };
   handleInputChange: (field: string, value: boolean) => void;
 }
@@ -16,43 +20,52 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentProduct, setCurrentProduct] = useState("");
-
-  const winningProducts = [
-    "Smart Watch Pro",
-    "Wireless Earbuds Elite",
-    "Portable Phone Charger",
-    "LED Strip Lights",
-    "Bluetooth Speaker",
-    "Fitness Tracker",
-    "Phone Camera Lens Kit",
-    "Car Phone Mount",
-    "Wireless Charging Pad",
-    "Bluetooth Headphones",
-    "Portable Power Bank",
-    "Smart Ring",
-    "Air Purifier Mini",
-    "Phone Screen Protector",
-    "Cable Organizer",
-    "Laptop Stand",
-    "Gaming Mouse Pad",
-    "USB-C Hub",
-    "Wireless Mouse",
-    "Phone Case Collection"
-  ];
+  const { toast } = useToast();
 
   const handleAddProducts = async () => {
+    if (!formData.shopifyUrl || !formData.accessToken) {
+      toast({
+        title: "Missing Information",
+        description: "Please complete the previous steps first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     setProgress(0);
 
-    for (let i = 0; i < winningProducts.length; i++) {
-      setCurrentProduct(winningProducts[i]);
-      setProgress(((i + 1) / winningProducts.length) * 100);
-      
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 200));
+    try {
+      const success = await addProductsToShopify(
+        formData.shopifyUrl,
+        formData.accessToken,
+        (progressValue, productName) => {
+          setProgress(progressValue);
+          setCurrentProduct(productName);
+        }
+      );
+
+      if (success) {
+        handleInputChange('productsAdded', true);
+        toast({
+          title: "Success!",
+          description: "20 winning products have been added to your store.",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to add products. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An error occurred while adding products.",
+        variant: "destructive",
+      });
     }
 
-    handleInputChange('productsAdded', true);
     setIsLoading(false);
     setCurrentProduct("");
   };

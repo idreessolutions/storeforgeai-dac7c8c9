@@ -1,8 +1,9 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MessageCircle, Users, Clock, Star } from "lucide-react";
+import MentorshipForm from "./MentorshipForm";
 
 interface MentorshipStepProps {
   formData: {
@@ -12,9 +13,20 @@ interface MentorshipStepProps {
 }
 
 const MentorshipStep = ({ formData, handleInputChange }: MentorshipStepProps) => {
-  const handleRequestMentorship = () => {
-    handleInputChange('mentorshipRequested', true);
+  const [showForm, setShowForm] = useState(false);
+
+  const handleStartApplication = () => {
+    setShowForm(true);
   };
+
+  const handleFormSubmit = () => {
+    handleInputChange('mentorshipRequested', true);
+    setShowForm(false);
+  };
+
+  if (showForm && !formData.mentorshipRequested) {
+    return <MentorshipForm onSubmit={handleFormSubmit} />;
+  }
 
   return (
     <Card className="border-0 shadow-lg max-w-2xl mx-auto">
@@ -91,7 +103,7 @@ const MentorshipStep = ({ formData, handleInputChange }: MentorshipStepProps) =>
                 </p>
                 <Button 
                   className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg font-semibold"
-                  onClick={handleRequestMentorship}
+                  onClick={handleStartApplication}
                 >
                   Start
                   <span className="ml-2 text-xs">press Enter ↵</span>

@@ -84,7 +84,11 @@ const StepRenderer = ({
     case 6:
       return (
         <ProductsStep 
-          formData={{ productsAdded: formData.productsAdded }} 
+          formData={{ 
+            productsAdded: formData.productsAdded,
+            shopifyUrl: formData.shopifyUrl,
+            accessToken: formData.accessToken
+          }} 
           handleInputChange={handleInputChange} 
         />
       );

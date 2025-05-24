@@ -13,6 +13,7 @@ interface LaunchStepProps {
 const LaunchStep = ({ formData }: LaunchStepProps) => {
   const handleViewStore = () => {
     if (formData.shopifyUrl) {
+      // Extract store name from the domain and redirect to admin panel
       const storeName = formData.shopifyUrl.replace('.myshopify.com', '');
       const storeUrl = `https://admin.shopify.com/store/${storeName}`;
       window.open(storeUrl, '_blank');

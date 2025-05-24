@@ -19,6 +19,7 @@ const ActivateTrialStep = ({ formData, handleInputChange }: ActivateTrialStepPro
 
   const handleAccessPlans = () => {
     if (formData.shopifyUrl) {
+      // Extract store name from the domain (e.g., "your-store" from "your-store.myshopify.com")
       const storeName = formData.shopifyUrl.replace('.myshopify.com', '');
       const plansUrl = `https://admin.shopify.com/store/${storeName}/settings/subscribe/select-plan?from=trialBanner`;
       window.open(plansUrl, '_blank');

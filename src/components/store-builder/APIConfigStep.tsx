@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,7 +16,7 @@ interface APIConfigStepProps {
 const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
   const handleAccessShopifyApps = () => {
     if (formData.shopifyUrl) {
-      // Extract store name from URL (e.g., "090c4b-3" from "090c4b-3.myshopify.com")
+      // Extract store name from the domain (e.g., "your-store" from "your-store.myshopify.com")
       const storeName = formData.shopifyUrl.replace('.myshopify.com', '');
       const appsUrl = `https://admin.shopify.com/store/${storeName}/settings/apps/development`;
       window.open(appsUrl, '_blank');

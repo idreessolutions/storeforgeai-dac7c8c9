@@ -26,6 +26,30 @@ const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps
     window.open('https://www.shopify.com/it/prova-gratuita?utm_medium=cpc&utm_source=yabing&jk=shopify&bingadgroupid=1224856204390256&bingadid=76553660775308&bingkeywordid=76553719090121&bingnetwork=o&BOID=brand&msclkid=9f33511f705310b003ae392e8fb3f1e7&utm_source=bing&utm_medium=cpc&utm_campaign=Paid%20Search%20-%20Bing%20-%20Europe%20-%20Brand%20-%20Italian&utm_term=shopify&utm_content=Brand%20-%20Shopify', '_blank');
   };
 
+  const handleStoreUrlChange = (value: string) => {
+    // Extract only the domain part if user enters full URL
+    let domain = value;
+    if (value.includes('https://') || value.includes('http://')) {
+      try {
+        const url = new URL(value);
+        domain = url.hostname;
+      } catch (e) {
+        // If URL parsing fails, try to extract domain manually
+        domain = value.replace(/https?:\/\//, '').split('/')[0];
+      }
+    }
+    
+    // Ensure it ends with .myshopify.com
+    if (domain && !domain.includes('.myshopify.com') && domain.length > 0) {
+      if (!domain.endsWith('.myshopify.com')) {
+        // If user just enters the store name, add .myshopify.com
+        domain = domain.replace('.myshopify.com', '') + '.myshopify.com';
+      }
+    }
+    
+    handleInputChange('shopifyUrl', domain);
+  };
+
   return (
     <>
       <Card className="border-0 shadow-lg max-w-2xl mx-auto">
@@ -78,11 +102,14 @@ const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps
                   </Label>
                   <Input
                     id="storeUrl"
-                    placeholder="Ex: 090c4b-3.myshopify.com"
+                    placeholder="Ex: your-store.myshopify.com"
                     value={formData.shopifyUrl}
-                    onChange={(e) => handleInputChange('shopifyUrl', e.target.value)}
+                    onChange={(e) => handleStoreUrlChange(e.target.value)}
                     className="mt-1"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Enter your complete Shopify store URL or just the store name
+                  </p>
                 </div>
               </div>
             </div>
