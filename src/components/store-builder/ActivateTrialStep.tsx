@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, CreditCard } from "lucide-react";
@@ -16,10 +16,23 @@ interface ActivateTrialStepProps {
 
 const ActivateTrialStep = ({ formData, handleInputChange }: ActivateTrialStepProps) => {
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [planStatus, setPlanStatus] = useState<'checking' | 'inactive' | 'active'>('checking');
+
+  useEffect(() => {
+    // Simulate checking plan status
+    const checkPlanStatus = () => {
+      // In a real app, this would check the actual Shopify plan status
+      // For now, we'll assume it's inactive until manually activated
+      setPlanStatus('inactive');
+    };
+
+    if (formData.shopifyUrl) {
+      checkPlanStatus();
+    }
+  }, [formData.shopifyUrl]);
 
   const handleAccessPlans = () => {
     if (formData.shopifyUrl) {
-      // Extract store name from the domain (e.g., "your-store" from "your-store.myshopify.com")
       const storeName = formData.shopifyUrl.replace('.myshopify.com', '');
       const plansUrl = `https://admin.shopify.com/store/${storeName}/settings/subscribe/select-plan?from=trialBanner`;
       window.open(plansUrl, '_blank');
@@ -29,11 +42,16 @@ const ActivateTrialStep = ({ formData, handleInputChange }: ActivateTrialStepPro
   };
 
   const handleStartStoreBuild = () => {
-    if (!formData.planActivated) {
+    if (planStatus !== 'active') {
       setShowErrorModal(true);
       return;
     }
-    // This will be handled by the parent component's next step logic
+    handleInputChange('planActivated', true);
+  };
+
+  const handlePlanActivated = () => {
+    setPlanStatus('active');
+    handleInputChange('planActivated', true);
   };
 
   return (
@@ -72,38 +90,29 @@ const ActivateTrialStep = ({ formData, handleInputChange }: ActivateTrialStepPro
                 </li>
                 <li className="flex items-start">
                   <span className="font-medium mr-2">•</span>
-                  Enter your credit card details
+                  Enter your credit card details and activate the plan
                 </li>
               </ul>
 
               <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-4 mb-6">
                 <p className="text-yellow-800 text-sm font-medium">
-                  <strong>NOTE:</strong> You must start the $1 trial for next step.
+                  <strong>NOTE:</strong> You must activate a paid plan to continue.
                 </p>
               </div>
 
               <div className="bg-blue-100 border border-blue-300 rounded-lg p-4 mb-6">
                 <p className="text-blue-800 text-sm font-medium">
-                  Click "Start Plan" on the right side of the screen.<br/>
-                  Return to this tab.<br/>
-                  Click the button below to validate your Shopify settings before building your professional store.
+                  After activating your plan, return to this tab and click "I've Activated My Plan" below.
                 </p>
               </div>
 
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="planActivated"
-                    checked={formData.planActivated}
-                    onChange={(e) => handleInputChange('planActivated', e.target.checked)}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <label htmlFor="planActivated" className="text-sm font-medium text-gray-700">
-                    I have activated my Shopify plan and added my payment details
-                  </label>
+              {planStatus === 'active' && (
+                <div className="bg-green-100 border border-green-300 rounded-lg p-4 mb-6">
+                  <p className="text-green-800 text-sm font-medium">
+                    ✅ Plan activated successfully! You can now proceed to the next step.
+                  </p>
                 </div>
-              </div>
+              )}
             </div>
 
             <Button 
@@ -115,8 +124,16 @@ const ActivateTrialStep = ({ formData, handleInputChange }: ActivateTrialStepPro
             </Button>
 
             <Button 
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 text-lg font-semibold mb-4"
+              onClick={handlePlanActivated}
+            >
+              I've Activated My Plan
+            </Button>
+
+            <Button 
               className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 text-lg font-semibold"
               onClick={handleStartStoreBuild}
+              disabled={planStatus !== 'active'}
             >
               Start Store Build
             </Button>
@@ -127,14 +144,14 @@ const ActivateTrialStep = ({ formData, handleInputChange }: ActivateTrialStepPro
       <Dialog open={showErrorModal} onOpenChange={setShowErrorModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-center">Oops...</DialogTitle>
+            <DialogTitle className="text-center">You Should Pick A Plan</DialogTitle>
           </DialogHeader>
           <div className="text-center py-4">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <X className="h-8 w-8 text-red-600" />
             </div>
             <p className="text-gray-700 mb-6">
-              Please activate your Shopify trial!
+              Please activate your Shopify plan before proceeding to the next step.
             </p>
             <Button onClick={() => setShowErrorModal(false)} className="bg-blue-600 hover:bg-blue-700 text-white">
               OK

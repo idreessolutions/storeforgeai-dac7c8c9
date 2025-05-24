@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Zap, Store, Palette, Bot, Users, Crown, ArrowRight, Check, Star } from "lucide-react";
+import { Zap, Store, Palette, Bot, Users, Crown, ArrowRight, Check, Star, Rocket, ShoppingCart, TrendingUp } from "lucide-react";
 import StoreBuilder from "@/components/StoreBuilder";
 import AuthModal from "@/components/AuthModal";
 
@@ -31,21 +31,13 @@ const Index = () => {
               StoreForge AI
             </span>
           </div>
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" onClick={() => setShowAuth(true)}>
-              Sign In
-            </Button>
-            <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
-              Get Started
-            </Button>
-          </div>
         </nav>
 
         {/* Hero Content */}
         <div className="relative z-10 max-w-7xl mx-auto px-6 py-20 lg:px-8">
           <div className="text-center">
             <Badge className="mb-6 bg-blue-100 text-blue-700 hover:bg-blue-200">
-              <Zap className="h-3 w-3 mr-1" />
+              <Rocket className="h-3 w-3 mr-1" />
               AI-Powered Store Generation
             </Badge>
             
@@ -68,11 +60,8 @@ const Index = () => {
                 className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-lg px-8 py-6"
                 onClick={() => setShowBuilder(true)}
               >
-                Start Building Now
+                Start Building Your Store Now
                 <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button size="lg" variant="outline" className="text-lg px-8 py-6">
-                Watch Demo
               </Button>
             </div>
 
@@ -100,10 +89,10 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Everything You Need to Launch
+              Everything You Need to Launch Successfully
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Our AI handles every aspect of store creation, so you can focus on growing your business.
+              Our AI handles every aspect of store creation, so you can focus on growing your business and making profits.
             </p>
           </div>
 
@@ -112,32 +101,32 @@ const Index = () => {
               {
                 icon: Bot,
                 title: "AI Store Generation",
-                description: "Complete store setup with AI-generated names, branding, and product catalogs tailored to your niche."
+                description: "Complete store setup with AI-generated names, branding, and winning product catalogs tailored to your niche."
               },
               {
                 icon: Palette,
                 title: "Professional Branding",
-                description: "Custom logos, color schemes, and brand identity created by AI to match your business vision."
+                description: "Custom logos, color schemes, and brand identity created by AI to match your business vision perfectly."
               },
               {
-                icon: Store,
-                title: "Shopify Integration",
-                description: "Direct export to your Shopify account with one-click deployment and full store setup."
+                icon: ShoppingCart,
+                title: "Winning Products",
+                description: "20 hand-picked winning products with complete descriptions, images, and pricing strategies."
               },
               {
                 icon: Zap,
-                title: "Lightning Fast",
-                description: "Generate complete stores in minutes, not weeks. Launch faster than ever before."
+                title: "Lightning Fast Setup",
+                description: "Generate complete stores in minutes, not weeks. Launch faster than your competition."
               },
               {
-                icon: Crown,
-                title: "Premium Templates",
-                description: "Choose from professionally designed templates optimized for conversion and mobile."
+                icon: TrendingUp,
+                title: "Profit Optimization",
+                description: "Built-in strategies for maximum conversions and revenue generation from day one."
               },
               {
                 icon: Users,
-                title: "Affiliate Program",
-                description: "Earn commissions by referring others. Track your earnings with our integrated affiliate system."
+                title: "1-on-1 Mentorship",
+                description: "Get personal guidance from successful entrepreneurs. Scale your business with expert support."
               }
             ].map((feature, index) => (
               <Card key={index} className="group hover:shadow-lg transition-all duration-300 border-0 shadow-md">
@@ -164,7 +153,7 @@ const Index = () => {
               How It Works
             </h2>
             <p className="text-xl text-gray-600">
-              Three simple steps to your perfect Shopify store
+              Three simple steps to your profitable Shopify store
             </p>
           </div>
 
@@ -173,17 +162,17 @@ const Index = () => {
               {
                 step: "01",
                 title: "Describe Your Vision",
-                description: "Tell us your niche, target audience, and business goals. Our AI will understand exactly what you need."
+                description: "Tell us your niche, target audience, and business goals. Our AI will understand exactly what you need to succeed."
               },
               {
                 step: "02",
                 title: "AI Generates Everything",
-                description: "Watch as AI creates your store name, branding, products, descriptions, and complete setup in real-time."
+                description: "Watch as AI creates your store, winning products, descriptions, and complete setup with profit-focused strategies."
               },
               {
                 step: "03",
-                title: "Launch on Shopify",
-                description: "Export directly to Shopify with one click. Your store is ready to accept customers immediately."
+                title: "Launch & Scale",
+                description: "Export directly to Shopify with one click. Your store is ready to accept customers and generate revenue immediately."
               }
             ].map((step, index) => (
               <div key={index} className="text-center">
@@ -202,10 +191,10 @@ const Index = () => {
       <div className="py-20 bg-gradient-to-r from-blue-600 to-indigo-600">
         <div className="max-w-4xl mx-auto text-center px-6 lg:px-8">
           <h2 className="text-3xl lg:text-4xl font-bold text-white mb-6">
-            Ready to Build Your Store?
+            Ready to Start Your Profitable Store?
           </h2>
           <p className="text-xl text-blue-100 mb-8">
-            Join thousands of entrepreneurs who've launched successful stores with StoreForge AI
+            Join thousands of entrepreneurs who've launched successful stores and achieved financial freedom with StoreForge AI
           </p>
           <Button 
             size="lg" 

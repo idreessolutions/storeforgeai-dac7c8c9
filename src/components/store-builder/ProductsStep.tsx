@@ -12,6 +12,7 @@ interface ProductsStepProps {
     productsAdded: boolean;
     shopifyUrl: string;
     accessToken: string;
+    niche: string;
   };
   handleInputChange: (field: string, value: boolean) => void;
 }
@@ -36,9 +37,12 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
     setProgress(0);
 
     try {
+      console.log('Adding products for niche:', formData.niche);
+      
       const success = await addProductsToShopify(
         formData.shopifyUrl,
         formData.accessToken,
+        formData.niche || 'general',
         (progressValue, productName) => {
           setProgress(progressValue);
           setCurrentProduct(productName);
@@ -49,19 +53,20 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         handleInputChange('productsAdded', true);
         toast({
           title: "Success!",
-          description: "20 winning products have been added to your store.",
+          description: `20 winning ${formData.niche || 'general'} products have been added to your store.`,
         });
       } else {
         toast({
           title: "Error",
-          description: "Failed to add products. Please try again.",
+          description: "Failed to add products. Please check your API configuration and try again.",
           variant: "destructive",
         });
       }
     } catch (error) {
+      console.error('Product addition error:', error);
       toast({
         title: "Error",
-        description: "An error occurred while adding products.",
+        description: "An error occurred while adding products. Please try again.",
         variant: "destructive",
       });
     }
@@ -78,13 +83,17 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
             <Package className="h-10 w-10 text-white" />
           </div>
           <h2 className="text-3xl font-bold text-gray-900 mb-4">Products</h2>
-          <p className="text-gray-600">We'll add 20 winning products to your store</p>
+          <p className="text-gray-600">
+            We'll add 20 winning {formData.niche ? `${formData.niche} ` : ''}products to your store
+          </p>
         </div>
 
         <div className="space-y-6">
           <div className="bg-gray-50 p-6 rounded-lg">
             <p className="text-gray-700 mb-4">
-              Our AI will automatically add 20 carefully selected winning products to your store. Each product includes:
+              Our AI will automatically add 20 carefully selected winning products 
+              {formData.niche ? ` in the ${formData.niche} niche ` : ' '}
+              to your store. Each product includes:
             </p>
             
             <ul className="space-y-2 text-gray-700 mb-6">
@@ -94,7 +103,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               </li>
               <li className="flex items-start">
                 <Check className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                Optimized product descriptions
+                Optimized product descriptions for your niche
               </li>
               <li className="flex items-start">
                 <Check className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
@@ -117,7 +126,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
             {isLoading && (
               <div className="space-y-4 mb-6">
                 <div className="text-center">
-                  <p className="text-blue-600 font-semibold mb-2">Adding products to your store...</p>
+                  <p className="text-blue-600 font-semibold mb-2">Adding winning products to your store...</p>
                   <p className="text-sm text-gray-600">Currently adding: {currentProduct}</p>
                 </div>
                 <Progress value={progress} className="w-full" />
@@ -132,7 +141,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 <div className="flex items-center">
                   <Check className="h-5 w-5 text-green-600 mr-2" />
                   <p className="text-green-800 font-medium">
-                    Successfully added 20 winning products to your store!
+                    Successfully added 20 winning {formData.niche || 'general'} products to your store!
                   </p>
                 </div>
               </div>

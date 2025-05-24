@@ -13,12 +13,12 @@ interface LaunchStepProps {
 const LaunchStep = ({ formData }: LaunchStepProps) => {
   const handleViewStore = () => {
     if (formData.shopifyUrl) {
-      // Extract store name from the domain and redirect to admin panel
+      // Extract store name from the domain and redirect to the actual store
       const storeName = formData.shopifyUrl.replace('.myshopify.com', '');
-      const storeUrl = `https://admin.shopify.com/store/${storeName}`;
+      const storeUrl = `https://${storeName}.myshopify.com`;
       window.open(storeUrl, '_blank');
     } else {
-      window.open('https://admin.shopify.com/', '_blank');
+      window.open('https://www.shopify.com/', '_blank');
     }
   };
 
@@ -30,7 +30,7 @@ const LaunchStep = ({ formData }: LaunchStepProps) => {
             <Store className="h-10 w-10 text-white" />
           </div>
           <h2 className="text-3xl font-bold text-gray-900 mb-4">Congratulations! 🎉</h2>
-          <p className="text-gray-600">Your store is ready to launch</p>
+          <p className="text-gray-600">Your store is ready to launch and start making money</p>
         </div>
 
         <div className="space-y-6">
@@ -39,20 +39,20 @@ const LaunchStep = ({ formData }: LaunchStepProps) => {
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="h-8 w-8 text-blue-600" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Complete!</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Store Complete!</h3>
               <p className="text-gray-600 mb-4">
-                Your store is currently being built. In less than 1 minute our technology will do all the work of customizing your store, which a typical designer and programmer would charge you thousands & take days or even weeks to do! Please do not close this tab.
+                Your professional e-commerce store has been successfully created and configured. Everything is ready for you to start selling and generating revenue!
               </p>
             </div>
 
             <div className="grid gap-4 mb-6">
               <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
                 <CheckCircle className="h-5 w-5 text-green-600" />
-                <span className="text-green-800 font-medium">Store Created Successfully</span>
+                <span className="text-green-800 font-medium">Store Created & Configured</span>
               </div>
               <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
                 <CheckCircle className="h-5 w-5 text-green-600" />
-                <span className="text-green-800 font-medium">Products Added</span>
+                <span className="text-green-800 font-medium">20 Winning Products Added</span>
               </div>
               <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
                 <CheckCircle className="h-5 w-5 text-green-600" />
@@ -60,7 +60,11 @@ const LaunchStep = ({ formData }: LaunchStepProps) => {
               </div>
               <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
                 <CheckCircle className="h-5 w-5 text-green-600" />
-                <span className="text-green-800 font-medium">Payment Gateway Configured</span>
+                <span className="text-green-800 font-medium">Payment Gateway Ready</span>
+              </div>
+              <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <span className="text-green-800 font-medium">SEO Optimized</span>
               </div>
             </div>
 
@@ -74,7 +78,7 @@ const LaunchStep = ({ formData }: LaunchStepProps) => {
               </Button>
               
               <p className="text-sm text-gray-500">
-                Click above to access your Shopify admin panel
+                Click above to visit your live store and start selling
               </p>
             </div>
           </div>

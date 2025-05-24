@@ -27,26 +27,28 @@ const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps
   };
 
   const handleStoreUrlChange = (value: string) => {
-    // Extract only the domain part if user enters full URL
     let domain = value;
-    if (value.includes('https://') || value.includes('http://')) {
+    
+    // Handle different input formats
+    if (value.includes('admin.shopify.com/store/')) {
+      // Extract store name from admin URL: https://admin.shopify.com/store/k2y7ge-is
+      const match = value.match(/admin\.shopify\.com\/store\/([^\/\?]+)/);
+      if (match) {
+        domain = match[1] + '.myshopify.com';
+      }
+    } else if (value.includes('https://') || value.includes('http://')) {
       try {
         const url = new URL(value);
         domain = url.hostname;
       } catch (e) {
-        // If URL parsing fails, try to extract domain manually
         domain = value.replace(/https?:\/\//, '').split('/')[0];
       }
+    } else if (value && !value.includes('.myshopify.com') && value.length > 0) {
+      // If user just enters the store name, add .myshopify.com
+      domain = value.replace('.myshopify.com', '') + '.myshopify.com';
     }
     
-    // Ensure it ends with .myshopify.com
-    if (domain && !domain.includes('.myshopify.com') && domain.length > 0) {
-      if (!domain.endsWith('.myshopify.com')) {
-        // If user just enters the store name, add .myshopify.com
-        domain = domain.replace('.myshopify.com', '') + '.myshopify.com';
-      }
-    }
-    
+    console.log('Processed domain:', domain);
     handleInputChange('shopifyUrl', domain);
   };
 
@@ -102,13 +104,13 @@ const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps
                   </Label>
                   <Input
                     id="storeUrl"
-                    placeholder="Ex: your-store.myshopify.com"
+                    placeholder="Ex: your-store.myshopify.com or https://admin.shopify.com/store/your-store"
                     value={formData.shopifyUrl}
                     onChange={(e) => handleStoreUrlChange(e.target.value)}
                     className="mt-1"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Enter your complete Shopify store URL or just the store name
+                    Enter your Shopify admin URL or just the store domain
                   </p>
                 </div>
               </div>
