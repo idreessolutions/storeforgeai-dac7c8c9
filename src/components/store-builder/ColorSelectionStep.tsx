@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Palette } from "lucide-react";
 
 interface ColorSelectionStepProps {
   formData: {
@@ -24,7 +24,11 @@ const ColorSelectionStep = ({ formData, handleInputChange }: ColorSelectionStepP
     <Card className="border-0 shadow-lg max-w-2xl mx-auto">
       <CardContent className="py-12 px-8">
         <div className="text-center mb-12">
+          <div className="w-20 h-20 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Palette className="h-10 w-10 text-white" />
+          </div>
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Choose Theme Color</h2>
+          <p className="text-gray-600">Select a color that represents your brand</p>
         </div>
 
         <div className="grid grid-cols-3 gap-6 mb-12">
@@ -38,17 +42,27 @@ const ColorSelectionStep = ({ formData, handleInputChange }: ColorSelectionStepP
                   : 'hover:ring-2 hover:ring-gray-300 hover:ring-offset-2'
               }`}
               style={{ backgroundColor: color.value }}
-            />
+            >
+              {formData.themeColor === color.value && (
+                <div className="w-full h-full rounded-2xl flex items-center justify-center">
+                  <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
+                    <div className="w-3 h-3 bg-current rounded-full"></div>
+                  </div>
+                </div>
+              )}
+            </button>
           ))}
         </div>
 
-        <div className="text-center">
-          <Button 
-            className="bg-blue-500 hover:bg-blue-600 text-white px-12 py-3 text-lg font-semibold rounded-lg"
-          >
-            Next Step
-          </Button>
-        </div>
+        {formData.themeColor && (
+          <div className="text-center">
+            <p className="text-gray-600 mb-4">
+              Selected color: <span className="font-semibold" style={{ color: formData.themeColor }}>
+                {colors.find(c => c.value === formData.themeColor)?.name}
+              </span>
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

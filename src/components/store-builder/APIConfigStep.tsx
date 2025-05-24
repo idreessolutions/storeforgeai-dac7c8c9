@@ -4,16 +4,28 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings } from "lucide-react";
+import { Settings, ExternalLink } from "lucide-react";
 
 interface APIConfigStepProps {
   formData: {
     accessToken: string;
+    shopifyUrl: string;
   };
   handleInputChange: (field: string, value: string) => void;
 }
 
 const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
+  const handleAccessShopifyApps = () => {
+    if (formData.shopifyUrl) {
+      // Extract store name from URL (e.g., "090c4b-3" from "090c4b-3.myshopify.com")
+      const storeName = formData.shopifyUrl.replace('.myshopify.com', '');
+      const appsUrl = `https://admin.shopify.com/store/${storeName}/settings/apps/development`;
+      window.open(appsUrl, '_blank');
+    } else {
+      window.open('https://admin.shopify.com/settings/apps/development', '_blank');
+    }
+  };
+
   return (
     <Card className="border-0 shadow-lg max-w-2xl mx-auto">
       <CardContent className="py-12 px-8">
@@ -47,7 +59,51 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
                 <span className="font-medium mr-2">•</span>
                 Click <strong>Create an app</strong>
               </li>
+              <li className="flex items-start">
+                <span className="font-medium mr-2">•</span>
+                Fill in Name with <strong>"Custom Store"</strong>
+              </li>
+              <li className="flex items-start">
+                <span className="font-medium mr-2">•</span>
+                Click <strong>Configure Admin API Scopes</strong>
+              </li>
+              <li className="flex items-start">
+                <span className="font-medium mr-2">•</span>
+                Select <strong>ALL API Scopes (Check All Boxes)</strong>
+              </li>
+              <li className="flex items-start">
+                <span className="font-medium mr-2">•</span>
+                Click <strong>Save</strong> button and <strong>Install</strong> at the top right
+              </li>
+              <li className="flex items-start">
+                <span className="font-medium mr-2">•</span>
+                Click the <strong>Reveal Token</strong> button once
+              </li>
+              <li className="flex items-start">
+                <span className="font-medium mr-2">•</span>
+                Copy the token that is revealed
+              </li>
+              <li className="flex items-start">
+                <span className="font-medium mr-2">•</span>
+                Paste the token in the field below
+              </li>
+              <li className="flex items-start">
+                <span className="font-medium mr-2">•</span>
+                Click the <strong>Next Step</strong> button to continue
+              </li>
             </ul>
+
+            <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-4 mb-6">
+              <p className="text-yellow-800 text-sm font-medium">
+                <strong>NOTE:</strong> Make sure you select all access scope options. If any are left unchecked, your store build may fail.
+              </p>
+            </div>
+
+            <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-4 mb-6">
+              <p className="text-yellow-800 text-sm font-medium">
+                Remember to return to this tab to continue creating your store.
+              </p>
+            </div>
 
             <div className="space-y-4">
               <div>
@@ -67,16 +123,10 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
 
           <Button 
             className="w-full bg-green-600 hover:bg-green-700 text-white py-4 text-lg font-semibold"
-            onClick={() => window.open('https://partners.shopify.com/organizations', '_blank')}
+            onClick={handleAccessShopifyApps}
           >
             Access Shopify Apps
-          </Button>
-
-          <Button 
-            variant="outline"
-            className="w-full py-4 text-lg font-semibold"
-          >
-            Next Step
+            <ExternalLink className="ml-2 h-5 w-5" />
           </Button>
         </div>
       </CardContent>
