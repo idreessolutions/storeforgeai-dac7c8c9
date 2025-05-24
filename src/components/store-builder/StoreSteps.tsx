@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Store, Sparkles, Palette, Package, FileText, Rocket } from "lucide-react";
+import { Store, Sparkles, Palette, Package, FileText, Rocket, Settings, ExternalLink } from "lucide-react";
 
 export interface Step {
   id: number;
@@ -11,9 +11,10 @@ export interface Step {
 
 export const storeSteps: Step[] = [
   { id: 1, title: "Store Details", icon: Store, description: "Tell us about your business" },
-  { id: 2, title: "AI Generation", icon: Sparkles, description: "AI creates your store" },
-  { id: 3, title: "Branding", icon: Palette, description: "Customize your brand" },
-  { id: 4, title: "Products", icon: Package, description: "Review AI-generated products" },
-  { id: 5, title: "Content", icon: FileText, description: "Finalize descriptions" },
-  { id: 6, title: "Launch", icon: Rocket, description: "Export to Shopify" }
+  { id: 2, title: "Create Store", icon: Sparkles, description: "Setup Shopify store" },
+  { id: 3, title: "API Config", icon: Settings, description: "Configure app access" },
+  { id: 4, title: "Choose Color", icon: Palette, description: "Select theme colors" },
+  { id: 5, title: "Products", icon: Package, description: "Add your products" },
+  { id: 6, title: "Content", icon: FileText, description: "Customize content" },
+  { id: 7, title: "Launch", icon: Rocket, description: "Go live with your store" }
 ];

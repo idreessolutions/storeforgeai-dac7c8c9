@@ -2,7 +2,10 @@
 import React from "react";
 import { storeSteps } from "./StoreSteps";
 import StoreDetailsStep from "./StoreDetailsStep";
-import AIGenerationStep from "./AIGenerationStep";
+import ShopifySetupStep from "./ShopifySetupStep";
+import APIConfigStep from "./APIConfigStep";
+import ColorSelectionStep from "./ColorSelectionStep";
+import GetStartedStep from "./GetStartedStep";
 import FutureStep from "./FutureStep";
 
 interface StepRendererProps {
@@ -13,6 +16,9 @@ interface StepRendererProps {
     businessType: string;
     storeStyle: string;
     additionalInfo: string;
+    shopifyUrl: string;
+    accessToken: string;
+    themeColor: string;
   };
   handleInputChange: (field: string, value: string) => void;
   isGenerating: boolean;
@@ -25,6 +31,8 @@ const StepRenderer = ({
   isGenerating 
 }: StepRendererProps) => {
   switch (currentStep) {
+    case 0:
+      return <GetStartedStep />;
     case 1:
       return (
         <StoreDetailsStep 
@@ -34,8 +42,23 @@ const StepRenderer = ({
       );
     case 2:
       return (
-        <AIGenerationStep 
-          isGenerating={isGenerating} 
+        <ShopifySetupStep 
+          formData={{ shopifyUrl: formData.shopifyUrl }} 
+          handleInputChange={handleInputChange} 
+        />
+      );
+    case 3:
+      return (
+        <APIConfigStep 
+          formData={{ accessToken: formData.accessToken }} 
+          handleInputChange={handleInputChange} 
+        />
+      );
+    case 4:
+      return (
+        <ColorSelectionStep 
+          formData={{ themeColor: formData.themeColor }} 
+          handleInputChange={handleInputChange} 
         />
       );
     default:
@@ -43,16 +66,14 @@ const StepRenderer = ({
         <FutureStep 
           step={currentStep} 
           stepTitle={
-            currentStep === 3 ? "Customize Your Branding" :
-            currentStep === 4 ? "Review Your Products" :
-            currentStep === 5 ? "Finalize Content" :
+            currentStep === 5 ? "Products" :
+            currentStep === 6 ? "Content" :
             "Launch Your Store"
           }
           stepDescription={
-            currentStep === 3 ? "Fine-tune your brand identity" :
-            currentStep === 4 ? "Review and edit AI-generated products" :
-            currentStep === 5 ? "Perfect your store content" :
-            "Export to Shopify and go live"
+            currentStep === 5 ? "Add and manage your products" :
+            currentStep === 6 ? "Customize your content" :
+            "Deploy your store to the world"
           }
           icon={storeSteps[currentStep - 1].icon}
         />

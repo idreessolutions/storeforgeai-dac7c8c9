@@ -30,11 +30,13 @@ const StoreBuilder = ({ onBack }: StoreBuilderProps) => {
         totalSteps={storeSteps.length} 
       />
 
-      {/* Step Navigation Component */}
-      <StepNavigation steps={storeSteps} currentStep={currentStep} />
+      {/* Step Navigation Component - only show if not on step 0 */}
+      {currentStep > 0 && (
+        <StepNavigation steps={storeSteps} currentStep={currentStep} />
+      )}
 
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-6 py-12 lg:px-8">
+      <div className="max-w-6xl mx-auto px-6 py-12 lg:px-8">
         <StepRenderer
           currentStep={currentStep}
           formData={formData}
@@ -42,14 +44,16 @@ const StoreBuilder = ({ onBack }: StoreBuilderProps) => {
           isGenerating={isGenerating}
         />
 
-        {/* Navigation Component */}
-        <Navigation 
-          currentStep={currentStep} 
-          totalSteps={storeSteps.length} 
-          isGenerating={isGenerating}
-          onPrevious={handlePrevStep}
-          onNext={handleNextStep}
-        />
+        {/* Navigation Component - only show if not on step 0 */}
+        {currentStep > 0 && (
+          <Navigation 
+            currentStep={currentStep} 
+            totalSteps={storeSteps.length} 
+            isGenerating={isGenerating}
+            onPrevious={handlePrevStep}
+            onNext={handleNextStep}
+          />
+        )}
       </div>
     </div>
   );

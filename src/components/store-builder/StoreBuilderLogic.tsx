@@ -11,7 +11,10 @@ export const useStoreBuilderLogic = () => {
     targetAudience: "",
     businessType: "",
     storeStyle: "",
-    additionalInfo: ""
+    additionalInfo: "",
+    shopifyUrl: "",
+    accessToken: "",
+    themeColor: "#1E40AF"
   });
   
   const { toast } = useToast();
@@ -21,6 +24,7 @@ export const useStoreBuilderLogic = () => {
   };
 
   const handleNextStep = async () => {
+    // Step 1: Store Details validation
     if (currentStep === 1) {
       if (!formData.niche || !formData.targetAudience) {
         toast({
@@ -30,16 +34,42 @@ export const useStoreBuilderLogic = () => {
         });
         return;
       }
-      
-      setIsGenerating(true);
-      // Simulate AI generation
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      setIsGenerating(false);
-      
-      toast({
-        title: "Store Generated!",
-        description: "Your AI-powered store has been created successfully.",
-      });
+    }
+    
+    // Step 2: Shopify URL validation
+    if (currentStep === 2) {
+      if (!formData.shopifyUrl) {
+        toast({
+          title: "Store URL Required",
+          description: "Please enter your Shopify store URL.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
+    // Step 3: Access Token validation
+    if (currentStep === 3) {
+      if (!formData.accessToken) {
+        toast({
+          title: "Access Token Required",
+          description: "Please enter your Shopify access token.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
+    // Step 4: Color selection validation
+    if (currentStep === 4) {
+      if (!formData.themeColor) {
+        toast({
+          title: "Color Required",
+          description: "Please select a theme color.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
     
     if (currentStep < storeSteps.length) {
