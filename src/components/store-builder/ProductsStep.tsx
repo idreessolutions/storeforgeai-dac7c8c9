@@ -49,6 +49,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       });
 
       if (error) {
+        console.error('Supabase function error:', error);
         throw error;
       }
 
@@ -63,8 +64,9 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         handleInputChange('productsAdded', true);
         toast({
           title: "Success!",
-          description: `20 winning ${formData.niche || 'general'} products have been added to your store.`,
+          description: `20 winning ${formData.niche || 'general'} products have been generated for your store.`,
         });
+        console.log('Products added successfully:', data.products?.length || 0);
       } else {
         throw new Error(data?.error || 'Failed to generate products');
       }
@@ -72,7 +74,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       console.error('Product addition error:', error);
       toast({
         title: "Error",
-        description: "An error occurred while adding products. Please try again.",
+        description: "An error occurred while generating products. Please try again.",
         variant: "destructive",
       });
     }
@@ -83,57 +85,49 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
 
   return (
     <Card className="border-0 shadow-lg max-w-2xl mx-auto">
-      <CardContent className="py-8 px-6">
+      <CardContent className="py-6 px-6">
         <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Package className="h-8 w-8 text-white" />
+          <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3">
+            <Package className="h-6 w-6 text-white" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">Products</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Products</h2>
           <p className="text-gray-600 text-sm">
             We'll add 20 winning {formData.niche ? `${formData.niche} ` : ''}products to your store
           </p>
         </div>
 
         <div className="space-y-4">
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <p className="text-gray-700 mb-3 text-sm">
-              Our AI will automatically add 20 carefully selected winning products 
+          <div className="bg-gray-50 p-3 rounded-lg">
+            <p className="text-gray-700 mb-2 text-sm">
+              Our AI will automatically generate 20 carefully selected winning products 
               {formData.niche ? ` in the ${formData.niche} niche ` : ' '}
-              to your store. Each product includes:
+              for your store. Each product includes:
             </p>
             
-            <ul className="space-y-1 text-gray-700 mb-4 text-sm">
+            <ul className="space-y-1 text-gray-700 mb-3 text-xs">
               <li className="flex items-start">
-                <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
-                High-quality product images
+                <Check className="h-3 w-3 text-green-500 mr-1 mt-0.5" />
+                High-quality product descriptions
               </li>
               <li className="flex items-start">
-                <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
-                Optimized descriptions for your niche
+                <Check className="h-3 w-3 text-green-500 mr-1 mt-0.5" />
+                Optimized titles for your niche
               </li>
               <li className="flex items-start">
-                <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+                <Check className="h-3 w-3 text-green-500 mr-1 mt-0.5" />
                 Competitive pricing strategies
               </li>
               <li className="flex items-start">
-                <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
-                SEO-optimized titles and tags
-              </li>
-              <li className="flex items-start">
-                <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
-                Product variants and options
-              </li>
-              <li className="flex items-start">
-                <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
-                Inventory management setup
+                <Check className="h-3 w-3 text-green-500 mr-1 mt-0.5" />
+                Category organization
               </li>
             </ul>
 
             {isLoading && (
-              <div className="space-y-3 mb-4">
+              <div className="space-y-2 mb-3">
                 <div className="text-center">
-                  <p className="text-blue-600 font-semibold mb-1 text-sm">Adding winning products...</p>
-                  <p className="text-xs text-gray-600">Currently adding: {currentProduct}</p>
+                  <p className="text-blue-600 font-semibold mb-1 text-sm">Generating winning products...</p>
+                  <p className="text-xs text-gray-600">Currently generating: {currentProduct}</p>
                 </div>
                 <Progress value={progress} className="w-full" />
                 <p className="text-xs text-gray-500 text-center">
@@ -143,11 +137,11 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
             )}
 
             {formData.productsAdded && (
-              <div className="bg-green-100 border border-green-300 rounded-lg p-3 mb-4">
+              <div className="bg-green-100 border border-green-300 rounded-lg p-2 mb-3">
                 <div className="flex items-center">
                   <Check className="h-4 w-4 text-green-600 mr-2" />
                   <p className="text-green-800 font-medium text-sm">
-                    Successfully added 20 winning {formData.niche || 'general'} products!
+                    Successfully generated 20 winning {formData.niche || 'general'} products!
                   </p>
                 </div>
               </div>
@@ -156,11 +150,11 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
 
           {!formData.productsAdded && (
             <Button 
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-base font-semibold"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 text-sm font-semibold"
               onClick={handleAddProducts}
               disabled={isLoading}
             >
-              {isLoading ? "Adding Products..." : "Add Winning Products"}
+              {isLoading ? "Generating Products..." : "Generate Winning Products"}
             </Button>
           )}
         </div>

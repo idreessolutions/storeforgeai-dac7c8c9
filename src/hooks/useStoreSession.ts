@@ -32,6 +32,7 @@ export const useStoreSession = () => {
 
   const saveSessionData = async (data: Partial<StoreSession>) => {
     try {
+      console.log('Saving session data:', data);
       const { error } = await supabase
         .from('store_builder_sessions')
         .upsert({
@@ -42,6 +43,8 @@ export const useStoreSession = () => {
 
       if (error) {
         console.error('Error saving session:', error);
+      } else {
+        console.log('Session saved successfully');
       }
     } catch (error) {
       console.error('Error saving session:', error);
@@ -50,17 +53,19 @@ export const useStoreSession = () => {
 
   const getSessionData = async (): Promise<StoreSession | null> => {
     try {
+      console.log('Getting session data for:', sessionId);
       const { data, error } = await supabase
         .from('store_builder_sessions')
         .select('*')
         .eq('session_id', sessionId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error getting session:', error);
         return null;
       }
 
+      console.log('Session data retrieved:', data);
       return data as StoreSession;
     } catch (error) {
       console.error('Error getting session:', error);

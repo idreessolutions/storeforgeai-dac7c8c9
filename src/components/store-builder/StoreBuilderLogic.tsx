@@ -28,8 +28,10 @@ export const useStoreBuilderLogic = () => {
   // Load session data on mount
   useEffect(() => {
     const loadSession = async () => {
+      console.log('Loading session data...');
       const sessionData = await getSessionData();
       if (sessionData) {
+        console.log('Session data found:', sessionData);
         setFormData({
           niche: sessionData.niche || "",
           targetAudience: sessionData.target_audience || "",
@@ -45,12 +47,15 @@ export const useStoreBuilderLogic = () => {
           createdViaAffiliate: sessionData.created_via_affiliate || false
         });
         setCurrentStep(sessionData.completed_steps || 0);
+      } else {
+        console.log('No session data found, starting fresh');
       }
     };
     loadSession();
   }, []);
 
   const handleInputChange = (field: string, value: string | boolean) => {
+    console.log('Input change:', field, value);
     setFormData(prev => {
       const newData = { ...prev, [field]: value };
       
@@ -76,6 +81,8 @@ export const useStoreBuilderLogic = () => {
   };
 
   const handleNextStep = async () => {
+    console.log('Next step clicked, current step:', currentStep);
+    
     // Step 0: Get Started - no validation needed
     if (currentStep === 0) {
       setCurrentStep(1);
@@ -133,7 +140,7 @@ export const useStoreBuilderLogic = () => {
       if (!formData.planActivated) {
         toast({
           title: "Plan Required",
-          description: "You must pick a Shopify plan before continuing.",
+          description: "You must activate a Shopify plan before continuing.",
           variant: "destructive",
         });
         return;
@@ -157,7 +164,7 @@ export const useStoreBuilderLogic = () => {
       if (!formData.productsAdded) {
         toast({
           title: "Products Required",
-          description: "Please add products to your store first.",
+          description: "Please generate products for your store first.",
           variant: "destructive",
         });
         return;

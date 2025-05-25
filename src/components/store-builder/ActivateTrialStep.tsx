@@ -2,9 +2,8 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, CreditCard } from "lucide-react";
+import { ExternalLink, CreditCard, AlertCircle, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AlertCircle, X } from "lucide-react";
 
 interface ActivateTrialStepProps {
   formData: {
@@ -17,9 +16,9 @@ interface ActivateTrialStepProps {
 const ActivateTrialStep = ({ formData, handleInputChange }: ActivateTrialStepProps) => {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [planStatus, setPlanStatus] = useState<'checking' | 'inactive' | 'active'>('checking');
+  const [hasClickedAccessPlans, setHasClickedAccessPlans] = useState(false);
 
   useEffect(() => {
-    // Check if plan was already activated
     if (formData.planActivated) {
       setPlanStatus('active');
     } else {
@@ -28,6 +27,9 @@ const ActivateTrialStep = ({ formData, handleInputChange }: ActivateTrialStepPro
   }, [formData.planActivated]);
 
   const handleAccessPlans = () => {
+    setHasClickedAccessPlans(true);
+    console.log('User clicked Access Plans');
+    
     if (formData.shopifyUrl) {
       const storeName = formData.shopifyUrl.replace('.myshopify.com', '');
       const plansUrl = `https://admin.shopify.com/store/${storeName}/settings/subscribe/select-plan?from=trialBanner`;
@@ -38,71 +40,81 @@ const ActivateTrialStep = ({ formData, handleInputChange }: ActivateTrialStepPro
   };
 
   const handlePlanActivated = () => {
-    // In a real app, this would verify the plan status via Shopify API
-    // For now, we'll simulate that they need to actually pick a plan
-    // The user needs to have actually selected a plan on Shopify for this to work
+    if (!hasClickedAccessPlans) {
+      setShowErrorModal(true);
+      return;
+    }
+
+    // Simulate plan verification - in production, you'd verify with Shopify API
+    // For now, we'll ask them to confirm they actually picked a plan
+    const confirmed = window.confirm(
+      "Have you actually selected and activated the Basic Shopify Plan? Click OK only if you have completed the plan activation process."
+    );
     
-    // For demo purposes, we'll set it to active when they click
-    // In production, you'd verify this with Shopify's API
-    setPlanStatus('active');
-    handleInputChange('planActivated', true);
+    if (confirmed) {
+      setPlanStatus('active');
+      handleInputChange('planActivated', true);
+      console.log('Plan activation confirmed');
+    } else {
+      console.log('Plan activation not confirmed');
+    }
   };
 
   return (
     <>
       <Card className="border-0 shadow-lg max-w-2xl mx-auto">
-        <CardContent className="py-8 px-6">
+        <CardContent className="py-6 px-6">
           <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CreditCard className="h-8 w-8 text-white" />
+            <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-3">
+              <CreditCard className="h-6 w-6 text-white" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-3">Activate Shopify Plan</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Activate Shopify Plan</h2>
           </div>
 
           <div className="space-y-4">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-gray-700 mb-3 text-sm">
-                Activate the Free Trial to unlock all features and avoid limitations.
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <p className="text-gray-700 mb-2 text-sm">
+                Activate the Free Trial to unlock all features.
               </p>
               
-              <ul className="space-y-1 text-gray-700 mb-4 text-sm">
+              <ul className="space-y-1 text-gray-700 mb-3 text-xs">
                 <li className="flex items-start">
-                  <span className="font-medium mr-2">•</span>
+                  <span className="font-medium mr-1">•</span>
                   Click <strong>Access Plans</strong> to select a plan
                 </li>
                 <li className="flex items-start">
-                  <span className="font-medium mr-2">•</span>
+                  <span className="font-medium mr-1">•</span>
                   Select the <strong>"Basic" Monthly Plan</strong>
                 </li>
                 <li className="flex items-start">
-                  <span className="font-medium mr-2">•</span>
+                  <span className="font-medium mr-1">•</span>
                   Fill in your business details
                 </li>
                 <li className="flex items-start">
-                  <span className="font-medium mr-2">•</span>
+                  <span className="font-medium mr-1">•</span>
                   Choose <strong>"Credit Card"</strong> payment
                 </li>
                 <li className="flex items-start">
-                  <span className="font-medium mr-2">•</span>
+                  <span className="font-medium mr-1">•</span>
                   Enter credit card details and activate
                 </li>
               </ul>
 
-              <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-3 mb-4">
-                <p className="text-yellow-800 text-xs font-medium">
+              <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-2 mb-3">
+                <p className="text-yellow-800 text-xs">
                   <strong>NOTE:</strong> You must activate a paid plan to continue.
                 </p>
               </div>
 
-              <div className="bg-blue-100 border border-blue-300 rounded-lg p-3 mb-4">
-                <p className="text-blue-800 text-xs font-medium">
+              <div className="bg-blue-100 border border-blue-300 rounded-lg p-2 mb-3">
+                <p className="text-blue-800 text-xs">
                   After activating, return here and click "I've Activated My Plan".
                 </p>
               </div>
 
               {planStatus === 'active' && (
-                <div className="bg-green-100 border border-green-300 rounded-lg p-3 mb-4">
-                  <p className="text-green-800 text-xs font-medium">
+                <div className="bg-green-100 border border-green-300 rounded-lg p-2 mb-3">
+                  <p className="text-green-800 text-xs">
                     ✅ Plan activated successfully! You can proceed.
                   </p>
                 </div>
@@ -110,7 +122,7 @@ const ActivateTrialStep = ({ formData, handleInputChange }: ActivateTrialStepPro
             </div>
 
             <Button 
-              className="w-full bg-green-600 hover:bg-green-700 text-white py-3 text-base font-semibold mb-3"
+              className="w-full bg-green-600 hover:bg-green-700 text-white py-2 text-sm font-semibold mb-2"
               onClick={handleAccessPlans}
             >
               Access Plans
@@ -118,7 +130,7 @@ const ActivateTrialStep = ({ formData, handleInputChange }: ActivateTrialStepPro
             </Button>
 
             <Button 
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 text-base font-semibold"
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 text-sm font-semibold"
               onClick={handlePlanActivated}
             >
               I've Activated My Plan
@@ -130,16 +142,16 @@ const ActivateTrialStep = ({ formData, handleInputChange }: ActivateTrialStepPro
       <Dialog open={showErrorModal} onOpenChange={setShowErrorModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-center">You Should Pick A Plan</DialogTitle>
+            <DialogTitle className="text-center text-lg">Access Plans First</DialogTitle>
           </DialogHeader>
           <div className="text-center py-4">
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
-              <X className="h-6 w-6 text-red-600" />
+            <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <X className="h-5 w-5 text-red-600" />
             </div>
             <p className="text-gray-700 mb-4 text-sm">
-              Please activate your Shopify plan before proceeding.
+              Please click "Access Plans" and select a Shopify plan before confirming activation.
             </p>
-            <Button onClick={() => setShowErrorModal(false)} className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button onClick={() => setShowErrorModal(false)} className="bg-blue-600 hover:bg-blue-700 text-white text-sm">
               OK
             </Button>
           </div>
