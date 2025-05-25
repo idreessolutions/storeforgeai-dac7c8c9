@@ -10,8 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 interface ShopifySetupStepProps {
   formData: {
     shopifyUrl: string;
+    createdViaAffiliate: boolean;
   };
-  handleInputChange: (field: string, value: string) => void;
+  handleInputChange: (field: string, value: string | boolean) => void;
 }
 
 const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps) => {
@@ -23,7 +24,8 @@ const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps
 
   const handleConfirmRedirect = () => {
     setShowModal(false);
-    window.open('https://www.shopify.com/it/prova-gratuita?utm_medium=cpc&utm_source=yabing&jk=shopify&bingadgroupid=1224856204390256&bingadid=76553660775308&bingkeywordid=76553719090121&bingnetwork=o&BOID=brand&msclkid=9f33511f705310b003ae392e8fb3f1e7&utm_source=bing&utm_medium=cpc&utm_campaign=Paid%20Search%20-%20Bing%20-%20Europe%20-%20Brand%20-%20Italian&utm_term=shopify&utm_content=Brand%20-%20Shopify', '_blank');
+    handleInputChange('createdViaAffiliate', true);
+    window.open('http://shopify.pxf.io/GK7n9s', '_blank');
   };
 
   const handleStoreUrlChange = (value: string) => {
@@ -55,73 +57,70 @@ const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps
   return (
     <>
       <Card className="border-0 shadow-lg max-w-2xl mx-auto">
-        <CardContent className="py-12 px-8">
-          <div className="text-center mb-8">
-            <div className="w-20 h-20 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Store className="h-10 w-10 text-white" />
+        <CardContent className="py-8 px-6">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Store className="h-8 w-8 text-white" />
             </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Create Store</h2>
-            <div className="bg-black text-white px-6 py-3 rounded-lg inline-block text-lg font-semibold mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">Create Store</h2>
+            <div className="bg-black text-white px-4 py-2 rounded-lg inline-block text-sm font-semibold mb-4">
               YOU MUST MAKE A BRAND NEW STORE
             </div>
           </div>
 
-          <div className="space-y-6">
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <p className="text-gray-700 mb-4">
-                First you need to create a Shopify account before we start building your completely free store!
+          <div className="space-y-4">
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <p className="text-gray-700 mb-3 text-sm">
+                Create a Shopify account before building your store!
               </p>
               
-              <ul className="space-y-2 text-gray-700 mb-6">
+              <ul className="space-y-1 text-gray-700 mb-4 text-sm">
                 <li className="flex items-start">
                   <span className="font-medium mr-2">•</span>
-                  Click the <strong>Create Account</strong> button below
+                  Click <strong>Create Account</strong> below
                 </li>
                 <li className="flex items-start">
                   <span className="font-medium mr-2">•</span>
-                  Complete the registration information to signup
+                  Complete registration
                 </li>
                 <li className="flex items-start">
                   <span className="font-medium mr-2">•</span>
-                  Return to this tab and paste your store URL below
+                  Return and paste your store URL
                 </li>
                 <li className="flex items-start">
                   <span className="font-medium mr-2">•</span>
-                  Click the next button
+                  Click next
                 </li>
               </ul>
 
-              <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-4 mb-6">
-                <p className="text-yellow-800 text-sm font-medium">
-                  Remember to return to this tab to continue creating your store.
+              <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-3 mb-4">
+                <p className="text-yellow-800 text-xs font-medium">
+                  Return to this tab to continue creating your store.
                 </p>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div>
                   <Label htmlFor="storeUrl" className="text-sm font-medium text-gray-700">
                     Store URL
                   </Label>
                   <Input
                     id="storeUrl"
-                    placeholder="Ex: your-store.myshopify.com or https://admin.shopify.com/store/your-store"
+                    placeholder="Ex: 5r4h1b-0y.myshopify.com"
                     value={formData.shopifyUrl}
                     onChange={(e) => handleStoreUrlChange(e.target.value)}
                     className="mt-1"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Enter your Shopify admin URL or just the store domain
-                  </p>
                 </div>
               </div>
             </div>
 
             <Button 
-              className="w-full bg-green-600 hover:bg-green-700 text-white py-4 text-lg font-semibold"
+              className="w-full bg-green-600 hover:bg-green-700 text-white py-3 text-base font-semibold"
               onClick={handleCreateAccount}
             >
               Create Account
-              <ExternalLink className="ml-2 h-5 w-5" />
+              <ExternalLink className="ml-2 h-4 w-4" />
             </Button>
           </div>
         </CardContent>
@@ -133,11 +132,11 @@ const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps
             <DialogTitle className="text-center">Don't forget!</DialogTitle>
           </DialogHeader>
           <div className="text-center py-4">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="h-8 w-8 text-blue-600" />
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <AlertCircle className="h-6 w-6 text-blue-600" />
             </div>
-            <p className="text-gray-700 mb-6">
-              <strong className="text-red-600">NOTE:</strong> You must return to this tab after you create your Shopify account and paste your website URL in the box below.
+            <p className="text-gray-700 mb-4 text-sm">
+              <strong className="text-red-600">NOTE:</strong> Return to this tab after creating your Shopify account and paste your URL below.
             </p>
             <Button onClick={handleConfirmRedirect} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
               Yes I understand!

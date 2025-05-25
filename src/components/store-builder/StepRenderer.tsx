@@ -26,6 +26,7 @@ interface StepRendererProps {
     themeColor: string;
     productsAdded: boolean;
     mentorshipRequested: boolean;
+    createdViaAffiliate: boolean;
   };
   handleInputChange: (field: string, value: string | boolean) => void;
   isGenerating: boolean;
@@ -50,7 +51,10 @@ const StepRenderer = ({
     case 2:
       return (
         <ShopifySetupStep 
-          formData={{ shopifyUrl: formData.shopifyUrl }} 
+          formData={{ 
+            shopifyUrl: formData.shopifyUrl,
+            createdViaAffiliate: formData.createdViaAffiliate
+          }} 
           handleInputChange={handleInputChange} 
         />
       );

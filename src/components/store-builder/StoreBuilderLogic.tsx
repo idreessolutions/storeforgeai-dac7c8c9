@@ -1,10 +1,11 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { storeSteps } from "./StoreSteps";
+import { useStoreSession } from "@/hooks/useStoreSession";
 
 export const useStoreBuilderLogic = () => {
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [formData, setFormData] = useState({
     niche: "",
@@ -17,16 +18,71 @@ export const useStoreBuilderLogic = () => {
     planActivated: false,
     themeColor: "#1E40AF",
     productsAdded: false,
-    mentorshipRequested: false
+    mentorshipRequested: false,
+    createdViaAffiliate: false
   });
   
   const { toast } = useToast();
+  const { sessionId, saveSessionData, getSessionData } = useStoreSession();
+
+  // Load session data on mount
+  useEffect(() => {
+    const loadSession = async () => {
+      const sessionData = await getSessionData();
+      if (sessionData) {
+        setFormData({
+          niche: sessionData.niche || "",
+          targetAudience: sessionData.targetAudience || "",
+          businessType: sessionData.businessType || "",
+          storeStyle: sessionData.storeStyle || "",
+          additionalInfo: sessionData.additionalInfo || "",
+          shopifyUrl: sessionData.shopifyUrl || "",
+          accessToken: sessionData.accessToken || "",
+          planActivated: sessionData.planActivated || false,
+          themeColor: sessionData.themeColor || "#1E40AF",
+          productsAdded: sessionData.productsAdded || false,
+          mentorshipRequested: sessionData.mentorshipRequested || false,
+          createdViaAffiliate: sessionData.createdViaAffiliate || false
+        });
+        setCurrentStep(sessionData.completedSteps || 0);
+      }
+    };
+    loadSession();
+  }, []);
 
   const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      
+      // Save to database
+      saveSessionData({
+        sessionId,
+        niche: newData.niche,
+        targetAudience: newData.targetAudience,
+        businessType: newData.businessType,
+        storeStyle: newData.storeStyle,
+        additionalInfo: newData.additionalInfo,
+        shopifyUrl: newData.shopifyUrl,
+        accessToken: newData.accessToken,
+        planActivated: newData.planActivated,
+        themeColor: newData.themeColor,
+        productsAdded: newData.productsAdded,
+        mentorshipRequested: newData.mentorshipRequested,
+        createdViaAffiliate: newData.createdViaAffiliate
+      });
+      
+      return newData;
+    });
   };
 
   const handleNextStep = async () => {
+    // Step 0: Get Started - no validation needed
+    if (currentStep === 0) {
+      setCurrentStep(1);
+      await saveSessionData({ completedSteps: 1 });
+      return;
+    }
+
     // Step 1: Store Details validation
     if (currentStep === 1) {
       if (!formData.niche || !formData.targetAudience) {
@@ -39,12 +95,21 @@ export const useStoreBuilderLogic = () => {
       }
     }
     
-    // Step 2: Shopify URL validation
+    // Step 2: Shopify URL validation - must be created via affiliate
     if (currentStep === 2) {
       if (!formData.shopifyUrl) {
         toast({
           title: "Store URL Required",
           description: "Please enter your Shopify store URL after creating your account.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (!formData.createdViaAffiliate) {
+        toast({
+          title: "Account Required",
+          description: "Please create a Shopify account by clicking the 'Create Account' button first.",
           variant: "destructive",
         });
         return;
@@ -66,7 +131,11 @@ export const useStoreBuilderLogic = () => {
     // Step 4: Plan activation validation
     if (currentStep === 4) {
       if (!formData.planActivated) {
-        // This is handled by the ActivateTrialStep component
+        toast({
+          title: "Plan Required",
+          description: "You must pick a Shopify plan before continuing.",
+          variant: "destructive",
+        });
         return;
       }
     }
@@ -96,12 +165,14 @@ export const useStoreBuilderLogic = () => {
     }
     
     if (currentStep < storeSteps.length) {
-      setCurrentStep(currentStep + 1);
+      const nextStep = currentStep + 1;
+      setCurrentStep(nextStep);
+      await saveSessionData({ completedSteps: nextStep });
     }
   };
 
   const handlePrevStep = () => {
-    if (currentStep > 1) {
+    if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
     }
   };

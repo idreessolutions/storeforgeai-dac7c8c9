@@ -9,7 +9,119 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      mentorship_applications: {
+        Row: {
+          additional_info: string | null
+          budget_range: string | null
+          business_experience: string | null
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          income_goal: string | null
+          investment_amount: string | null
+          phone_number: string | null
+          session_id: string | null
+          why_mentorship: string | null
+        }
+        Insert: {
+          additional_info?: string | null
+          budget_range?: string | null
+          business_experience?: string | null
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          income_goal?: string | null
+          investment_amount?: string | null
+          phone_number?: string | null
+          session_id?: string | null
+          why_mentorship?: string | null
+        }
+        Update: {
+          additional_info?: string | null
+          budget_range?: string | null
+          business_experience?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          income_goal?: string | null
+          investment_amount?: string | null
+          phone_number?: string | null
+          session_id?: string | null
+          why_mentorship?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mentorship_applications_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "store_builder_sessions"
+            referencedColumns: ["session_id"]
+          },
+        ]
+      }
+      store_builder_sessions: {
+        Row: {
+          access_token: string | null
+          additional_info: string | null
+          business_type: string | null
+          completed_steps: number | null
+          created_at: string
+          created_via_affiliate: boolean | null
+          id: string
+          mentorship_requested: boolean | null
+          niche: string | null
+          plan_activated: boolean | null
+          products_added: boolean | null
+          session_id: string
+          shopify_url: string | null
+          store_style: string | null
+          target_audience: string | null
+          theme_color: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string | null
+          additional_info?: string | null
+          business_type?: string | null
+          completed_steps?: number | null
+          created_at?: string
+          created_via_affiliate?: boolean | null
+          id?: string
+          mentorship_requested?: boolean | null
+          niche?: string | null
+          plan_activated?: boolean | null
+          products_added?: boolean | null
+          session_id: string
+          shopify_url?: string | null
+          store_style?: string | null
+          target_audience?: string | null
+          theme_color?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string | null
+          additional_info?: string | null
+          business_type?: string | null
+          completed_steps?: number | null
+          created_at?: string
+          created_via_affiliate?: boolean | null
+          id?: string
+          mentorship_requested?: boolean | null
+          niche?: string | null
+          plan_activated?: boolean | null
+          products_added?: boolean | null
+          session_id?: string
+          shopify_url?: string | null
+          store_style?: string | null
+          target_audience?: string | null
+          theme_color?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
