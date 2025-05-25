@@ -30,17 +30,25 @@ interface StepRendererProps {
   };
   handleInputChange: (field: string, value: string | boolean) => void;
   isGenerating: boolean;
+  onNext: () => void;
 }
 
 const StepRenderer = ({ 
   currentStep, 
   formData, 
   handleInputChange, 
-  isGenerating 
+  isGenerating,
+  onNext
 }: StepRendererProps) => {
   switch (currentStep) {
     case 0:
-      return <GetStartedStep />;
+      return (
+        <GetStartedStep 
+          onNext={onNext}
+          formData={{ themeColor: formData.themeColor }}
+          handleInputChange={handleInputChange}
+        />
+      );
     case 1:
       return (
         <StoreDetailsStep 

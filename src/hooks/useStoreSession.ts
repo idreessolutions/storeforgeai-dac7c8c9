@@ -33,18 +33,47 @@ export const useStoreSession = () => {
   const saveSessionData = async (data: Partial<StoreSession>) => {
     try {
       console.log('Saving session data:', data);
-      const { error } = await supabase
+      
+      // First try to update existing record
+      const { error: updateError } = await supabase
         .from('store_builder_sessions')
-        .upsert({
-          session_id: sessionId,
+        .update({
           ...data,
           updated_at: new Date().toISOString()
-        });
+        })
+        .eq('session_id', sessionId);
 
-      if (error) {
-        console.error('Error saving session:', error);
+      if (updateError) {
+        console.log('Update failed, trying insert:', updateError);
+        // If update fails, try insert
+        const { error: insertError } = await supabase
+          .from('store_builder_sessions')
+          .insert({
+            session_id: sessionId,
+            niche: '',
+            target_audience: '',
+            business_type: '',
+            store_style: '',
+            additional_info: '',
+            shopify_url: '',
+            access_token: '',
+            plan_activated: false,
+            theme_color: '#1E40AF',
+            products_added: false,
+            mentorship_requested: false,
+            completed_steps: 0,
+            created_via_affiliate: false,
+            ...data,
+            updated_at: new Date().toISOString()
+          });
+
+        if (insertError) {
+          console.error('Error inserting session:', insertError);
+        } else {
+          console.log('Session inserted successfully');
+        }
       } else {
-        console.log('Session saved successfully');
+        console.log('Session updated successfully');
       }
     } catch (error) {
       console.error('Error saving session:', error);

@@ -4,7 +4,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Store } from "lucide-react";
 
-const GetStartedStep = () => {
+interface GetStartedStepProps {
+  onNext: () => void;
+  formData: {
+    themeColor: string;
+  };
+  handleInputChange: (field: string, value: string | boolean) => void;
+}
+
+const GetStartedStep = ({ onNext, formData, handleInputChange }: GetStartedStepProps) => {
   const steps = [
     { id: 1, title: "Details", active: false },
     { id: 2, title: "Create Store", active: false },
@@ -19,6 +27,10 @@ const GetStartedStep = () => {
     '#000000', '#1E40AF', '#DC2626',
     '#16A34A', '#7C3AED', '#EA580C'
   ];
+
+  const handleColorSelect = (color: string) => {
+    handleInputChange('themeColor', color);
+  };
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -65,13 +77,17 @@ const GetStartedStep = () => {
               {colors.map((color, index) => (
                 <button
                   key={index}
-                  className="w-full aspect-square rounded-xl transition-all duration-200 hover:scale-105 hover:ring-2 hover:ring-gray-300 hover:ring-offset-2"
+                  onClick={() => handleColorSelect(color)}
+                  className={`w-full aspect-square rounded-xl transition-all duration-200 hover:scale-105 hover:ring-2 hover:ring-gray-300 hover:ring-offset-2 ${
+                    formData.themeColor === color ? 'ring-2 ring-blue-500 ring-offset-2' : ''
+                  }`}
                   style={{ backgroundColor: color }}
                 />
               ))}
             </div>
 
             <Button 
+              onClick={onNext}
               className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-2 text-base font-semibold rounded-lg mb-6"
             >
               Next Step
@@ -87,6 +103,7 @@ const GetStartedStep = () => {
             </div>
             
             <Button 
+              onClick={onNext}
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 text-base font-semibold rounded-lg"
             >
               Start Your Store

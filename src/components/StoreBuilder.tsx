@@ -42,6 +42,7 @@ const StoreBuilder = ({ onBack }: StoreBuilderProps) => {
           formData={formData}
           handleInputChange={handleInputChange}
           isGenerating={isGenerating}
+          onNext={handleNextStep}
         />
 
         {/* Navigation Component - only show if not on step 0 */}
