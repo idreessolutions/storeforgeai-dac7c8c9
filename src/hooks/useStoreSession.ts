@@ -4,20 +4,20 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface StoreSession {
   id?: string;
-  sessionId: string;
+  session_id: string;
   niche: string;
-  targetAudience: string;
-  businessType: string;
-  storeStyle: string;
-  additionalInfo: string;
-  shopifyUrl: string;
-  accessToken: string;
-  planActivated: boolean;
-  themeColor: string;
-  productsAdded: boolean;
-  mentorshipRequested: boolean;
-  completedSteps: number;
-  createdViaAffiliate: boolean;
+  target_audience: string;
+  business_type: string;
+  store_style: string;
+  additional_info: string;
+  shopify_url: string;
+  access_token: string;
+  plan_activated: boolean;
+  theme_color: string;
+  products_added: boolean;
+  mentorship_requested: boolean;
+  completed_steps: number;
+  created_via_affiliate: boolean;
 }
 
 export const useStoreSession = () => {

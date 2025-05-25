@@ -32,19 +32,19 @@ export const useStoreBuilderLogic = () => {
       if (sessionData) {
         setFormData({
           niche: sessionData.niche || "",
-          targetAudience: sessionData.targetAudience || "",
-          businessType: sessionData.businessType || "",
-          storeStyle: sessionData.storeStyle || "",
-          additionalInfo: sessionData.additionalInfo || "",
-          shopifyUrl: sessionData.shopifyUrl || "",
-          accessToken: sessionData.accessToken || "",
-          planActivated: sessionData.planActivated || false,
-          themeColor: sessionData.themeColor || "#1E40AF",
-          productsAdded: sessionData.productsAdded || false,
-          mentorshipRequested: sessionData.mentorshipRequested || false,
-          createdViaAffiliate: sessionData.createdViaAffiliate || false
+          targetAudience: sessionData.target_audience || "",
+          businessType: sessionData.business_type || "",
+          storeStyle: sessionData.store_style || "",
+          additionalInfo: sessionData.additional_info || "",
+          shopifyUrl: sessionData.shopify_url || "",
+          accessToken: sessionData.access_token || "",
+          planActivated: sessionData.plan_activated || false,
+          themeColor: sessionData.theme_color || "#1E40AF",
+          productsAdded: sessionData.products_added || false,
+          mentorshipRequested: sessionData.mentorship_requested || false,
+          createdViaAffiliate: sessionData.created_via_affiliate || false
         });
-        setCurrentStep(sessionData.completedSteps || 0);
+        setCurrentStep(sessionData.completed_steps || 0);
       }
     };
     loadSession();
@@ -54,21 +54,21 @@ export const useStoreBuilderLogic = () => {
     setFormData(prev => {
       const newData = { ...prev, [field]: value };
       
-      // Save to database
+      // Save to database with correct field mapping
       saveSessionData({
-        sessionId,
+        session_id: sessionId,
         niche: newData.niche,
-        targetAudience: newData.targetAudience,
-        businessType: newData.businessType,
-        storeStyle: newData.storeStyle,
-        additionalInfo: newData.additionalInfo,
-        shopifyUrl: newData.shopifyUrl,
-        accessToken: newData.accessToken,
-        planActivated: newData.planActivated,
-        themeColor: newData.themeColor,
-        productsAdded: newData.productsAdded,
-        mentorshipRequested: newData.mentorshipRequested,
-        createdViaAffiliate: newData.createdViaAffiliate
+        target_audience: newData.targetAudience,
+        business_type: newData.businessType,
+        store_style: newData.storeStyle,
+        additional_info: newData.additionalInfo,
+        shopify_url: newData.shopifyUrl,
+        access_token: newData.accessToken,
+        plan_activated: newData.planActivated,
+        theme_color: newData.themeColor,
+        products_added: newData.productsAdded,
+        mentorship_requested: newData.mentorshipRequested,
+        created_via_affiliate: newData.createdViaAffiliate
       });
       
       return newData;
@@ -79,7 +79,7 @@ export const useStoreBuilderLogic = () => {
     // Step 0: Get Started - no validation needed
     if (currentStep === 0) {
       setCurrentStep(1);
-      await saveSessionData({ completedSteps: 1 });
+      await saveSessionData({ completed_steps: 1 });
       return;
     }
 
@@ -167,7 +167,7 @@ export const useStoreBuilderLogic = () => {
     if (currentStep < storeSteps.length) {
       const nextStep = currentStep + 1;
       setCurrentStep(nextStep);
-      await saveSessionData({ completedSteps: nextStep });
+      await saveSessionData({ completed_steps: nextStep });
     }
   };
 
