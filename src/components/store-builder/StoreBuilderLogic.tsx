@@ -54,12 +54,12 @@ export const useStoreBuilderLogic = () => {
     loadSession();
   }, []);
 
-  const handleInputChange = (field: string, value: string | boolean) => {
+  const handleInputChange = async (field: string, value: string | boolean) => {
     console.log('Input change:', field, value);
     setFormData(prev => {
       const newData = { ...prev, [field]: value };
       
-      // Save to database with correct field mapping
+      // Save to database immediately with correct field mapping
       saveSessionData({
         session_id: sessionId,
         niche: newData.niche,
@@ -73,7 +73,8 @@ export const useStoreBuilderLogic = () => {
         theme_color: newData.themeColor,
         products_added: newData.productsAdded,
         mentorship_requested: newData.mentorshipRequested,
-        created_via_affiliate: newData.createdViaAffiliate
+        created_via_affiliate: newData.createdViaAffiliate,
+        completed_steps: currentStep
       });
       
       return newData;
@@ -85,8 +86,9 @@ export const useStoreBuilderLogic = () => {
     
     // Step 0: Get Started - no validation needed
     if (currentStep === 0) {
-      setCurrentStep(1);
-      await saveSessionData({ completed_steps: 1 });
+      const nextStep = 1;
+      setCurrentStep(nextStep);
+      await saveSessionData({ completed_steps: nextStep });
       return;
     }
 
@@ -167,7 +169,24 @@ export const useStoreBuilderLogic = () => {
     if (currentStep < storeSteps.length) {
       const nextStep = currentStep + 1;
       setCurrentStep(nextStep);
-      await saveSessionData({ completed_steps: nextStep });
+      
+      // Save the step progress and all current form data
+      await saveSessionData({ 
+        completed_steps: nextStep,
+        session_id: sessionId,
+        niche: formData.niche,
+        target_audience: formData.targetAudience,
+        business_type: formData.businessType,
+        store_style: formData.storeStyle,
+        additional_info: formData.additionalInfo,
+        shopify_url: formData.shopifyUrl,
+        access_token: formData.accessToken,
+        plan_activated: formData.planActivated,
+        theme_color: formData.themeColor,
+        products_added: formData.productsAdded,
+        mentorship_requested: formData.mentorshipRequested,
+        created_via_affiliate: formData.createdViaAffiliate
+      });
     }
   };
 

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Package, Check } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import { addProductsToShopify } from "@/services/productService";
 
 interface ProductsStepProps {
   formData: {
@@ -41,66 +42,26 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       console.log('Niche:', formData.niche);
       console.log('Access token provided:', !!formData.accessToken);
       
-      // Simulate progress while calling the actual Shopify API
-      const progressInterval = setInterval(() => {
-        setProgress(prev => {
-          const newProgress = Math.min(prev + 5, 90);
-          setCurrentProduct(`${formData.niche || 'General'} Product ${Math.floor(newProgress / 5) + 1}`);
-          return newProgress;
-        });
-      }, 200);
-
-      // Make actual API call to add products to Shopify store
-      const shopifyApiUrl = `https://${formData.shopifyUrl.replace('.myshopify.com', '')}.myshopify.com/admin/api/2023-10/products.json`;
-      
-      // Generate 20 products and add them to the store
-      const products = await generateProductsForNiche(formData.niche || 'general');
-      
-      for (let i = 0; i < products.length; i++) {
-        const product = products[i];
-        
-        const response = await fetch(shopifyApiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Shopify-Access-Token': formData.accessToken,
-          },
-          body: JSON.stringify({
-            product: {
-              title: product.title,
-              body_html: product.description,
-              vendor: 'StoreForge AI',
-              product_type: formData.niche || 'General',
-              handle: product.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
-              variants: [{
-                title: 'Default Title',
-                price: product.price.toString(),
-                inventory_quantity: 100,
-                inventory_management: 'shopify'
-              }]
-            }
-          })
-        });
-
-        if (!response.ok) {
-          console.error(`Failed to add product ${product.title}:`, await response.text());
-        } else {
-          console.log(`Successfully added product: ${product.title}`);
+      // Use the productService to add products to Shopify
+      const success = await addProductsToShopify(
+        formData.shopifyUrl,
+        formData.accessToken,
+        formData.niche || 'general',
+        (progressValue: number, productName: string) => {
+          setProgress(progressValue);
+          setCurrentProduct(productName);
         }
-        
-        // Small delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
+      );
 
-      clearInterval(progressInterval);
-      setProgress(100);
-      setCurrentProduct("Completed!");
-      
-      handleInputChange('productsAdded', true);
-      toast({
-        title: "Success!",
-        description: `20 winning ${formData.niche || 'general'} products have been added to your Shopify store.`,
-      });
+      if (success) {
+        handleInputChange('productsAdded', true);
+        toast({
+          title: "Success!",
+          description: `20 winning ${formData.niche || 'general'} products have been added to your Shopify store.`,
+        });
+      } else {
+        throw new Error('Failed to add products to Shopify store');
+      }
       
     } catch (error) {
       console.error('Product addition error:', error);
@@ -192,41 +153,6 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       </CardContent>
     </Card>
   );
-};
-
-// Helper function to generate products for different niches
-const generateProductsForNiche = async (niche: string) => {
-  const products = [];
-  const baseProducts = {
-    'Pet': [
-      { title: 'Smart Pet Feeder', description: 'Automatic pet feeder with smartphone control', price: 89.99 },
-      { title: 'Interactive Dog Toy', description: 'Mental stimulation puzzle toy for dogs', price: 24.99 },
-      { title: 'Cat Laser Pointer', description: 'Automatic laser toy for cats', price: 19.99 },
-      { title: 'Pet Water Fountain', description: 'Fresh flowing water for pets', price: 34.99 },
-      { title: 'Dog Training Collar', description: 'Vibration training collar for dogs', price: 49.99 }
-    ],
-    'Electronics': [
-      { title: 'Wireless Earbuds', description: 'Premium wireless earbuds with noise cancellation', price: 79.99 },
-      { title: 'Phone Charger Stand', description: 'Fast wireless charging stand', price: 29.99 },
-      { title: 'Bluetooth Speaker', description: 'Portable waterproof Bluetooth speaker', price: 59.99 },
-      { title: 'LED Strip Lights', description: 'Smart RGB LED strip lights', price: 34.99 },
-      { title: 'Gaming Mouse Pad', description: 'Large RGB gaming mouse pad', price: 24.99 }
-    ]
-  };
-
-  const nicheProducts = baseProducts[niche] || baseProducts['Electronics'];
-  
-  // Generate 20 products by repeating and varying the base products
-  for (let i = 0; i < 20; i++) {
-    const baseProduct = nicheProducts[i % nicheProducts.length];
-    products.push({
-      title: `${baseProduct.title} ${Math.floor(i / nicheProducts.length) + 1}`,
-      description: baseProduct.description,
-      price: baseProduct.price + (Math.random() * 20 - 10) // Add some price variation
-    });
-  }
-  
-  return products;
 };
 
 export default ProductsStep;

@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Users, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useStoreSession } from "@/hooks/useStoreSession";
 
 interface MentorshipStepProps {
   formData: {
@@ -32,6 +34,7 @@ const MentorshipStep = ({ formData, handleInputChange }: MentorshipStepProps) =>
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { sessionId } = useStoreSession();
 
   const handleInputChangeMentorship = (field: string, value: string) => {
     setMentorshipData(prev => ({ ...prev, [field]: value }));
@@ -54,11 +57,28 @@ const MentorshipStep = ({ formData, handleInputChange }: MentorshipStepProps) =>
     setIsSubmitting(true);
 
     try {
-      // Here you would typically send the data to your backend
-      console.log('Mentorship application:', mentorshipData);
+      console.log('Submitting mentorship application:', mentorshipData);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Save to Supabase mentorship_applications table
+      const { error } = await supabase
+        .from('mentorship_applications')
+        .insert({
+          session_id: sessionId,
+          full_name: mentorshipData.name,
+          email: mentorshipData.email,
+          phone_number: mentorshipData.phone,
+          why_mentorship: mentorshipData.description,
+          budget_range: mentorshipData.budget,
+          investment_amount: mentorshipData.investment,
+          income_goal: mentorshipData.revenue_goal,
+          business_experience: mentorshipData.experience,
+          additional_info: `Business Type: ${mentorshipData.business_type}, Timeline: ${mentorshipData.timeline}`
+        });
+
+      if (error) {
+        console.error('Error saving mentorship application:', error);
+        throw error;
+      }
       
       handleInputChange('mentorshipRequested', true);
       
@@ -67,6 +87,7 @@ const MentorshipStep = ({ formData, handleInputChange }: MentorshipStepProps) =>
         description: "We'll contact you within 24 hours to discuss your mentorship.",
       });
     } catch (error) {
+      console.error('Error submitting mentorship application:', error);
       toast({
         title: "Error",
         description: "Failed to submit application. Please try again.",
@@ -172,7 +193,7 @@ const MentorshipStep = ({ formData, handleInputChange }: MentorshipStepProps) =>
                   id="phone"
                   value={mentorshipData.phone}
                   onChange={(e) => handleInputChangeMentorship('phone', e.target.value)}
-                  placeholder="Enter your phone number"
+                  placeholder="EX: +1 (212)-456-7890"
                   className="mt-1"
                 />
               </div>
