@@ -102,8 +102,13 @@ export const useStoreBuilderLogic = () => {
       }
     }
     
-    // Step 2: Shopify URL validation - must be created via affiliate
+    // Step 2: Color Selection - no validation needed for color
     if (currentStep === 2) {
+      // Color is optional, proceed to next step
+    }
+    
+    // Step 3: Shopify URL validation - must be created via affiliate
+    if (currentStep === 3) {
       if (!formData.shopifyUrl) {
         toast({
           title: "Store URL Required",
@@ -123,8 +128,8 @@ export const useStoreBuilderLogic = () => {
       }
     }
     
-    // Step 3: Access Token validation
-    if (currentStep === 3) {
+    // Step 4: Access Token validation
+    if (currentStep === 4) {
       if (!formData.accessToken) {
         toast({
           title: "Access Token Required",
@@ -135,24 +140,12 @@ export const useStoreBuilderLogic = () => {
       }
     }
 
-    // Step 4: Plan activation validation
-    if (currentStep === 4) {
+    // Step 5: Plan activation validation
+    if (currentStep === 5) {
       if (!formData.planActivated) {
         toast({
           title: "Plan Required",
           description: "You must activate a Shopify plan before continuing.",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-    
-    // Step 5: Color selection validation
-    if (currentStep === 5) {
-      if (!formData.themeColor) {
-        toast({
-          title: "Color Required",
-          description: "Please select a theme color.",
           variant: "destructive",
         });
         return;
@@ -164,7 +157,7 @@ export const useStoreBuilderLogic = () => {
       if (!formData.productsAdded) {
         toast({
           title: "Products Required",
-          description: "Please generate products for your store first.",
+          description: "Please add products to your store first.",
           variant: "destructive",
         });
         return;

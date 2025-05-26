@@ -13,25 +13,6 @@ interface GetStartedStepProps {
 }
 
 const GetStartedStep = ({ onNext, formData, handleInputChange }: GetStartedStepProps) => {
-  const steps = [
-    { id: 1, title: "Details", active: false },
-    { id: 2, title: "Create Store", active: false },
-    { id: 3, title: "API Config", active: false },
-    { id: 4, title: "Activate Plan", active: true },
-    { id: 5, title: "Choose Color", active: false },
-    { id: 6, title: "Products", active: false },
-    { id: 7, title: "Launch", active: false }
-  ];
-
-  const colors = [
-    '#000000', '#1E40AF', '#DC2626',
-    '#16A34A', '#7C3AED', '#EA580C'
-  ];
-
-  const handleColorSelect = (color: string) => {
-    handleInputChange('themeColor', color);
-  };
-
   return (
     <div className="max-w-4xl mx-auto">
       <div className="text-center mb-8">
@@ -42,48 +23,22 @@ const GetStartedStep = ({ onNext, formData, handleInputChange }: GetStartedStepP
           <h1 className="text-xl font-bold text-gray-900">Store Builder</h1>
         </div>
         <h2 className="text-2xl font-bold text-gray-900 mb-3">Get Started</h2>
-        <h3 className="text-lg font-semibold text-gray-700 mb-6">Start Your Free Affiliate Site Build</h3>
-      </div>
-
-      {/* Progress Steps */}
-      <div className="flex items-center justify-center mb-6 overflow-x-auto">
-        {steps.map((step, index) => (
-          <div key={step.id} className="flex items-center">
-            <div className={`flex items-center space-x-1 ${
-              step.active ? 'text-blue-600' : 'text-gray-400'
-            }`}>
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
-                step.active 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-200 text-gray-400'
-              }`}>
-                {step.id}
-              </div>
-              <span className="text-xs font-medium hidden sm:block">{step.title}</span>
-            </div>
-            {index < steps.length - 1 && (
-              <div className="w-6 h-px bg-gray-200 mx-1" />
-            )}
-          </div>
-        ))}
+        <h3 className="text-lg font-semibold text-gray-700 mb-6">Start Your Free eCom Store Build</h3>
       </div>
 
       <Card className="border-0 shadow-lg">
         <CardContent className="py-8 px-6">
           <div className="text-center mb-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Choose Theme Color</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Welcome to Store Builder</h3>
             
-            <div className="grid grid-cols-3 gap-4 max-w-sm mx-auto mb-6">
-              {colors.map((color, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleColorSelect(color)}
-                  className={`w-full aspect-square rounded-xl transition-all duration-200 hover:scale-105 hover:ring-2 hover:ring-gray-300 hover:ring-offset-2 ${
-                    formData.themeColor === color ? 'ring-2 ring-blue-500 ring-offset-2' : ''
-                  }`}
-                  style={{ backgroundColor: color }}
-                />
-              ))}
+            {/* Placeholder for video - currently non-clickable */}
+            <div className="w-full max-w-md mx-auto mb-6 bg-gray-100 rounded-xl p-8 border-2 border-dashed border-gray-300">
+              <div className="text-gray-500 text-center">
+                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Store className="h-8 w-8 text-gray-400" />
+                </div>
+                <p className="text-sm">Video Content Coming Soon</p>
+              </div>
             </div>
 
             <Button 
@@ -98,7 +53,7 @@ const GetStartedStep = ({ onNext, formData, handleInputChange }: GetStartedStepP
             <div className="flex items-center justify-center mb-3">
               <span className="text-xl mr-2">💡</span>
               <span className="text-yellow-800 font-medium text-sm">
-                Create a free professional Affiliate Site in minutes. Follow the steps to get started and claim your website.
+                Create a free professional Shopify store in minutes. Follow the steps on-screen to get started and receive 20 potential winning products for your store.
               </span>
             </div>
             

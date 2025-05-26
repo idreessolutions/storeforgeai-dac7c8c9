@@ -58,6 +58,13 @@ const StepRenderer = ({
       );
     case 2:
       return (
+        <ColorSelectionStep 
+          formData={{ themeColor: formData.themeColor }} 
+          handleInputChange={handleInputChange} 
+        />
+      );
+    case 3:
+      return (
         <ShopifySetupStep 
           formData={{ 
             shopifyUrl: formData.shopifyUrl,
@@ -66,7 +73,7 @@ const StepRenderer = ({
           handleInputChange={handleInputChange} 
         />
       );
-    case 3:
+    case 4:
       return (
         <APIConfigStep 
           formData={{ 
@@ -76,20 +83,13 @@ const StepRenderer = ({
           handleInputChange={handleInputChange} 
         />
       );
-    case 4:
+    case 5:
       return (
         <ActivateTrialStep 
           formData={{ 
             shopifyUrl: formData.shopifyUrl,
             planActivated: formData.planActivated 
           }} 
-          handleInputChange={handleInputChange} 
-        />
-      );
-    case 5:
-      return (
-        <ColorSelectionStep 
-          formData={{ themeColor: formData.themeColor }} 
           handleInputChange={handleInputChange} 
         />
       );
