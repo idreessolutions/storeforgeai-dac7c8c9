@@ -22,29 +22,25 @@ export const addProductsToShopify = async (
     console.log('Shopify URL:', shopifyUrl);
     console.log('Access token provided:', !!accessToken);
     
-    // Generate 20 winning products using the Supabase edge function
-    const products = await generateWinningProducts(userNiche);
-    
-    if (!products || products.length === 0) {
-      console.error('No products generated');
-      return false;
-    }
-    
+    // Generate 20 winning products directly
+    const products = generateProducts(userNiche);
     console.log(`Generated ${products.length} products, starting Shopify upload`);
     
-    // Extract store name properly from URL
-    let storeName = shopifyUrl;
-    if (shopifyUrl.includes('.myshopify.com')) {
-      storeName = shopifyUrl.replace('https://', '').replace('http://', '').replace('.myshopify.com', '');
-    } else if (shopifyUrl.includes('admin.shopify.com/store/')) {
+    // Extract store name from various URL formats
+    let storeName = '';
+    if (shopifyUrl.includes('admin.shopify.com/store/')) {
       storeName = shopifyUrl.split('/store/')[1];
+    } else if (shopifyUrl.includes('.myshopify.com')) {
+      storeName = shopifyUrl.replace('https://', '').replace('http://', '').replace('.myshopify.com', '');
+    } else {
+      // Assume it's just the store name
+      storeName = shopifyUrl.replace('https://', '').replace('http://', '');
     }
     
     console.log('Store name extracted:', storeName);
     
     // Use the correct Shopify API endpoint
     const shopifyApiUrl = `https://${storeName}.myshopify.com/admin/api/2024-01/products.json`;
-    
     console.log('Shopify API URL:', shopifyApiUrl);
     
     let successCount = 0;
@@ -80,7 +76,7 @@ export const addProductsToShopify = async (
           }
         };
         
-        console.log('Sending product to Shopify:', JSON.stringify(productPayload, null, 2));
+        console.log('Sending product to Shopify:', productPayload.product.title);
         
         // Add product to Shopify store
         const response = await fetch(shopifyApiUrl, {
@@ -96,14 +92,6 @@ export const addProductsToShopify = async (
           const errorText = await response.text();
           console.error(`Failed to add product ${product.title}:`, response.status, response.statusText);
           console.error('Error response:', errorText);
-          
-          // Try to parse error details
-          try {
-            const errorJson = JSON.parse(errorText);
-            console.error('Shopify API error details:', errorJson);
-          } catch (e) {
-            console.error('Raw error response:', errorText);
-          }
         } else {
           const responseData = await response.json();
           console.log(`Successfully added product: ${product.title}`, responseData.product?.id);
@@ -126,56 +114,8 @@ export const addProductsToShopify = async (
   }
 };
 
-const generateWinningProducts = async (niche: string): Promise<Product[]> => {
-  try {
-    console.log('Generating products for niche:', niche);
-    
-    // Use the Supabase edge function instead of the broken API route
-    const response = await fetch('/supabase/functions/v1/generate-products', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        niche: niche,
-      }),
-    });
-    
-    if (!response.ok) {
-      console.error('Supabase function request failed:', response.status);
-      throw new Error(`Supabase function request failed: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    console.log('Generated products response:', data);
-    
-    if (data.success && data.products) {
-      // Convert the products to the expected format
-      return data.products.map((product: any, index: number) => ({
-        title: product.title || `${niche} Product ${index + 1}`,
-        description: product.description || `High-quality ${niche.toLowerCase()} product perfect for your customers`,
-        price: product.price || (Math.random() * 80 + 20),
-        images: [`https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=500&h=500&fit=crop`],
-        variants: [
-          {
-            title: 'Default Title',
-            price: product.price || (Math.random() * 80 + 20),
-            sku: `${product.title?.replace(/\s+/g, '-').toUpperCase() || 'PRODUCT'}-${index + 1}`
-          }
-        ]
-      }));
-    }
-    
-    throw new Error('Invalid response from product generation function');
-  } catch (error) {
-    console.error('Error generating products, using fallback:', error);
-    
-    // Fallback to niche-specific predefined products
-    return getFallbackProducts(niche);
-  }
-};
-
-const getFallbackProducts = (niche: string): Product[] => {
+// Generate products directly without external API calls
+const generateProducts = (niche: string): Product[] => {
   const nicheProducts: Record<string, Product[]> = {
     'pet': [
       {
@@ -207,6 +147,82 @@ const getFallbackProducts = (niche: string): Product[] => {
           { title: "2L Capacity", price: 34.99, sku: "CWF-2L-001" },
           { title: "3L Capacity", price: 39.99, sku: "CWF-3L-001" }
         ]
+      },
+      {
+        title: "Pet GPS Tracker Collar",
+        description: "Real-time GPS tracking collar for dogs and cats. Monitor your pet's location and activity levels throughout the day.",
+        price: 59.99,
+        images: ["https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=500&h=500&fit=crop"],
+        variants: [
+          { title: "Small", price: 59.99, sku: "PGT-S-001" },
+          { title: "Medium", price: 59.99, sku: "PGT-M-001" },
+          { title: "Large", price: 64.99, sku: "PGT-L-001" }
+        ]
+      },
+      {
+        title: "Automatic Pet Grooming Brush",
+        description: "Self-cleaning slicker brush that removes loose fur and reduces shedding. One-click hair removal feature makes grooming easy.",
+        price: 19.99,
+        images: ["https://images.unsplash.com/photo-1601758067099-4ea6f2b2ced9?w=500&h=500&fit=crop"],
+        variants: [
+          { title: "For Cats", price: 19.99, sku: "APG-CAT-001" },
+          { title: "For Dogs", price: 22.99, sku: "APG-DOG-001" }
+        ]
+      },
+      {
+        title: "Pet Training Clicker Set",
+        description: "Professional dog training clicker with wrist strap. Includes comprehensive training guide and treat pouch for effective training sessions.",
+        price: 12.99,
+        images: ["https://images.unsplash.com/photo-1552053831-71594a27632d?w=500&h=500&fit=crop"],
+        variants: [
+          { title: "Blue Set", price: 12.99, sku: "PTC-BLUE-001" },
+          { title: "Red Set", price: 12.99, sku: "PTC-RED-001" }
+        ]
+      },
+      {
+        title: "Elevated Pet Food Bowls",
+        description: "Ergonomic raised feeding station that promotes better digestion and reduces neck strain. Perfect for senior pets or those with joint issues.",
+        price: 39.99,
+        images: ["https://images.unsplash.com/photo-1589927986089-35812388d1e4?w=500&h=500&fit=crop"],
+        variants: [
+          { title: "Small (8 inches)", price: 39.99, sku: "EPF-S-001" },
+          { title: "Medium (12 inches)", price: 44.99, sku: "EPF-M-001" },
+          { title: "Large (16 inches)", price: 49.99, sku: "EPF-L-001" }
+        ]
+      },
+      {
+        title: "Pet Hair Remover Tool",
+        description: "Reusable lint and pet hair remover for furniture, clothes, and car seats. Chemical-free solution that works on all fabric types.",
+        price: 14.99,
+        images: ["https://images.unsplash.com/photo-1583512603806-077998240c7a?w=500&h=500&fit=crop"],
+        variants: [
+          { title: "Single Tool", price: 14.99, sku: "PHR-SINGLE-001" },
+          { title: "2-Pack", price: 24.99, sku: "PHR-2PACK-001" }
+        ]
+      },
+      {
+        title: "Smart Pet Door with App Control",
+        description: "Programmable pet door with smartphone control. Set schedules, monitor pet activity, and control access remotely through the mobile app.",
+        price: 129.99,
+        images: ["https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=500&h=500&fit=crop"],
+        variants: [
+          { title: "Small (for cats)", price: 129.99, sku: "SPD-S-001" },
+          { title: "Medium (small dogs)", price: 149.99, sku: "SPD-M-001" },
+          { title: "Large (large dogs)", price: 179.99, sku: "SPD-L-001" }
+        ]
+      },
+      {
+        title: "Pet Calming Anxiety Vest",
+        description: "Therapeutic pressure vest that helps reduce pet anxiety during storms, fireworks, and travel. Made with breathable, comfortable fabric.",
+        price: 29.99,
+        images: ["https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=500&h=500&fit=crop"],
+        variants: [
+          { title: "XS", price: 29.99, sku: "PCA-XS-001" },
+          { title: "Small", price: 29.99, sku: "PCA-S-001" },
+          { title: "Medium", price: 34.99, sku: "PCA-M-001" },
+          { title: "Large", price: 39.99, sku: "PCA-L-001" },
+          { title: "XL", price: 44.99, sku: "PCA-XL-001" }
+        ]
       }
     ],
     'kitchen': [
@@ -218,6 +234,58 @@ const getFallbackProducts = (niche: string): Product[] => {
         variants: [
           { title: "White", price: 39.99, sku: "SKS-WHITE-001" },
           { title: "Black", price: 39.99, sku: "SKS-BLACK-001" }
+        ]
+      },
+      {
+        title: "Silicone Cooking Utensil Set",
+        description: "Complete set of heat-resistant silicone cooking utensils. Non-stick friendly and dishwasher safe.",
+        price: 24.99,
+        images: ["https://images.unsplash.com/photo-1584286595398-c4fdb5ab4a5b?w=500"],
+        variants: [
+          { title: "5-Piece Set", price: 24.99, sku: "SCU-5PC-001" },
+          { title: "10-Piece Set", price: 39.99, sku: "SCU-10PC-001" }
+        ]
+      },
+      {
+        title: "Multi-Use Pressure Cooker",
+        description: "Electric pressure cooker with multiple cooking functions. Perfect for quick, healthy meals.",
+        price: 79.99,
+        images: ["https://images.unsplash.com/photo-1585515656963-05cc7a2a7c0f?w=500"],
+        variants: [
+          { title: "6-Quart", price: 79.99, sku: "MPC-6Q-001" },
+          { title: "8-Quart", price: 99.99, sku: "MPC-8Q-001" }
+        ]
+      }
+    ],
+    'electronics': [
+      {
+        title: "Wireless Charging Pad",
+        description: "Fast wireless charger for smartphones with LED indicator and over-temperature protection.",
+        price: 29.99,
+        images: ["https://images.unsplash.com/photo-1609592388907-a2b48db523c3?w=500"],
+        variants: [
+          { title: "10W Fast Charge", price: 29.99, sku: "WCP-10W-001" },
+          { title: "15W Ultra Fast", price: 39.99, sku: "WCP-15W-001" }
+        ]
+      },
+      {
+        title: "Bluetooth Earbuds Pro",
+        description: "Premium noise-cancelling wireless earbuds with long battery life and crystal clear sound quality.",
+        price: 79.99,
+        images: ["https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=500"],
+        variants: [
+          { title: "Black", price: 79.99, sku: "BEP-BLACK-001" },
+          { title: "White", price: 79.99, sku: "BEP-WHITE-001" }
+        ]
+      },
+      {
+        title: "Smart LED Strip Lights",
+        description: "RGB LED strips with smartphone app control, music sync, and voice assistant compatibility.",
+        price: 34.99,
+        images: ["https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500"],
+        variants: [
+          { title: "16ft Strip", price: 34.99, sku: "SLS-16FT-001" },
+          { title: "32ft Strip", price: 54.99, sku: "SLS-32FT-001" }
         ]
       }
     ]
@@ -231,13 +299,16 @@ const getFallbackProducts = (niche: string): Product[] => {
   for (let i = 0; i < 20; i++) {
     const baseProduct = selectedProducts[i % selectedProducts.length];
     const variation = Math.floor(i / selectedProducts.length) + 1;
+    const priceVariation = (Math.random() * 10 - 5); // ±$5 variation
+    
     products.push({
       ...baseProduct,
       title: variation > 1 ? `${baseProduct.title} v${variation}` : baseProduct.title,
-      price: baseProduct.price + (Math.random() * 20 - 10), // Add some price variation
+      price: Math.max(baseProduct.price + priceVariation, 5), // Ensure minimum $5 price
       variants: baseProduct.variants.map(variant => ({
         ...variant,
-        sku: `${variant.sku}-${i + 1}`
+        sku: `${variant.sku}-${i + 1}`,
+        price: Math.max(variant.price + priceVariation, 5)
       }))
     });
   }
