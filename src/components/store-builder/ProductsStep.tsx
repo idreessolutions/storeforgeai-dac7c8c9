@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Package, Check } from "lucide-react";
+import { Package, Check, AlertCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { addProductsToShopify } from "@/services/productService";
@@ -21,6 +21,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentProduct, setCurrentProduct] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
   const { toast } = useToast();
 
   const handleAddProducts = async () => {
@@ -36,6 +37,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
     setIsLoading(true);
     setProgress(0);
     setCurrentProduct("");
+    setErrorMessage("");
 
     try {
       console.log('Starting product generation for store:', formData.shopifyUrl);
@@ -59,15 +61,17 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
           title: "Success!",
           description: `20 winning ${formData.niche || 'general'} products have been added to your Shopify store.`,
         });
-      } else {
-        throw new Error('Failed to add products to Shopify store');
+        setErrorMessage("");
       }
       
     } catch (error) {
       console.error('Product addition error:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+      setErrorMessage(errorMsg);
+      
       toast({
         title: "Error",
-        description: "Failed to add products to your Shopify store. Please check your access token and try again.",
+        description: `Failed to add products: ${errorMsg}`,
         variant: "destructive",
       });
     }
@@ -125,6 +129,18 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 <p className="text-xs text-gray-500 text-center">
                   {Math.round(progress)}% Complete
                 </p>
+              </div>
+            )}
+
+            {errorMessage && (
+              <div className="bg-red-100 border border-red-300 rounded-lg p-2 mb-3">
+                <div className="flex items-start">
+                  <AlertCircle className="h-4 w-4 text-red-600 mr-2 mt-0.5" />
+                  <div>
+                    <p className="text-red-800 font-medium text-sm">Error adding products:</p>
+                    <p className="text-red-700 text-xs mt-1">{errorMessage}</p>
+                  </div>
+                </div>
               </div>
             )}
 

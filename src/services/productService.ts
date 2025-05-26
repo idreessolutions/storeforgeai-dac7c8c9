@@ -21,29 +21,55 @@ export const addProductsToShopify = async (
     console.log('Starting product generation for niche:', userNiche);
     console.log('Shopify URL:', shopifyUrl);
     console.log('Access token provided:', !!accessToken);
+    console.log('Access token length:', accessToken?.length);
     
+    // Validate inputs
+    if (!shopifyUrl || !accessToken) {
+      console.error('Missing required parameters');
+      throw new Error('Missing Shopify URL or access token');
+    }
+
     // Generate 20 winning products directly
     const products = generateProducts(userNiche);
     console.log(`Generated ${products.length} products, starting Shopify upload`);
     
     // Extract store name from various URL formats
     let storeName = '';
-    if (shopifyUrl.includes('admin.shopify.com/store/')) {
-      storeName = shopifyUrl.split('/store/')[1];
-    } else if (shopifyUrl.includes('.myshopify.com')) {
-      storeName = shopifyUrl.replace('https://', '').replace('http://', '').replace('.myshopify.com', '');
-    } else {
-      // Assume it's just the store name
-      storeName = shopifyUrl.replace('https://', '').replace('http://', '');
+    try {
+      if (shopifyUrl.includes('admin.shopify.com/store/')) {
+        storeName = shopifyUrl.split('/store/')[1];
+      } else if (shopifyUrl.includes('.myshopify.com')) {
+        storeName = shopifyUrl.replace(/https?:\/\//, '').replace('.myshopify.com', '').split('/')[0];
+      } else {
+        // Clean up the URL and extract store name
+        storeName = shopifyUrl.replace(/https?:\/\//, '').replace('.myshopify.com', '').split('/')[0];
+      }
+      
+      // Remove any trailing slashes or additional path segments
+      storeName = storeName.split('/')[0];
+      
+      console.log('Store name extracted:', storeName);
+      
+      if (!storeName) {
+        throw new Error('Could not extract store name from URL');
+      }
+    } catch (error) {
+      console.error('Error extracting store name:', error);
+      throw new Error('Invalid Shopify URL format');
     }
     
-    console.log('Store name extracted:', storeName);
-    
-    // Use the correct Shopify API endpoint
-    const shopifyApiUrl = `https://${storeName}.myshopify.com/admin/api/2024-01/products.json`;
+    // Use the correct Shopify API endpoint with latest version
+    const shopifyApiUrl = `https://${storeName}.myshopify.com/admin/api/2024-10/products.json`;
     console.log('Shopify API URL:', shopifyApiUrl);
     
+    // Validate access token format
+    if (!accessToken.startsWith('shpat_')) {
+      console.error('Invalid access token format');
+      throw new Error('Access token must start with "shpat_"');
+    }
+    
     let successCount = 0;
+    let errorDetails = [];
     
     for (let i = 0; i < products.length; i++) {
       const product = products[i];
@@ -53,64 +79,114 @@ export const addProductsToShopify = async (
       console.log(`Adding product ${i + 1}/${products.length}:`, product.title);
       
       try {
-        // Create product payload for Shopify
+        // Create product payload for Shopify with better data validation
         const productPayload = {
           product: {
-            title: product.title,
-            body_html: `<p>${product.description}</p>`,
+            title: product.title.trim(),
+            body_html: `<p>${product.description.trim()}</p>`,
             vendor: 'StoreForge AI',
             product_type: userNiche || 'General',
-            handle: product.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+            handle: product.title.toLowerCase()
+              .replace(/[^a-z0-9\s-]/g, '')
+              .replace(/\s+/g, '-')
+              .replace(/-+/g, '-')
+              .replace(/^-|-$/g, ''),
             status: 'active',
-            images: product.images.map(url => ({ src: url })),
-            variants: product.variants.map(variant => ({
-              title: variant.title,
-              price: variant.price.toString(),
-              sku: variant.sku,
-              inventory_management: 'shopify',
-              inventory_policy: 'deny',
+            published: true,
+            images: product.images.length > 0 ? product.images.map(url => ({ 
+              src: url,
+              alt: product.title 
+            })) : [],
+            variants: product.variants.map((variant, index) => ({
+              title: variant.title || 'Default Title',
+              price: variant.price.toFixed(2),
+              sku: `${variant.sku}-${Date.now()}-${index}`,
+              inventory_management: null, // Set to null to avoid inventory tracking issues
+              inventory_policy: 'continue',
               inventory_quantity: 100,
               weight: 1,
-              weight_unit: 'lb'
+              weight_unit: 'lb',
+              requires_shipping: true,
+              taxable: true
             }))
           }
         };
         
-        console.log('Sending product to Shopify:', productPayload.product.title);
+        console.log('Sending product payload:', JSON.stringify(productPayload, null, 2));
         
-        // Add product to Shopify store
+        // Add product to Shopify store with better error handling
         const response = await fetch(shopifyApiUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Shopify-Access-Token': accessToken,
+            'X-Shopify-Access-Token': accessToken.trim(),
+            'Accept': 'application/json',
+            'User-Agent': 'StoreForge-AI/1.0'
           },
           body: JSON.stringify(productPayload),
         });
         
+        console.log('Response status:', response.status);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+        
+        const responseText = await response.text();
+        console.log('Response text:', responseText);
+        
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`Failed to add product ${product.title}:`, response.status, response.statusText);
-          console.error('Error response:', errorText);
+          let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+          
+          try {
+            const errorData = JSON.parse(responseText);
+            if (errorData.errors) {
+              errorMessage = JSON.stringify(errorData.errors);
+            }
+          } catch (e) {
+            // Response is not JSON, use status text
+          }
+          
+          console.error(`Failed to add product ${product.title}:`, errorMessage);
+          errorDetails.push(`Product "${product.title}": ${errorMessage}`);
+          
+          // If it's an authentication error, stop immediately
+          if (response.status === 401 || response.status === 403) {
+            throw new Error(`Authentication failed: ${errorMessage}`);
+          }
         } else {
-          const responseData = await response.json();
-          console.log(`Successfully added product: ${product.title}`, responseData.product?.id);
-          successCount++;
+          try {
+            const responseData = JSON.parse(responseText);
+            console.log(`Successfully added product: ${product.title}`, responseData.product?.id);
+            successCount++;
+          } catch (e) {
+            console.error('Failed to parse success response:', e);
+            // Still count as success if status is OK
+            successCount++;
+          }
         }
       } catch (productError) {
         console.error(`Error adding individual product ${product.title}:`, productError);
+        errorDetails.push(`Product "${product.title}": ${productError.message}`);
       }
       
-      // Wait between requests to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Wait between requests to avoid rate limiting (Shopify has a 2 calls/second limit)
+      await new Promise(resolve => setTimeout(resolve, 600));
     }
     
     console.log(`Successfully added ${successCount}/${products.length} products to Shopify`);
-    return successCount > 0;
+    
+    if (errorDetails.length > 0) {
+      console.error('Errors encountered:', errorDetails);
+    }
+    
+    // Consider it successful if at least some products were added
+    if (successCount > 0) {
+      return true;
+    } else {
+      throw new Error(`Failed to add any products. Errors: ${errorDetails.join('; ')}`);
+    }
     
   } catch (error) {
     console.error('Error adding products to Shopify:', error);
-    return false;
+    throw error; // Re-throw to be handled by the calling component
   }
 };
 
