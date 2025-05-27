@@ -27,28 +27,34 @@ serve(async (req) => {
     
     console.log('Shopify API URL:', apiUrl);
 
-    // Generate unique handle to avoid conflicts
-    const uniqueHandle = `${product.handle}-${Date.now()}`;
+    // Generate completely unique identifiers
+    const timestamp = Date.now();
+    const randomSuffix = Math.random().toString(36).substring(2, 8);
+    const uniqueId = `${timestamp}-${randomSuffix}`;
 
-    // Prepare variants with guaranteed unique titles
+    // Generate unique handle
+    const baseHandle = product.handle || product.title.toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+    
+    const uniqueHandle = `${baseHandle}-${uniqueId}`;
+
+    // Prepare variants with truly unique titles to avoid Shopify conflicts
     const preparedVariants = product.variants.map((variant, index) => {
-      // Create truly unique variant titles
-      let variantTitle;
-      if (product.variants.length === 1) {
-        // For single variant products, use a timestamp-based unique title
-        variantTitle = `Default-${Date.now()}`;
-      } else {
-        // For multi-variant products, ensure each title is unique
-        variantTitle = `${variant.title}-${Date.now()}-${index}`;
-      }
+      // Create absolutely unique variant title that won't conflict
+      const variantId = `${timestamp}-${index}-${randomSuffix}`;
+      const baseTitle = variant.title || 'Default';
+      const uniqueVariantTitle = `${baseTitle}-${variantId}`;
       
       return {
-        title: variantTitle,
+        title: uniqueVariantTitle,
         price: parseFloat(variant.price).toFixed(2),
-        sku: `${variant.sku}-${Date.now()}-${index}`,
+        sku: `${variant.sku || 'SKU'}-${variantId}`,
         inventory_management: null,
         inventory_policy: 'continue',
-        inventory_quantity: 100,
+        inventory_quantity: 999,
         weight: 0.5,
         weight_unit: 'lb',
         requires_shipping: true,
@@ -57,17 +63,17 @@ serve(async (req) => {
       };
     });
 
-    // Prepare the product payload with unique identifiers
+    // Prepare the product payload with completely unique identifiers
     const productPayload = {
       product: {
-        title: `${product.title} - ${Date.now()}`,
-        body_html: product.body_html,
+        title: `${product.title} ${uniqueId}`,
+        body_html: product.body_html || `<p>${product.description || 'High-quality product'}</p>`,
         vendor: product.vendor || 'StoreForge AI',
         product_type: product.product_type || 'General',
         handle: uniqueHandle,
         status: 'active',
         published: true,
-        tags: product.tags || '',
+        tags: product.tags || 'winning products, trending',
         images: product.images || [],
         variants: preparedVariants
       }

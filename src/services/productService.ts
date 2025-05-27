@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 interface Product {
@@ -58,6 +59,10 @@ export const addProductsToShopify = async (
       console.log(`Processing product ${i + 1}/${products.length}: ${product.title}`);
       
       try {
+        // Create completely unique identifiers for this attempt
+        const timestamp = Date.now();
+        const randomSuffix = Math.random().toString(36).substring(2, 8);
+        
         // Use Supabase edge function to add product to Shopify
         const { data, error } = await supabase.functions.invoke('add-shopify-product', {
           body: {
@@ -80,10 +85,10 @@ export const addProductsToShopify = async (
                 return {
                   title: variant.title,
                   price: variant.price.toFixed(2),
-                  sku: `${variant.sku}-${Date.now()}-${variantIndex}`,
+                  sku: `${variant.sku}-${timestamp}-${i}-${variantIndex}-${randomSuffix}`,
                   inventory_management: null,
                   inventory_policy: 'continue',
-                  inventory_quantity: 100,
+                  inventory_quantity: 999,
                   weight: 0.5,
                   weight_unit: 'lb',
                   requires_shipping: true,
@@ -121,7 +126,7 @@ export const addProductsToShopify = async (
       
       // Add delay between requests to avoid rate limiting
       if (i < products.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Increased delay
       }
     }
     
@@ -187,59 +192,6 @@ function generateHandle(title: string): string {
 // Generate products directly without external API calls
 const generateProducts = (niche: string): Product[] => {
   const nicheProducts: Record<string, Product[]> = {
-    'pet': [
-      {
-        title: "Smart Pet Feeder with Camera",
-        description: "Automatic pet feeder with HD camera, voice recording, and smartphone app control. Perfect for busy pet parents who want to stay connected with their pets.",
-        price: 89.99,
-        images: ["https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=500&h=500&fit=crop&crop=center"],
-        variants: [
-          { title: "White", price: 89.99, sku: "SPF-WHITE-001" },
-          { title: "Black", price: 89.99, sku: "SPF-BLACK-001" }
-        ]
-      },
-      {
-        title: "Interactive Dog Puzzle Toy",
-        description: "Mental stimulation puzzle toy that keeps dogs engaged and reduces anxiety. Multiple difficulty levels available to challenge your pet.",
-        price: 24.99,
-        images: ["https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=500&h=500&fit=crop&crop=center"],
-        variants: [
-          { title: "Level 1", price: 24.99, sku: "DPT-LV1-001" },
-          { title: "Level 2", price: 29.99, sku: "DPT-LV2-001" }
-        ]
-      },
-      {
-        title: "Cat Water Fountain",
-        description: "Fresh flowing water dispenser with filtration system. Encourages healthy hydration for cats and keeps water clean and fresh.",
-        price: 34.99,
-        images: ["https://images.unsplash.com/photo-1548802673-380ab8ebc7b7?w=500&h=500&fit=crop&crop=center"],
-        variants: [
-          { title: "2L Capacity", price: 34.99, sku: "CWF-2L-001" },
-          { title: "3L Capacity", price: 39.99, sku: "CWF-3L-001" }
-        ]
-      },
-      {
-        title: "Pet GPS Tracker Collar",
-        description: "Real-time GPS tracking collar for dogs and cats. Monitor your pet's location and activity levels throughout the day.",
-        price: 59.99,
-        images: ["https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=500&h=500&fit=crop&crop=center"],
-        variants: [
-          { title: "Small", price: 59.99, sku: "PGT-S-001" },
-          { title: "Medium", price: 59.99, sku: "PGT-M-001" },
-          { title: "Large", price: 64.99, sku: "PGT-L-001" }
-        ]
-      },
-      {
-        title: "Automatic Pet Grooming Brush",
-        description: "Self-cleaning slicker brush that removes loose fur and reduces shedding. One-click hair removal feature makes grooming easy.",
-        price: 19.99,
-        images: ["https://images.unsplash.com/photo-1601758067099-4ea6f2b2ced9?w=500&h=500&fit=crop&crop=center"],
-        variants: [
-          { title: "For Cats", price: 19.99, sku: "APG-CAT-001" },
-          { title: "For Dogs", price: 22.99, sku: "APG-DOG-001" }
-        ]
-      }
-    ],
     'kitchen': [
       {
         title: "Smart Kitchen Scale with App",
@@ -272,35 +224,35 @@ const generateProducts = (niche: string): Product[] => {
         ]
       }
     ],
-    'electronics': [
+    'pet': [
       {
-        title: "Wireless Charging Pad",
-        description: "Fast wireless charger for smartphones with LED indicator and over-temperature protection.",
-        price: 29.99,
-        images: ["https://images.unsplash.com/photo-1609592388907-a2b48db523c3?w=500&h=500&fit=crop&crop=center"],
+        title: "Smart Pet Feeder with Camera",
+        description: "Automatic pet feeder with HD camera, voice recording, and smartphone app control. Perfect for busy pet parents who want to stay connected with their pets.",
+        price: 89.99,
+        images: ["https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=500&h=500&fit=crop&crop=center"],
         variants: [
-          { title: "10W Fast Charge", price: 29.99, sku: "WCP-10W-001" },
-          { title: "15W Ultra Fast", price: 39.99, sku: "WCP-15W-001" }
+          { title: "White", price: 89.99, sku: "SPF-WHITE-001" },
+          { title: "Black", price: 89.99, sku: "SPF-BLACK-001" }
         ]
       },
       {
-        title: "Bluetooth Earbuds Pro",
-        description: "Premium noise-cancelling wireless earbuds with long battery life and crystal clear sound quality.",
-        price: 79.99,
-        images: ["https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=500&h=500&fit=crop&crop=center"],
+        title: "Interactive Dog Puzzle Toy",
+        description: "Mental stimulation puzzle toy that keeps dogs engaged and reduces anxiety. Multiple difficulty levels available to challenge your pet.",
+        price: 24.99,
+        images: ["https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=500&h=500&fit=crop&crop=center"],
         variants: [
-          { title: "Black", price: 79.99, sku: "BEP-BLACK-001" },
-          { title: "White", price: 79.99, sku: "BEP-WHITE-001" }
+          { title: "Level 1", price: 24.99, sku: "DPT-LV1-001" },
+          { title: "Level 2", price: 29.99, sku: "DPT-LV2-001" }
         ]
       },
       {
-        title: "Smart LED Strip Lights",
-        description: "RGB LED strips with smartphone app control, music sync, and voice assistant compatibility.",
+        title: "Cat Water Fountain",
+        description: "Fresh flowing water dispenser with filtration system. Encourages healthy hydration for cats and keeps water clean and fresh.",
         price: 34.99,
-        images: ["https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500&h=500&fit=crop&crop=center"],
+        images: ["https://images.unsplash.com/photo-1548802673-380ab8ebc7b7?w=500&h=500&fit=crop&crop=center"],
         variants: [
-          { title: "16ft Strip", price: 34.99, sku: "SLS-16FT-001" },
-          { title: "32ft Strip", price: 54.99, sku: "SLS-32FT-001" }
+          { title: "2L Capacity", price: 34.99, sku: "CWF-2L-001" },
+          { title: "3L Capacity", price: 39.99, sku: "CWF-3L-001" }
         ]
       }
     ]
@@ -309,20 +261,5 @@ const generateProducts = (niche: string): Product[] => {
   const lowerNiche = niche.toLowerCase();
   const selectedProducts = nicheProducts[lowerNiche] || nicheProducts['pet'];
   
-  // Generate just 5 products to start with for testing
-  const products: Product[] = [];
-  for (let i = 0; i < 5; i++) {
-    const baseProduct = selectedProducts[i % selectedProducts.length];
-    
-    products.push({
-      ...baseProduct,
-      title: `${baseProduct.title}`,
-      variants: baseProduct.variants.map((variant, variantIndex) => ({
-        ...variant,
-        sku: `${variant.sku}-${Date.now()}-${i}-${variantIndex}`,
-      }))
-    });
-  }
-  
-  return products;
+  return selectedProducts.slice(0, 3); // Return only 3 products for testing
 };
