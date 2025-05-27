@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Package, Check, AlertCircle } from "lucide-react";
+import { Package, Check, AlertCircle, Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { addProductsToShopify } from "@/services/productService";
@@ -25,10 +25,21 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
   const { toast } = useToast();
 
   const handleAddProducts = async () => {
-    if (!formData.shopifyUrl || !formData.accessToken) {
+    // Comprehensive validation
+    if (!formData.shopifyUrl || !formData.accessToken || !formData.niche) {
       toast({
         title: "Missing Information",
-        description: "Please complete the previous steps first.",
+        description: "Please complete all previous steps: store URL, access token, and niche selection.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate access token format
+    if (!formData.accessToken.startsWith('shpat_')) {
+      toast({
+        title: "Invalid Access Token",
+        description: "Access token must start with 'shpat_'. Please check your token and try again.",
         variant: "destructive",
       });
       return;
@@ -40,43 +51,69 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
     setErrorMessage("");
 
     try {
-      console.log('Starting product generation for store:', formData.shopifyUrl);
+      console.log('=== STARTING PRODUCT ADDITION PROCESS ===');
+      console.log('Store URL:', formData.shopifyUrl);
       console.log('Niche:', formData.niche);
-      console.log('Access token provided:', !!formData.accessToken);
+      console.log('Access token format check:', formData.accessToken.startsWith('shpat_'));
+      console.log('Access token length:', formData.accessToken.length);
       
-      // Use the productService to add products to Shopify
+      // Use the enhanced productService to add products to Shopify
       const success = await addProductsToShopify(
         formData.shopifyUrl,
         formData.accessToken,
-        formData.niche || 'general',
+        formData.niche,
         (progressValue: number, productName: string) => {
+          console.log(`Progress: ${progressValue}% - Adding: ${productName}`);
           setProgress(progressValue);
           setCurrentProduct(productName);
         }
       );
 
       if (success) {
+        console.log('=== PRODUCT ADDITION SUCCESSFUL ===');
         handleInputChange('productsAdded', true);
-        toast({
-          title: "Success!",
-          description: `20 winning ${formData.niche || 'general'} products have been added to your Shopify store.`,
-        });
         setErrorMessage("");
+        
+        toast({
+          title: "Success! 🎉",
+          description: `20 winning ${formData.niche} products have been successfully added to your Shopify store!`,
+        });
+        
+        // Final progress update
+        setProgress(100);
+        setCurrentProduct("All products added successfully!");
       }
       
     } catch (error) {
-      console.error('Product addition error:', error);
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('=== PRODUCT ADDITION FAILED ===');
+      console.error('Error details:', error);
+      
+      const errorMsg = error instanceof Error ? error.message : 'An unexpected error occurred';
       setErrorMessage(errorMsg);
       
+      // More specific error handling
+      let toastDescription = `Failed to add products: ${errorMsg}`;
+      
+      if (errorMsg.includes('401') || errorMsg.includes('403') || errorMsg.includes('Unauthorized')) {
+        toastDescription = "Authentication failed. Please check your access token and ensure it has the correct permissions.";
+      } else if (errorMsg.includes('Invalid Shopify URL')) {
+        toastDescription = "Invalid store URL format. Please check your Shopify store URL.";
+      } else if (errorMsg.includes('NetworkError') || errorMsg.includes('fetch')) {
+        toastDescription = "Network error. Please check your internet connection and try again.";
+      }
+      
       toast({
-        title: "Error",
-        description: `Failed to add products: ${errorMsg}`,
+        title: "Error Adding Products",
+        description: toastDescription,
         variant: "destructive",
       });
+      
+      // Reset progress on error
+      setProgress(0);
+      setCurrentProduct("");
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   return (
@@ -86,71 +123,88 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
           <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3">
             <Package className="h-6 w-6 text-white" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Products</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Add Products</h2>
           <p className="text-gray-600 text-sm">
-            We'll add 20 winning {formData.niche ? `${formData.niche} ` : ''}products to your Shopify store
+            Add 20 winning {formData.niche ? `${formData.niche} ` : ''}products to your Shopify store
           </p>
         </div>
 
         <div className="space-y-4">
-          <div className="bg-gray-50 p-3 rounded-lg">
-            <p className="text-gray-700 mb-2 text-sm">
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <p className="text-gray-700 mb-3 text-sm">
               Our system will automatically add 20 carefully selected winning products 
               {formData.niche ? ` in the ${formData.niche} niche ` : ' '}
               directly to your Shopify store. Each product includes:
             </p>
             
-            <ul className="space-y-1 text-gray-700 mb-3 text-xs">
+            <ul className="space-y-2 text-gray-700 mb-4 text-xs">
               <li className="flex items-start">
-                <Check className="h-3 w-3 text-green-500 mr-1 mt-0.5" />
-                High-quality product descriptions
+                <Check className="h-3 w-3 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                High-quality product descriptions optimized for sales
               </li>
               <li className="flex items-start">
-                <Check className="h-3 w-3 text-green-500 mr-1 mt-0.5" />
-                Optimized titles for your niche
+                <Check className="h-3 w-3 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                SEO-optimized titles for better search visibility
               </li>
               <li className="flex items-start">
-                <Check className="h-3 w-3 text-green-500 mr-1 mt-0.5" />
-                Competitive pricing strategies
+                <Check className="h-3 w-3 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                Competitive pricing strategies based on market research
               </li>
               <li className="flex items-start">
-                <Check className="h-3 w-3 text-green-500 mr-1 mt-0.5" />
-                Ready for immediate sale
+                <Check className="h-3 w-3 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                Professional product variants and SKU management
+              </li>
+              <li className="flex items-start">
+                <Check className="h-3 w-3 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                Ready for immediate sale with inventory tracking
               </li>
             </ul>
 
             {isLoading && (
-              <div className="space-y-2 mb-3">
+              <div className="space-y-3 mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <div className="text-center">
-                  <p className="text-blue-600 font-semibold mb-1 text-sm">Adding products to your Shopify store...</p>
-                  <p className="text-xs text-gray-600">Currently adding: {currentProduct}</p>
+                  <div className="flex items-center justify-center mb-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-blue-600 mr-2" />
+                    <p className="text-blue-700 font-semibold text-sm">Adding products to your Shopify store...</p>
+                  </div>
+                  {currentProduct && (
+                    <p className="text-xs text-blue-600 mb-2">Currently processing: {currentProduct}</p>
+                  )}
                 </div>
-                <Progress value={progress} className="w-full" />
-                <p className="text-xs text-gray-500 text-center">
-                  {Math.round(progress)}% Complete
+                <Progress value={progress} className="w-full h-2" />
+                <p className="text-xs text-blue-600 text-center font-medium">
+                  {Math.round(progress)}% Complete ({Math.round(progress / 5)} of 20 products)
                 </p>
               </div>
             )}
 
             {errorMessage && (
-              <div className="bg-red-100 border border-red-300 rounded-lg p-2 mb-3">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
                 <div className="flex items-start">
-                  <AlertCircle className="h-4 w-4 text-red-600 mr-2 mt-0.5" />
-                  <div>
-                    <p className="text-red-800 font-medium text-sm">Error adding products:</p>
-                    <p className="text-red-700 text-xs mt-1">{errorMessage}</p>
+                  <AlertCircle className="h-4 w-4 text-red-600 mr-2 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-red-800 font-medium text-sm mb-1">Product Addition Failed</p>
+                    <p className="text-red-700 text-xs leading-relaxed">{errorMessage}</p>
+                    <p className="text-red-600 text-xs mt-2 italic">
+                      Please verify your access token has "write_products" permission and try again.
+                    </p>
                   </div>
                 </div>
               </div>
             )}
 
             {formData.productsAdded && (
-              <div className="bg-green-100 border border-green-300 rounded-lg p-2 mb-3">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
                 <div className="flex items-center">
-                  <Check className="h-4 w-4 text-green-600 mr-2" />
-                  <p className="text-green-800 font-medium text-sm">
-                    Successfully added 20 winning {formData.niche || 'general'} products to your Shopify store!
-                  </p>
+                  <Check className="h-4 w-4 text-green-600 mr-2 flex-shrink-0" />
+                  <div>
+                    <p className="text-green-800 font-medium text-sm">
+                      Successfully added 20 winning {formData.niche || 'general'} products!
+                    </p>
+                    <p className="text-green-700 text-xs mt-1">
+                      Your products are now live and ready for customers to purchase.
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
@@ -158,13 +212,29 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
 
           {!formData.productsAdded && (
             <Button 
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 text-sm font-semibold"
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white py-3 text-sm font-semibold transition-colors duration-200"
               onClick={handleAddProducts}
-              disabled={isLoading}
+              disabled={isLoading || !formData.shopifyUrl || !formData.accessToken || !formData.niche}
             >
-              {isLoading ? "Adding Products to Shopify..." : "Add Winning Products to Store"}
+              {isLoading ? (
+                <div className="flex items-center justify-center">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Adding Products... ({Math.round(progress / 5)}/20)
+                </div>
+              ) : (
+                <div className="flex items-center justify-center">
+                  <Package className="h-4 w-4 mr-2" />
+                  Add 20 Winning Products to Store
+                </div>
+              )}
             </Button>
           )}
+          
+          {!formData.shopifyUrl || !formData.accessToken || !formData.niche ? (
+            <p className="text-center text-xs text-gray-500 mt-2">
+              Complete all previous steps to enable product addition
+            </p>
+          ) : null}
         </div>
       </CardContent>
     </Card>

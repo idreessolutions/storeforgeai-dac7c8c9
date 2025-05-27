@@ -18,177 +18,201 @@ export const addProductsToShopify = async (
   onProgress: (progress: number, currentProduct: string) => void
 ): Promise<boolean> => {
   try {
-    console.log('Starting product generation for niche:', userNiche);
+    console.log('Starting product addition process...');
     console.log('Shopify URL:', shopifyUrl);
+    console.log('Niche:', userNiche);
     console.log('Access token provided:', !!accessToken);
-    console.log('Access token length:', accessToken?.length);
     
-    // Validate inputs
-    if (!shopifyUrl || !accessToken) {
-      console.error('Missing required parameters');
-      throw new Error('Missing Shopify URL or access token');
+    // Comprehensive input validation
+    if (!shopifyUrl || !accessToken || !userNiche) {
+      throw new Error('Missing required parameters: Shopify URL, access token, or niche');
     }
 
-    // Generate 20 winning products directly
-    const products = generateProducts(userNiche);
-    console.log(`Generated ${products.length} products, starting Shopify upload`);
-    
-    // Extract store name from various URL formats
-    let storeName = '';
-    try {
-      if (shopifyUrl.includes('admin.shopify.com/store/')) {
-        storeName = shopifyUrl.split('/store/')[1];
-      } else if (shopifyUrl.includes('.myshopify.com')) {
-        storeName = shopifyUrl.replace(/https?:\/\//, '').replace('.myshopify.com', '').split('/')[0];
-      } else {
-        // Clean up the URL and extract store name
-        storeName = shopifyUrl.replace(/https?:\/\//, '').replace('.myshopify.com', '').split('/')[0];
-      }
-      
-      // Remove any trailing slashes or additional path segments
-      storeName = storeName.split('/')[0];
-      
-      console.log('Store name extracted:', storeName);
-      
-      if (!storeName) {
-        throw new Error('Could not extract store name from URL');
-      }
-    } catch (error) {
-      console.error('Error extracting store name:', error);
-      throw new Error('Invalid Shopify URL format');
+    // Validate and extract store name from URL
+    const storeName = extractStoreName(shopifyUrl);
+    if (!storeName) {
+      throw new Error('Invalid Shopify URL format. Please provide a valid Shopify store URL.');
     }
+
+    // Validate access token format
+    if (!accessToken.startsWith('shpat_') || accessToken.length < 20) {
+      throw new Error('Invalid access token format. Must start with "shpat_" and be at least 20 characters long.');
+    }
+
+    console.log('Extracted store name:', storeName);
+
+    // Generate products for the specified niche
+    const products = generateProducts(userNiche);
+    console.log(`Generated ${products.length} products for ${userNiche} niche`);
     
-    // Use the correct Shopify API endpoint with latest version
+    // Construct the correct Shopify Admin API URL
     const shopifyApiUrl = `https://${storeName}.myshopify.com/admin/api/2024-10/products.json`;
     console.log('Shopify API URL:', shopifyApiUrl);
     
-    // Validate access token format
-    if (!accessToken.startsWith('shpat_')) {
-      console.error('Invalid access token format');
-      throw new Error('Access token must start with "shpat_"');
-    }
-    
     let successCount = 0;
-    let errorDetails = [];
+    const errors: string[] = [];
     
+    // Process products with proper error handling and rate limiting
     for (let i = 0; i < products.length; i++) {
       const product = products[i];
       const progress = ((i + 1) / products.length) * 100;
       onProgress(progress, product.title);
       
-      console.log(`Adding product ${i + 1}/${products.length}:`, product.title);
+      console.log(`Processing product ${i + 1}/${products.length}: ${product.title}`);
       
       try {
-        // Create product payload for Shopify with better data validation
-        const productPayload = {
-          product: {
-            title: product.title.trim(),
-            body_html: `<p>${product.description.trim()}</p>`,
-            vendor: 'StoreForge AI',
-            product_type: userNiche || 'General',
-            handle: product.title.toLowerCase()
-              .replace(/[^a-z0-9\s-]/g, '')
-              .replace(/\s+/g, '-')
-              .replace(/-+/g, '-')
-              .replace(/^-|-$/g, ''),
-            status: 'active',
-            published: true,
-            images: product.images.length > 0 ? product.images.map(url => ({ 
-              src: url,
-              alt: product.title 
-            })) : [],
-            variants: product.variants.map((variant, index) => ({
-              title: variant.title || 'Default Title',
-              price: variant.price.toFixed(2),
-              sku: `${variant.sku}-${Date.now()}-${index}`,
-              inventory_management: null, // Set to null to avoid inventory tracking issues
-              inventory_policy: 'continue',
-              inventory_quantity: 100,
-              weight: 1,
-              weight_unit: 'lb',
-              requires_shipping: true,
-              taxable: true
-            }))
-          }
-        };
-        
-        console.log('Sending product payload:', JSON.stringify(productPayload, null, 2));
-        
-        // Add product to Shopify store with better error handling
-        const response = await fetch(shopifyApiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Shopify-Access-Token': accessToken.trim(),
-            'Accept': 'application/json',
-            'User-Agent': 'StoreForge-AI/1.0'
-          },
-          body: JSON.stringify(productPayload),
-        });
-        
-        console.log('Response status:', response.status);
-        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-        
-        const responseText = await response.text();
-        console.log('Response text:', responseText);
-        
-        if (!response.ok) {
-          let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-          
-          try {
-            const errorData = JSON.parse(responseText);
-            if (errorData.errors) {
-              errorMessage = JSON.stringify(errorData.errors);
-            }
-          } catch (e) {
-            // Response is not JSON, use status text
-          }
-          
-          console.error(`Failed to add product ${product.title}:`, errorMessage);
-          errorDetails.push(`Product "${product.title}": ${errorMessage}`);
-          
-          // If it's an authentication error, stop immediately
-          if (response.status === 401 || response.status === 403) {
-            throw new Error(`Authentication failed: ${errorMessage}`);
-          }
-        } else {
-          try {
-            const responseData = JSON.parse(responseText);
-            console.log(`Successfully added product: ${product.title}`, responseData.product?.id);
-            successCount++;
-          } catch (e) {
-            console.error('Failed to parse success response:', e);
-            // Still count as success if status is OK
-            successCount++;
-          }
-        }
+        await addSingleProductToShopify(shopifyApiUrl, accessToken, product, userNiche);
+        successCount++;
+        console.log(`✓ Successfully added: ${product.title}`);
       } catch (productError) {
-        console.error(`Error adding individual product ${product.title}:`, productError);
-        errorDetails.push(`Product "${product.title}": ${productError.message}`);
+        const errorMsg = productError instanceof Error ? productError.message : 'Unknown error';
+        console.error(`✗ Failed to add ${product.title}:`, errorMsg);
+        errors.push(`${product.title}: ${errorMsg}`);
+        
+        // Stop on authentication errors
+        if (errorMsg.includes('401') || errorMsg.includes('403') || errorMsg.includes('Unauthorized')) {
+          throw new Error(`Authentication failed. Please check your access token: ${errorMsg}`);
+        }
       }
       
-      // Wait between requests to avoid rate limiting (Shopify has a 2 calls/second limit)
-      await new Promise(resolve => setTimeout(resolve, 600));
+      // Rate limiting: Shopify allows 2 calls per second
+      if (i < products.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 600));
+      }
     }
     
-    console.log(`Successfully added ${successCount}/${products.length} products to Shopify`);
+    console.log(`Product addition completed: ${successCount}/${products.length} successful`);
     
-    if (errorDetails.length > 0) {
-      console.error('Errors encountered:', errorDetails);
+    if (successCount === 0) {
+      throw new Error(`Failed to add any products. Errors: ${errors.slice(0, 3).join('; ')}${errors.length > 3 ? '...' : ''}`);
     }
     
-    // Consider it successful if at least some products were added
-    if (successCount > 0) {
-      return true;
-    } else {
-      throw new Error(`Failed to add any products. Errors: ${errorDetails.join('; ')}`);
+    if (successCount < products.length) {
+      console.warn(`Some products failed to add: ${errors.length} errors`);
     }
+    
+    return true;
     
   } catch (error) {
-    console.error('Error adding products to Shopify:', error);
-    throw error; // Re-throw to be handled by the calling component
+    console.error('Product addition process failed:', error);
+    throw error;
   }
 };
+
+// Helper function to extract store name from various URL formats
+function extractStoreName(url: string): string | null {
+  try {
+    // Remove protocol and clean up URL
+    const cleanUrl = url.replace(/^https?:\/\//, '').toLowerCase();
+    
+    // Handle admin.shopify.com/store/storename format
+    if (cleanUrl.includes('admin.shopify.com/store/')) {
+      const match = cleanUrl.match(/admin\.shopify\.com\/store\/([^\/\?]+)/);
+      return match ? match[1] : null;
+    }
+    
+    // Handle storename.myshopify.com format
+    if (cleanUrl.includes('.myshopify.com')) {
+      const match = cleanUrl.match(/([^\/\.]+)\.myshopify\.com/);
+      return match ? match[1] : null;
+    }
+    
+    // Handle direct store name
+    if (!cleanUrl.includes('.') && !cleanUrl.includes('/')) {
+      return cleanUrl;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error extracting store name:', error);
+    return null;
+  }
+}
+
+// Helper function to add a single product to Shopify
+async function addSingleProductToShopify(
+  apiUrl: string,
+  accessToken: string,
+  product: Product,
+  niche: string
+): Promise<void> {
+  const productPayload = {
+    product: {
+      title: product.title.trim(),
+      body_html: `<p>${product.description.trim()}</p>`,
+      vendor: 'StoreForge AI',
+      product_type: niche || 'General',
+      handle: generateHandle(product.title),
+      status: 'active',
+      published: true,
+      images: product.images.map(url => ({
+        src: url,
+        alt: product.title
+      })),
+      variants: product.variants.map((variant, index) => ({
+        title: variant.title || 'Default Title',
+        price: variant.price.toFixed(2),
+        sku: `${variant.sku}-${Date.now()}-${index}`,
+        inventory_management: null,
+        inventory_policy: 'continue',
+        inventory_quantity: 100,
+        weight: 1,
+        weight_unit: 'lb',
+        requires_shipping: true,
+        taxable: true
+      }))
+    }
+  };
+  
+  console.log('Sending product payload for:', product.title);
+  
+  const response = await fetch(apiUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Shopify-Access-Token': accessToken.trim(),
+      'Accept': 'application/json',
+      'User-Agent': 'StoreForge-AI/1.0',
+      'Cache-Control': 'no-cache'
+    },
+    body: JSON.stringify(productPayload),
+  });
+  
+  console.log(`Response status for ${product.title}:`, response.status);
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+    
+    try {
+      const errorData = JSON.parse(errorText);
+      if (errorData.errors) {
+        errorMessage = typeof errorData.errors === 'string' 
+          ? errorData.errors 
+          : JSON.stringify(errorData.errors);
+      }
+    } catch (e) {
+      // Use status text if JSON parsing fails
+      errorMessage = errorText || errorMessage;
+    }
+    
+    throw new Error(errorMessage);
+  }
+  
+  const responseData = await response.json();
+  console.log(`✓ Product added successfully:`, responseData.product?.id);
+}
+
+// Helper function to generate URL-friendly handle
+function generateHandle(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .substring(0, 255); // Shopify handle limit
+}
 
 // Generate products directly without external API calls
 const generateProducts = (niche: string): Product[] => {
@@ -198,7 +222,7 @@ const generateProducts = (niche: string): Product[] => {
         title: "Smart Pet Feeder with Camera",
         description: "Automatic pet feeder with HD camera, voice recording, and smartphone app control. Perfect for busy pet parents who want to stay connected with their pets.",
         price: 89.99,
-        images: ["https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=500&h=500&fit=crop"],
+        images: ["https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=500&h=500&fit=crop&crop=center"],
         variants: [
           { title: "White", price: 89.99, sku: "SPF-WHITE-001" },
           { title: "Black", price: 89.99, sku: "SPF-BLACK-001" }
@@ -208,7 +232,7 @@ const generateProducts = (niche: string): Product[] => {
         title: "Interactive Dog Puzzle Toy",
         description: "Mental stimulation puzzle toy that keeps dogs engaged and reduces anxiety. Multiple difficulty levels available to challenge your pet.",
         price: 24.99,
-        images: ["https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=500&h=500&fit=crop"],
+        images: ["https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=500&h=500&fit=crop&crop=center"],
         variants: [
           { title: "Level 1", price: 24.99, sku: "DPT-LV1-001" },
           { title: "Level 2", price: 29.99, sku: "DPT-LV2-001" }
@@ -218,7 +242,7 @@ const generateProducts = (niche: string): Product[] => {
         title: "Cat Water Fountain",
         description: "Fresh flowing water dispenser with filtration system. Encourages healthy hydration for cats and keeps water clean and fresh.",
         price: 34.99,
-        images: ["https://images.unsplash.com/photo-1548802673-380ab8ebc7b7?w=500&h=500&fit=crop"],
+        images: ["https://images.unsplash.com/photo-1548802673-380ab8ebc7b7?w=500&h=500&fit=crop&crop=center"],
         variants: [
           { title: "2L Capacity", price: 34.99, sku: "CWF-2L-001" },
           { title: "3L Capacity", price: 39.99, sku: "CWF-3L-001" }
@@ -228,7 +252,7 @@ const generateProducts = (niche: string): Product[] => {
         title: "Pet GPS Tracker Collar",
         description: "Real-time GPS tracking collar for dogs and cats. Monitor your pet's location and activity levels throughout the day.",
         price: 59.99,
-        images: ["https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=500&h=500&fit=crop"],
+        images: ["https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=500&h=500&fit=crop&crop=center"],
         variants: [
           { title: "Small", price: 59.99, sku: "PGT-S-001" },
           { title: "Medium", price: 59.99, sku: "PGT-M-001" },
@@ -239,7 +263,7 @@ const generateProducts = (niche: string): Product[] => {
         title: "Automatic Pet Grooming Brush",
         description: "Self-cleaning slicker brush that removes loose fur and reduces shedding. One-click hair removal feature makes grooming easy.",
         price: 19.99,
-        images: ["https://images.unsplash.com/photo-1601758067099-4ea6f2b2ced9?w=500&h=500&fit=crop"],
+        images: ["https://images.unsplash.com/photo-1601758067099-4ea6f2b2ced9?w=500&h=500&fit=crop&crop=center"],
         variants: [
           { title: "For Cats", price: 19.99, sku: "APG-CAT-001" },
           { title: "For Dogs", price: 22.99, sku: "APG-DOG-001" }
@@ -249,7 +273,7 @@ const generateProducts = (niche: string): Product[] => {
         title: "Pet Training Clicker Set",
         description: "Professional dog training clicker with wrist strap. Includes comprehensive training guide and treat pouch for effective training sessions.",
         price: 12.99,
-        images: ["https://images.unsplash.com/photo-1552053831-71594a27632d?w=500&h=500&fit=crop"],
+        images: ["https://images.unsplash.com/photo-1552053831-71594a27632d?w=500&h=500&fit=crop&crop=center"],
         variants: [
           { title: "Blue Set", price: 12.99, sku: "PTC-BLUE-001" },
           { title: "Red Set", price: 12.99, sku: "PTC-RED-001" }
@@ -259,7 +283,7 @@ const generateProducts = (niche: string): Product[] => {
         title: "Elevated Pet Food Bowls",
         description: "Ergonomic raised feeding station that promotes better digestion and reduces neck strain. Perfect for senior pets or those with joint issues.",
         price: 39.99,
-        images: ["https://images.unsplash.com/photo-1589927986089-35812388d1e4?w=500&h=500&fit=crop"],
+        images: ["https://images.unsplash.com/photo-1589927986089-35812388d1e4?w=500&h=500&fit=crop&crop=center"],
         variants: [
           { title: "Small (8 inches)", price: 39.99, sku: "EPF-S-001" },
           { title: "Medium (12 inches)", price: 44.99, sku: "EPF-M-001" },
@@ -270,7 +294,7 @@ const generateProducts = (niche: string): Product[] => {
         title: "Pet Hair Remover Tool",
         description: "Reusable lint and pet hair remover for furniture, clothes, and car seats. Chemical-free solution that works on all fabric types.",
         price: 14.99,
-        images: ["https://images.unsplash.com/photo-1583512603806-077998240c7a?w=500&h=500&fit=crop"],
+        images: ["https://images.unsplash.com/photo-1583512603806-077998240c7a?w=500&h=500&fit=crop&crop=center"],
         variants: [
           { title: "Single Tool", price: 14.99, sku: "PHR-SINGLE-001" },
           { title: "2-Pack", price: 24.99, sku: "PHR-2PACK-001" }
@@ -280,7 +304,7 @@ const generateProducts = (niche: string): Product[] => {
         title: "Smart Pet Door with App Control",
         description: "Programmable pet door with smartphone control. Set schedules, monitor pet activity, and control access remotely through the mobile app.",
         price: 129.99,
-        images: ["https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=500&h=500&fit=crop"],
+        images: ["https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=500&h=500&fit=crop&crop=center"],
         variants: [
           { title: "Small (for cats)", price: 129.99, sku: "SPD-S-001" },
           { title: "Medium (small dogs)", price: 149.99, sku: "SPD-M-001" },
@@ -291,7 +315,7 @@ const generateProducts = (niche: string): Product[] => {
         title: "Pet Calming Anxiety Vest",
         description: "Therapeutic pressure vest that helps reduce pet anxiety during storms, fireworks, and travel. Made with breathable, comfortable fabric.",
         price: 29.99,
-        images: ["https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=500&h=500&fit=crop"],
+        images: ["https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=500&h=500&fit=crop&crop=center"],
         variants: [
           { title: "XS", price: 29.99, sku: "PCA-XS-001" },
           { title: "Small", price: 29.99, sku: "PCA-S-001" },
@@ -306,7 +330,7 @@ const generateProducts = (niche: string): Product[] => {
         title: "Smart Kitchen Scale with App",
         description: "Precision digital kitchen scale with smartphone connectivity and nutritional tracking.",
         price: 39.99,
-        images: ["https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=500"],
+        images: ["https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=500&h=500&fit=crop&crop=center"],
         variants: [
           { title: "White", price: 39.99, sku: "SKS-WHITE-001" },
           { title: "Black", price: 39.99, sku: "SKS-BLACK-001" }
@@ -316,7 +340,7 @@ const generateProducts = (niche: string): Product[] => {
         title: "Silicone Cooking Utensil Set",
         description: "Complete set of heat-resistant silicone cooking utensils. Non-stick friendly and dishwasher safe.",
         price: 24.99,
-        images: ["https://images.unsplash.com/photo-1584286595398-c4fdb5ab4a5b?w=500"],
+        images: ["https://images.unsplash.com/photo-1584286595398-c4fdb5ab4a5b?w=500&h=500&fit=crop&crop=center"],
         variants: [
           { title: "5-Piece Set", price: 24.99, sku: "SCU-5PC-001" },
           { title: "10-Piece Set", price: 39.99, sku: "SCU-10PC-001" }
@@ -326,7 +350,7 @@ const generateProducts = (niche: string): Product[] => {
         title: "Multi-Use Pressure Cooker",
         description: "Electric pressure cooker with multiple cooking functions. Perfect for quick, healthy meals.",
         price: 79.99,
-        images: ["https://images.unsplash.com/photo-1585515656963-05cc7a2a7c0f?w=500"],
+        images: ["https://images.unsplash.com/photo-1585515656963-05cc7a2a7c0f?w=500&h=500&fit=crop&crop=center"],
         variants: [
           { title: "6-Quart", price: 79.99, sku: "MPC-6Q-001" },
           { title: "8-Quart", price: 99.99, sku: "MPC-8Q-001" }
@@ -338,7 +362,7 @@ const generateProducts = (niche: string): Product[] => {
         title: "Wireless Charging Pad",
         description: "Fast wireless charger for smartphones with LED indicator and over-temperature protection.",
         price: 29.99,
-        images: ["https://images.unsplash.com/photo-1609592388907-a2b48db523c3?w=500"],
+        images: ["https://images.unsplash.com/photo-1609592388907-a2b48db523c3?w=500&h=500&fit=crop&crop=center"],
         variants: [
           { title: "10W Fast Charge", price: 29.99, sku: "WCP-10W-001" },
           { title: "15W Ultra Fast", price: 39.99, sku: "WCP-15W-001" }
@@ -348,7 +372,7 @@ const generateProducts = (niche: string): Product[] => {
         title: "Bluetooth Earbuds Pro",
         description: "Premium noise-cancelling wireless earbuds with long battery life and crystal clear sound quality.",
         price: 79.99,
-        images: ["https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=500"],
+        images: ["https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=500&h=500&fit=crop&crop=center"],
         variants: [
           { title: "Black", price: 79.99, sku: "BEP-BLACK-001" },
           { title: "White", price: 79.99, sku: "BEP-WHITE-001" }
@@ -358,7 +382,7 @@ const generateProducts = (niche: string): Product[] => {
         title: "Smart LED Strip Lights",
         description: "RGB LED strips with smartphone app control, music sync, and voice assistant compatibility.",
         price: 34.99,
-        images: ["https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500"],
+        images: ["https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500&h=500&fit=crop&crop=center"],
         variants: [
           { title: "16ft Strip", price: 34.99, sku: "SLS-16FT-001" },
           { title: "32ft Strip", price: 54.99, sku: "SLS-32FT-001" }
