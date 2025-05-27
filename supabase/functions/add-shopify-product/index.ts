@@ -27,6 +27,47 @@ serve(async (req) => {
     
     console.log('Shopify API URL:', apiUrl);
 
+    // Prepare variants with unique titles
+    const preparedVariants = product.variants.map((variant, index) => {
+      // Ensure each variant has a unique title
+      let variantTitle = variant.title;
+      if (variantTitle === 'Default Title' || !variantTitle) {
+        variantTitle = product.variants.length === 1 ? 'Default' : `Option ${index + 1}`;
+      }
+      
+      return {
+        title: variantTitle,
+        price: parseFloat(variant.price).toFixed(2),
+        sku: variant.sku,
+        inventory_management: null,
+        inventory_policy: 'continue',
+        inventory_quantity: 100,
+        weight: 0.5,
+        weight_unit: 'lb',
+        requires_shipping: true,
+        taxable: true,
+        compare_at_price: null
+      };
+    });
+
+    // Prepare the product payload
+    const productPayload = {
+      product: {
+        title: product.title,
+        body_html: product.body_html,
+        vendor: product.vendor || 'StoreForge AI',
+        product_type: product.product_type || 'General',
+        handle: product.handle,
+        status: 'active',
+        published: true,
+        tags: product.tags || '',
+        images: product.images || [],
+        variants: preparedVariants
+      }
+    };
+
+    console.log('Product payload:', JSON.stringify(productPayload, null, 2));
+
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
@@ -34,7 +75,7 @@ serve(async (req) => {
         'X-Shopify-Access-Token': accessToken,
         'Accept': 'application/json',
       },
-      body: JSON.stringify({ product }),
+      body: JSON.stringify(productPayload),
     });
 
     console.log('Response status:', response.status);
@@ -48,9 +89,20 @@ serve(async (req) => {
       try {
         const errorData = JSON.parse(errorText);
         if (errorData.errors) {
-          errorMessage = typeof errorData.errors === 'string' 
-            ? errorData.errors 
-            : JSON.stringify(errorData.errors);
+          if (typeof errorData.errors === 'object') {
+            // Handle structured errors
+            const errorMessages = [];
+            for (const [field, messages] of Object.entries(errorData.errors)) {
+              if (Array.isArray(messages)) {
+                errorMessages.push(`${field}: ${messages.join(', ')}`);
+              } else {
+                errorMessages.push(`${field}: ${messages}`);
+              }
+            }
+            errorMessage = errorMessages.join('; ');
+          } else {
+            errorMessage = errorData.errors;
+          }
         }
       } catch (e) {
         errorMessage = errorText || errorMessage;

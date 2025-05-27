@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 interface Product {
@@ -72,22 +71,34 @@ export const addProductsToShopify = async (
               handle: generateHandle(product.title),
               status: 'active',
               published: true,
+              tags: `${userNiche}, winning products, trending`,
               images: product.images.map(url => ({
                 src: url,
                 alt: product.title
               })),
-              variants: product.variants.map((variant, index) => ({
-                title: variant.title || 'Default Title',
-                price: variant.price.toFixed(2),
-                sku: `${variant.sku}-${Date.now()}-${index}`,
-                inventory_management: null,
-                inventory_policy: 'continue',
-                inventory_quantity: 100,
-                weight: 1,
-                weight_unit: 'lb',
-                requires_shipping: true,
-                taxable: true
-              }))
+              variants: product.variants.map((variant, variantIndex) => {
+                // Ensure unique variant titles
+                let variantTitle = variant.title;
+                if (product.variants.length === 1) {
+                  variantTitle = 'Default';
+                } else {
+                  // Make sure each variant has a unique title
+                  variantTitle = variant.title || `Variant ${variantIndex + 1}`;
+                }
+                
+                return {
+                  title: variantTitle,
+                  price: variant.price.toFixed(2),
+                  sku: `${variant.sku}-${Date.now()}-${variantIndex}`,
+                  inventory_management: null,
+                  inventory_policy: 'continue',
+                  inventory_quantity: 100,
+                  weight: 0.5,
+                  weight_unit: 'lb',
+                  requires_shipping: true,
+                  taxable: true
+                };
+              })
             }
           }
         });
@@ -116,7 +127,7 @@ export const addProductsToShopify = async (
       
       // Small delay between requests to avoid overwhelming the system
       if (i < products.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
     
@@ -250,9 +261,9 @@ const generateProducts = (niche: string): Product[] => {
         price: 39.99,
         images: ["https://images.unsplash.com/photo-1589927986089-35812388d1e4?w=500&h=500&fit=crop&crop=center"],
         variants: [
-          { title: "Small (8 inches)", price: 39.99, sku: "EPF-S-001" },
-          { title: "Medium (12 inches)", price: 44.99, sku: "EPF-M-001" },
-          { title: "Large (16 inches)", price: 49.99, sku: "EPF-L-001" }
+          { title: "Small 8in", price: 39.99, sku: "EPF-S-001" },
+          { title: "Medium 12in", price: 44.99, sku: "EPF-M-001" },
+          { title: "Large 16in", price: 49.99, sku: "EPF-L-001" }
         ]
       },
       {
@@ -271,9 +282,9 @@ const generateProducts = (niche: string): Product[] => {
         price: 129.99,
         images: ["https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=500&h=500&fit=crop&crop=center"],
         variants: [
-          { title: "Small (for cats)", price: 129.99, sku: "SPD-S-001" },
-          { title: "Medium (small dogs)", price: 149.99, sku: "SPD-M-001" },
-          { title: "Large (large dogs)", price: 179.99, sku: "SPD-L-001" }
+          { title: "Small Cat", price: 129.99, sku: "SPD-S-001" },
+          { title: "Medium Dog", price: 149.99, sku: "SPD-M-001" },
+          { title: "Large Dog", price: 179.99, sku: "SPD-L-001" }
         ]
       },
       {
@@ -282,11 +293,11 @@ const generateProducts = (niche: string): Product[] => {
         price: 29.99,
         images: ["https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=500&h=500&fit=crop&crop=center"],
         variants: [
-          { title: "XS", price: 29.99, sku: "PCA-XS-001" },
+          { title: "XSmall", price: 29.99, sku: "PCA-XS-001" },
           { title: "Small", price: 29.99, sku: "PCA-S-001" },
           { title: "Medium", price: 34.99, sku: "PCA-M-001" },
           { title: "Large", price: 39.99, sku: "PCA-L-001" },
-          { title: "XL", price: 44.99, sku: "PCA-XL-001" }
+          { title: "XLarge", price: 44.99, sku: "PCA-XL-001" }
         ]
       }
     ],
@@ -370,9 +381,9 @@ const generateProducts = (niche: string): Product[] => {
       ...baseProduct,
       title: variation > 1 ? `${baseProduct.title} v${variation}` : baseProduct.title,
       price: Math.max(baseProduct.price + priceVariation, 5), // Ensure minimum $5 price
-      variants: baseProduct.variants.map(variant => ({
+      variants: baseProduct.variants.map((variant, variantIndex) => ({
         ...variant,
-        sku: `${variant.sku}-${i + 1}`,
+        sku: `${variant.sku}-${i + 1}-${variantIndex}`,
         price: Math.max(variant.price + priceVariation, 5)
       }))
     });
