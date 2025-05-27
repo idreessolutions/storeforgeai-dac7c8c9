@@ -77,17 +77,8 @@ export const addProductsToShopify = async (
                 alt: product.title
               })),
               variants: product.variants.map((variant, variantIndex) => {
-                // Ensure unique variant titles
-                let variantTitle = variant.title;
-                if (product.variants.length === 1) {
-                  variantTitle = 'Default';
-                } else {
-                  // Make sure each variant has a unique title
-                  variantTitle = variant.title || `Variant ${variantIndex + 1}`;
-                }
-                
                 return {
-                  title: variantTitle,
+                  title: variant.title,
                   price: variant.price.toFixed(2),
                   sku: `${variant.sku}-${Date.now()}-${variantIndex}`,
                   inventory_management: null,
@@ -104,14 +95,17 @@ export const addProductsToShopify = async (
         });
 
         if (error) {
-          throw new Error(error.message || 'Failed to add product');
+          console.error('Supabase function error:', error);
+          throw new Error(error.message || 'Failed to call edge function');
         }
 
         if (data?.success) {
           successCount++;
           console.log(`✓ Successfully added: ${product.title}`);
         } else {
-          throw new Error(data?.error || 'Unknown error occurred');
+          const errorMsg = data?.error || 'Unknown error from edge function';
+          console.error(`✗ Edge function failed for ${product.title}:`, errorMsg);
+          throw new Error(errorMsg);
         }
         
       } catch (productError) {
@@ -125,16 +119,16 @@ export const addProductsToShopify = async (
         }
       }
       
-      // Small delay between requests to avoid overwhelming the system
+      // Add delay between requests to avoid rate limiting
       if (i < products.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
     
     console.log(`Product addition completed: ${successCount}/${products.length} successful`);
     
     if (successCount === 0) {
-      throw new Error(`Failed to add any products. Errors: ${errors.slice(0, 3).join('; ')}${errors.length > 3 ? '...' : ''}`);
+      throw new Error(`Failed to add any products. First few errors: ${errors.slice(0, 3).join('; ')}`);
     }
     
     if (successCount < products.length) {
@@ -244,61 +238,6 @@ const generateProducts = (niche: string): Product[] => {
           { title: "For Cats", price: 19.99, sku: "APG-CAT-001" },
           { title: "For Dogs", price: 22.99, sku: "APG-DOG-001" }
         ]
-      },
-      {
-        title: "Pet Training Clicker Set",
-        description: "Professional dog training clicker with wrist strap. Includes comprehensive training guide and treat pouch for effective training sessions.",
-        price: 12.99,
-        images: ["https://images.unsplash.com/photo-1552053831-71594a27632d?w=500&h=500&fit=crop&crop=center"],
-        variants: [
-          { title: "Blue Set", price: 12.99, sku: "PTC-BLUE-001" },
-          { title: "Red Set", price: 12.99, sku: "PTC-RED-001" }
-        ]
-      },
-      {
-        title: "Elevated Pet Food Bowls",
-        description: "Ergonomic raised feeding station that promotes better digestion and reduces neck strain. Perfect for senior pets or those with joint issues.",
-        price: 39.99,
-        images: ["https://images.unsplash.com/photo-1589927986089-35812388d1e4?w=500&h=500&fit=crop&crop=center"],
-        variants: [
-          { title: "Small 8in", price: 39.99, sku: "EPF-S-001" },
-          { title: "Medium 12in", price: 44.99, sku: "EPF-M-001" },
-          { title: "Large 16in", price: 49.99, sku: "EPF-L-001" }
-        ]
-      },
-      {
-        title: "Pet Hair Remover Tool",
-        description: "Reusable lint and pet hair remover for furniture, clothes, and car seats. Chemical-free solution that works on all fabric types.",
-        price: 14.99,
-        images: ["https://images.unsplash.com/photo-1583512603806-077998240c7a?w=500&h=500&fit=crop&crop=center"],
-        variants: [
-          { title: "Single Tool", price: 14.99, sku: "PHR-SINGLE-001" },
-          { title: "2-Pack", price: 24.99, sku: "PHR-2PACK-001" }
-        ]
-      },
-      {
-        title: "Smart Pet Door with App Control",
-        description: "Programmable pet door with smartphone control. Set schedules, monitor pet activity, and control access remotely through the mobile app.",
-        price: 129.99,
-        images: ["https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=500&h=500&fit=crop&crop=center"],
-        variants: [
-          { title: "Small Cat", price: 129.99, sku: "SPD-S-001" },
-          { title: "Medium Dog", price: 149.99, sku: "SPD-M-001" },
-          { title: "Large Dog", price: 179.99, sku: "SPD-L-001" }
-        ]
-      },
-      {
-        title: "Pet Calming Anxiety Vest",
-        description: "Therapeutic pressure vest that helps reduce pet anxiety during storms, fireworks, and travel. Made with breathable, comfortable fabric.",
-        price: 29.99,
-        images: ["https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=500&h=500&fit=crop&crop=center"],
-        variants: [
-          { title: "XSmall", price: 29.99, sku: "PCA-XS-001" },
-          { title: "Small", price: 29.99, sku: "PCA-S-001" },
-          { title: "Medium", price: 34.99, sku: "PCA-M-001" },
-          { title: "Large", price: 39.99, sku: "PCA-L-001" },
-          { title: "XLarge", price: 44.99, sku: "PCA-XL-001" }
-        ]
       }
     ],
     'kitchen': [
@@ -370,21 +309,17 @@ const generateProducts = (niche: string): Product[] => {
   const lowerNiche = niche.toLowerCase();
   const selectedProducts = nicheProducts[lowerNiche] || nicheProducts['pet'];
   
-  // Generate 20 products by repeating and varying the base products
+  // Generate just 5 products to start with for testing
   const products: Product[] = [];
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 5; i++) {
     const baseProduct = selectedProducts[i % selectedProducts.length];
-    const variation = Math.floor(i / selectedProducts.length) + 1;
-    const priceVariation = (Math.random() * 10 - 5); // ±$5 variation
     
     products.push({
       ...baseProduct,
-      title: variation > 1 ? `${baseProduct.title} v${variation}` : baseProduct.title,
-      price: Math.max(baseProduct.price + priceVariation, 5), // Ensure minimum $5 price
+      title: `${baseProduct.title}`,
       variants: baseProduct.variants.map((variant, variantIndex) => ({
         ...variant,
-        sku: `${variant.sku}-${i + 1}-${variantIndex}`,
-        price: Math.max(variant.price + priceVariation, 5)
+        sku: `${variant.sku}-${Date.now()}-${i}-${variantIndex}`,
       }))
     });
   }

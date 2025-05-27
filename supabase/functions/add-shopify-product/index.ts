@@ -27,18 +27,25 @@ serve(async (req) => {
     
     console.log('Shopify API URL:', apiUrl);
 
-    // Prepare variants with unique titles
+    // Generate unique handle to avoid conflicts
+    const uniqueHandle = `${product.handle}-${Date.now()}`;
+
+    // Prepare variants with guaranteed unique titles
     const preparedVariants = product.variants.map((variant, index) => {
-      // Ensure each variant has a unique title
-      let variantTitle = variant.title;
-      if (variantTitle === 'Default Title' || !variantTitle) {
-        variantTitle = product.variants.length === 1 ? 'Default' : `Option ${index + 1}`;
+      // Create truly unique variant titles
+      let variantTitle;
+      if (product.variants.length === 1) {
+        // For single variant products, use a timestamp-based unique title
+        variantTitle = `Default-${Date.now()}`;
+      } else {
+        // For multi-variant products, ensure each title is unique
+        variantTitle = `${variant.title}-${Date.now()}-${index}`;
       }
       
       return {
         title: variantTitle,
         price: parseFloat(variant.price).toFixed(2),
-        sku: variant.sku,
+        sku: `${variant.sku}-${Date.now()}-${index}`,
         inventory_management: null,
         inventory_policy: 'continue',
         inventory_quantity: 100,
@@ -50,14 +57,14 @@ serve(async (req) => {
       };
     });
 
-    // Prepare the product payload
+    // Prepare the product payload with unique identifiers
     const productPayload = {
       product: {
-        title: product.title,
+        title: `${product.title} - ${Date.now()}`,
         body_html: product.body_html,
         vendor: product.vendor || 'StoreForge AI',
         product_type: product.product_type || 'General',
-        handle: product.handle,
+        handle: uniqueHandle,
         status: 'active',
         published: true,
         tags: product.tags || '',
