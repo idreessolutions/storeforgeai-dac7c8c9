@@ -1,4 +1,6 @@
 
+import { supabase } from "@/integrations/supabase/client";
+
 interface Product {
   title: string;
   description: string;
@@ -28,15 +30,15 @@ export const addProductsToShopify = async (
       throw new Error('Missing required parameters: Shopify URL, access token, or niche');
     }
 
-    // Validate and extract store name from URL
-    const storeName = extractStoreName(shopifyUrl);
-    if (!storeName) {
-      throw new Error('Invalid Shopify URL format. Please provide a valid Shopify store URL.');
-    }
-
     // Validate access token format
     if (!accessToken.startsWith('shpat_') || accessToken.length < 20) {
       throw new Error('Invalid access token format. Must start with "shpat_" and be at least 20 characters long.');
+    }
+
+    // Extract store name from URL
+    const storeName = extractStoreName(shopifyUrl);
+    if (!storeName) {
+      throw new Error('Invalid Shopify URL format. Please provide a valid Shopify store URL.');
     }
 
     console.log('Extracted store name:', storeName);
@@ -45,14 +47,10 @@ export const addProductsToShopify = async (
     const products = generateProducts(userNiche);
     console.log(`Generated ${products.length} products for ${userNiche} niche`);
     
-    // Construct the correct Shopify Admin API URL
-    const shopifyApiUrl = `https://${storeName}.myshopify.com/admin/api/2024-10/products.json`;
-    console.log('Shopify API URL:', shopifyApiUrl);
-    
     let successCount = 0;
     const errors: string[] = [];
     
-    // Process products with proper error handling and rate limiting
+    // Process products one by one with progress updates
     for (let i = 0; i < products.length; i++) {
       const product = products[i];
       const progress = ((i + 1) / products.length) * 100;
@@ -61,9 +59,50 @@ export const addProductsToShopify = async (
       console.log(`Processing product ${i + 1}/${products.length}: ${product.title}`);
       
       try {
-        await addSingleProductToShopify(shopifyApiUrl, accessToken, product, userNiche);
-        successCount++;
-        console.log(`✓ Successfully added: ${product.title}`);
+        // Use Supabase edge function to add product to Shopify
+        const { data, error } = await supabase.functions.invoke('add-shopify-product', {
+          body: {
+            shopifyUrl: `https://${storeName}.myshopify.com`,
+            accessToken,
+            product: {
+              title: product.title.trim(),
+              body_html: `<p>${product.description.trim()}</p>`,
+              vendor: 'StoreForge AI',
+              product_type: userNiche || 'General',
+              handle: generateHandle(product.title),
+              status: 'active',
+              published: true,
+              images: product.images.map(url => ({
+                src: url,
+                alt: product.title
+              })),
+              variants: product.variants.map((variant, index) => ({
+                title: variant.title || 'Default Title',
+                price: variant.price.toFixed(2),
+                sku: `${variant.sku}-${Date.now()}-${index}`,
+                inventory_management: null,
+                inventory_policy: 'continue',
+                inventory_quantity: 100,
+                weight: 1,
+                weight_unit: 'lb',
+                requires_shipping: true,
+                taxable: true
+              }))
+            }
+          }
+        });
+
+        if (error) {
+          throw new Error(error.message || 'Failed to add product');
+        }
+
+        if (data?.success) {
+          successCount++;
+          console.log(`✓ Successfully added: ${product.title}`);
+        } else {
+          throw new Error(data?.error || 'Unknown error occurred');
+        }
+        
       } catch (productError) {
         const errorMsg = productError instanceof Error ? productError.message : 'Unknown error';
         console.error(`✗ Failed to add ${product.title}:`, errorMsg);
@@ -75,9 +114,9 @@ export const addProductsToShopify = async (
         }
       }
       
-      // Rate limiting: Shopify allows 2 calls per second
+      // Small delay between requests to avoid overwhelming the system
       if (i < products.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 600));
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
     }
     
@@ -127,80 +166,6 @@ function extractStoreName(url: string): string | null {
     console.error('Error extracting store name:', error);
     return null;
   }
-}
-
-// Helper function to add a single product to Shopify
-async function addSingleProductToShopify(
-  apiUrl: string,
-  accessToken: string,
-  product: Product,
-  niche: string
-): Promise<void> {
-  const productPayload = {
-    product: {
-      title: product.title.trim(),
-      body_html: `<p>${product.description.trim()}</p>`,
-      vendor: 'StoreForge AI',
-      product_type: niche || 'General',
-      handle: generateHandle(product.title),
-      status: 'active',
-      published: true,
-      images: product.images.map(url => ({
-        src: url,
-        alt: product.title
-      })),
-      variants: product.variants.map((variant, index) => ({
-        title: variant.title || 'Default Title',
-        price: variant.price.toFixed(2),
-        sku: `${variant.sku}-${Date.now()}-${index}`,
-        inventory_management: null,
-        inventory_policy: 'continue',
-        inventory_quantity: 100,
-        weight: 1,
-        weight_unit: 'lb',
-        requires_shipping: true,
-        taxable: true
-      }))
-    }
-  };
-  
-  console.log('Sending product payload for:', product.title);
-  
-  const response = await fetch(apiUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Shopify-Access-Token': accessToken.trim(),
-      'Accept': 'application/json',
-      'User-Agent': 'StoreForge-AI/1.0',
-      'Cache-Control': 'no-cache'
-    },
-    body: JSON.stringify(productPayload),
-  });
-  
-  console.log(`Response status for ${product.title}:`, response.status);
-  
-  if (!response.ok) {
-    const errorText = await response.text();
-    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-    
-    try {
-      const errorData = JSON.parse(errorText);
-      if (errorData.errors) {
-        errorMessage = typeof errorData.errors === 'string' 
-          ? errorData.errors 
-          : JSON.stringify(errorData.errors);
-      }
-    } catch (e) {
-      // Use status text if JSON parsing fails
-      errorMessage = errorText || errorMessage;
-    }
-    
-    throw new Error(errorMessage);
-  }
-  
-  const responseData = await response.json();
-  console.log(`✓ Product added successfully:`, responseData.product?.id);
 }
 
 // Helper function to generate URL-friendly handle

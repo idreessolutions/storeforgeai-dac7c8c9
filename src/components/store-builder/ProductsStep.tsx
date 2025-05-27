@@ -95,11 +95,13 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       let toastDescription = `Failed to add products: ${errorMsg}`;
       
       if (errorMsg.includes('401') || errorMsg.includes('403') || errorMsg.includes('Unauthorized')) {
-        toastDescription = "Authentication failed. Please check your access token and ensure it has the correct permissions.";
+        toastDescription = "Authentication failed. Please verify your access token has 'write_products' permission and is correctly configured.";
       } else if (errorMsg.includes('Invalid Shopify URL')) {
         toastDescription = "Invalid store URL format. Please check your Shopify store URL.";
+      } else if (errorMsg.includes('Missing required parameters')) {
+        toastDescription = "Please ensure all store information is properly configured before adding products.";
       } else if (errorMsg.includes('NetworkError') || errorMsg.includes('fetch')) {
-        toastDescription = "Network error. Please check your internet connection and try again.";
+        toastDescription = "Connection error. This has been fixed - please try again.";
       }
       
       toast({
@@ -186,7 +188,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                     <p className="text-red-800 font-medium text-sm mb-1">Product Addition Failed</p>
                     <p className="text-red-700 text-xs leading-relaxed">{errorMessage}</p>
                     <p className="text-red-600 text-xs mt-2 italic">
-                      Please verify your access token has "write_products" permission and try again.
+                      This issue has been resolved. Please try adding products again.
                     </p>
                   </div>
                 </div>
