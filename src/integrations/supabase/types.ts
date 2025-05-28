@@ -62,6 +62,54 @@ export type Database = {
           },
         ]
       }
+      product_uploads: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          images: Json | null
+          niche: string
+          price: number | null
+          product_type: string | null
+          session_id: string | null
+          shopify_product_id: string | null
+          tags: string | null
+          title: string
+          variants: Json | null
+          vendor: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          images?: Json | null
+          niche: string
+          price?: number | null
+          product_type?: string | null
+          session_id?: string | null
+          shopify_product_id?: string | null
+          tags?: string | null
+          title: string
+          variants?: Json | null
+          vendor?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          images?: Json | null
+          niche?: string
+          price?: number | null
+          product_type?: string | null
+          session_id?: string | null
+          shopify_product_id?: string | null
+          tags?: string | null
+          title?: string
+          variants?: Json | null
+          vendor?: string | null
+        }
+        Relationships: []
+      }
       store_builder_sessions: {
         Row: {
           access_token: string | null
@@ -119,6 +167,39 @@ export type Database = {
           target_audience?: string | null
           theme_color?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      upload_sessions: {
+        Row: {
+          created_at: string
+          failed_uploads: number
+          id: string
+          niche: string
+          results: Json | null
+          session_id: string
+          successful_uploads: number
+          total_products: number
+        }
+        Insert: {
+          created_at?: string
+          failed_uploads?: number
+          id?: string
+          niche: string
+          results?: Json | null
+          session_id: string
+          successful_uploads?: number
+          total_products?: number
+        }
+        Update: {
+          created_at?: string
+          failed_uploads?: number
+          id?: string
+          niche?: string
+          results?: Json | null
+          session_id?: string
+          successful_uploads?: number
+          total_products?: number
         }
         Relationships: []
       }
