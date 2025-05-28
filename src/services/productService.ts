@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 interface Product {
@@ -112,9 +113,9 @@ export const addProductsToShopify = async (
               })) || [],
               variants: processedVariants.map((variant, variantIndex) => {
                 // Convert all numeric values to strings explicitly
-                const timestampStr = String(timestamp);
-                const indexStr = String(i);
-                const variantIndexStr = String(variantIndex);
+                const timestampStr = timestamp.toString();
+                const indexStr = i.toString();
+                const variantIndexStr = variantIndex.toString();
                 
                 return {
                   title: variant.title,
