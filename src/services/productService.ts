@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 interface Product {
@@ -114,7 +115,7 @@ export const addProductsToShopify = async (
                 return {
                   title: variant.title,
                   price: variant.price.toFixed ? variant.price.toFixed(2) : parseFloat(variant.price).toFixed(2),
-                  sku: `${variant.sku}-${String(timestamp)}-${String(i)}-${String(variantIndex)}-${randomSuffix}`,
+                  sku: `${variant.sku}-${timestamp.toString()}-${i.toString()}-${variantIndex.toString()}-${randomSuffix}`,
                   inventory_management: null,
                   inventory_policy: 'continue',
                   inventory_quantity: 999,
