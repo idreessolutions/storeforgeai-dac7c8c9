@@ -100,7 +100,8 @@ const StepRenderer = ({
             productsAdded: formData.productsAdded,
             shopifyUrl: formData.shopifyUrl,
             accessToken: formData.accessToken,
-            niche: formData.niche
+            niche: formData.niche,
+            themeColor: formData.themeColor
           }} 
           handleInputChange={handleInputChange} 
         />
