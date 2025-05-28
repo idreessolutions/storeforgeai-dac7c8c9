@@ -112,9 +112,10 @@ export const addProductsToShopify = async (
                 alt: product.title
               })) || [],
               variants: processedVariants.map((variant, variantIndex) => {
-                const timestampStr = timestamp.toString();
-                const productIndexStr = i.toString();
-                const variantIndexStr = variantIndex.toString();
+                // Convert all numeric values to strings explicitly
+                const timestampStr = String(timestamp);
+                const productIndexStr = String(i);
+                const variantIndexStr = String(variantIndex);
                 
                 return {
                   title: variant.title,
