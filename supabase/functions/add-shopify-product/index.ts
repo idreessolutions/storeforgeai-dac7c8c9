@@ -41,12 +41,11 @@ serve(async (req) => {
     
     const uniqueHandle = `${baseHandle}-${uniqueId}`;
 
-    // Prepare variants with completely unique titles to avoid Shopify conflicts
+    // Prepare variants - ensure we have unique option values
     const preparedVariants = product.variants.map((variant, index) => {
-      // Create absolutely unique variant title that won't conflict
       const variantId = `${timestamp}-v${index}-${randomSuffix}`;
       const baseTitle = variant.title || 'Default';
-      const uniqueVariantTitle = `${baseTitle} ${variantId}`;
+      const uniqueVariantTitle = `${baseTitle}-${variantId}`;
       
       return {
         title: uniqueVariantTitle,
@@ -60,11 +59,15 @@ serve(async (req) => {
         requires_shipping: true,
         taxable: true,
         compare_at_price: null,
-        fulfillment_service: 'manual'
+        fulfillment_service: 'manual',
+        option1: `${baseTitle}-${variantId}` // This must match the option values
       };
     });
 
-    // Prepare the product payload with completely unique identifiers
+    // Create option values that exactly match the variant option1 values
+    const optionValues = preparedVariants.map(variant => variant.option1);
+
+    // Prepare the product payload with proper options structure
     const productPayload = {
       product: {
         title: `${product.title} ${uniqueId}`,
@@ -79,8 +82,9 @@ serve(async (req) => {
         variants: preparedVariants,
         options: [
           {
-            name: 'Variant',
-            values: preparedVariants.map(v => v.title)
+            name: 'Size',
+            position: 1,
+            values: optionValues
           }
         ]
       }

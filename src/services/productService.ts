@@ -61,7 +61,7 @@ export const addProductsToShopify = async (
       }
 
       if (data?.success && data?.products) {
-        products = data.products;
+        products = data.products.slice(0, 3); // Use only 3 products for testing
         console.log(`Generated ${products.length} products using AI`);
       } else {
         throw new Error('No products generated');
@@ -69,7 +69,7 @@ export const addProductsToShopify = async (
     } catch (error) {
       console.error('Product generation failed, using fallback:', error);
       // Fallback to predefined products
-      products = generateFallbackProducts(userNiche);
+      products = generateFallbackProducts(userNiche).slice(0, 3);
     }
     
     let successCount = 0;
@@ -88,6 +88,11 @@ export const addProductsToShopify = async (
         const timestamp = Date.now();
         const randomSuffix = Math.random().toString(36).substring(2, 15);
         
+        // Ensure we have proper variants with consistent structure
+        const processedVariants = product.variants.length > 0 ? product.variants : [
+          { title: 'Default', price: product.price, sku: 'DEFAULT-001' }
+        ];
+
         // Use Supabase edge function to add product to Shopify
         const { data, error } = await supabase.functions.invoke('add-shopify-product', {
           body: {
@@ -106,10 +111,10 @@ export const addProductsToShopify = async (
                 src: url,
                 alt: product.title
               })) || [],
-              variants: product.variants.map((variant, variantIndex) => {
+              variants: processedVariants.map((variant, variantIndex) => {
                 return {
                   title: variant.title,
-                  price: variant.price.toFixed(2),
+                  price: variant.price.toFixed ? variant.price.toFixed(2) : parseFloat(variant.price).toFixed(2),
                   sku: `${variant.sku}-${timestamp}-${i}-${variantIndex}-${randomSuffix}`,
                   inventory_management: null,
                   inventory_policy: 'continue',
@@ -151,7 +156,7 @@ export const addProductsToShopify = async (
       
       // Add delay between requests to avoid rate limiting
       if (i < products.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 3000)); // 3 second delay
+        await new Promise(resolve => setTimeout(resolve, 5000)); // 5 second delay
       }
     }
     
