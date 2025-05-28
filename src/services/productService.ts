@@ -119,7 +119,7 @@ export const addProductsToShopify = async (
                 
                 return {
                   title: variant.title,
-                  price: variant.price.toFixed ? variant.price.toFixed(2) : parseFloat(variant.price).toFixed(2),
+                  price: typeof variant.price === 'number' ? variant.price.toFixed(2) : parseFloat(variant.price).toFixed(2),
                   sku: `${variant.sku}-${timestampStr}-${indexStr}-${variantIndexStr}-${randomSuffix}`,
                   inventory_management: null,
                   inventory_policy: 'continue',
