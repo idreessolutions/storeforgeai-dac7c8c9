@@ -22,7 +22,7 @@ serve(async (req) => {
       throw new Error('Missing required parameters');
     }
 
-    // Get the current theme
+    // Get the current published theme
     const themesResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/themes.json`, {
       headers: {
         'X-Shopify-Access-Token': accessToken,
@@ -43,32 +43,78 @@ serve(async (req) => {
 
     console.log('Current theme:', currentTheme.id, currentTheme.name);
 
-    // Update theme settings with the selected color
-    const themeSettings = {
-      asset: {
-        key: 'config/settings_data.json',
-        value: JSON.stringify({
-          current: {
-            color_accent: themeColor,
-            color_button: themeColor,
-            color_button_text: '#ffffff',
-            color_text: '#333333',
-            color_body_text: '#333333',
-            color_sale_tag: themeColor,
-            color_borders: themeColor,
-            color_cart_dot: themeColor
-          }
-        })
+    // Get current theme settings
+    let currentSettings = {};
+    try {
+      const settingsResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/themes/${currentTheme.id}/assets.json?asset[key]=config/settings_data.json`, {
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (settingsResponse.ok) {
+        const settingsData = await settingsResponse.json();
+        if (settingsData.asset && settingsData.asset.value) {
+          currentSettings = JSON.parse(settingsData.asset.value);
+        }
+      }
+    } catch (error) {
+      console.log('Could not fetch existing settings, using defaults');
+    }
+
+    // Merge with new color settings
+    const updatedSettings = {
+      ...currentSettings,
+      current: {
+        ...currentSettings.current,
+        // Primary brand colors
+        colors_accent_1: themeColor,
+        colors_accent_2: themeColor,
+        color_accent: themeColor,
+        accent_color: themeColor,
+        
+        // Button colors
+        colors_solid_button_labels: '#ffffff',
+        colors_solid_button_background: themeColor,
+        button_color: themeColor,
+        color_button: themeColor,
+        color_button_text: '#ffffff',
+        
+        // Link and interactive elements
+        colors_outline_button_labels: themeColor,
+        link_color: themeColor,
+        color_sale_tag: themeColor,
+        
+        // Border and accent elements
+        colors_borders_and_shadow: themeColor,
+        color_borders: themeColor,
+        
+        // Cart and checkout
+        color_cart_dot: themeColor,
+        checkout_accent_color: themeColor,
+        
+        // Additional theme-specific color settings
+        color_primary: themeColor,
+        primary_color: themeColor,
+        brand_color: themeColor,
+        theme_color: themeColor
       }
     };
 
+    // Update theme settings
     const updateResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/themes/${currentTheme.id}/assets.json`, {
       method: 'PUT',
       headers: {
         'X-Shopify-Access-Token': accessToken,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(themeSettings),
+      body: JSON.stringify({
+        asset: {
+          key: 'config/settings_data.json',
+          value: JSON.stringify(updatedSettings)
+        }
+      }),
     });
 
     if (!updateResponse.ok) {
@@ -83,7 +129,8 @@ serve(async (req) => {
       success: true, 
       message: 'Theme color applied successfully',
       themeId: currentTheme.id,
-      appliedColor: themeColor
+      appliedColor: themeColor,
+      colorSettings: Object.keys(updatedSettings.current).filter(key => key.includes('color') || key.includes('accent'))
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

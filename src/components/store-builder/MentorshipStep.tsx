@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Users, Check, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useStoreSession } from "@/hooks/useStoreSession";
 
 interface MentorshipStepProps {
   formData: {
@@ -34,7 +32,6 @@ const MentorshipStep = ({ formData, handleInputChange }: MentorshipStepProps) =>
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  const { sessionId } = useStoreSession();
 
   const handleInputChangeMentorship = (field: string, value: string) => {
     setMentorshipData(prev => ({ ...prev, [field]: value }));
@@ -68,16 +65,12 @@ const MentorshipStep = ({ formData, handleInputChange }: MentorshipStepProps) =>
     setIsSubmitting(true);
 
     try {
-      console.log('Submitting mentorship application:', {
-        sessionId,
-        mentorshipData
-      });
+      console.log('Submitting mentorship application:', mentorshipData);
       
-      // Save to Supabase mentorship_applications table
+      // Save to Supabase mentorship_applications table without session_id foreign key
       const { data, error } = await supabase
         .from('mentorship_applications')
         .insert({
-          session_id: sessionId,
           full_name: mentorshipData.name.trim(),
           email: mentorshipData.email.trim().toLowerCase(),
           phone_number: mentorshipData.phone.trim(),

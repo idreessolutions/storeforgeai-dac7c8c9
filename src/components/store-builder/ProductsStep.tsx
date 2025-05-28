@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Package, Check, AlertCircle, Loader2, Palette } from "lucide-react";
+import { Package, Check, AlertCircle, Loader2, Palette, Star } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { addProductsToShopify, applyThemeColor } from "@/services/productService";
@@ -53,7 +53,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
     setErrorMessage("");
 
     try {
-      console.log('=== STARTING PRODUCT ADDITION PROCESS ===');
+      console.log('=== STARTING HIGH-QUALITY PRODUCT ADDITION PROCESS ===');
       console.log('Store URL:', formData.shopifyUrl);
       console.log('Niche:', formData.niche);
       console.log('Theme Color:', formData.themeColor);
@@ -74,7 +74,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       if (success) {
         console.log('=== PRODUCTS ADDED SUCCESSFULLY ===');
         setProgress(80);
-        setCurrentProduct("Applying theme color...");
+        setCurrentProduct("Applying your selected theme color...");
         setIsApplyingTheme(true);
         
         // Step 2: Apply theme color to store
@@ -103,7 +103,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         
         // Final progress update
         setProgress(100);
-        setCurrentProduct("All products added and store customized successfully!");
+        setCurrentProduct("All 10 winning products added and store customized successfully!");
       }
       
     } catch (error) {
@@ -148,44 +148,44 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
           <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3">
             <Package className="h-6 w-6 text-white" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Add Products</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Add Winning Products</h2>
           <p className="text-gray-600 text-sm">
-            Add 10 winning {formData.niche ? `${formData.niche} ` : ''}products to your Shopify store
+            Add 10 high-converting {formData.niche ? `${formData.niche} ` : ''}products to your Shopify store
           </p>
         </div>
 
         <div className="space-y-4">
           <div className="bg-gray-50 p-4 rounded-lg">
             <p className="text-gray-700 mb-3 text-sm">
-              Our AI system will automatically add 10 carefully selected winning products 
+              Our advanced AI system will add 10 carefully curated winning products 
               {formData.niche ? ` in the ${formData.niche} niche ` : ' '}
               directly to your Shopify store. Each product includes:
             </p>
             
             <ul className="space-y-2 text-gray-700 mb-4 text-xs">
               <li className="flex items-start">
-                <Check className="h-3 w-3 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                AI-generated high-converting product descriptions
+                <Star className="h-3 w-3 text-yellow-500 mr-2 mt-0.5 flex-shrink-0" />
+                High-converting product titles optimized for sales
               </li>
               <li className="flex items-start">
                 <Check className="h-3 w-3 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                SEO-optimized titles for better search visibility
+                Detailed benefit-focused descriptions that convert
               </li>
               <li className="flex items-start">
                 <Check className="h-3 w-3 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                Professional product images from curated sources
+                6-8 professional product images per item
               </li>
               <li className="flex items-start">
                 <Check className="h-3 w-3 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                Competitive pricing strategies based on market research
+                Competitive dropshipping prices with profit margins
               </li>
               <li className="flex items-start">
                 <Check className="h-3 w-3 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                Multiple product variants and professional SKU management
+                Realistic product variants and professional SKUs
               </li>
               <li className="flex items-start">
                 <Palette className="h-3 w-3 text-blue-500 mr-2 mt-0.5 flex-shrink-0" />
-                Your selected theme color will be applied to your store
+                Your selected theme color applied to store design
               </li>
             </ul>
 
