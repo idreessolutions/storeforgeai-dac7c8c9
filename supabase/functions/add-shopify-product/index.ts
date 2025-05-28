@@ -27,9 +27,9 @@ serve(async (req) => {
     
     console.log('Shopify API URL:', apiUrl);
 
-    // Generate completely unique identifiers
+    // Generate completely unique identifiers with current timestamp
     const timestamp = Date.now();
-    const randomSuffix = Math.random().toString(36).substring(2, 8);
+    const randomSuffix = Math.random().toString(36).substring(2, 15);
     const uniqueId = `${timestamp}-${randomSuffix}`;
 
     // Generate unique handle
@@ -41,12 +41,12 @@ serve(async (req) => {
     
     const uniqueHandle = `${baseHandle}-${uniqueId}`;
 
-    // Prepare variants with truly unique titles to avoid Shopify conflicts
+    // Prepare variants with completely unique titles to avoid Shopify conflicts
     const preparedVariants = product.variants.map((variant, index) => {
       // Create absolutely unique variant title that won't conflict
-      const variantId = `${timestamp}-${index}-${randomSuffix}`;
+      const variantId = `${timestamp}-v${index}-${randomSuffix}`;
       const baseTitle = variant.title || 'Default';
-      const uniqueVariantTitle = `${baseTitle}-${variantId}`;
+      const uniqueVariantTitle = `${baseTitle} ${variantId}`;
       
       return {
         title: uniqueVariantTitle,
@@ -59,7 +59,8 @@ serve(async (req) => {
         weight_unit: 'lb',
         requires_shipping: true,
         taxable: true,
-        compare_at_price: null
+        compare_at_price: null,
+        fulfillment_service: 'manual'
       };
     });
 
@@ -75,7 +76,13 @@ serve(async (req) => {
         published: true,
         tags: product.tags || 'winning products, trending',
         images: product.images || [],
-        variants: preparedVariants
+        variants: preparedVariants,
+        options: [
+          {
+            name: 'Variant',
+            values: preparedVariants.map(v => v.title)
+          }
+        ]
       }
     };
 
@@ -87,6 +94,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
         'X-Shopify-Access-Token': accessToken,
         'Accept': 'application/json',
+        'User-Agent': 'StoreForge AI/1.0'
       },
       body: JSON.stringify(productPayload),
     });

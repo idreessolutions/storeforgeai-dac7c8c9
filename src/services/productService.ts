@@ -11,6 +11,10 @@ interface Product {
     price: number;
     sku: string;
   }>;
+  handle?: string;
+  product_type?: string;
+  vendor?: string;
+  tags?: string;
 }
 
 export const addProductsToShopify = async (
@@ -43,9 +47,30 @@ export const addProductsToShopify = async (
 
     console.log('Extracted store name:', storeName);
 
-    // Generate products for the specified niche
-    const products = generateProducts(userNiche);
-    console.log(`Generated ${products.length} products for ${userNiche} niche`);
+    // First, try to generate products using OpenAI
+    let products: Product[] = [];
+    try {
+      console.log('Attempting to generate products using OpenAI...');
+      const { data, error } = await supabase.functions.invoke('generate-products', {
+        body: { niche: userNiche }
+      });
+
+      if (error) {
+        console.error('Error generating products:', error);
+        throw new Error('Failed to generate products');
+      }
+
+      if (data?.success && data?.products) {
+        products = data.products;
+        console.log(`Generated ${products.length} products using AI`);
+      } else {
+        throw new Error('No products generated');
+      }
+    } catch (error) {
+      console.error('Product generation failed, using fallback:', error);
+      // Fallback to predefined products
+      products = generateFallbackProducts(userNiche);
+    }
     
     let successCount = 0;
     const errors: string[] = [];
@@ -59,9 +84,9 @@ export const addProductsToShopify = async (
       console.log(`Processing product ${i + 1}/${products.length}: ${product.title}`);
       
       try {
-        // Create completely unique identifiers for this attempt
+        // Create unique identifiers for this attempt
         const timestamp = Date.now();
-        const randomSuffix = Math.random().toString(36).substring(2, 8);
+        const randomSuffix = Math.random().toString(36).substring(2, 15);
         
         // Use Supabase edge function to add product to Shopify
         const { data, error } = await supabase.functions.invoke('add-shopify-product', {
@@ -71,16 +96,16 @@ export const addProductsToShopify = async (
             product: {
               title: product.title.trim(),
               body_html: `<p>${product.description.trim()}</p>`,
-              vendor: 'StoreForge AI',
-              product_type: userNiche || 'General',
-              handle: generateHandle(product.title),
+              vendor: product.vendor || 'StoreForge AI',
+              product_type: product.product_type || userNiche || 'General',
+              handle: product.handle || generateHandle(product.title),
               status: 'active',
               published: true,
-              tags: `${userNiche}, winning products, trending`,
-              images: product.images.map(url => ({
+              tags: product.tags || `${userNiche}, winning products, trending`,
+              images: product.images?.map(url => ({
                 src: url,
                 alt: product.title
-              })),
+              })) || [],
               variants: product.variants.map((variant, variantIndex) => {
                 return {
                   title: variant.title,
@@ -126,7 +151,7 @@ export const addProductsToShopify = async (
       
       // Add delay between requests to avoid rate limiting
       if (i < products.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Increased delay
+        await new Promise(resolve => setTimeout(resolve, 3000)); // 3 second delay
       }
     }
     
@@ -189,41 +214,9 @@ function generateHandle(title: string): string {
     .substring(0, 255); // Shopify handle limit
 }
 
-// Generate products directly without external API calls
-const generateProducts = (niche: string): Product[] => {
+// Fallback products if AI generation fails
+const generateFallbackProducts = (niche: string): Product[] => {
   const nicheProducts: Record<string, Product[]> = {
-    'kitchen': [
-      {
-        title: "Smart Kitchen Scale with App",
-        description: "Precision digital kitchen scale with smartphone connectivity and nutritional tracking.",
-        price: 39.99,
-        images: ["https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=500&h=500&fit=crop&crop=center"],
-        variants: [
-          { title: "White", price: 39.99, sku: "SKS-WHITE-001" },
-          { title: "Black", price: 39.99, sku: "SKS-BLACK-001" }
-        ]
-      },
-      {
-        title: "Silicone Cooking Utensil Set",
-        description: "Complete set of heat-resistant silicone cooking utensils. Non-stick friendly and dishwasher safe.",
-        price: 24.99,
-        images: ["https://images.unsplash.com/photo-1584286595398-c4fdb5ab4a5b?w=500&h=500&fit=crop&crop=center"],
-        variants: [
-          { title: "5-Piece Set", price: 24.99, sku: "SCU-5PC-001" },
-          { title: "10-Piece Set", price: 39.99, sku: "SCU-10PC-001" }
-        ]
-      },
-      {
-        title: "Multi-Use Pressure Cooker",
-        description: "Electric pressure cooker with multiple cooking functions. Perfect for quick, healthy meals.",
-        price: 79.99,
-        images: ["https://images.unsplash.com/photo-1585515656963-05cc7a2a7c0f?w=500&h=500&fit=crop&crop=center"],
-        variants: [
-          { title: "6-Quart", price: 79.99, sku: "MPC-6Q-001" },
-          { title: "8-Quart", price: 99.99, sku: "MPC-8Q-001" }
-        ]
-      }
-    ],
     'pet': [
       {
         title: "Smart Pet Feeder with Camera",
@@ -233,7 +226,11 @@ const generateProducts = (niche: string): Product[] => {
         variants: [
           { title: "White", price: 89.99, sku: "SPF-WHITE-001" },
           { title: "Black", price: 89.99, sku: "SPF-BLACK-001" }
-        ]
+        ],
+        handle: "smart-pet-feeder-with-camera",
+        product_type: "Pet Tech",
+        vendor: "StoreForge AI",
+        tags: "pet, smart home, trending"
       },
       {
         title: "Interactive Dog Puzzle Toy",
@@ -243,7 +240,11 @@ const generateProducts = (niche: string): Product[] => {
         variants: [
           { title: "Level 1", price: 24.99, sku: "DPT-LV1-001" },
           { title: "Level 2", price: 29.99, sku: "DPT-LV2-001" }
-        ]
+        ],
+        handle: "interactive-dog-puzzle-toy",
+        product_type: "Pet Toys",
+        vendor: "StoreForge AI",
+        tags: "dog, puzzle, mental stimulation"
       },
       {
         title: "Cat Water Fountain",
@@ -253,7 +254,11 @@ const generateProducts = (niche: string): Product[] => {
         variants: [
           { title: "2L Capacity", price: 34.99, sku: "CWF-2L-001" },
           { title: "3L Capacity", price: 39.99, sku: "CWF-3L-001" }
-        ]
+        ],
+        handle: "cat-water-fountain",
+        product_type: "Pet Care",
+        vendor: "StoreForge AI",
+        tags: "cat, water, health"
       }
     ]
   };
@@ -261,5 +266,5 @@ const generateProducts = (niche: string): Product[] => {
   const lowerNiche = niche.toLowerCase();
   const selectedProducts = nicheProducts[lowerNiche] || nicheProducts['pet'];
   
-  return selectedProducts.slice(0, 3); // Return only 3 products for testing
+  return selectedProducts.slice(0, 5); // Return 5 products
 };
