@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 interface Product {
@@ -112,15 +111,10 @@ export const addProductsToShopify = async (
                 alt: product.title
               })) || [],
               variants: processedVariants.map((variant, variantIndex) => {
-                // Convert all numeric values to strings explicitly
-                const timestampStr = String(timestamp);
-                const productIndexStr = String(i);
-                const variantIndexStr = String(variantIndex);
-                
                 return {
                   title: variant.title,
                   price: variant.price.toFixed ? variant.price.toFixed(2) : parseFloat(variant.price).toFixed(2),
-                  sku: `${variant.sku}-${timestampStr}-${productIndexStr}-${variantIndexStr}-${randomSuffix}`,
+                  sku: `${variant.sku}-${String(timestamp)}-${String(i)}-${String(variantIndex)}-${randomSuffix}`,
                   inventory_management: null,
                   inventory_policy: 'continue',
                   inventory_quantity: 999,
