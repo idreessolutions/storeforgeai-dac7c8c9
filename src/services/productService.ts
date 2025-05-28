@@ -121,9 +121,9 @@ export const addProductsToShopify = async (
               })) || [],
               variants: processedVariants.map((variant, variantIndex) => {
                 // Convert all numeric values to strings explicitly for the SKU
-                const timestampStr = timestamp.toString();
-                const indexStr = i.toString();
-                const variantIndexStr = variantIndex.toString();
+                const timestampStr = String(timestamp);
+                const indexStr = String(i);
+                const variantIndexStr = String(variantIndex);
                 
                 return {
                   title: variant.title,
@@ -254,6 +254,9 @@ async function storeUploadSession(results: ProductUploadResult[], niche: string)
     const sessionId = Math.random().toString(36).substring(2, 15);
     const successCount = results.filter(r => r.success).length;
     
+    // Convert results to JSON-compatible format
+    const resultsAsJson = JSON.parse(JSON.stringify(results));
+    
     const { error } = await supabase
       .from('upload_sessions')
       .insert({
@@ -262,7 +265,7 @@ async function storeUploadSession(results: ProductUploadResult[], niche: string)
         total_products: results.length,
         successful_uploads: successCount,
         failed_uploads: results.length - successCount,
-        results: results,
+        results: resultsAsJson,
         created_at: new Date().toISOString()
       });
 
