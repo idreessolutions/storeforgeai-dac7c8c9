@@ -112,10 +112,14 @@ export const addProductsToShopify = async (
                 alt: product.title
               })) || [],
               variants: processedVariants.map((variant, variantIndex) => {
+                const timestampStr = timestamp.toString();
+                const indexStr = i.toString();
+                const variantIndexStr = variantIndex.toString();
+                
                 return {
                   title: variant.title,
                   price: variant.price.toFixed ? variant.price.toFixed(2) : parseFloat(variant.price).toFixed(2),
-                  sku: `${variant.sku}-${timestamp.toString()}-${i.toString()}-${variantIndex.toString()}-${randomSuffix}`,
+                  sku: `${variant.sku}-${timestampStr}-${indexStr}-${variantIndexStr}-${randomSuffix}`,
                   inventory_management: null,
                   inventory_policy: 'continue',
                   inventory_quantity: 999,
