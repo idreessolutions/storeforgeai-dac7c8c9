@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -67,7 +68,7 @@ const MentorshipStep = ({ formData, handleInputChange }: MentorshipStepProps) =>
     try {
       console.log('Submitting mentorship application:', mentorshipData);
       
-      // Save to Supabase mentorship_applications table without session_id foreign key
+      // Save to Supabase mentorship_applications table without session_id
       const { data, error } = await supabase
         .from('mentorship_applications')
         .insert({
@@ -79,7 +80,8 @@ const MentorshipStep = ({ formData, handleInputChange }: MentorshipStepProps) =>
           investment_amount: mentorshipData.investment || null,
           income_goal: mentorshipData.revenue_goal || null,
           business_experience: mentorshipData.experience || null,
-          additional_info: `Business Type: ${mentorshipData.business_type || 'Not specified'}, Timeline: ${mentorshipData.timeline || 'Not specified'}`
+          additional_info: `Business Type: ${mentorshipData.business_type || 'Not specified'}, Timeline: ${mentorshipData.timeline || 'Not specified'}`,
+          session_id: null // Remove foreign key constraint by setting to null
         })
         .select();
 
