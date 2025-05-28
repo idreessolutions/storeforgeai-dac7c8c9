@@ -38,9 +38,9 @@ serve(async (req) => {
 REQUIREMENTS FOR EACH PRODUCT:
 1. TITLE: Short (3-8 words), catchy, benefit-focused, trending keywords
 2. DESCRIPTION: 100-150 words focusing on BENEFITS, pain points solved, social proof language
-3. PRICE: Realistic dropshipping margins ($15-$89 range, competitive)
+3. PRICE: Realistic dropshipping margins ($15-$89 range, competitive) - MUST BE VALID NUMBERS
 4. IMAGES: 6-8 high-quality Unsplash URLs (format: https://images.unsplash.com/photo-[id]?w=800&h=800&fit=crop)
-5. VARIANTS: 2-3 realistic options (colors, sizes, bundles) with proper SKUs
+5. VARIANTS: 2-3 realistic options (colors, sizes, bundles) with proper SKUs and VALID PRICES
 6. TAGS: trending, SEO-optimized keywords for the niche
 7. HANDLE: URL-friendly slug
 
@@ -51,6 +51,8 @@ Focus on products that:
 - Use scarcity/urgency language
 - Include social proof elements
 
+CRITICAL: All prices must be valid numbers between 15 and 89. No text, no NaN, just numbers.
+
 Return ONLY a valid JSON array of 10 products. No additional text.`
               },
               {
@@ -59,13 +61,13 @@ Return ONLY a valid JSON array of 10 products. No additional text.`
 
 1. Catchy, benefit-focused titles
 2. Compelling descriptions with emotional triggers
-3. Realistic dropshipping prices
+3. Realistic dropshipping prices (MUST BE VALID NUMBERS 15-89)
 4. 6-8 high-quality Unsplash image URLs per product
-5. 2-3 realistic variants with SKUs
+5. 2-3 realistic variants with SKUs and VALID NUMERIC PRICES
 6. SEO-optimized tags
 7. URL-friendly handles
 
-Make these products look professional and trending, not generic AI content.`
+CRITICAL: Ensure all price values are valid numbers, not text or NaN.`
               }
             ],
             temperature: 0.8,
@@ -84,29 +86,48 @@ Make these products look professional and trending, not generic AI content.`
             const products = JSON.parse(cleanedText);
             console.log(`Successfully parsed ${products.length} products from OpenAI`);
             
-            // Ensure we have exactly 10 products and proper structure
-            const formattedProducts = products.slice(0, 10).map((product, index) => ({
-              title: product.title || `${niche} Essential Pro ${index + 1}`,
-              description: product.description || `Revolutionary ${niche} product designed for modern lifestyle. Features premium quality materials, innovative design, and proven results. Join thousands of satisfied customers who've transformed their daily routine with this trending solution.`,
-              price: product.price || (19.99 + (index * 8)),
-              images: product.images && product.images.length > 0 ? product.images : generateNicheImages(niche, index),
-              variants: product.variants && product.variants.length > 0 ? product.variants : [
-                { 
-                  title: 'Standard', 
-                  price: product.price || (19.99 + (index * 8)), 
-                  sku: `${niche.toUpperCase().substring(0,3)}-STD-${String(index + 1).padStart(3, '0')}` 
-                },
-                { 
-                  title: 'Premium', 
-                  price: (product.price || (19.99 + (index * 8))) + 15, 
-                  sku: `${niche.toUpperCase().substring(0,3)}-PREM-${String(index + 1).padStart(3, '0')}` 
-                }
-              ],
-              handle: product.handle || generateHandle(product.title || `${niche}-essential-${index + 1}`),
-              product_type: product.product_type || niche,
-              vendor: product.vendor || 'TrendingDrop',
-              tags: product.tags || `${niche}, trending, bestseller, viral, premium quality, limited edition, must have, ${new Date().getFullYear()}`
-            }));
+            // Ensure we have exactly 10 products and proper structure with valid prices
+            const formattedProducts = products.slice(0, 10).map((product, index) => {
+              // Ensure valid price
+              let basePrice = typeof product.price === 'number' ? product.price : parseFloat(product.price);
+              if (isNaN(basePrice) || basePrice < 15) {
+                basePrice = 19.99 + (index * 8);
+              }
+              
+              return {
+                title: product.title || `${niche} Essential Pro ${index + 1}`,
+                description: product.description || `Revolutionary ${niche} product designed for modern lifestyle. Features premium quality materials, innovative design, and proven results. Join thousands of satisfied customers who've transformed their daily routine with this trending solution.`,
+                price: basePrice,
+                images: product.images && product.images.length > 0 ? product.images : generateNicheImages(niche, index),
+                variants: product.variants && product.variants.length > 0 ? 
+                  product.variants.map((variant, vIndex) => {
+                    let variantPrice = typeof variant.price === 'number' ? variant.price : parseFloat(variant.price);
+                    if (isNaN(variantPrice)) {
+                      variantPrice = basePrice + (vIndex * 5);
+                    }
+                    return {
+                      title: variant.title || 'Standard',
+                      price: variantPrice,
+                      sku: variant.sku || `${niche.toUpperCase().substring(0,3)}-${String(index + 1).padStart(3, '0')}-${vIndex}`
+                    };
+                  }) : [
+                  { 
+                    title: 'Standard', 
+                    price: basePrice, 
+                    sku: `${niche.toUpperCase().substring(0,3)}-STD-${String(index + 1).padStart(3, '0')}` 
+                  },
+                  { 
+                    title: 'Premium', 
+                    price: basePrice + 15, 
+                    sku: `${niche.toUpperCase().substring(0,3)}-PREM-${String(index + 1).padStart(3, '0')}` 
+                  }
+                ],
+                handle: product.handle || generateHandle(product.title || `${niche}-essential-${index + 1}`),
+                product_type: product.product_type || niche,
+                vendor: product.vendor || 'TrendingDrop',
+                tags: product.tags || `${niche}, trending, bestseller, viral, premium quality, limited edition, must have, ${new Date().getFullYear()}`
+              };
+            });
             
             return new Response(JSON.stringify({ 
               success: true, 

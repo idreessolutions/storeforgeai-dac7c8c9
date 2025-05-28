@@ -41,15 +41,21 @@ serve(async (req) => {
     
     const uniqueHandle = `${baseHandle}-${uniqueId}`;
 
-    // Prepare variants - ensure we have unique option values
+    // Prepare variants - ensure we have valid prices
     const preparedVariants = product.variants.map((variant, index) => {
       const variantId = `${timestamp}-v${index}-${randomSuffix}`;
       const baseTitle = variant.title || 'Default';
       const uniqueVariantTitle = `${baseTitle}-${variantId}`;
       
+      // Ensure price is a valid number
+      let price = parseFloat(variant.price);
+      if (isNaN(price) || price <= 0) {
+        price = 29.99; // Default fallback price
+      }
+      
       return {
         title: uniqueVariantTitle,
-        price: parseFloat(variant.price).toFixed(2),
+        price: price.toFixed(2),
         sku: `${variant.sku || 'SKU'}-${variantId}`,
         inventory_management: null,
         inventory_policy: 'continue',

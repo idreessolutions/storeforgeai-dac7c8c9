@@ -11,10 +11,10 @@ export interface Step {
 
 export const storeSteps: Step[] = [
   { id: 1, title: "Store Details", icon: Store, description: "Tell us about your business" },
-  { id: 2, title: "Create Store", icon: Sparkles, description: "Setup Shopify store" },
-  { id: 3, title: "API Config", icon: Settings, description: "Configure app access" },
-  { id: 4, title: "Activate Trial", icon: ExternalLink, description: "Choose your plan" },
-  { id: 5, title: "Choose Color", icon: Palette, description: "Select theme colors" },
+  { id: 2, title: "Choose Color", icon: Palette, description: "Select theme colors" },
+  { id: 3, title: "Create Store", icon: Sparkles, description: "Setup Shopify store" },
+  { id: 4, title: "API Config", icon: Settings, description: "Configure app access" },
+  { id: 5, title: "Activate Trial", icon: ExternalLink, description: "Choose your plan" },
   { id: 6, title: "Products", icon: Package, description: "Add winning products" },
   { id: 7, title: "Mentorship", icon: MessageCircle, description: "Get 1-on-1 support" },
   { id: 8, title: "Launch", icon: Eye, description: "View your store" }
