@@ -17,6 +17,13 @@ interface Product {
   tags?: string;
 }
 
+interface ProductUploadResult {
+  success: boolean;
+  productId?: string;
+  error?: string;
+  productTitle: string;
+}
+
 export const addProductsToShopify = async (
   shopifyUrl: string,
   accessToken: string,
@@ -47,7 +54,7 @@ export const addProductsToShopify = async (
 
     console.log('Extracted store name:', storeName);
 
-    // First, try to generate products using OpenAI
+    // Generate products using OpenAI
     let products: Product[] = [];
     try {
       console.log('Attempting to generate products using OpenAI...');
@@ -61,7 +68,7 @@ export const addProductsToShopify = async (
       }
 
       if (data?.success && data?.products) {
-        products = data.products.slice(0, 3); // Use only 3 products for testing
+        products = data.products.slice(0, 10); // Use 10 products for better reliability
         console.log(`Generated ${products.length} products using AI`);
       } else {
         throw new Error('No products generated');
@@ -69,13 +76,14 @@ export const addProductsToShopify = async (
     } catch (error) {
       console.error('Product generation failed, using fallback:', error);
       // Fallback to predefined products
-      products = generateFallbackProducts(userNiche).slice(0, 3);
+      products = generateFallbackProducts(userNiche).slice(0, 10);
     }
     
     let successCount = 0;
     const errors: string[] = [];
+    const uploadResults: ProductUploadResult[] = [];
     
-    // Process products one by one with progress updates
+    // Process products one by one with rate limiting
     for (let i = 0; i < products.length; i++) {
       const product = products[i];
       const progress = ((i + 1) / products.length) * 100;
@@ -112,14 +120,14 @@ export const addProductsToShopify = async (
                 alt: product.title
               })) || [],
               variants: processedVariants.map((variant, variantIndex) => {
-                // Convert all numeric values to strings explicitly
+                // Convert all numeric values to strings explicitly for the SKU
                 const timestampStr = timestamp.toString();
                 const indexStr = i.toString();
                 const variantIndexStr = variantIndex.toString();
                 
                 return {
                   title: variant.title,
-                  price: typeof variant.price === 'number' ? variant.price.toFixed(2) : parseFloat(variant.price).toFixed(2),
+                  price: typeof variant.price === 'number' ? variant.price.toFixed(2) : parseFloat(variant.price.toString()).toFixed(2),
                   sku: `${variant.sku}-${timestampStr}-${indexStr}-${variantIndexStr}-${randomSuffix}`,
                   inventory_management: null,
                   inventory_policy: 'continue',
@@ -142,9 +150,27 @@ export const addProductsToShopify = async (
         if (data?.success) {
           successCount++;
           console.log(`✓ Successfully added: ${product.title}`);
+          
+          // Store result for Supabase storage
+          uploadResults.push({
+            success: true,
+            productId: data.product?.id,
+            productTitle: product.title
+          });
+          
+          // Store product data in Supabase
+          await storeProductInSupabase(product, data.product?.id, userNiche);
+          
         } else {
           const errorMsg = data?.error || 'Unknown error from edge function';
           console.error(`✗ Edge function failed for ${product.title}:`, errorMsg);
+          
+          uploadResults.push({
+            success: false,
+            error: errorMsg,
+            productTitle: product.title
+          });
+          
           throw new Error(errorMsg);
         }
         
@@ -153,17 +179,27 @@ export const addProductsToShopify = async (
         console.error(`✗ Failed to add ${product.title}:`, errorMsg);
         errors.push(`${product.title}: ${errorMsg}`);
         
+        uploadResults.push({
+          success: false,
+          error: errorMsg,
+          productTitle: product.title
+        });
+        
         // Stop on authentication errors
         if (errorMsg.includes('401') || errorMsg.includes('403') || errorMsg.includes('Unauthorized')) {
           throw new Error(`Authentication failed. Please check your access token: ${errorMsg}`);
         }
       }
       
-      // Add delay between requests to avoid rate limiting
+      // Rate limiting: 1.5 second delay between requests to avoid 429 errors
       if (i < products.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 5000)); // 5 second delay
+        console.log('Applying rate limit delay...');
+        await new Promise(resolve => setTimeout(resolve, 1500)); // 1.5 second delay
       }
     }
+    
+    // Store upload session summary in Supabase
+    await storeUploadSession(uploadResults, userNiche);
     
     console.log(`Product addition completed: ${successCount}/${products.length} successful`);
     
@@ -182,6 +218,63 @@ export const addProductsToShopify = async (
     throw error;
   }
 };
+
+// Store individual product data in Supabase
+async function storeProductInSupabase(product: Product, shopifyProductId: string | undefined, niche: string) {
+  try {
+    const { error } = await supabase
+      .from('product_uploads')
+      .insert({
+        shopify_product_id: shopifyProductId,
+        title: product.title,
+        description: product.description,
+        price: product.price,
+        niche: niche,
+        vendor: product.vendor || 'StoreForge AI',
+        product_type: product.product_type || niche,
+        tags: product.tags,
+        images: product.images,
+        variants: product.variants,
+        created_at: new Date().toISOString()
+      });
+
+    if (error) {
+      console.error('Error storing product in Supabase:', error);
+    } else {
+      console.log(`Product ${product.title} stored in Supabase`);
+    }
+  } catch (error) {
+    console.error('Failed to store product in Supabase:', error);
+  }
+}
+
+// Store upload session summary
+async function storeUploadSession(results: ProductUploadResult[], niche: string) {
+  try {
+    const sessionId = Math.random().toString(36).substring(2, 15);
+    const successCount = results.filter(r => r.success).length;
+    
+    const { error } = await supabase
+      .from('upload_sessions')
+      .insert({
+        session_id: sessionId,
+        niche: niche,
+        total_products: results.length,
+        successful_uploads: successCount,
+        failed_uploads: results.length - successCount,
+        results: results,
+        created_at: new Date().toISOString()
+      });
+
+    if (error) {
+      console.error('Error storing upload session:', error);
+    } else {
+      console.log(`Upload session ${sessionId} stored in Supabase`);
+    }
+  } catch (error) {
+    console.error('Failed to store upload session:', error);
+  }
+}
 
 // Helper function to extract store name from various URL formats
 function extractStoreName(url: string): string | null {
@@ -269,6 +362,35 @@ const generateFallbackProducts = (niche: string): Product[] => {
         product_type: "Pet Care",
         vendor: "StoreForge AI",
         tags: "cat, water, health"
+      },
+      {
+        title: "Pet GPS Tracker Collar",
+        description: "Real-time GPS tracking collar for dogs and cats. Monitor your pet's location and activity levels with smartphone notifications.",
+        price: 59.99,
+        images: ["https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=500&h=500&fit=crop&crop=center"],
+        variants: [
+          { title: "Small", price: 59.99, sku: "GPS-SM-001" },
+          { title: "Medium", price: 64.99, sku: "GPS-MD-001" },
+          { title: "Large", price: 69.99, sku: "GPS-LG-001" }
+        ],
+        handle: "pet-gps-tracker-collar",
+        product_type: "Pet Safety",
+        vendor: "StoreForge AI",
+        tags: "gps, tracking, safety, collar"
+      },
+      {
+        title: "Automatic Pet Grooming Brush",
+        description: "Self-cleaning slicker brush that removes loose fur and reduces shedding. One-click hair removal system for easy maintenance.",
+        price: 19.99,
+        images: ["https://images.unsplash.com/photo-1574158622688-3f2d4f4c8b9b?w=500&h=500&fit=crop&crop=center"],
+        variants: [
+          { title: "For Cats", price: 19.99, sku: "AGB-CAT-001" },
+          { title: "For Dogs", price: 22.99, sku: "AGB-DOG-001" }
+        ],
+        handle: "automatic-pet-grooming-brush",
+        product_type: "Pet Grooming",
+        vendor: "StoreForge AI",
+        tags: "grooming, brush, shedding, maintenance"
       }
     ]
   };
@@ -276,5 +398,5 @@ const generateFallbackProducts = (niche: string): Product[] => {
   const lowerNiche = niche.toLowerCase();
   const selectedProducts = nicheProducts[lowerNiche] || nicheProducts['pet'];
   
-  return selectedProducts.slice(0, 5); // Return 5 products
+  return selectedProducts.slice(0, 10); // Return 10 products
 };
