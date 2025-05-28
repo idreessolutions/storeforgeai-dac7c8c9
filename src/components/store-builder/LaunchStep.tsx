@@ -52,7 +52,7 @@ const LaunchStep = ({ formData }: LaunchStepProps) => {
               </div>
               <div className="flex items-center space-x-2 p-2 bg-green-50 rounded-lg">
                 <CheckCircle className="h-4 w-4 text-green-600" />
-                <span className="text-green-800 font-medium text-sm">20 Winning Products Added</span>
+                <span className="text-green-800 font-medium text-sm">10 Winning Products Added</span>
               </div>
               <div className="flex items-center space-x-2 p-2 bg-green-50 rounded-lg">
                 <CheckCircle className="h-4 w-4 text-green-600" />

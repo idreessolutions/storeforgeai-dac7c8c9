@@ -2,10 +2,10 @@
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Package, Check, AlertCircle, Loader2 } from "lucide-react";
+import { Package, Check, AlertCircle, Loader2, Palette } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { addProductsToShopify } from "@/services/productService";
+import { addProductsToShopify, applyThemeColor } from "@/services/productService";
 
 interface ProductsStepProps {
   formData: {
@@ -13,6 +13,7 @@ interface ProductsStepProps {
     shopifyUrl: string;
     accessToken: string;
     niche: string;
+    themeColor: string;
   };
   handleInputChange: (field: string, value: boolean) => void;
 }
@@ -22,6 +23,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
   const [progress, setProgress] = useState(0);
   const [currentProduct, setCurrentProduct] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [isApplyingTheme, setIsApplyingTheme] = useState(false);
   const { toast } = useToast();
 
   const handleAddProducts = async () => {
@@ -54,34 +56,54 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       console.log('=== STARTING PRODUCT ADDITION PROCESS ===');
       console.log('Store URL:', formData.shopifyUrl);
       console.log('Niche:', formData.niche);
+      console.log('Theme Color:', formData.themeColor);
       console.log('Access token format check:', formData.accessToken.startsWith('shpat_'));
-      console.log('Access token length:', formData.accessToken.length);
       
-      // Use the enhanced productService to add products to Shopify
+      // Step 1: Add 10 winning products to Shopify
       const success = await addProductsToShopify(
         formData.shopifyUrl,
         formData.accessToken,
         formData.niche,
         (progressValue: number, productName: string) => {
           console.log(`Progress: ${progressValue}% - Adding: ${productName}`);
-          setProgress(progressValue);
+          setProgress(progressValue * 0.8); // 80% for product addition
           setCurrentProduct(productName);
         }
       );
 
       if (success) {
-        console.log('=== PRODUCT ADDITION SUCCESSFUL ===');
+        console.log('=== PRODUCTS ADDED SUCCESSFULLY ===');
+        setProgress(80);
+        setCurrentProduct("Applying theme color...");
+        setIsApplyingTheme(true);
+        
+        // Step 2: Apply theme color to store
+        const themeSuccess = await applyThemeColor(
+          formData.shopifyUrl,
+          formData.accessToken,
+          formData.themeColor
+        );
+        
+        setProgress(90);
+        
+        if (themeSuccess) {
+          console.log('=== THEME COLOR APPLIED SUCCESSFULLY ===');
+        } else {
+          console.warn('Theme color application failed, but products were added successfully');
+        }
+        
+        // Mark as complete
         handleInputChange('productsAdded', true);
         setErrorMessage("");
         
         toast({
           title: "Success! 🎉",
-          description: `10 winning ${formData.niche} products have been successfully added to your Shopify store!`,
+          description: `10 winning ${formData.niche} products have been successfully added to your Shopify store${themeSuccess ? ' with your selected theme color applied' : ''}!`,
         });
         
         // Final progress update
         setProgress(100);
-        setCurrentProduct("All products added successfully!");
+        setCurrentProduct("All products added and store customized successfully!");
       }
       
     } catch (error) {
@@ -101,7 +123,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       } else if (errorMsg.includes('Missing required parameters')) {
         toastDescription = "Please ensure all store information is properly configured before adding products.";
       } else if (errorMsg.includes('NetworkError') || errorMsg.includes('fetch')) {
-        toastDescription = "Connection error. This has been fixed - please try again.";
+        toastDescription = "Connection error. Please check your internet connection and try again.";
       }
       
       toast({
@@ -115,6 +137,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       setCurrentProduct("");
     } finally {
       setIsLoading(false);
+      setIsApplyingTheme(false);
     }
   };
 
@@ -134,7 +157,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         <div className="space-y-4">
           <div className="bg-gray-50 p-4 rounded-lg">
             <p className="text-gray-700 mb-3 text-sm">
-              Our system will automatically add 10 carefully selected winning products 
+              Our AI system will automatically add 10 carefully selected winning products 
               {formData.niche ? ` in the ${formData.niche} niche ` : ' '}
               directly to your Shopify store. Each product includes:
             </p>
@@ -142,7 +165,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
             <ul className="space-y-2 text-gray-700 mb-4 text-xs">
               <li className="flex items-start">
                 <Check className="h-3 w-3 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                High-quality product descriptions optimized for sales
+                AI-generated high-converting product descriptions
               </li>
               <li className="flex items-start">
                 <Check className="h-3 w-3 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
@@ -150,15 +173,19 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               </li>
               <li className="flex items-start">
                 <Check className="h-3 w-3 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                Professional product images from curated sources
+              </li>
+              <li className="flex items-start">
+                <Check className="h-3 w-3 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
                 Competitive pricing strategies based on market research
               </li>
               <li className="flex items-start">
                 <Check className="h-3 w-3 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                Professional product variants and SKU management
+                Multiple product variants and professional SKU management
               </li>
               <li className="flex items-start">
-                <Check className="h-3 w-3 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                Ready for immediate sale with inventory tracking
+                <Palette className="h-3 w-3 text-blue-500 mr-2 mt-0.5 flex-shrink-0" />
+                Your selected theme color will be applied to your store
               </li>
             </ul>
 
@@ -167,15 +194,19 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 <div className="text-center">
                   <div className="flex items-center justify-center mb-2">
                     <Loader2 className="h-4 w-4 animate-spin text-blue-600 mr-2" />
-                    <p className="text-blue-700 font-semibold text-sm">Adding products to your Shopify store...</p>
+                    <p className="text-blue-700 font-semibold text-sm">
+                      {isApplyingTheme ? 'Customizing your store theme...' : 'Adding winning products to your Shopify store...'}
+                    </p>
                   </div>
                   {currentProduct && (
-                    <p className="text-xs text-blue-600 mb-2">Currently processing: {currentProduct}</p>
+                    <p className="text-xs text-blue-600 mb-2">
+                      {isApplyingTheme ? 'Applying your selected theme color' : `Currently processing: ${currentProduct}`}
+                    </p>
                   )}
                 </div>
                 <Progress value={progress} className="w-full h-2" />
                 <p className="text-xs text-blue-600 text-center font-medium">
-                  {Math.round(progress)}% Complete ({Math.round(progress / 10)} of 10 products)
+                  {Math.round(progress)}% Complete ({isApplyingTheme ? 'Customizing theme' : `${Math.floor(progress / 10)} of 10 products`})
                 </p>
               </div>
             )}
@@ -188,7 +219,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                     <p className="text-red-800 font-medium text-sm mb-1">Product Addition Failed</p>
                     <p className="text-red-700 text-xs leading-relaxed">{errorMessage}</p>
                     <p className="text-red-600 text-xs mt-2 italic">
-                      This issue has been resolved. Please try adding products again.
+                      Please try again or contact support if the issue persists.
                     </p>
                   </div>
                 </div>
@@ -204,7 +235,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                       Successfully added 10 winning {formData.niche || 'general'} products!
                     </p>
                     <p className="text-green-700 text-xs mt-1">
-                      Your products are now live and ready for customers to purchase.
+                      Your products are now live with your selected theme color applied.
                     </p>
                   </div>
                 </div>
@@ -221,12 +252,12 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               {isLoading ? (
                 <div className="flex items-center justify-center">
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Adding Products... ({Math.round(progress / 10)}/10)
+                  {isApplyingTheme ? 'Customizing Store...' : `Adding Products... (${Math.floor(progress / 10)}/10)`}
                 </div>
               ) : (
                 <div className="flex items-center justify-center">
                   <Package className="h-4 w-4 mr-2" />
-                  Add 10 Winning Products to Store
+                  Add 10 Winning Products + Apply Theme
                 </div>
               )}
             </Button>
