@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 interface Product {
@@ -54,10 +53,10 @@ export const addProductsToShopify = async (
 
     console.log('Extracted store name:', storeName);
 
-    // Generate products using OpenAI
+    // Generate products using OpenAI - now limited to 10 products
     let products: Product[] = [];
     try {
-      console.log('Attempting to generate products using OpenAI...');
+      console.log('Attempting to generate 10 winning products using OpenAI...');
       const { data, error } = await supabase.functions.invoke('generate-products', {
         body: { niche: userNiche }
       });
@@ -68,14 +67,14 @@ export const addProductsToShopify = async (
       }
 
       if (data?.success && data?.products) {
-        products = data.products.slice(0, 10); // Use 10 products for better reliability
-        console.log(`Generated ${products.length} products using AI`);
+        products = data.products.slice(0, 10); // Use exactly 10 products
+        console.log(`Generated ${products.length} winning products using AI`);
       } else {
         throw new Error('No products generated');
       }
     } catch (error) {
       console.error('Product generation failed, using fallback:', error);
-      // Fallback to predefined products
+      // Fallback to predefined products - limited to 10
       products = generateFallbackProducts(userNiche).slice(0, 10);
     }
     
@@ -158,8 +157,9 @@ export const addProductsToShopify = async (
             productTitle: product.title
           });
           
-          // Store product data in Supabase
+          // Store product data in Supabase database AND storage bucket
           await storeProductInSupabase(product, data.product?.id, userNiche);
+          await storeProductInStorageBucket(product, data.product?.id, userNiche);
           
         } else {
           const errorMsg = data?.error || 'Unknown error from edge function';
@@ -219,7 +219,7 @@ export const addProductsToShopify = async (
   }
 };
 
-// Store individual product data in Supabase
+// Store individual product data in Supabase database
 async function storeProductInSupabase(product: Product, shopifyProductId: string | undefined, niche: string) {
   try {
     const { error } = await supabase
@@ -241,10 +241,46 @@ async function storeProductInSupabase(product: Product, shopifyProductId: string
     if (error) {
       console.error('Error storing product in Supabase:', error);
     } else {
-      console.log(`Product ${product.title} stored in Supabase`);
+      console.log(`Product ${product.title} stored in Supabase database`);
     }
   } catch (error) {
-    console.error('Failed to store product in Supabase:', error);
+    console.error('Failed to store product in Supabase database:', error);
+  }
+}
+
+// Store individual product data in Supabase Storage bucket
+async function storeProductInStorageBucket(product: Product, shopifyProductId: string | undefined, niche: string) {
+  try {
+    const productData = {
+      shopify_product_id: shopifyProductId,
+      title: product.title,
+      description: product.description,
+      price: product.price,
+      niche: niche,
+      vendor: product.vendor || 'StoreForge AI',
+      product_type: product.product_type || niche,
+      tags: product.tags,
+      images: product.images,
+      variants: product.variants,
+      created_at: new Date().toISOString()
+    };
+
+    const fileName = `${niche}/${shopifyProductId || 'unknown'}-${Date.now()}.json`;
+    const fileContent = new Blob([JSON.stringify(productData, null, 2)], {
+      type: 'application/json'
+    });
+
+    const { error } = await supabase.storage
+      .from('product-data')
+      .upload(fileName, fileContent);
+
+    if (error) {
+      console.error('Error storing product in storage bucket:', error);
+    } else {
+      console.log(`Product ${product.title} stored in storage bucket: ${fileName}`);
+    }
+  } catch (error) {
+    console.error('Failed to store product in storage bucket:', error);
   }
 }
 
@@ -320,7 +356,7 @@ function generateHandle(title: string): string {
     .substring(0, 255); // Shopify handle limit
 }
 
-// Fallback products if AI generation fails
+// Fallback products if AI generation fails - now returns exactly 10 products
 const generateFallbackProducts = (niche: string): Product[] => {
   const nicheProducts: Record<string, Product[]> = {
     'pet': [
@@ -394,6 +430,78 @@ const generateFallbackProducts = (niche: string): Product[] => {
         product_type: "Pet Grooming",
         vendor: "StoreForge AI",
         tags: "grooming, brush, shedding, maintenance"
+      },
+      {
+        title: "Pet Treat Dispensing Ball",
+        description: "Interactive toy that dispenses treats as your pet plays. Keeps pets mentally stimulated and encourages physical activity.",
+        price: 16.99,
+        images: ["https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=500&h=500&fit=crop&crop=center"],
+        variants: [
+          { title: "Small", price: 16.99, sku: "TDB-SM-001" },
+          { title: "Large", price: 19.99, sku: "TDB-LG-001" }
+        ],
+        handle: "pet-treat-dispensing-ball",
+        product_type: "Pet Toys",
+        vendor: "StoreForge AI",
+        tags: "treat, interactive, exercise"
+      },
+      {
+        title: "Heated Pet Bed",
+        description: "Orthopedic heated pet bed with removable cover. Perfect for senior pets or cold climates. Temperature control included.",
+        price: 79.99,
+        images: ["https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=500&h=500&fit=crop&crop=center"],
+        variants: [
+          { title: "Medium", price: 79.99, sku: "HPB-MD-001" },
+          { title: "Large", price: 99.99, sku: "HPB-LG-001" }
+        ],
+        handle: "heated-pet-bed",
+        product_type: "Pet Comfort",
+        vendor: "StoreForge AI",
+        tags: "heated, orthopedic, comfort, winter"
+      },
+      {
+        title: "Pet Car Safety Harness",
+        description: "Crash-tested safety harness for car travel. Adjustable straps ensure comfort while keeping your pet secure during rides.",
+        price: 34.99,
+        images: ["https://images.unsplash.com/photo-1548802673-380ab8ebc7b7?w=500&h=500&fit=crop&crop=center"],
+        variants: [
+          { title: "Small", price: 34.99, sku: "CSH-SM-001" },
+          { title: "Medium", price: 39.99, sku: "CSH-MD-001" },
+          { title: "Large", price: 44.99, sku: "CSH-LG-001" }
+        ],
+        handle: "pet-car-safety-harness",
+        product_type: "Pet Safety",
+        vendor: "StoreForge AI",
+        tags: "car safety, travel, harness"
+      },
+      {
+        title: "Smart Pet Training Collar",
+        description: "Vibration and sound training collar with smartphone app. Humane training solution with multiple intensity levels.",
+        price: 89.99,
+        images: ["https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=500&h=500&fit=crop&crop=center"],
+        variants: [
+          { title: "Small/Medium", price: 89.99, sku: "STC-SM-001" },
+          { title: "Large", price: 99.99, sku: "STC-LG-001" }
+        ],
+        handle: "smart-pet-training-collar",
+        product_type: "Pet Training",
+        vendor: "StoreForge AI",
+        tags: "training, smart, remote, behavior"
+      },
+      {
+        title: "Automatic Pet Door",
+        description: "RFID-activated pet door that only opens for your pet. Weather-sealed and energy efficient with programmable access times.",
+        price: 149.99,
+        images: ["https://images.unsplash.com/photo-1574158622688-3f2d4f4c8b9b?w=500&h=500&fit=crop&crop=center"],
+        variants: [
+          { title: "Small", price: 149.99, sku: "APD-SM-001" },
+          { title: "Medium", price: 179.99, sku: "APD-MD-001" },
+          { title: "Large", price: 209.99, sku: "APD-LG-001" }
+        ],
+        handle: "automatic-pet-door",
+        product_type: "Pet Access",
+        vendor: "StoreForge AI",
+        tags: "automatic, RFID, door, access"
       }
     ]
   };
@@ -401,5 +509,5 @@ const generateFallbackProducts = (niche: string): Product[] => {
   const lowerNiche = niche.toLowerCase();
   const selectedProducts = nicheProducts[lowerNiche] || nicheProducts['pet'];
   
-  return selectedProducts.slice(0, 10); // Return 10 products
+  return selectedProducts.slice(0, 10); // Return exactly 10 products
 };

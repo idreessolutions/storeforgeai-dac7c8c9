@@ -76,7 +76,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         
         toast({
           title: "Success! 🎉",
-          description: `20 winning ${formData.niche} products have been successfully added to your Shopify store!`,
+          description: `10 winning ${formData.niche} products have been successfully added to your Shopify store!`,
         });
         
         // Final progress update
@@ -127,14 +127,14 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
           </div>
           <h2 className="text-xl font-bold text-gray-900 mb-2">Add Products</h2>
           <p className="text-gray-600 text-sm">
-            Add 20 winning {formData.niche ? `${formData.niche} ` : ''}products to your Shopify store
+            Add 10 winning {formData.niche ? `${formData.niche} ` : ''}products to your Shopify store
           </p>
         </div>
 
         <div className="space-y-4">
           <div className="bg-gray-50 p-4 rounded-lg">
             <p className="text-gray-700 mb-3 text-sm">
-              Our system will automatically add 20 carefully selected winning products 
+              Our system will automatically add 10 carefully selected winning products 
               {formData.niche ? ` in the ${formData.niche} niche ` : ' '}
               directly to your Shopify store. Each product includes:
             </p>
@@ -175,7 +175,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 </div>
                 <Progress value={progress} className="w-full h-2" />
                 <p className="text-xs text-blue-600 text-center font-medium">
-                  {Math.round(progress)}% Complete ({Math.round(progress / 5)} of 20 products)
+                  {Math.round(progress)}% Complete ({Math.round(progress / 10)} of 10 products)
                 </p>
               </div>
             )}
@@ -201,7 +201,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                   <Check className="h-4 w-4 text-green-600 mr-2 flex-shrink-0" />
                   <div>
                     <p className="text-green-800 font-medium text-sm">
-                      Successfully added 20 winning {formData.niche || 'general'} products!
+                      Successfully added 10 winning {formData.niche || 'general'} products!
                     </p>
                     <p className="text-green-700 text-xs mt-1">
                       Your products are now live and ready for customers to purchase.
@@ -221,12 +221,12 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               {isLoading ? (
                 <div className="flex items-center justify-center">
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Adding Products... ({Math.round(progress / 5)}/20)
+                  Adding Products... ({Math.round(progress / 10)}/10)
                 </div>
               ) : (
                 <div className="flex items-center justify-center">
                   <Package className="h-4 w-4 mr-2" />
-                  Add 20 Winning Products to Store
+                  Add 10 Winning Products to Store
                 </div>
               )}
             </Button>
