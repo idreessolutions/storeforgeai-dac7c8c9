@@ -28,18 +28,23 @@ serve(async (req) => {
     const timestamp = Date.now();
     const uniqueHandle = generateUniqueHandle(product.title, timestamp);
 
-    // CRITICAL FIX: Don't send any variants initially to avoid "Default Title" conflicts
+    // Ensure proper pricing - convert to string with 2 decimals
+    const productPrice = typeof product.price === 'number' ? product.price.toFixed(2) : parseFloat(String(product.price || 29.99)).toFixed(2);
+    
+    console.log('Setting product price:', productPrice);
+
+    // Create the main product WITHOUT variants initially
     const productPayload = {
       product: {
         title: product.title,
         body_html: styledDescription,
-        vendor: product.vendor || 'StoreForge AI',
+        vendor: 'Your Store Name', // Changed from StoreForge AI
         product_type: product.product_type || 'General',
         handle: uniqueHandle,
         status: 'active',
         published: true,
         tags: product.tags || '',
-        // Don't send variants - let Shopify create the default one automatically
+        // Don't send variants initially to avoid conflicts
       }
     };
 
@@ -50,7 +55,7 @@ serve(async (req) => {
       vendor: productPayload.product.vendor,
       theme_color: themeColor,
       images_count: product.images?.length || 0,
-      has_variants: product.variants && product.variants.length > 0
+      price: productPrice
     });
 
     // Create product in Shopify
@@ -68,42 +73,6 @@ serve(async (req) => {
     if (!productResponse.ok) {
       const errorText = await productResponse.text();
       console.error('Shopify API Error:', errorText);
-      
-      // Parse and handle specific Shopify errors
-      try {
-        const errorData = JSON.parse(errorText);
-        if (errorData.errors) {
-          console.error('Detailed Shopify errors:', errorData.errors);
-          
-          // Handle specific error cases
-          if (errorData.errors.handle) {
-            console.log('Handle conflict detected, retrying with new handle...');
-            const retryHandle = `${uniqueHandle}-retry-${Math.random().toString(36).substring(2, 8)}`;
-            productPayload.product.handle = retryHandle;
-            
-            const retryResponse = await fetch(apiUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'X-Shopify-Access-Token': accessToken,
-              },
-              body: JSON.stringify(productPayload),
-            });
-            
-            if (!retryResponse.ok) {
-              const retryErrorText = await retryResponse.text();
-              throw new Error(`Shopify API Error after retry: ${retryResponse.status} - ${retryErrorText}`);
-            }
-            
-            const retryData = await retryResponse.json();
-            console.log('✅ Product created successfully after handle retry');
-            return await handleImageUploadAndVariants(retryData.product, product, shopifyUrl, accessToken, themeColor);
-          }
-        }
-      } catch (parseError) {
-        console.error('Could not parse error response:', parseError);
-      }
-      
       throw new Error(`Shopify API Error: ${productResponse.status} - ${errorText}`);
     }
 
@@ -112,8 +81,8 @@ serve(async (req) => {
 
     console.log('✅ Product created successfully:', createdProduct.id);
 
-    // Upload images and handle variants separately
-    return await handleImageUploadAndVariants(createdProduct, product, shopifyUrl, accessToken, themeColor);
+    // Now handle pricing, images, and variants
+    return await handleProductEnhancements(createdProduct, product, shopifyUrl, accessToken, themeColor, productPrice);
 
   } catch (error) {
     console.error('❌ Error adding winning product to Shopify:', error);
@@ -127,12 +96,13 @@ serve(async (req) => {
   }
 });
 
-async function handleImageUploadAndVariants(createdProduct: any, product: any, shopifyUrl: string, accessToken: string, themeColor: string) {
-  // First, update the default variant pricing if needed
-  if (createdProduct.variants && createdProduct.variants.length > 0 && product.price) {
+async function handleProductEnhancements(createdProduct: any, product: any, shopifyUrl: string, accessToken: string, themeColor: string, productPrice: string) {
+  
+  // STEP 1: Update the default variant with proper pricing
+  if (createdProduct.variants && createdProduct.variants.length > 0) {
     const defaultVariant = createdProduct.variants[0];
     try {
-      console.log('🔄 Updating default variant pricing...');
+      console.log('🔄 Updating default variant pricing to:', productPrice);
       
       const variantUpdateResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/variants/${defaultVariant.id}.json`, {
         method: 'PUT',
@@ -143,40 +113,46 @@ async function handleImageUploadAndVariants(createdProduct: any, product: any, s
         body: JSON.stringify({
           variant: {
             id: defaultVariant.id,
-            price: typeof product.price === 'number' ? product.price.toFixed(2) : parseFloat(String(product.price)).toFixed(2),
+            price: productPrice,
+            compare_at_price: (parseFloat(productPrice) * 1.3).toFixed(2), // Add compare price
             inventory_quantity: 999,
             inventory_management: null,
-            inventory_policy: 'continue'
+            inventory_policy: 'continue',
+            requires_shipping: true,
+            taxable: true
           }
         }),
       });
 
       if (variantUpdateResponse.ok) {
-        console.log('✅ Default variant updated successfully');
+        console.log('✅ Default variant updated successfully with price:', productPrice);
       } else {
         const variantError = await variantUpdateResponse.text();
-        console.error('❌ Failed to update variant:', variantError);
+        console.error('❌ Failed to update variant pricing:', variantError);
       }
     } catch (variantError) {
       console.error('❌ Error updating variant:', variantError);
     }
   }
 
-  // Upload DALL·E 3 images to Shopify using the images endpoint
+  // STEP 2: Upload images to Shopify
   if (product.images && product.images.length > 0) {
-    console.log(`🖼️ Uploading ${product.images.length} DALL·E 3 images to Shopify...`);
+    console.log(`🖼️ Uploading ${product.images.length} images to Shopify...`);
     
     for (let i = 0; i < product.images.length; i++) {
       const imageUrl = product.images[i];
       try {
-        console.log(`📷 Uploading image ${i + 1}/${product.images.length}`);
+        console.log(`📷 Uploading image ${i + 1}/${product.images.length}: ${imageUrl}`);
         
-        // Ensure imageUrl is a string
-        const urlString = typeof imageUrl === 'string' ? imageUrl : imageUrl.toString();
+        // Validate image URL before upload
+        if (!imageUrl || typeof imageUrl !== 'string' || !imageUrl.startsWith('http')) {
+          console.error(`❌ Invalid image URL at index ${i}:`, imageUrl);
+          continue;
+        }
         
         const imagePayload = {
           image: {
-            src: urlString,
+            src: imageUrl,
             alt: product.title,
             position: i + 1
           }
@@ -192,7 +168,8 @@ async function handleImageUploadAndVariants(createdProduct: any, product: any, s
         });
 
         if (imageResponse.ok) {
-          console.log(`✅ Successfully uploaded image ${i + 1} to Shopify`);
+          const imageData = await imageResponse.json();
+          console.log(`✅ Successfully uploaded image ${i + 1} to Shopify:`, imageData.image.id);
         } else {
           const imageError = await imageResponse.text();
           console.error(`❌ Failed to upload image ${i + 1}:`, imageError);
@@ -200,7 +177,7 @@ async function handleImageUploadAndVariants(createdProduct: any, product: any, s
         
         // Rate limiting between image uploads
         if (i < product.images.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
       } catch (imageError) {
         console.error(`❌ Error uploading image ${i + 1}:`, imageError);
@@ -208,65 +185,124 @@ async function handleImageUploadAndVariants(createdProduct: any, product: any, s
     }
   }
 
-  // Create additional variants if needed
+  // STEP 3: Create additional product variants (if any)
   if (product.variants && product.variants.length > 1) {
     console.log(`🔄 Creating ${product.variants.length - 1} additional variants...`);
     
-    for (let i = 1; i < product.variants.length; i++) {
-      const variant = product.variants[i];
-      try {
-        const variantPayload = {
-          variant: {
-            product_id: createdProduct.id,
-            title: variant.title || `Variant ${i + 1}`,
-            price: typeof variant.price === 'number' ? variant.price.toFixed(2) : parseFloat(String(variant.price)).toFixed(2),
-            sku: variant.sku || `VAR-${i + 1}-${Date.now()}`,
-            inventory_quantity: 999,
-            inventory_management: null,
-            inventory_policy: 'continue'
-          }
-        };
-
-        const variantResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/products/${createdProduct.id}/variants.json`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Shopify-Access-Token': accessToken,
-          },
-          body: JSON.stringify(variantPayload),
-        });
-
-        if (variantResponse.ok) {
-          console.log(`✅ Successfully created variant: ${variant.title}`);
-        } else {
-          const variantError = await variantResponse.text();
-          console.error(`❌ Failed to create variant ${variant.title}:`, variantError);
+    // First, we need to add options to the product
+    try {
+      const optionPayload = {
+        product: {
+          id: createdProduct.id,
+          options: [
+            {
+              name: "Style",
+              values: product.variants.map(v => v.title)
+            }
+          ]
         }
+      };
+
+      const optionResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/products/${createdProduct.id}.json`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': accessToken,
+        },
+        body: JSON.stringify(optionPayload),
+      });
+
+      if (optionResponse.ok) {
+        console.log('✅ Product options updated successfully');
         
-        // Rate limiting between variant creation
-        await new Promise(resolve => setTimeout(resolve, 300));
-      } catch (variantError) {
-        console.error(`❌ Error creating variant ${variant.title}:`, variantError);
+        // Now update variants with proper option values
+        for (let i = 0; i < product.variants.length; i++) {
+          const variant = product.variants[i];
+          const variantPrice = typeof variant.price === 'number' ? variant.price.toFixed(2) : parseFloat(String(variant.price || productPrice)).toFixed(2);
+          
+          try {
+            let variantResponse;
+            
+            if (i === 0) {
+              // Update the existing default variant
+              variantResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/variants/${createdProduct.variants[0].id}.json`, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Shopify-Access-Token': accessToken,
+                },
+                body: JSON.stringify({
+                  variant: {
+                    id: createdProduct.variants[0].id,
+                    option1: variant.title,
+                    price: variantPrice,
+                    sku: variant.sku || `VAR-${i + 1}-${Date.now()}`,
+                    inventory_quantity: 999,
+                    inventory_management: null,
+                    inventory_policy: 'continue'
+                  }
+                }),
+              });
+            } else {
+              // Create new variant
+              variantResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/products/${createdProduct.id}/variants.json`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Shopify-Access-Token': accessToken,
+                },
+                body: JSON.stringify({
+                  variant: {
+                    product_id: createdProduct.id,
+                    option1: variant.title,
+                    price: variantPrice,
+                    sku: variant.sku || `VAR-${i + 1}-${Date.now()}`,
+                    inventory_quantity: 999,
+                    inventory_management: null,
+                    inventory_policy: 'continue'
+                  }
+                }),
+              });
+            }
+
+            if (variantResponse.ok) {
+              console.log(`✅ Successfully ${i === 0 ? 'updated' : 'created'} variant: ${variant.title} - ${variantPrice}`);
+            } else {
+              const variantError = await variantResponse.text();
+              console.error(`❌ Failed to ${i === 0 ? 'update' : 'create'} variant ${variant.title}:`, variantError);
+            }
+            
+            // Rate limiting between variant operations
+            await new Promise(resolve => setTimeout(resolve, 500));
+          } catch (variantError) {
+            console.error(`❌ Error processing variant ${variant.title}:`, variantError);
+          }
+        }
+      } else {
+        const optionError = await optionResponse.text();
+        console.error('❌ Failed to update product options:', optionError);
       }
+    } catch (error) {
+      console.error('❌ Error setting up product variants:', error);
     }
   }
 
-  console.log('✅ Winning product uploaded successfully:', {
+  console.log('✅ Product upload completed successfully:', {
     id: createdProduct.id,
     title: createdProduct.title,
     handle: createdProduct.handle,
-    product_type: createdProduct.product_type,
-    vendor: createdProduct.vendor,
-    theme_color: themeColor,
-    images_count: product.images?.length || 0,
-    variants_count: product.variants?.length || 0,
-    default_price: createdProduct.variants?.[0]?.price || product.price
+    price: productPrice,
+    images_uploaded: product.images?.length || 0,
+    variants_processed: product.variants?.length || 0
   });
 
   return new Response(JSON.stringify({
     success: true,
     product: createdProduct,
-    message: `Successfully added winning product: ${createdProduct.title}`
+    message: `Successfully added winning product: ${createdProduct.title}`,
+    price_set: productPrice,
+    images_uploaded: product.images?.length || 0,
+    variants_created: product.variants?.length || 0
   }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });

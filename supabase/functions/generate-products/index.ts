@@ -20,12 +20,13 @@ serve(async (req) => {
     // Use ChatGPT API to generate actual winning products
     if (openAIApiKey) {
       try {
-        console.log('🤖 Using GPT-4 to generate 10 unique winning products...');
+        console.log('🤖 Using GPT-4o to generate 10 unique winning products...');
         
-        const prompt = `Generate 10 COMPLETELY UNIQUE, REAL winning products currently trending and selling well in the "${niche}" niche. Each product must be different and specific.
+        const prompt = `Generate 10 COMPLETELY UNIQUE, REAL winning products currently trending and selling well in the "${niche}" niche. Each product must be COMPLETELY DIFFERENT.
 
 CRITICAL REQUIREMENTS:
 - 10 COMPLETELY DIFFERENT product types (no duplicates, variations, or similar items)
+- NO "Pro 1, Pro 2, Pro 3" naming - each title must be UNIQUE and descriptive
 - Real trending products currently popular in ${niche} niche
 - Prices between $15-80 with realistic market pricing
 - SEO-optimized conversion titles (engaging, benefit-focused, 50-70 chars)
@@ -68,7 +69,7 @@ Return ONLY valid JSON array with this exact structure:
 
 [
   {
-    "title": "[Specific descriptive product name optimized for conversion]",
+    "title": "[Specific descriptive product name optimized for conversion - NO NUMBERS]",
     "description": "[Complete formatted description as above]",
     "price": [Random number between 15-80 with 2 decimals],
     "category": "${niche}",
@@ -85,8 +86,8 @@ Return ONLY valid JSON array with this exact structure:
   }
 ]
 
-CRITICAL: Each product must be COMPLETELY DIFFERENT for ${niche}:
-${generateNicheSpecificGuidelines(niche)}
+EXAMPLES OF UNIQUE TITLES FOR ${niche}:
+${generateExampleTitles(niche)}
 
 ONLY return valid JSON. No markdown, no commentary.`;
 
@@ -99,7 +100,7 @@ ONLY return valid JSON. No markdown, no commentary.`;
           body: JSON.stringify({
             model: 'gpt-4o',
             messages: [
-              { role: 'system', content: `You are an expert ${niche} product researcher who only generates real, trending, high-converting products with unique titles and descriptions. Focus exclusively on ${niche} products with varied, specific titles.` },
+              { role: 'system', content: `You are an expert ${niche} product researcher who only generates real, trending, high-converting products with unique titles and descriptions. Focus exclusively on ${niche} products with completely different, specific titles. NO NUMBERING ALLOWED.` },
               { role: 'user', content: prompt }
             ],
             temperature: 0.9,
@@ -109,14 +110,14 @@ ONLY return valid JSON. No markdown, no commentary.`;
 
         if (response.ok) {
           const data = await response.json();
-          console.log('✅ GPT-4 response received successfully');
+          console.log('✅ GPT-4o response received successfully');
           
           const message = data.choices[0].message.content;
           
           try {
             const cleanedText = message.replace(/```json\n?|\n?```/g, '').trim();
             const products = JSON.parse(cleanedText);
-            console.log(`✅ Successfully parsed ${products.length} unique products from GPT-4`);
+            console.log(`✅ Successfully parsed ${products.length} unique products from GPT-4o`);
             
             // Generate unique DALL·E 3 images for each product
             const enhancedProducts = await Promise.all(
@@ -144,7 +145,7 @@ ONLY return valid JSON. No markdown, no commentary.`;
                   variants: validateVariants(product.variants, basePrice, niche, index),
                   handle: generateHandle(product.title),
                   product_type: product.product_type || getNicheCategory(niche, index),
-                  vendor: 'StoreForge AI',
+                  vendor: 'Your Store Name',
                   tags: product.tags || generateNicheTags(niche, product.title, index),
                   category: niche
                 };
@@ -164,11 +165,11 @@ ONLY return valid JSON. No markdown, no commentary.`;
             // Fall through to curated products
           }
         } else {
-          console.error('❌ GPT-4 API request failed:', response.status, response.statusText);
+          console.error('❌ GPT-4o API request failed:', response.status, response.statusText);
           // Fall through to curated products
         }
       } catch (error) {
-        console.error('❌ GPT-4 API request failed:', error);
+        console.error('❌ GPT-4o API request failed:', error);
         // Fall through to curated products
       }
     }
@@ -195,6 +196,42 @@ ONLY return valid JSON. No markdown, no commentary.`;
     });
   }
 });
+
+function generateExampleTitles(niche: string): string {
+  const examples = {
+    'pet': [
+      '- "Smart Pet Water Fountain with UV Sterilization"',
+      '- "Interactive Puzzle Feeder for Anxious Dogs"', 
+      '- "GPS Tracking Collar with Health Monitor"',
+      '- "Self-Cleaning Cat Litter Box System"',
+      '- "Automatic Treat Dispensing Camera"'
+    ],
+    'fitness': [
+      '- "Smart Resistance Band Set with App"',
+      '- "Portable Gym Door Anchor System"',
+      '- "Wireless Heart Rate Monitor Chest Strap"',
+      '- "Adjustable Foam Roller with Vibration"',
+      '- "Compact Home Gym Cable Machine"'
+    ],
+    'kitchen': [
+      '- "Digital Food Scale with Nutrition Tracker"',
+      '- "Silicone Air Fryer Liner Set"',
+      '- "Magnetic Knife Block for Counter"',
+      '- "Glass Meal Prep Container Set"',
+      '- "Electric Spice Grinder with Storage"'
+    ],
+    'home-decor': [
+      '- "LED Strip Lights with Music Sync"',
+      '- "Floating Wall Shelves with Hidden Brackets"',
+      '- "Smart Aromatherapy Diffuser with Timer"',
+      '- "Geometric Metal Wall Art Set"',
+      '- "Wireless Charging Station with Lamp"'
+    ]
+  };
+  
+  const nicheExamples = examples[niche.toLowerCase()] || examples['fitness'];
+  return nicheExamples.join('\n');
+}
 
 // Generate 6-8 unique product images using DALL·E 3
 async function generateDALLEImages(productTitle: string, niche: string, count: number = 6): Promise<string[]> {
@@ -229,8 +266,14 @@ async function generateDALLEImages(productTitle: string, niche: string, count: n
       if (response.ok) {
         const data = await response.json();
         if (data.data && data.data[0] && data.data[0].url) {
-          images.push(data.data[0].url);
-          console.log(`✅ Generated DALL·E 3 image ${i + 1} for ${productTitle}`);
+          // Validate the URL before adding
+          const imageUrl = data.data[0].url;
+          if (imageUrl && imageUrl.startsWith('http')) {
+            images.push(imageUrl);
+            console.log(`✅ Generated DALL·E 3 image ${i + 1} for ${productTitle}: ${imageUrl.substring(0, 50)}...`);
+          } else {
+            console.error(`❌ Invalid DALL·E 3 URL for image ${i + 1}: ${imageUrl}`);
+          }
         } else {
           console.error(`❌ Invalid DALL·E 3 response structure for image ${i + 1}`);
         }
@@ -241,7 +284,7 @@ async function generateDALLEImages(productTitle: string, niche: string, count: n
       
       // Rate limiting for DALL·E 3 (important!)
       if (i < count - 1) {
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
     } catch (error) {
       console.error(`❌ Error generating DALL·E 3 image ${i + 1}:`, error);
@@ -255,20 +298,21 @@ async function generateDALLEImages(productTitle: string, niche: string, count: n
     break;
   }
 
+  console.log(`📸 Final image count for ${productTitle}: ${images.length} images`);
   return images.slice(0, count);
 }
 
 // Generate diverse, unique image prompts for a product
 function generateUniqueImagePrompts(productTitle: string, niche: string, count: number): string[] {
   const basePrompts = [
-    `Professional product photography of ${productTitle}, clean white background, high quality, commercial photo, ${niche} product, studio lighting, 4K resolution`,
-    `${productTitle} in realistic use scenario, lifestyle photography, modern setting, natural lighting, ${niche} environment, person using product, professional shot`,
-    `Close-up detail shot of ${productTitle}, highlighting key features and materials, professional macro photography, ${niche} product focus, premium quality`,
-    `${productTitle} from 45-degree angle, product photography, clean background, commercial quality, showing functionality, ${niche} context`,
-    `${productTitle} with accessories and packaging, unboxing style, professional product shot, ${niche} theme, premium presentation, modern design`,
-    `${productTitle} demonstration image, showing before and after results, clean modern style, ${niche} context, results focused, lifestyle setting`,
-    `Multiple angles of ${productTitle}, product catalog style, professional photography, ${niche} category, grid layout, commercial quality`,
-    `${productTitle} in modern home setting, lifestyle context, natural environment, ${niche} lifestyle, ambient lighting, real-world usage`
+    `Professional product photography of ${productTitle}, clean white background, high quality, commercial photo, ${niche} product, studio lighting, 4K resolution, no text or watermarks`,
+    `${productTitle} in realistic use scenario, lifestyle photography, modern setting, natural lighting, ${niche} environment, person using product, professional shot, no text`,
+    `Close-up detail shot of ${productTitle}, highlighting key features and materials, professional macro photography, ${niche} product focus, premium quality, no text`,
+    `${productTitle} from 45-degree angle, product photography, clean background, commercial quality, showing functionality, ${niche} context, no watermarks`,
+    `${productTitle} with accessories and packaging, unboxing style, professional product shot, ${niche} theme, premium presentation, modern design, no text`,
+    `${productTitle} demonstration image, showing before and after results, clean modern style, ${niche} context, results focused, lifestyle setting, no text`,
+    `Multiple angles of ${productTitle}, product catalog style, professional photography, ${niche} category, clean layout, commercial quality, no watermarks`,
+    `${productTitle} in modern home setting, lifestyle context, natural environment, ${niche} lifestyle, ambient lighting, real-world usage, no text`
   ];
 
   // Shuffle and return unique prompts
@@ -562,7 +606,7 @@ async function generateCuratedWinningProducts(niche: string) {
       return_policy: '30-day money-back guarantee',
       variants: generateRealisticVariants(dynamicPrice, niche, i),
       handle: generateHandle(baseProduct.title),
-      vendor: 'StoreForge AI',
+      vendor: 'Your Store Name',
       tags: generateNicheTags(niche, baseProduct.title, i),
       category: niche
     });
