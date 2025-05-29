@@ -24,21 +24,16 @@ serve(async (req) => {
     // Apply theme color to product description
     const styledDescription = applyThemeColorToDescription(product.description || product.detailed_description, themeColor);
 
-    // Prepare product payload for Shopify
-    const productPayload = {
-      product: {
-        title: product.title,
-        body_html: styledDescription,
-        vendor: product.vendor || 'StoreForge AI',
-        product_type: product.product_type || 'General',
-        handle: product.handle,
-        status: 'active',
-        published: true,
-        tags: product.tags || '',
-        variants: product.variants?.map((variant, index) => ({
-          title: variant.title || 'Default',
+    // Generate unique handle with timestamp to avoid duplicates
+    const timestamp = Date.now();
+    const uniqueHandle = generateUniqueHandle(product.title, timestamp);
+
+    // Ensure proper variant structure to avoid "Default Title" conflicts
+    const processedVariants = product.variants && product.variants.length > 0 
+      ? product.variants.map((variant, index) => ({
+          title: variant.title || `Option ${index + 1}`,
           price: typeof variant.price === 'number' ? variant.price.toFixed(2) : parseFloat(String(variant.price)).toFixed(2),
-          sku: variant.sku || `SKU-${Date.now()}-${index}`,
+          sku: `${uniqueHandle.toUpperCase()}-${String(index + 1).padStart(2, '0')}-${timestamp}`,
           inventory_management: null,
           inventory_policy: 'continue',
           inventory_quantity: 999,
@@ -47,11 +42,12 @@ serve(async (req) => {
           requires_shipping: true,
           taxable: true,
           compare_at_price: null
-        })) || [
+        }))
+      : [
           {
-            title: 'Default',
+            title: 'Standard',
             price: typeof product.price === 'number' ? product.price.toFixed(2) : parseFloat(String(product.price)).toFixed(2),
-            sku: `SKU-${Date.now()}-0`,
+            sku: `${uniqueHandle.toUpperCase()}-01-${timestamp}`,
             inventory_management: null,
             inventory_policy: 'continue',
             inventory_quantity: 999,
@@ -61,7 +57,20 @@ serve(async (req) => {
             taxable: true,
             compare_at_price: null
           }
-        ]
+        ];
+
+    // Prepare product payload for Shopify
+    const productPayload = {
+      product: {
+        title: product.title,
+        body_html: styledDescription,
+        vendor: product.vendor || 'StoreForge AI',
+        product_type: product.product_type || 'General',
+        handle: uniqueHandle,
+        status: 'active',
+        published: true,
+        tags: product.tags || '',
+        variants: processedVariants
       }
     };
 
@@ -91,74 +100,52 @@ serve(async (req) => {
     if (!productResponse.ok) {
       const errorText = await productResponse.text();
       console.error('Shopify API Error:', errorText);
+      
+      // Parse and handle specific Shopify errors
+      try {
+        const errorData = JSON.parse(errorText);
+        if (errorData.errors) {
+          console.error('Detailed Shopify errors:', errorData.errors);
+          
+          // Handle specific error cases
+          if (errorData.errors.handle) {
+            console.log('Handle conflict detected, retrying with new handle...');
+            const retryHandle = `${uniqueHandle}-retry-${Math.random().toString(36).substring(2, 8)}`;
+            productPayload.product.handle = retryHandle;
+            
+            const retryResponse = await fetch(apiUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Shopify-Access-Token': accessToken,
+              },
+              body: JSON.stringify(productPayload),
+            });
+            
+            if (!retryResponse.ok) {
+              const retryErrorText = await retryResponse.text();
+              throw new Error(`Shopify API Error after retry: ${retryResponse.status} - ${retryErrorText}`);
+            }
+            
+            const retryData = await retryResponse.json();
+            console.log('✅ Product created successfully after handle retry');
+            return await handleImageUpload(retryData.product, product, shopifyUrl, accessToken, themeColor);
+          }
+        }
+      } catch (parseError) {
+        console.error('Could not parse error response:', parseError);
+      }
+      
       throw new Error(`Shopify API Error: ${productResponse.status} - ${errorText}`);
     }
 
     const productData = await productResponse.json();
     const createdProduct = productData.product;
 
-    // Upload DALL·E 3 images to Shopify using the images endpoint
-    if (product.images && product.images.length > 0) {
-      console.log(`🖼️ Uploading ${product.images.length} DALL·E 3 images to Shopify...`);
-      
-      for (let i = 0; i < product.images.length; i++) {
-        const imageUrl = product.images[i];
-        try {
-          console.log(`📷 Uploading image ${i + 1}/${product.images.length}: ${imageUrl.substring(0, 50)}...`);
-          
-          const imagePayload = {
-            image: {
-              src: imageUrl,
-              alt: product.title,
-              position: i + 1
-            }
-          };
+    console.log('✅ Product created successfully:', createdProduct.id);
 
-          const imageResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/products/${createdProduct.id}/images.json`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Shopify-Access-Token': accessToken,
-            },
-            body: JSON.stringify(imagePayload),
-          });
-
-          if (imageResponse.ok) {
-            console.log(`✅ Successfully uploaded image ${i + 1} to Shopify`);
-          } else {
-            const imageError = await imageResponse.text();
-            console.error(`❌ Failed to upload image ${i + 1}:`, imageError);
-          }
-          
-          // Rate limiting between image uploads
-          if (i < product.images.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
-        } catch (imageError) {
-          console.error(`❌ Error uploading image ${i + 1}:`, imageError);
-        }
-      }
-    }
-
-    console.log('✅ Real winning product uploaded successfully:', {
-      id: createdProduct.id,
-      title: createdProduct.title,
-      handle: createdProduct.handle,
-      product_type: createdProduct.product_type,
-      vendor: createdProduct.vendor,
-      theme_color: themeColor,
-      images_count: product.images?.length || 0,
-      variants_count: createdProduct.variants?.length || 0,
-      price_range: `$${Math.min(...createdProduct.variants.map(v => parseFloat(v.price)))} - $${Math.max(...createdProduct.variants.map(v => parseFloat(v.price)))}`
-    });
-
-    return new Response(JSON.stringify({
-      success: true,
-      product: createdProduct,
-      message: `Successfully added real winning product: ${createdProduct.title}`
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    // Upload images to Shopify
+    return await handleImageUpload(createdProduct, product, shopifyUrl, accessToken, themeColor);
 
   } catch (error) {
     console.error('❌ Error adding real winning product to Shopify:', error);
@@ -171,6 +158,83 @@ serve(async (req) => {
     });
   }
 });
+
+async function handleImageUpload(createdProduct, product, shopifyUrl, accessToken, themeColor) {
+  // Upload DALL·E 3 images to Shopify using the images endpoint
+  if (product.images && product.images.length > 0) {
+    console.log(`🖼️ Uploading ${product.images.length} DALL·E 3 images to Shopify...`);
+    
+    for (let i = 0; i < product.images.length; i++) {
+      const imageUrl = product.images[i];
+      try {
+        console.log(`📷 Uploading image ${i + 1}/${product.images.length}: ${imageUrl.substring(0, 50)}...`);
+        
+        const imagePayload = {
+          image: {
+            src: imageUrl,
+            alt: product.title,
+            position: i + 1
+          }
+        };
+
+        const imageResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/products/${createdProduct.id}/images.json`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Shopify-Access-Token': accessToken,
+          },
+          body: JSON.stringify(imagePayload),
+        });
+
+        if (imageResponse.ok) {
+          console.log(`✅ Successfully uploaded image ${i + 1} to Shopify`);
+        } else {
+          const imageError = await imageResponse.text();
+          console.error(`❌ Failed to upload image ${i + 1}:`, imageError);
+        }
+        
+        // Rate limiting between image uploads
+        if (i < product.images.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      } catch (imageError) {
+        console.error(`❌ Error uploading image ${i + 1}:`, imageError);
+      }
+    }
+  }
+
+  console.log('✅ Real winning product uploaded successfully:', {
+    id: createdProduct.id,
+    title: createdProduct.title,
+    handle: createdProduct.handle,
+    product_type: createdProduct.product_type,
+    vendor: createdProduct.vendor,
+    theme_color: themeColor,
+    images_count: product.images?.length || 0,
+    variants_count: createdProduct.variants?.length || 0,
+    price_range: `$${Math.min(...createdProduct.variants.map(v => parseFloat(v.price)))} - $${Math.max(...createdProduct.variants.map(v => parseFloat(v.price)))}`
+  });
+
+  return new Response(JSON.stringify({
+    success: true,
+    product: createdProduct,
+    message: `Successfully added real winning product: ${createdProduct.title}`
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+function generateUniqueHandle(title: string, timestamp: number): string {
+  const baseHandle = title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .substring(0, 200);
+  
+  return `${baseHandle}-${timestamp}`;
+}
 
 function applyThemeColorToDescription(description: string, themeColor: string): string {
   if (!description || !themeColor) return description || '';
