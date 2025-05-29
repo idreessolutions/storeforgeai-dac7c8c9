@@ -15,7 +15,7 @@ serve(async (req) => {
   try {
     const { shopifyUrl, accessToken, product } = await req.json();
 
-    console.log('Adding winning product to Shopify:', product.title);
+    console.log('Adding REAL winning product to Shopify:', product.title);
 
     // Validate inputs
     if (!shopifyUrl || !accessToken || !product) {
@@ -27,40 +27,30 @@ serve(async (req) => {
     
     console.log('Shopify API URL:', apiUrl);
 
-    // Clean and optimize the product title
-    const cleanTitle = product.title.replace(/[0-9]{10,}/g, '').replace(/[-_][a-z0-9]{8,}/gi, '').trim();
+    // Use the professional title as-is (no cleaning needed)
+    const productTitle = product.title;
     
     // Generate clean handle from title
-    const cleanHandle = cleanTitle
+    const cleanHandle = productTitle
       .toLowerCase()
       .replace(/[^a-z0-9\s-]/g, '')
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '');
 
-    // Process variants with professional naming and pricing
+    // Process variants with realistic naming and pricing
     const processedVariants = product.variants.map((variant, index) => {
-      let variantTitle = variant.title.replace(/[0-9]{10,}/g, '').replace(/[-_][a-z0-9]{8,}/gi, '').trim();
-      if (!variantTitle || variantTitle.length < 2) {
-        variantTitle = index === 0 ? 'Standard' : `Premium ${index + 1}`;
-      }
+      let variantTitle = variant.title;
+      let price = typeof variant.price === 'number' ? variant.price : parseFloat(String(variant.price));
       
-      let price = parseFloat(variant.price);
       if (isNaN(price) || price <= 0) {
         price = 29.99 + (index * 10);
-      }
-      
-      // Clean SKU format
-      let cleanSKU = variant.sku;
-      if (!cleanSKU || cleanSKU.includes('undefined') || cleanSKU.length > 50) {
-        const titleCode = cleanTitle.substring(0, 3).toUpperCase();
-        cleanSKU = `${titleCode}-${String(index + 1).padStart(3, '0')}`;
       }
       
       const variantData = {
         title: variantTitle,
         price: price.toFixed(2),
-        sku: cleanSKU,
+        sku: variant.sku || `${product.product_type?.substring(0,3).toUpperCase()}-${String(index + 1).padStart(3, '0')}`,
         inventory_management: null,
         inventory_policy: 'continue',
         inventory_quantity: 999,
@@ -80,9 +70,9 @@ serve(async (req) => {
       return variantData;
     });
 
-    // Process high-quality product images
+    // Process high-quality, relevant product images
     const processedImages = [];
-    console.log('Processing high-quality images for product:', cleanTitle);
+    console.log('Processing relevant product images for:', productTitle);
     
     if (product.images && Array.isArray(product.images)) {
       for (let i = 0; i < product.images.length; i++) {
@@ -96,33 +86,33 @@ serve(async (req) => {
         if (typeof imageUrl === 'string' && imageUrl.startsWith('http')) {
           const imageData = {
             src: imageUrl,
-            alt: `${cleanTitle} - ${i === 0 ? 'Main Product Image' : `Image ${i + 1}`}`,
+            alt: `${productTitle} - ${i === 0 ? 'Main Product Image' : `Image ${i + 1}`}`,
             position: i + 1
           };
           
           processedImages.push(imageData);
-          console.log(`Added high-quality image ${i + 1}: ${imageUrl}`);
+          console.log(`Added relevant image ${i + 1}: ${imageUrl}`);
         }
       }
     }
 
-    console.log(`Successfully processed ${processedImages.length} high-quality images for: ${cleanTitle}`);
+    console.log(`Successfully processed ${processedImages.length} relevant images for: ${productTitle}`);
 
-    // Prepare the winning product payload
+    // Prepare the winning product payload with proper categorization
     const productPayload = {
       product: {
-        title: cleanTitle,
-        body_html: `<div class="product-description">${product.description || 'Premium quality product with excellent features and benefits.'}</div>`,
+        title: productTitle,
+        body_html: `<div class="product-description">${product.description}</div>`,
         vendor: product.vendor || 'TrendingWins',
         product_type: product.product_type || 'General',
         handle: cleanHandle,
         status: 'active',
         published: true,
-        tags: product.tags || 'trending, bestseller, premium quality, winning product',
+        tags: product.tags || 'winning product, bestseller, trending',
         images: processedImages,
         variants: processedVariants,
-        seo_title: cleanTitle,
-        seo_description: product.description ? product.description.substring(0, 160) : `Buy ${cleanTitle} - Premium quality with fast shipping.`
+        seo_title: productTitle,
+        seo_description: product.description ? product.description.substring(0, 160) : `Buy ${productTitle} - Premium quality with fast shipping.`
       }
     };
 
@@ -137,10 +127,11 @@ serve(async (req) => {
       ];
     }
 
-    console.log('Winning product payload:', JSON.stringify({
+    console.log('REAL winning product payload:', JSON.stringify({
       title: productPayload.product.title,
       handle: productPayload.product.handle,
       product_type: productPayload.product.product_type,
+      vendor: productPayload.product.vendor,
       variants: productPayload.product.variants.map(v => ({ title: v.title, price: v.price, sku: v.sku })),
       images: {
         count: productPayload.product.images.length,
@@ -198,10 +189,11 @@ serve(async (req) => {
     }
 
     const responseData = await response.json();
-    console.log('Winning product added successfully:', {
+    console.log('REAL winning product added successfully:', {
       id: responseData.product?.id,
       title: responseData.product?.title,
       product_type: responseData.product?.product_type,
+      vendor: responseData.product?.vendor,
       images: responseData.product?.images?.length || 0,
       variants: responseData.product?.variants?.length || 0
     });
