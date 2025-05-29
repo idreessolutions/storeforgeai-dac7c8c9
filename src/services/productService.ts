@@ -272,6 +272,14 @@ async function storeUploadSession(results: ProductUploadResult[], niche: string)
     const sessionId = Math.random().toString(36).substring(2, 15);
     const successCount = results.filter(r => r.success).length;
     
+    // Convert ProductUploadResult[] to a JSON-compatible format
+    const jsonResults = results.map(result => ({
+      success: result.success,
+      productId: result.productId || null,
+      error: result.error || null,
+      productTitle: result.productTitle
+    }));
+    
     const { error } = await supabase
       .from('upload_sessions')
       .insert({
@@ -280,7 +288,7 @@ async function storeUploadSession(results: ProductUploadResult[], niche: string)
         total_products: 10,
         successful_uploads: successCount,
         failed_uploads: 10 - successCount,
-        results: results,
+        results: jsonResults as any, // Cast to any to match Json type
         created_at: new Date().toISOString()
       });
 
