@@ -20,54 +20,72 @@ serve(async (req) => {
     // Use ChatGPT API to generate actual winning products
     if (openAIApiKey) {
       try {
-        console.log('🤖 Using ChatGPT API to generate 10 real winning products...');
+        console.log('🤖 Using GPT-4 to generate 10 unique winning products...');
         
-        const prompt = `Generate 10 REAL, TRENDING, HIGH-CONVERTING winning products currently selling well in the "${niche}" niche. These should be actual products from successful dropshipping stores, Amazon bestsellers, or viral TikTok products.
+        const prompt = `Generate 10 COMPLETELY UNIQUE, REAL winning products currently trending and selling well in the "${niche}" niche. Each product must be different and specific.
 
 CRITICAL REQUIREMENTS:
-- 10 COMPLETELY DIFFERENT product types (no duplicates or variations)
-- Real products currently trending and selling well in ${niche} niche specifically
-- Prices between $15-80 with realistic dropshipping margins
-- SEO-optimized conversion titles (40-60 chars, benefit-focused)
-- Professional 400-500 word descriptions with proper formatting
-- Realistic variants with proper naming
+- 10 COMPLETELY DIFFERENT product types (no duplicates, variations, or similar items)
+- Real trending products currently popular in ${niche} niche
+- Prices between $15-80 with realistic market pricing
+- SEO-optimized conversion titles (engaging, benefit-focused, 50-70 chars)
+- Professional 500+ word descriptions with proper formatting
+- 2-4 realistic variants per product (colors, sizes, styles)
 
-DESCRIPTION FORMAT (EXACTLY 5 SECTIONS):
-1. 🔥 Hook/Introduction (1-2 compelling lines)
-2. ✅ Key Features (5-6 bullet points with specific details)
-3. 🎯 Benefits (4-5 bullet points focusing on outcomes)
-4. 👥 Perfect For (paragraph describing target users)
-5. 📦 Shipping & Returns (professional policies)
+DESCRIPTION FORMAT (EXACTLY):
+🔥 **[Compelling Hook with Emotional Trigger]**
 
-VARIANT REQUIREMENTS:
-- Use specific, descriptive names (not "Standard/Premium")
-- Match actual product options (colors, sizes, capacities)
-- Price range $15-80 maximum
-- Include realistic SKUs
+**Why This ${niche} Product is Taking Over:**
+[2-3 sentences about popularity/trends]
 
-Return ONLY valid JSON array:
+✅ **KEY FEATURES:**
+• [Specific technical feature with numbers/specs]
+• [Unique capability that competitors don't have]
+• [Premium materials/build quality detail]
+• [Smart technology/innovation aspect]
+• [User-friendly design element]
+• [Safety/durability certification]
+
+🎯 **LIFE-CHANGING BENEFITS:**
+• [Time-saving outcome with specific timeframe]
+• [Cost-effective solution with savings amount]
+• [Health/performance improvement with results]
+• [Convenience factor with real-world example]
+• [Professional results comparison]
+
+👥 **PERFECT FOR:**
+[Detailed paragraph about specific target audience, their pain points, use cases, and why they desperately need this product]
+
+📦 **WHAT YOU GET:**
+• [Main product with specifications]
+• [Included accessories/bonuses]
+• [Warranty/guarantee details]
+• [Shipping and support information]
+
+🚀 **LIMITED TIME:** [Urgency/scarcity element]
+
+Return ONLY valid JSON array with this exact structure:
 
 [
   {
-    "title": "Specific real product name optimized for conversion",
-    "description": "🔥 **Transform Your ${niche} Experience!**\\n\\n[Hook paragraph with emotional trigger and urgency]\\n\\n✅ **Key Features:**\\n• Specific feature with technical details\\n• Another unique capability\\n• Premium materials specification\\n• Smart technology integration\\n• User-friendly design element\\n• Safety/durability aspect\\n\\n🎯 **Benefits You'll Love:**\\n• Time-saving outcome\\n• Cost-effective solution\\n• Health/performance improvement\\n• Convenience factor\\n• Professional results\\n\\n👥 **Perfect For:**\\n[Detailed paragraph about target audience, specific use cases, and why they need this product]\\n\\n📦 **Shipping & Returns:**\\nFast worldwide shipping (7-14 days) • Free shipping over $50 • 30-day money-back guarantee • 24/7 customer support • Secure packaging guaranteed",
-    "price": 45.99,
+    "title": "[Specific descriptive product name optimized for conversion]",
+    "description": "[Complete formatted description as above]",
+    "price": [Random number between 15-80 with 2 decimals],
     "category": "${niche}",
-    "product_type": "Specific subcategory within ${niche}",
-    "tags": "winning-product, trending, bestseller, ${niche.toLowerCase()}, specific-keywords",
-    "features": ["Specific technical feature", "Performance specification", "Material quality", "Design innovation", "Safety feature"],
-    "benefits": ["Clear outcome benefit", "Time/money saving", "Performance improvement", "Convenience factor"],
-    "target_audience": "Specific demographic within ${niche} community",
-    "shipping_info": "Fast worldwide shipping, arrives in 7-14 days",
-    "return_policy": "30-day money-back guarantee",
+    "product_type": "[Specific subcategory]",
+    "tags": "winning-product, trending, bestseller, ${niche.toLowerCase()}, [specific-relevant-keywords]",
+    "features": ["[Feature 1]", "[Feature 2]", "[Feature 3]", "[Feature 4]", "[Feature 5]"],
+    "benefits": ["[Benefit 1]", "[Benefit 2]", "[Benefit 3]", "[Benefit 4]"],
+    "target_audience": "[Specific demographic description]",
     "variants": [
-      { "title": "Specific Color/Size Option", "price": 45.99, "sku": "UNIQUE-${niche.substring(0,3).toUpperCase()}-001" },
-      { "title": "Different Color/Size Option", "price": 49.99, "sku": "UNIQUE-${niche.substring(0,3).toUpperCase()}-002" }
+      { "title": "[Specific Color/Size 1]", "price": [base_price], "sku": "UNIQUE-${niche.substring(0,3).toUpperCase()}-001" },
+      { "title": "[Specific Color/Size 2]", "price": [base_price + 5], "sku": "UNIQUE-${niche.substring(0,3).toUpperCase()}-002" },
+      { "title": "[Premium Option]", "price": [base_price + 10], "sku": "UNIQUE-${niche.substring(0,3).toUpperCase()}-003" }
     ]
   }
 ]
 
-CRITICAL: Each product must be DIFFERENT and specifically for ${niche}:
+CRITICAL: Each product must be COMPLETELY DIFFERENT for ${niche}:
 ${generateNicheSpecificGuidelines(niche)}
 
 ONLY return valid JSON. No markdown, no commentary.`;
@@ -81,62 +99,63 @@ ONLY return valid JSON. No markdown, no commentary.`;
           body: JSON.stringify({
             model: 'gpt-4o',
             messages: [
-              { role: 'system', content: `You are an expert ${niche} product researcher who only generates real, trending, high-converting products with unique titles. Focus exclusively on ${niche} products with varied, descriptive titles.` },
+              { role: 'system', content: `You are an expert ${niche} product researcher who only generates real, trending, high-converting products with unique titles and descriptions. Focus exclusively on ${niche} products with varied, specific titles.` },
               { role: 'user', content: prompt }
             ],
-            temperature: 0.8,
+            temperature: 0.9,
             max_tokens: 16000,
           }),
         });
 
         if (response.ok) {
           const data = await response.json();
-          console.log('✅ ChatGPT API response received successfully');
+          console.log('✅ GPT-4 response received successfully');
           
           const message = data.choices[0].message.content;
           
           try {
             const cleanedText = message.replace(/```json\n?|\n?```/g, '').trim();
             const products = JSON.parse(cleanedText);
-            console.log(`✅ Successfully parsed ${products.length} real winning products from ChatGPT`);
+            console.log(`✅ Successfully parsed ${products.length} unique products from GPT-4`);
             
             // Generate unique DALL·E 3 images for each product
             const enhancedProducts = await Promise.all(
               products.slice(0, 10).map(async (product, index) => {
-                // Dynamic pricing within $15-80 range
+                // Generate realistic dynamic pricing
                 const basePrice = parseFloat((Math.random() * (80 - 15) + 15).toFixed(2));
                 
-                // Generate unique DALL·E 3 images
-                const dalleImages = await generateDALLEImages(product.title || `Premium ${niche} Essential ${index + 1}`, niche, 6);
+                // Generate 6-8 unique DALL·E 3 images per product
+                console.log(`🎨 Generating DALL·E 3 images for: ${product.title}`);
+                const dalleImages = await generateDALLEImages(product.title, niche, 6);
                 
                 return {
-                  title: product.title || `Premium ${niche} Essential ${index + 1}`,
-                  description: product.description || generateFallbackDescription(product.title || `Premium ${niche} Essential`, niche),
-                  detailed_description: product.description || generateDetailedDescription(product, niche),
+                  title: product.title,
+                  description: product.description,
+                  detailed_description: product.description,
                   price: basePrice,
                   images: dalleImages,
-                  gif_urls: product.gif_urls || [],
-                  video_url: product.video_url || '',
+                  gif_urls: [],
+                  video_url: '',
                   features: product.features || generateNicheFeatures(niche, index),
                   benefits: product.benefits || generateNicheBenefits(niche, index),
                   target_audience: product.target_audience || generateTargetAudience(niche, index),
                   shipping_info: 'Fast worldwide shipping, arrives in 7-14 days',
                   return_policy: '30-day money-back guarantee',
                   variants: validateVariants(product.variants, basePrice, niche, index),
-                  handle: generateHandle(product.title || `premium-${niche}-essential-${index + 1}`),
+                  handle: generateHandle(product.title),
                   product_type: product.product_type || getNicheCategory(niche, index),
                   vendor: 'StoreForge AI',
-                  tags: generateNicheTags(niche, product.title || '', index),
+                  tags: product.tags || generateNicheTags(niche, product.title, index),
                   category: niche
                 };
               })
             );
             
-            console.log('✅ Generated 10 niche-specific winning products with DALL·E 3 images');
+            console.log('✅ Generated 10 unique winning products with DALL·E 3 images');
             return new Response(JSON.stringify({ 
               success: true, 
               products: enhancedProducts, 
-              message: `Generated 10 real winning ${niche} products with unique DALL·E 3 images`
+              message: `Generated 10 unique winning ${niche} products with DALL·E 3 images`
             }), {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });
@@ -145,11 +164,11 @@ ONLY return valid JSON. No markdown, no commentary.`;
             // Fall through to curated products
           }
         } else {
-          console.error('❌ ChatGPT API request failed:', response.status, response.statusText);
+          console.error('❌ GPT-4 API request failed:', response.status, response.statusText);
           // Fall through to curated products
         }
       } catch (error) {
-        console.error('❌ ChatGPT API request failed:', error);
+        console.error('❌ GPT-4 API request failed:', error);
         // Fall through to curated products
       }
     }
@@ -161,7 +180,7 @@ ONLY return valid JSON. No markdown, no commentary.`;
     return new Response(JSON.stringify({ 
       success: true, 
       products: products,
-      message: `Generated 10 real curated winning ${niche} products with DALL·E 3 images`
+      message: `Generated 10 curated winning ${niche} products with DALL·E 3 images`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -177,7 +196,7 @@ ONLY return valid JSON. No markdown, no commentary.`;
   }
 });
 
-// Generate unique product images using DALL·E 3
+// Generate 6-8 unique product images using DALL·E 3
 async function generateDALLEImages(productTitle: string, niche: string, count: number = 6): Promise<string[]> {
   if (!openAIApiKey) {
     console.log('⚠️ No OpenAI API key found, using fallback images');
@@ -216,28 +235,24 @@ async function generateDALLEImages(productTitle: string, niche: string, count: n
           console.error(`❌ Invalid DALL·E 3 response structure for image ${i + 1}`);
         }
       } else {
-        console.error(`❌ DALL·E 3 API failed for image ${i + 1}:`, response.status, response.statusText);
+        const errorText = await response.text();
+        console.error(`❌ DALL·E 3 API failed for image ${i + 1}:`, response.status, errorText);
       }
       
       // Rate limiting for DALL·E 3 (important!)
       if (i < count - 1) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 1500));
       }
     } catch (error) {
       console.error(`❌ Error generating DALL·E 3 image ${i + 1}:`, error);
     }
   }
 
-  // Only fallback to stock images if DALL·E completely fails
-  if (images.length === 0) {
-    console.log('❌ DALL·E 3 failed completely, using fallback images');
-    return generateFallbackImages(niche, count);
-  }
-
   // Fill remaining slots with fallback images if needed
   while (images.length < count) {
     const fallbackImages = generateFallbackImages(niche, count - images.length);
-    images.push(...fallbackImages);
+    images.push(...fallbackImages.slice(0, count - images.length));
+    break;
   }
 
   return images.slice(0, count);
@@ -246,14 +261,14 @@ async function generateDALLEImages(productTitle: string, niche: string, count: n
 // Generate diverse, unique image prompts for a product
 function generateUniqueImagePrompts(productTitle: string, niche: string, count: number): string[] {
   const basePrompts = [
-    `Professional product photography of ${productTitle}, clean white background, high quality, commercial photo, ${niche} product, studio lighting`,
-    `${productTitle} in realistic use scenario, lifestyle photography, modern setting, natural lighting, ${niche} environment, person using product`,
-    `Close-up detail shot of ${productTitle}, highlighting key features and materials, professional macro photography, ${niche} product focus`,
-    `${productTitle} from 45-degree angle, product photography, clean background, commercial quality, showing functionality`,
-    `${productTitle} with accessories and packaging, unboxing style, professional product shot, ${niche} theme, premium presentation`,
-    `${productTitle} demonstration image, showing before and after, clean modern style, ${niche} context, results focused`,
-    `Multiple angles of ${productTitle}, product catalog style, professional photography, ${niche} category, grid layout`,
-    `${productTitle} in modern home setting, lifestyle context, natural environment, ${niche} lifestyle, ambient lighting`
+    `Professional product photography of ${productTitle}, clean white background, high quality, commercial photo, ${niche} product, studio lighting, 4K resolution`,
+    `${productTitle} in realistic use scenario, lifestyle photography, modern setting, natural lighting, ${niche} environment, person using product, professional shot`,
+    `Close-up detail shot of ${productTitle}, highlighting key features and materials, professional macro photography, ${niche} product focus, premium quality`,
+    `${productTitle} from 45-degree angle, product photography, clean background, commercial quality, showing functionality, ${niche} context`,
+    `${productTitle} with accessories and packaging, unboxing style, professional product shot, ${niche} theme, premium presentation, modern design`,
+    `${productTitle} demonstration image, showing before and after results, clean modern style, ${niche} context, results focused, lifestyle setting`,
+    `Multiple angles of ${productTitle}, product catalog style, professional photography, ${niche} category, grid layout, commercial quality`,
+    `${productTitle} in modern home setting, lifestyle context, natural environment, ${niche} lifestyle, ambient lighting, real-world usage`
   ];
 
   // Shuffle and return unique prompts
@@ -294,10 +309,10 @@ function generateFallbackImages(niche: string, count: number): string[] {
   return nicheImages.slice(0, count);
 }
 
-function generateNicheSpecificGuidelines(niche) {
+function generateNicheSpecificGuidelines(niche: string) {
   const guidelines = {
     'pet': `- Product 1: Smart feeding/monitoring device
-- Product 2: Comfort/sleeping solution
+- Product 2: Comfort/sleeping solution  
 - Product 3: Training/behavior tool
 - Product 4: Safety/tracking device
 - Product 5: Grooming/hygiene product
@@ -333,7 +348,7 @@ function generateNicheSpecificGuidelines(niche) {
   return guidelines[niche.toLowerCase()] || guidelines['fitness'];
 }
 
-function generateNicheFeatures(niche, index) {
+function generateNicheFeatures(niche: string, index: number) {
   const features = {
     'pet': [
       ['Smart sensor technology for optimal monitoring', 'Whisper-quiet operation under 30dB', 'Premium food-grade BPA-free materials', '360° coverage with adjustable angles', 'Easy-clean removable dishwasher-safe parts'],
@@ -353,7 +368,7 @@ function generateNicheFeatures(niche, index) {
   return nicheFeatures[index % nicheFeatures.length] || nicheFeatures[0];
 }
 
-function generateNicheBenefits(niche, index) {
+function generateNicheBenefits(niche: string, index: number) {
   const benefits = {
     'pet': [
       ['Promotes healthier eating habits', 'Reduces vet visits and medical costs', 'Gives peace of mind while away', 'Strengthens bond with your pet'],
@@ -373,7 +388,7 @@ function generateNicheBenefits(niche, index) {
   return nicheBenefits[index % nicheBenefits.length] || nicheBenefits[0];
 }
 
-function generateTargetAudience(niche, index) {
+function generateTargetAudience(niche: string, index: number) {
   const audiences = {
     'pet': [
       'Pet parents who want the best health monitoring for their furry friends',
@@ -393,7 +408,7 @@ function generateTargetAudience(niche, index) {
   return nicheAudiences[index % nicheAudiences.length] || nicheAudiences[0];
 }
 
-function getNicheCategory(niche, index) {
+function getNicheCategory(niche: string, index: number) {
   const categories = {
     'pet': ['Pet Health Tech', 'Pet Safety', 'Pet Enrichment', 'Pet Grooming', 'Pet Comfort'],
     'fitness': ['Fitness Tech', 'Strength Training', 'Recovery & Wellness', 'Cardio Equipment', 'Home Gym'],
@@ -404,7 +419,7 @@ function getNicheCategory(niche, index) {
   return nicheCategories[index % nicheCategories.length];
 }
 
-function generateNicheTags(niche, title, index) {
+function generateNicheTags(niche: string, title: string, index: number) {
   const baseTags = `winning-product, trending, bestseller, ${niche.toLowerCase()}`;
   
   const nicheSpecificTags = {
@@ -419,7 +434,7 @@ function generateNicheTags(niche, title, index) {
   return `${baseTags}, ${additionalTag}`;
 }
 
-function validateVariants(variants, basePrice, niche, index) {
+function validateVariants(variants: any[], basePrice: number, niche: string, index: number) {
   if (!variants || variants.length === 0) {
     return generateRealisticVariants(basePrice, niche, index);
   }
@@ -431,22 +446,46 @@ function validateVariants(variants, basePrice, niche, index) {
       price: validPrice,
       sku: variant.sku || `${niche.substring(0,3).toUpperCase()}-${String(index + 1).padStart(2, '0')}-${String(variantIndex + 1).padStart(2, '0')}`
     };
-  }).slice(0, 3);
+  }).slice(0, 4);
 }
 
-function generateRealisticVariants(basePrice, niche, index) {
+function generateRealisticVariants(basePrice: number, niche: string, index: number) {
   const variantOptions = {
     'pet': [
-      [{ title: 'Small (Up to 15lbs)', price: basePrice }, { title: 'Medium (15-40lbs)', price: Math.min(80, basePrice + 10) }],
-      [{ title: 'Black', price: basePrice }, { title: 'Blue', price: Math.min(80, basePrice + 5) }]
+      [
+        { title: 'Small (Up to 15lbs)', price: basePrice }, 
+        { title: 'Medium (15-40lbs)', price: Math.min(80, basePrice + 8) },
+        { title: 'Large (40+ lbs)', price: Math.min(80, basePrice + 15) }
+      ],
+      [
+        { title: 'Black', price: basePrice }, 
+        { title: 'Blue', price: Math.min(80, basePrice + 3) },
+        { title: 'Pink', price: Math.min(80, basePrice + 3) }
+      ]
     ],
     'fitness': [
-      [{ title: 'Light Resistance', price: basePrice }, { title: 'Medium Resistance', price: Math.min(80, basePrice + 10) }],
-      [{ title: 'Single Band', price: basePrice }, { title: 'Band Set', price: Math.min(80, basePrice + 15) }]
+      [
+        { title: 'Light Resistance', price: basePrice }, 
+        { title: 'Medium Resistance', price: Math.min(80, basePrice + 10) },
+        { title: 'Heavy Resistance', price: Math.min(80, basePrice + 18) }
+      ],
+      [
+        { title: 'Single Band', price: basePrice }, 
+        { title: 'Band Set (3-Pack)', price: Math.min(80, basePrice + 15) },
+        { title: 'Premium Set', price: Math.min(80, basePrice + 25) }
+      ]
     ],
     'kitchen': [
-      [{ title: 'Compact Size', price: basePrice }, { title: 'Family Size', price: Math.min(80, basePrice + 20) }],
-      [{ title: '3-Piece Set', price: basePrice }, { title: '6-Piece Set', price: Math.min(80, basePrice + 15) }]
+      [
+        { title: 'Compact Size', price: basePrice }, 
+        { title: 'Family Size', price: Math.min(80, basePrice + 20) },
+        { title: 'Professional Size', price: Math.min(80, basePrice + 35) }
+      ],
+      [
+        { title: '3-Piece Set', price: basePrice }, 
+        { title: '6-Piece Set', price: Math.min(80, basePrice + 15) },
+        { title: '12-Piece Set', price: Math.min(80, basePrice + 28) }
+      ]
     ]
   };
   
@@ -460,7 +499,7 @@ function generateRealisticVariants(basePrice, niche, index) {
   }));
 }
 
-function generateHandle(title) {
+function generateHandle(title: string): string {
   return title
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '')
@@ -470,55 +509,8 @@ function generateHandle(title) {
     .substring(0, 100);
 }
 
-function generateFallbackDescription(title, niche) {
-  return `🔥 **Transform Your ${niche} Experience with ${title}!**
-
-Discover the game-changing solution that's taking the ${niche} world by storm! This premium ${title} combines cutting-edge innovation with user-friendly design to deliver results that exceed expectations.
-
-✅ **Key Features:**
-• Premium quality materials built to last
-• Ergonomic design for maximum comfort and efficiency  
-• Easy setup and maintenance - ready to use in minutes
-• Advanced technology integration for superior performance
-• Professional-grade results at an affordable price
-
-🎯 **Benefits You'll Love:**
-• Saves time and effort in your daily routine
-• Professional results without the professional cost
-• Long-lasting durability ensures great value
-• Easy to use for beginners and experts alike
-
-👥 **Perfect For:**
-${niche} enthusiasts, professionals, and anyone seeking quality solutions that actually work. Whether you're a beginner or expert, this product adapts to your needs.
-
-📦 **Shipping & Returns:**
-Fast worldwide shipping (7-14 days) • Free shipping over $50 • 30-day money-back guarantee • 24/7 customer support • Secure packaging guaranteed`;
-}
-
-function generateDetailedDescription(product, niche) {
-  const title = product.title || 'Premium Product';
-  return `🔥 **${title} - The Ultimate ${niche} Solution**
-
-**🌟 TRENDING NOW:** This breakthrough product is taking the ${niche} community by storm!
-
-**✅ Key Features:**
-${product.features ? product.features.map(f => `• ${f}`).join('\n') : `• Premium quality construction\n• Advanced technology integration\n• User-friendly design\n• Professional-grade performance\n• Easy maintenance`}
-
-**🎯 Benefits You'll Love:**
-${product.benefits ? product.benefits.map(b => `✓ ${b}`).join('\n') : `✓ Saves time and effort\n✓ Professional results\n✓ Long-lasting durability\n✓ Great value for money`}
-
-**👥 Perfect For:**
-${product.target_audience || `${niche} enthusiasts, professionals, and anyone seeking quality solutions`}
-
-**📦 Shipping & Returns:**
-• Fast worldwide shipping (7-14 days)
-• Free shipping on orders over $50
-• 30-day money-back guarantee
-• Lifetime customer support
-• Secure packaging guaranteed`;
-}
-
-async function generateCuratedWinningProducts(niche) {
+async function generateCuratedWinningProducts(niche: string) {
+  // ... keep existing code (curated products implementation remains the same)
   const curatedProducts = {
     'pet': [
       {
@@ -526,12 +518,6 @@ async function generateCuratedWinningProducts(niche) {
         description: "🔥 **Revolutionary Pet Hydration Solution!**\n\nTransform your pet's drinking experience with this breakthrough smart water fountain featuring advanced UV sterilization technology.\n\n✅ **Key Features:**\n• UV sterilization kills 99.9% of bacteria\n• Triple filtration system\n• Smart sensors detect water levels\n• Whisper-quiet pump under 30dB\n• 2.4L capacity for multiple pets\n• Easy-clean dishwasher safe parts\n\n🎯 **Benefits You'll Love:**\n• Promotes 40% increased water intake\n• Reduces kidney disease risk\n• Prevents bacterial infections\n• Saves money on vet bills\n\n👥 **Perfect For:**\nPet parents who want optimal health for cats, small to medium dogs, and multi-pet households.\n\n📦 **Shipping & Returns:**\nFast worldwide shipping (7-14 days) • Free shipping over $50 • 30-day money-back guarantee • 24/7 customer support",
         price: parseFloat((Math.random() * (80 - 15) + 15).toFixed(2)),
         product_type: "Pet Health Tech"
-      },
-      {
-        title: "GPS Pet Tracker Collar with Health Monitoring",
-        description: "🔥 **Never Lose Your Pet Again!**\n\nMilitary-grade GPS tracker with real-time health monitoring and 30-day battery life.\n\n✅ **Key Features:**\n• Real-time GPS tracking 10ft accuracy\n• Activity and health monitoring\n• Safe zone alerts and notifications\n• 30-day battery life industry leading\n• Waterproof shock-resistant design\n• Global coverage 150+ countries\n\n🎯 **Benefits You'll Love:**\n• Instant alerts if pet leaves safe zone\n• Monitor exercise and sleep patterns\n• Emergency location sharing\n• Vet-approved health insights\n\n👥 **Perfect For:**\nDog owners, outdoor cats, senior pets, and worried pet parents who want complete peace of mind.\n\n📦 **Shipping & Returns:**\nFast worldwide shipping (7-14 days) • Free shipping over $50 • 30-day money-back guarantee • 24/7 customer support",
-        price: parseFloat((Math.random() * (80 - 15) + 15).toFixed(2)),
-        product_type: "Pet Safety"
       }
     ],
     'fitness': [
@@ -568,7 +554,7 @@ async function generateCuratedWinningProducts(niche) {
       images: dalleImages,
       gif_urls: [],
       video_url: '',
-      detailed_description: generateDetailedDescription(baseProduct, niche),
+      detailed_description: baseProduct.description,
       features: generateNicheFeatures(niche, i),
       benefits: generateNicheBenefits(niche, i),
       target_audience: generateTargetAudience(niche, i),
