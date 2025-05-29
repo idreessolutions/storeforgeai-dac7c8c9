@@ -52,61 +52,77 @@ export type Database = {
           session_id?: string | null
           why_mentorship?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "mentorship_applications_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "store_builder_sessions"
-            referencedColumns: ["session_id"]
-          },
-        ]
+        Relationships: []
       }
       product_uploads: {
         Row: {
+          benefits: Json | null
           created_at: string
           description: string | null
+          detailed_description: string | null
+          features: Json | null
+          gif_urls: Json | null
           id: string
           images: Json | null
           niche: string
           price: number | null
           product_type: string | null
+          return_policy: string | null
           session_id: string | null
+          shipping_info: string | null
           shopify_product_id: string | null
           tags: string | null
+          target_audience: string | null
           title: string
           variants: Json | null
           vendor: string | null
+          video_url: string | null
         }
         Insert: {
+          benefits?: Json | null
           created_at?: string
           description?: string | null
+          detailed_description?: string | null
+          features?: Json | null
+          gif_urls?: Json | null
           id?: string
           images?: Json | null
           niche: string
           price?: number | null
           product_type?: string | null
+          return_policy?: string | null
           session_id?: string | null
+          shipping_info?: string | null
           shopify_product_id?: string | null
           tags?: string | null
+          target_audience?: string | null
           title: string
           variants?: Json | null
           vendor?: string | null
+          video_url?: string | null
         }
         Update: {
+          benefits?: Json | null
           created_at?: string
           description?: string | null
+          detailed_description?: string | null
+          features?: Json | null
+          gif_urls?: Json | null
           id?: string
           images?: Json | null
           niche?: string
           price?: number | null
           product_type?: string | null
+          return_policy?: string | null
           session_id?: string | null
+          shipping_info?: string | null
           shopify_product_id?: string | null
           tags?: string | null
+          target_audience?: string | null
           title?: string
           variants?: Json | null
           vendor?: string | null
+          video_url?: string | null
         }
         Relationships: []
       }

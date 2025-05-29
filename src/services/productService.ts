@@ -3,8 +3,16 @@ import { supabase } from "@/integrations/supabase/client";
 interface Product {
   title: string;
   description: string;
+  detailed_description?: string;
   price: number;
   images: string[];
+  gif_urls?: string[];
+  video_url?: string;
+  features?: string[];
+  benefits?: string[];
+  target_audience?: string;
+  shipping_info?: string;
+  return_policy?: string;
   variants: Array<{
     title: string;
     price: number;
@@ -31,7 +39,7 @@ export const addProductsToShopify = async (
   themeColor: string = '#1E40AF'
 ): Promise<boolean> => {
   try {
-    console.log('Starting product addition process...');
+    console.log('🚀 Starting enhanced product addition process...');
     console.log('Shopify URL:', shopifyUrl);
     console.log('Niche:', userNiche);
     console.log('Theme Color:', themeColor);
@@ -55,10 +63,10 @@ export const addProductsToShopify = async (
 
     console.log('Extracted store name:', storeName);
 
-    // Generate exactly 10 winning products using our enhanced AI system
+    // Generate exactly 10 real winning products using enhanced AI system
     let products: Product[] = [];
     try {
-      console.log('Generating 10 winning products using AI...');
+      console.log('🤖 Generating 10 real winning products using enhanced AI...');
       const { data, error } = await supabase.functions.invoke('generate-products', {
         body: { niche: userNiche }
       });
@@ -70,153 +78,167 @@ export const addProductsToShopify = async (
 
       if (data?.success && data?.products) {
         products = data.products.slice(0, 10); // Ensure exactly 10 products
-        console.log(`Generated ${products.length} winning products using AI`);
+        console.log(`✅ Generated ${products.length} real winning products using enhanced AI`);
       } else {
         throw new Error('No products generated');
       }
     } catch (error) {
-      console.error('Product generation failed, using fallback:', error);
-      // Fallback to predefined products - exactly 10
-      products = generateFallbackProducts(userNiche).slice(0, 10);
+      console.error('Product generation failed:', error);
+      throw new Error('Failed to generate winning products. Please try again.');
     }
     
     let successCount = 0;
     const errors: string[] = [];
     const uploadResults: ProductUploadResult[] = [];
     
-    // Process exactly 10 products one by one with rate limiting
+    // Process exactly 10 products with enhanced error handling and retry logic
     for (let i = 0; i < products.length; i++) {
       const product = products[i];
       const progress = ((i + 1) / 10) * 100; // Always calculate based on 10 products
       onProgress(progress, product.title);
       
-      console.log(`Processing product ${i + 1}/10: ${product.title}`);
+      console.log(`🔄 Processing product ${i + 1}/10: ${product.title}`);
       
-      try {
-        // Create unique identifiers for this attempt
-        const timestamp = Date.now();
-        const randomSuffix = Math.random().toString(36).substring(2, 15);
-        
-        // Ensure we have proper variants with consistent structure
-        const processedVariants = product.variants.length > 0 ? product.variants : [
-          { title: 'Default', price: product.price, sku: 'DEFAULT-001' }
-        ];
+      let retryCount = 0;
+      const maxRetries = 2;
+      let productUploaded = false;
+      
+      while (retryCount <= maxRetries && !productUploaded) {
+        try {
+          // Create unique identifiers for this attempt
+          const timestamp = Date.now();
+          const randomSuffix = Math.random().toString(36).substring(2, 15);
+          
+          // Ensure we have proper variants with consistent structure
+          const processedVariants = product.variants.length > 0 ? product.variants : [
+            { title: 'Default', price: product.price, sku: `DEFAULT-${timestamp}-001` }
+          ];
 
-        // Use Supabase edge function to add product to Shopify with theme color
-        const { data, error } = await supabase.functions.invoke('add-shopify-product', {
-          body: {
-            shopifyUrl: `https://${storeName}.myshopify.com`,
-            accessToken,
-            themeColor, // Pass theme color to edge function
-            product: {
-              title: product.title.trim(),
-              description: product.description.trim(),
-              vendor: product.vendor || 'StoreForge AI',
-              product_type: product.product_type || userNiche || 'General',
-              handle: product.handle || generateHandle(product.title),
-              status: 'active',
-              published: true,
-              tags: product.tags || `${userNiche}, winning products, trending`,
-              images: product.images?.map(url => ({
-                src: url,
-                alt: product.title
-              })) || [],
-              variants: processedVariants.map((variant, variantIndex) => {
-                const timestampStr = String(timestamp);
-                const indexStr = String(i);
-                const variantIndexStr = String(variantIndex);
-                
-                return {
-                  title: variant.title,
-                  price: typeof variant.price === 'number' ? variant.price.toFixed(2) : parseFloat(String(variant.price)).toFixed(2),
-                  sku: `${variant.sku}-${timestampStr}-${indexStr}-${variantIndexStr}-${randomSuffix}`,
-                  inventory_management: null,
-                  inventory_policy: 'continue',
-                  inventory_quantity: 999,
-                  weight: 0.5,
-                  weight_unit: 'lb',
-                  requires_shipping: true,
-                  taxable: true
-                };
-              })
+          // Use Supabase edge function to add product to Shopify with full details
+          const { data, error } = await supabase.functions.invoke('add-shopify-product', {
+            body: {
+              shopifyUrl: `https://${storeName}.myshopify.com`,
+              accessToken,
+              themeColor, // Apply theme color to product styling
+              product: {
+                title: product.title.trim(),
+                description: product.description.trim(),
+                detailed_description: product.detailed_description || product.description,
+                features: product.features || [],
+                benefits: product.benefits || [],
+                target_audience: product.target_audience || `${userNiche} enthusiasts`,
+                shipping_info: product.shipping_info || 'Ships worldwide in 7-14 days',
+                return_policy: product.return_policy || '30-day money-back guarantee',
+                vendor: product.vendor || 'StoreForge AI',
+                product_type: product.product_type || userNiche || 'General',
+                handle: product.handle || generateHandle(product.title),
+                status: 'active',
+                published: true,
+                tags: product.tags || `${userNiche}, winning products, trending, bestseller`,
+                images: product.images?.map(url => ({
+                  src: url,
+                  alt: product.title
+                })) || [],
+                gif_urls: product.gif_urls || [],
+                video_url: product.video_url || '',
+                variants: processedVariants.map((variant, variantIndex) => {
+                  const timestampStr = String(timestamp);
+                  const indexStr = String(i);
+                  const variantIndexStr = String(variantIndex);
+                  
+                  return {
+                    title: variant.title,
+                    price: typeof variant.price === 'number' ? variant.price.toFixed(2) : parseFloat(String(variant.price)).toFixed(2),
+                    sku: `${variant.sku}-${timestampStr}-${indexStr}-${variantIndexStr}-${randomSuffix}`,
+                    inventory_management: null,
+                    inventory_policy: 'continue',
+                    inventory_quantity: 999,
+                    weight: 0.5,
+                    weight_unit: 'lb',
+                    requires_shipping: true,
+                    taxable: true
+                  };
+                })
+              }
             }
+          });
+
+          if (error) {
+            console.error('Supabase function error:', error);
+            throw new Error(error.message || 'Failed to call edge function');
           }
-        });
 
-        if (error) {
-          console.error('Supabase function error:', error);
-          throw new Error(error.message || 'Failed to call edge function');
-        }
-
-        if (data?.success) {
-          successCount++;
-          console.log(`✓ Successfully added: ${product.title}`);
+          if (data?.success) {
+            successCount++;
+            productUploaded = true;
+            console.log(`✅ Successfully added: ${product.title}`);
+            
+            // Store result for tracking
+            uploadResults.push({
+              success: true,
+              productId: data.product?.id,
+              productTitle: product.title
+            });
+            
+            // Store comprehensive product data in Supabase
+            await storeEnhancedProductInSupabase(product, data.product?.id, userNiche, themeColor);
+            await storeProductInStorageBucket(product, data.product?.id, userNiche);
+            
+          } else {
+            const errorMsg = data?.error || 'Unknown error from edge function';
+            console.error(`❌ Edge function failed for ${product.title}:`, errorMsg);
+            throw new Error(errorMsg);
+          }
           
-          // Store result for tracking
-          uploadResults.push({
-            success: true,
-            productId: data.product?.id,
-            productTitle: product.title
-          });
+        } catch (productError) {
+          retryCount++;
+          const errorMsg = productError instanceof Error ? productError.message : 'Unknown error';
+          console.error(`❌ Attempt ${retryCount} failed for ${product.title}:`, errorMsg);
           
-          // Store product data in Supabase database AND storage bucket
-          await storeProductInSupabase(product, data.product?.id, userNiche, themeColor);
-          await storeProductInStorageBucket(product, data.product?.id, userNiche);
+          // Stop on authentication errors (no retry)
+          if (errorMsg.includes('401') || errorMsg.includes('403') || errorMsg.includes('Unauthorized')) {
+            throw new Error(`Authentication failed. Please check your access token: ${errorMsg}`);
+          }
           
-        } else {
-          const errorMsg = data?.error || 'Unknown error from edge function';
-          console.error(`✗ Edge function failed for ${product.title}:`, errorMsg);
-          
-          uploadResults.push({
-            success: false,
-            error: errorMsg,
-            productTitle: product.title
-          });
-          
-          throw new Error(errorMsg);
-        }
-        
-      } catch (productError) {
-        const errorMsg = productError instanceof Error ? productError.message : 'Unknown error';
-        console.error(`✗ Failed to add ${product.title}:`, errorMsg);
-        errors.push(`${product.title}: ${errorMsg}`);
-        
-        uploadResults.push({
-          success: false,
-          error: errorMsg,
-          productTitle: product.title
-        });
-        
-        // Stop on authentication errors
-        if (errorMsg.includes('401') || errorMsg.includes('403') || errorMsg.includes('Unauthorized')) {
-          throw new Error(`Authentication failed. Please check your access token: ${errorMsg}`);
+          // If max retries reached, record the failure
+          if (retryCount > maxRetries) {
+            errors.push(`${product.title}: ${errorMsg}`);
+            uploadResults.push({
+              success: false,
+              error: errorMsg,
+              productTitle: product.title
+            });
+          } else {
+            console.log(`🔄 Retrying ${product.title} (attempt ${retryCount + 1}/${maxRetries + 1})...`);
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
+          }
         }
       }
       
       // Rate limiting: 1.5 second delay between requests to avoid 429 errors
       if (i < products.length - 1) {
-        console.log('Applying rate limit delay...');
-        await new Promise(resolve => setTimeout(resolve, 1500)); // 1.5 second delay
+        console.log('⏱️ Applying rate limit delay...');
+        await new Promise(resolve => setTimeout(resolve, 1500));
       }
     }
     
     // Store upload session summary in Supabase
     await storeUploadSession(uploadResults, userNiche);
     
-    console.log(`Product addition completed: ${successCount}/10 successful`);
+    console.log(`🎉 Product addition completed: ${successCount}/10 successful`);
     
     if (successCount === 0) {
-      throw new Error(`Failed to add any products. First few errors: ${errors.slice(0, 3).join('; ')}`);
+      throw new Error(`Failed to add any products. Errors: ${errors.slice(0, 3).join('; ')}`);
     }
     
     if (successCount < 10) {
-      console.warn(`Some products failed to add: ${errors.length} errors`);
+      console.warn(`⚠️ Some products failed to add: ${errors.length} errors`);
     }
     
     return true;
     
   } catch (error) {
-    console.error('Product addition process failed:', error);
+    console.error('💥 Product addition process failed:', error);
     throw error;
   }
 };
@@ -256,8 +278,8 @@ export const applyThemeColor = async (
   }
 };
 
-// Store individual product data in Supabase database with theme color
-async function storeProductInSupabase(product: Product, shopifyProductId: string | undefined, niche: string, themeColor?: string) {
+// Enhanced function to store comprehensive product data in Supabase database
+async function storeEnhancedProductInSupabase(product: Product, shopifyProductId: string | undefined, niche: string, themeColor?: string) {
   try {
     const { error } = await supabase
       .from('product_uploads')
@@ -265,44 +287,63 @@ async function storeProductInSupabase(product: Product, shopifyProductId: string
         shopify_product_id: shopifyProductId,
         title: product.title,
         description: product.description,
+        detailed_description: product.detailed_description,
         price: product.price,
         niche: niche,
         vendor: product.vendor || 'StoreForge AI',
         product_type: product.product_type || niche,
         tags: product.tags,
         images: product.images,
+        gif_urls: product.gif_urls || [],
+        video_url: product.video_url || '',
+        features: product.features || [],
+        benefits: product.benefits || [],
+        target_audience: product.target_audience || '',
+        shipping_info: product.shipping_info || '',
+        return_policy: product.return_policy || '',
         variants: product.variants,
         created_at: new Date().toISOString()
       });
 
     if (error) {
-      console.error('Error storing product in Supabase:', error);
+      console.error('Error storing enhanced product in Supabase:', error);
     } else {
-      console.log(`Product ${product.title} stored in Supabase database with theme color: ${themeColor}`);
+      console.log(`✅ Enhanced product ${product.title} stored in Supabase database with theme color: ${themeColor}`);
     }
   } catch (error) {
-    console.error('Failed to store product in Supabase database:', error);
+    console.error('Failed to store enhanced product in Supabase database:', error);
   }
 }
 
-// Store individual product data in Supabase Storage bucket
+// Store individual product data in Supabase Storage bucket with user-specific folder
 async function storeProductInStorageBucket(product: Product, shopifyProductId: string | undefined, niche: string) {
   try {
+    // Generate a unique session ID for the user
+    const sessionId = Math.random().toString(36).substring(2, 15);
+    
     const productData = {
       shopify_product_id: shopifyProductId,
       title: product.title,
       description: product.description,
+      detailed_description: product.detailed_description,
       price: product.price,
       niche: niche,
       vendor: product.vendor || 'StoreForge AI',
       product_type: product.product_type || niche,
       tags: product.tags,
       images: product.images,
+      gif_urls: product.gif_urls || [],
+      video_url: product.video_url || '',
+      features: product.features || [],
+      benefits: product.benefits || [],
+      target_audience: product.target_audience,
+      shipping_info: product.shipping_info,
+      return_policy: product.return_policy,
       variants: product.variants,
       created_at: new Date().toISOString()
     };
 
-    const fileName = `${niche}/${shopifyProductId || 'unknown'}-${Date.now()}.json`;
+    const fileName = `${sessionId}/${niche}/${shopifyProductId || 'unknown'}-${Date.now()}.json`;
     const fileContent = new Blob([JSON.stringify(productData, null, 2)], {
       type: 'application/json'
     });
@@ -314,7 +355,7 @@ async function storeProductInStorageBucket(product: Product, shopifyProductId: s
     if (error) {
       console.error('Error storing product in storage bucket:', error);
     } else {
-      console.log(`Product ${product.title} stored in storage bucket: ${fileName}`);
+      console.log(`✅ Product ${product.title} stored in storage bucket: ${fileName}`);
     }
   } catch (error) {
     console.error('Failed to store product in storage bucket:', error);
@@ -344,7 +385,7 @@ async function storeUploadSession(results: ProductUploadResult[], niche: string)
     if (error) {
       console.error('Error storing upload session:', error);
     } else {
-      console.log(`Upload session ${sessionId} stored in Supabase`);
+      console.log(`✅ Upload session ${sessionId} stored in Supabase`);
     }
   } catch (error) {
     console.error('Failed to store upload session:', error);
