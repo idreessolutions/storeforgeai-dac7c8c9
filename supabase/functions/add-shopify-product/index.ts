@@ -59,7 +59,7 @@ serve(async (req) => {
         cleanSKU = `${titleCode}-${String(index + 1).padStart(3, '0')}`;
       }
       
-      return {
+      const variantData = {
         title: variantTitle,
         price: price.toFixed(2),
         sku: cleanSKU,
@@ -73,6 +73,13 @@ serve(async (req) => {
         compare_at_price: null,
         fulfillment_service: 'manual'
       };
+
+      // If we have multiple variants, add the option1 field
+      if (product.variants.length > 1) {
+        variantData.option1 = variantTitle;
+      }
+
+      return variantData;
     });
 
     // Prepare the product payload with clean data
@@ -90,26 +97,28 @@ serve(async (req) => {
           src: url,
           alt: cleanTitle
         })) : [],
-        variants: preparedVariants,
-        // Fix: Only add options if we have multiple variants
-        ...(preparedVariants.length > 1 ? {
-          options: [
-            {
-              name: 'Type',
-              position: 1,
-              values: preparedVariants.map(variant => variant.title)
-            }
-          ]
-        } : {})
+        variants: preparedVariants
       }
     };
+
+    // Only add options if we have multiple variants
+    if (preparedVariants.length > 1) {
+      productPayload.product.options = [
+        {
+          name: 'Type',
+          position: 1,
+          values: preparedVariants.map(variant => variant.title)
+        }
+      ];
+    }
 
     console.log('Clean product payload:', JSON.stringify({
       title: productPayload.product.title,
       handle: productPayload.product.handle,
-      variants: productPayload.product.variants.map(v => ({ title: v.title, price: v.price, sku: v.sku })),
+      variants: productPayload.product.variants.map(v => ({ title: v.title, price: v.price, sku: v.sku, option1: v.option1 })),
       images: productPayload.product.images.length,
-      hasOptions: !!productPayload.product.options
+      hasOptions: !!productPayload.product.options,
+      optionsCount: productPayload.product.options?.length || 0
     }, null, 2));
 
     const response = await fetch(apiUrl, {
