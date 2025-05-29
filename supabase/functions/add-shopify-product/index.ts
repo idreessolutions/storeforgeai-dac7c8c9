@@ -20,6 +20,7 @@ serve(async (req) => {
     const { shopifyUrl, accessToken, themeColor, product } = await req.json();
     
     console.log('✅ Uploading UNIQUE Winning Product to Shopify:', product.title);
+    console.log('🖼️ Images to upload:', product.images?.length || 0);
     console.log('🎨 Applying theme color:', themeColor);
     
     // Validate required parameters
@@ -75,7 +76,7 @@ serve(async (req) => {
 
     console.log('✅ Product created successfully:', createdProduct.id);
 
-    // Process product enhancements
+    // Process product enhancements with prioritized image uploads
     return await handleProductEnhancements(createdProduct, product, shopifyClient, imageProcessor, variantManager, themeColor, productPrice);
 
   } catch (error) {
@@ -99,21 +100,25 @@ async function handleProductEnhancements(
   themeColor: string,
   productPrice: string
 ) {
-  // STEP 1: Update the default variant with proper pricing
-  let variantUpdateSuccess = false;
-  if (createdProduct.variants && createdProduct.variants.length > 0) {
-    const defaultVariant = createdProduct.variants[0];
-    variantUpdateSuccess = await variantManager.updateDefaultVariant(defaultVariant, productPrice);
-  }
-
-  // STEP 2: Upload images to Shopify
+  // STEP 1: PRIORITY - Upload images to Shopify IMMEDIATELY
   let uploadedImageCount = 0;
   if (product.images && product.images.length > 0) {
+    console.log(`🚀 PRIORITY: Uploading ${product.images.length} images to Shopify...`);
     uploadedImageCount = await imageProcessor.uploadProductImages(
       createdProduct.id,
       product.images,
       product.title
     );
+    console.log(`📸 Image upload result: ${uploadedImageCount}/${product.images.length} images uploaded`);
+  } else {
+    console.log('⚠️ No images provided for this product');
+  }
+
+  // STEP 2: Update the default variant with proper pricing
+  let variantUpdateSuccess = false;
+  if (createdProduct.variants && createdProduct.variants.length > 0) {
+    const defaultVariant = createdProduct.variants[0];
+    variantUpdateSuccess = await variantManager.updateDefaultVariant(defaultVariant, productPrice);
   }
 
   // STEP 3: Create additional product variants
@@ -142,7 +147,8 @@ async function handleProductEnhancements(
     message: `Successfully added UNIQUE winning product: ${createdProduct.title}`,
     price_set: productPrice,
     images_uploaded: uploadedImageCount,
-    variants_created: createdVariantCount
+    variants_created: createdVariantCount,
+    image_upload_status: uploadedImageCount > 0 ? 'SUCCESS' : 'FAILED'
   }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });

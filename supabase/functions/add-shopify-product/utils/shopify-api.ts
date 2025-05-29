@@ -34,6 +34,8 @@ export class ShopifyAPIClient {
   async createProduct(productPayload: { product: ShopifyProduct }) {
     const apiUrl = `${this.shopifyUrl}/admin/api/2024-10/products.json`;
     
+    console.log(`🏪 Creating product in Shopify: ${productPayload.product.title}`);
+    
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
@@ -45,10 +47,44 @@ export class ShopifyAPIClient {
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.log(`❌ Shopify product creation failed: ${response.status} - ${errorText}`);
       throw new Error(`Shopify API Error: ${response.status} - ${errorText}`);
     }
 
-    return await response.json();
+    const result = await response.json();
+    console.log(`✅ Product created successfully in Shopify: ${result.product.id}`);
+    return result;
+  }
+
+  async uploadImage(productId: string, imageData: ShopifyImage) {
+    const apiUrl = `${this.shopifyUrl}/admin/api/2024-10/products/${productId}/images.json`;
+    
+    console.log(`📸 Uploading image to Shopify product ${productId}`);
+    console.log(`🖼️ Image data:`, { src: imageData.src.substring(0, 100) + '...', alt: imageData.alt, position: imageData.position });
+    
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': this.accessToken,
+        },
+        body: JSON.stringify({ image: imageData }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log(`❌ Image upload failed: ${response.status} - ${errorText}`);
+        return null;
+      }
+
+      const result = await response.json();
+      console.log(`✅ Image uploaded successfully: ${result.image?.id || 'Unknown ID'}`);
+      return result;
+    } catch (error) {
+      console.log(`❌ Image upload error:`, error.message);
+      return null;
+    }
   }
 
   async updateVariant(variantId: string, variantData: Partial<ShopifyVariant>) {
@@ -61,20 +97,13 @@ export class ShopifyAPIClient {
       body: JSON.stringify({ variant: variantData }),
     });
 
-    return response.ok;
-  }
-
-  async uploadImage(productId: string, imageData: ShopifyImage) {
-    const response = await fetch(`${this.shopifyUrl}/admin/api/2024-10/products/${productId}/images.json`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Shopify-Access-Token': this.accessToken,
-      },
-      body: JSON.stringify({ image: imageData }),
-    });
-
-    return response.ok ? await response.json() : null;
+    const success = response.ok;
+    if (!success) {
+      const errorText = await response.text();
+      console.log(`❌ Variant update failed: ${response.status} - ${errorText}`);
+    }
+    
+    return success;
   }
 
   async updateProductOptions(productId: string, options: any[]) {

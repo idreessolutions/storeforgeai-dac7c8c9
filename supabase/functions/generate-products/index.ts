@@ -18,13 +18,13 @@ serve(async (req) => {
     const { niche } = await req.json();
     console.log('✅ Generating 10 REAL winning products for niche:', niche);
 
-    // Generate 10 unique products with reliable images
+    // Generate 10 unique products with high-quality images
     const products = await generateCuratedUniqueProducts(niche);
 
     return new Response(JSON.stringify({ 
       success: true, 
       products: products,
-      message: `Generated 10 curated UNIQUE ${niche} products with reliable images`
+      message: `Generated 10 curated UNIQUE ${niche} products with high-quality images`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -40,89 +40,111 @@ serve(async (req) => {
   }
 });
 
-// Generate reliable images with multiple fallback strategies
-async function generateReliableImages(productTitle: string, niche: string, count: number = 7): Promise<string[]> {
+// Generate 6-8 high-quality images using DALL·E 3
+async function generateHighQualityImages(productTitle: string, niche: string): Promise<string[]> {
   const images: string[] = [];
   
-  // Try DALL·E 3 first, but with simpler prompts and better error handling
-  if (openAIApiKey) {
-    try {
-      console.log(`🎨 Attempting DALL·E 3 for: ${productTitle}`);
-      
-      // Use a single, simple prompt instead of multiple complex ones
-      const simplePrompt = `Professional product photo of ${productTitle}, white background, high quality, ecommerce style, no text`;
-      
-      const response = await fetch('https://api.openai.com/v1/images/generations', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'dall-e-3',
-          prompt: simplePrompt,
-          n: 1,
-          size: '1024x1024',
-          quality: 'standard',
-          style: 'natural'
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.data && data.data[0] && data.data[0].url) {
-          const imageUrl = data.data[0].url;
-          images.push(imageUrl);
-          console.log(`✅ DALL·E 3 image generated successfully`);
-        }
-      } else {
-        console.log(`⚠️ DALL·E 3 failed, using fallback images`);
-      }
-    } catch (error) {
-      console.log(`⚠️ DALL·E 3 error, using fallback images:`, error.message);
-    }
+  if (!openAIApiKey) {
+    console.log('⚠️ OpenAI API key not found, using fallback images');
+    return getReliableFallbackImages(niche, 7);
   }
 
-  // Always use reliable fallback images to ensure we have enough
-  const fallbackImages = getReliableFallbackImages(niche, count);
-  images.push(...fallbackImages);
+  try {
+    console.log(`🎨 Generating 6-8 DALL·E 3 images for: ${productTitle}`);
+    
+    // Generate 6-8 different styled images
+    const imagePrompts = [
+      `A professional product photo of ${productTitle}, isolated, clean white background, 1024x1024, product-focused, soft lighting`,
+      `${productTitle} in use, lifestyle photo, natural setting, clean background, 1024x1024, high quality`,
+      `Close-up detail shot of ${productTitle}, premium quality, white background, 1024x1024, professional photography`,
+      `${productTitle} with accessories, complete set, clean background, 1024x1024, ecommerce style`,
+      `Multiple angles of ${productTitle}, product showcase, white background, 1024x1024, professional`,
+      `${productTitle} in packaging, unboxing view, clean background, 1024x1024, retail quality`,
+      `${productTitle} features highlighted, technical view, white background, 1024x1024, detailed shot`
+    ];
 
-  // Return exactly the requested count
-  return images.slice(0, count);
+    // Generate 6-7 images (leave room for potential failures)
+    for (let i = 0; i < Math.min(7, imagePrompts.length); i++) {
+      try {
+        console.log(`🖼️ Generating image ${i + 1}/7: ${imagePrompts[i].substring(0, 50)}...`);
+        
+        const response = await fetch('https://api.openai.com/v1/images/generations', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openAIApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'dall-e-3',
+            prompt: imagePrompts[i],
+            n: 1,
+            size: '1024x1024',
+            quality: 'standard',
+            style: 'natural'
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.data && data.data[0] && data.data[0].url) {
+            const imageUrl = data.data[0].url;
+            images.push(imageUrl);
+            console.log(`✅ DALL·E 3 image ${i + 1} generated successfully`);
+          }
+        } else {
+          console.log(`⚠️ DALL·E 3 image ${i + 1} failed, continuing...`);
+        }
+        
+        // Small delay between requests to avoid rate limits
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (error) {
+        console.log(`⚠️ Error generating image ${i + 1}:`, error.message);
+      }
+    }
+  } catch (error) {
+    console.log(`⚠️ DALL·E 3 generation failed:`, error.message);
+  }
+
+  // If we have fewer than 6 images, add fallback images
+  if (images.length < 6) {
+    console.log(`🔄 Adding fallback images (current: ${images.length})`);
+    const fallbackImages = getReliableFallbackImages(niche, 7 - images.length);
+    images.push(...fallbackImages);
+  }
+
+  console.log(`📸 Total images generated: ${images.length}`);
+  return images.slice(0, 7); // Return exactly 7 images
 }
 
 // Reliable fallback images that are guaranteed to work
 function getReliableFallbackImages(niche: string, count: number): string[] {
   const imageCollections = {
     'pet': [
-      'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=800&h=800&fit=crop&auto=format&q=80',
-      'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&h=800&fit=crop&auto=format&q=80',
-      'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=800&h=800&fit=crop&auto=format&q=80',
-      'https://images.unsplash.com/photo-1415369629372-26f2fe60c467?w=800&h=800&fit=crop&auto=format&q=80',
-      'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=800&h=800&fit=crop&auto=format&q=80',
-      'https://images.unsplash.com/photo-1493406300581-484b937cdc41?w=800&h=800&fit=crop&auto=format&q=80',
-      'https://images.unsplash.com/photo-1552053831-71594a27632d?w=800&h=800&fit=crop&auto=format&q=80',
-      'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800&h=800&fit=crop&auto=format&q=80'
+      'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=1024&h=1024&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=1024&h=1024&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=1024&h=1024&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1415369629372-26f2fe60c467?w=1024&h=1024&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=1024&h=1024&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1493406300581-484b937cdc41?w=1024&h=1024&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1552053831-71594a27632d?w=1024&h=1024&fit=crop&auto=format&q=80'
     ],
     'fitness': [
-      'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=800&fit=crop&auto=format&q=80',
-      'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&h=800&fit=crop&auto=format&q=80',
-      'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&h=800&fit=crop&auto=format&q=80',
-      'https://images.unsplash.com/photo-1593079831268-3381b0db4a77?w=800&h=800&fit=crop&auto=format&q=80',
-      'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=800&h=800&fit=crop&auto=format&q=80',
-      'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&h=800&fit=crop&auto=format&q=80',
-      'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=800&fit=crop&auto=format&q=80',
-      'https://images.unsplash.com/photo-1556816723-1ce827b9cfbb?w=800&h=800&fit=crop&auto=format&q=80'
+      'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1024&h=1024&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1024&h=1024&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1024&h=1024&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1593079831268-3381b0db4a77?w=1024&h=1024&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=1024&h=1024&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=1024&h=1024&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1556816723-1ce827b9cfbb?w=1024&h=1024&fit=crop&auto=format&q=80'
     ],
     'kitchen': [
-      'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=800&fit=crop&auto=format&q=80',
-      'https://images.unsplash.com/photo-1585515656811-b3806e19e75b?w=800&h=800&fit=crop&auto=format&q=80',
-      'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=800&fit=crop&auto=format&q=80',
-      'https://images.unsplash.com/photo-1556909114-4f6e7ad7d3136?w=800&h=800&fit=crop&auto=format&q=80',
-      'https://images.unsplash.com/photo-1585515656811-b3806e19e75b?w=800&h=800&fit=crop&auto=format&q=80',
-      'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=800&fit=crop&auto=format&q=80',
-      'https://images.unsplash.com/photo-1556909114-4f6e7ad7d3136?w=800&h=800&fit=crop&auto=format&q=80',
-      'https://images.unsplash.com/photo-1585515656811-b3806e19e75b?w=800&h=800&fit=crop&auto=format&q=80'
+      'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1024&h=1024&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1585515656811-b3806e19e75b?w=1024&h=1024&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1024&h=1024&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1556909114-4f6e7ad7d3136?w=1024&h=1024&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1585515656811-b3806e19e75b?w=1024&h=1024&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1024&h=1024&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1556909114-4f6e7ad7d3136?w=1024&h=1024&fit=crop&auto=format&q=80'
     ]
   };
   
@@ -216,8 +238,8 @@ async function generateCuratedUniqueProducts(niche: string) {
     const title = titles[i];
     const basePrice = parseFloat((Math.random() * (80 - 15) + 15).toFixed(2));
     
-    // Generate reliable images
-    const images = await generateReliableImages(title, niche, 7);
+    // Generate high-quality images using DALL·E 3
+    const images = await generateHighQualityImages(title, niche);
     
     const product = {
       title: title,
