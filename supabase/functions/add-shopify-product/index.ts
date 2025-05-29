@@ -140,7 +140,7 @@ async function handleProductEnhancements(
 
   // STEP 2: Update the default variant with proper pricing
   let variantUpdateSuccess = false;
-  let createdVariants: any[] = [];
+  let createdVariants: any[] = []; // Initialize as empty array
   
   if (createdProduct.variants && createdProduct.variants.length > 0) {
     const defaultVariant = createdProduct.variants[0];
@@ -157,7 +157,11 @@ async function handleProductEnhancements(
       productPrice
     );
     createdVariantCount = additionalVariants.length;
-    createdVariants.push(...additionalVariants);
+    
+    // Safely spread the additional variants
+    if (Array.isArray(additionalVariants)) {
+      createdVariants.push(...additionalVariants);
+    }
   }
 
   // STEP 4: Assign images to variants
