@@ -9,17 +9,18 @@ export class ImageProcessor {
         return false;
       }
       
-      // Quick validation for trusted domains
+      // Quick validation for trusted domains including DALL·E 3
       const validDomains = [
         'images.unsplash.com', 
         'oaidalleapiprodscus.blob.core.windows.net',
         'cdn.openai.com',
         'cdn.shopify.com',
-        'dalle-3.openai.com'
+        'dalle-3.openai.com',
+        'oaidalleapiprodscus'
       ];
       
       const url = new URL(imageUrl);
-      if (validDomains.some(domain => url.hostname.includes(domain))) {
+      if (validDomains.some(domain => url.hostname.includes(domain) || imageUrl.includes(domain))) {
         console.log(`✅ Trusted domain verified: ${url.hostname}`);
         return true;
       }
@@ -27,7 +28,7 @@ export class ImageProcessor {
       // For other domains, do a quick HEAD request
       const response = await fetch(imageUrl, { 
         method: 'HEAD',
-        signal: AbortSignal.timeout(5000) // 5 second timeout
+        signal: AbortSignal.timeout(5000)
       });
       
       const isValid = response.ok && response.headers.get('content-type')?.startsWith('image/');
@@ -49,9 +50,6 @@ export class ImageProcessor {
 
     console.log(`🖼️ Starting upload of ${images.length} images to Shopify product ${productId}...`);
     
-    // Log the first image to debug the format
-    console.log(`🔍 First image type: ${typeof images[0]}, value: ${images[0]}`);
-    
     for (let i = 0; i < images.length; i++) {
       let imageUrl = images[i];
       
@@ -62,14 +60,14 @@ export class ImageProcessor {
         if (typeof imageUrl === 'object' && imageUrl !== null) {
           if ('src' in imageUrl && typeof imageUrl.src === 'string') {
             imageUrl = imageUrl.src;
-            console.log(`🔄 Extracted URL from object: ${imageUrl}`);
+            console.log(`🔄 Extracted URL from object: ${imageUrl.substring(0, 80)}...`);
           } else {
             console.log(`⚠️ Skipping invalid image object at index ${i}:`, imageUrl);
             continue;
           }
         }
         
-        // Ensure imageUrl is now a string
+        // Ensure imageUrl is a string
         if (typeof imageUrl !== 'string') {
           console.log(`⚠️ Skipping invalid image at index ${i}: Expected string, got ${typeof imageUrl}`);
           continue;
@@ -97,6 +95,11 @@ export class ImageProcessor {
         if (uploadResult && uploadResult.image) {
           uploadedCount++;
           console.log(`✅ Successfully uploaded image ${i + 1} to Shopify (ID: ${uploadResult.image.id})`);
+          
+          // Log if this is a DALL·E 3 generated image
+          if (imageUrl.includes('oaidalleapiprodscus')) {
+            console.log(`🎨 DALL·E 3 generated image uploaded successfully!`);
+          }
         } else {
           console.log(`❌ Failed to upload image ${i + 1} - no response from Shopify`);
         }
@@ -104,7 +107,7 @@ export class ImageProcessor {
         // Rate limiting between uploads
         if (i < images.length - 1) {
           console.log(`⏱️ Rate limiting delay before next image...`);
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise(resolve => setTimeout(resolve, 1500));
         }
       } catch (error) {
         console.log(`❌ Error uploading image ${i + 1}:`, error.message);
