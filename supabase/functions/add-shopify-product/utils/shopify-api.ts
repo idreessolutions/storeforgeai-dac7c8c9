@@ -26,6 +26,7 @@ export interface ShopifyImage {
   src: string;
   alt: string;
   position: number;
+  variant_ids?: string[];
 }
 
 export class ShopifyAPIClient {
@@ -101,6 +102,41 @@ export class ShopifyAPIClient {
     }
   }
 
+  async assignImageToVariant(imageId: string, variantId: string): Promise<boolean> {
+    const apiUrl = `${this.shopifyUrl}/admin/api/2024-10/products/images/${imageId}.json`;
+    
+    try {
+      console.log(`🔗 Assigning image ${imageId} to variant ${variantId}...`);
+      
+      const response = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': this.accessToken,
+        },
+        body: JSON.stringify({
+          image: {
+            id: imageId,
+            variant_ids: [variantId]
+          }
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log(`❌ Image-to-variant assignment failed: ${response.status} - ${errorText}`);
+        return false;
+      }
+
+      const result = await response.json();
+      console.log(`✅ Image ${imageId} successfully assigned to variant ${variantId}`);
+      return true;
+    } catch (error) {
+      console.log(`❌ Error assigning image to variant:`, error.message);
+      return false;
+    }
+  }
+
   async updateVariant(variantId: string, variantData: Partial<ShopifyVariant>) {
     const response = await fetch(`${this.shopifyUrl}/admin/api/2024-10/variants/${variantId}.json`, {
       method: 'PUT',
@@ -143,7 +179,11 @@ export class ShopifyAPIClient {
       body: JSON.stringify({ variant: variantData }),
     });
 
-    return response.ok;
+    if (response.ok) {
+      const result = await response.json();
+      return result.variant;
+    }
+    return null;
   }
 
   async deleteVariant(variantId: string) {

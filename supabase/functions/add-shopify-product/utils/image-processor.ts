@@ -40,12 +40,13 @@ export class ImageProcessor {
     }
   }
 
-  async uploadProductImages(productId: string, images: string[], productTitle: string): Promise<number> {
+  async uploadProductImages(productId: string, images: string[], productTitle: string, variants?: any[]): Promise<{ uploadedCount: number, imageIds: string[] }> {
     let uploadedCount = 0;
+    const imageIds: string[] = [];
     
     if (!images || images.length === 0) {
       console.log('⚠️ No images provided for upload');
-      return uploadedCount;
+      return { uploadedCount, imageIds };
     }
 
     console.log(`🖼️ Starting upload of ${images.length} images to Shopify product ${productId}...`);
@@ -94,6 +95,7 @@ export class ImageProcessor {
         
         if (uploadResult && uploadResult.image) {
           uploadedCount++;
+          imageIds.push(uploadResult.image.id);
           console.log(`✅ Successfully uploaded image ${i + 1} to Shopify (ID: ${uploadResult.image.id})`);
           
           // Log if this is a DALL·E 3 generated image
@@ -125,6 +127,7 @@ export class ImageProcessor {
           
           if (retryResult && retryResult.image) {
             uploadedCount++;
+            imageIds.push(retryResult.image.id);
             console.log(`✅ Retry successful for image ${i + 1} (ID: ${retryResult.image.id})`);
           } else {
             console.log(`❌ Retry failed for image ${i + 1}`);
@@ -141,16 +144,52 @@ export class ImageProcessor {
       console.log(`⚠️ WARNING: No images were uploaded to product ${productId}. Check image URLs and Shopify API connectivity.`);
     }
     
-    return uploadedCount;
+    return { uploadedCount, imageIds };
   }
 
   async assignImageToVariant(imageId: string, variantId: string): Promise<boolean> {
     try {
-      console.log(`🏷️ Image ${imageId} positioned for variant ${variantId}`);
-      return true;
+      console.log(`🏷️ Assigning image ${imageId} to variant ${variantId}...`);
+      const success = await this.shopifyClient.assignImageToVariant(imageId, variantId);
+      if (success) {
+        console.log(`✅ Successfully assigned image ${imageId} to variant ${variantId}`);
+      } else {
+        console.log(`❌ Failed to assign image ${imageId} to variant ${variantId}`);
+      }
+      return success;
     } catch (error) {
       console.log(`❌ Failed to assign image to variant:`, error.message);
       return false;
     }
+  }
+
+  async assignImagesToVariants(imageIds: string[], variants: any[]): Promise<number> {
+    let assignedCount = 0;
+    
+    if (!imageIds || imageIds.length === 0 || !variants || variants.length === 0) {
+      console.log('⚠️ No images or variants available for assignment');
+      return assignedCount;
+    }
+
+    console.log(`🔗 Assigning ${imageIds.length} images to ${variants.length} variants...`);
+
+    // Assign first image to first variant, second image to second variant, etc.
+    for (let i = 0; i < Math.min(imageIds.length, variants.length); i++) {
+      const imageId = imageIds[i];
+      const variant = variants[i];
+      
+      if (variant && variant.id) {
+        const success = await this.assignImageToVariant(imageId, variant.id);
+        if (success) {
+          assignedCount++;
+        }
+        
+        // Small delay between assignments
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+
+    console.log(`🎯 Image-to-variant assignment completed: ${assignedCount} successful assignments`);
+    return assignedCount;
   }
 }

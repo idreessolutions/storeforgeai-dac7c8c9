@@ -102,6 +102,8 @@ async function handleProductEnhancements(
 ) {
   // STEP 1: PRIORITY - Upload images to Shopify IMMEDIATELY
   let uploadedImageCount = 0;
+  let imageIds: string[] = [];
+  
   if (product.images && product.images.length > 0) {
     console.log(`🚀 PRIORITY: Uploading ${product.images.length} images to Shopify...`);
     
@@ -121,11 +123,16 @@ async function handleProductEnhancements(
     
     console.log(`📸 Processing ${imageUrls.length} valid image URLs out of ${product.images.length} total`);
     
-    uploadedImageCount = await imageProcessor.uploadProductImages(
+    const uploadResult = await imageProcessor.uploadProductImages(
       createdProduct.id,
       imageUrls,
-      product.title
+      product.title,
+      product.variants
     );
+    
+    uploadedImageCount = uploadResult.uploadedCount;
+    imageIds = uploadResult.imageIds;
+    
     console.log(`📸 Image upload result: ${uploadedImageCount}/${imageUrls.length} images uploaded`);
   } else {
     console.log('⚠️ No images provided for this product');
@@ -133,19 +140,31 @@ async function handleProductEnhancements(
 
   // STEP 2: Update the default variant with proper pricing
   let variantUpdateSuccess = false;
+  let createdVariants: any[] = [];
+  
   if (createdProduct.variants && createdProduct.variants.length > 0) {
     const defaultVariant = createdProduct.variants[0];
     variantUpdateSuccess = await variantManager.updateDefaultVariant(defaultVariant, productPrice);
+    createdVariants.push(defaultVariant);
   }
 
   // STEP 3: Create additional product variants
   let createdVariantCount = 0;
   if (product.variants && product.variants.length > 1) {
-    createdVariantCount = await variantManager.processProductVariants(
+    const additionalVariants = await variantManager.processProductVariants(
       createdProduct.id,
       product.variants,
       productPrice
     );
+    createdVariantCount = additionalVariants.length;
+    createdVariants.push(...additionalVariants);
+  }
+
+  // STEP 4: Assign images to variants
+  let imageAssignmentCount = 0;
+  if (imageIds.length > 0 && createdVariants.length > 0) {
+    console.log(`🎯 Assigning ${imageIds.length} images to ${createdVariants.length} variants...`);
+    imageAssignmentCount = await imageProcessor.assignImagesToVariants(imageIds, createdVariants);
   }
 
   console.log('✅ UNIQUE Product upload completed successfully:', {
@@ -155,7 +174,8 @@ async function handleProductEnhancements(
     price: productPrice,
     images_uploaded: uploadedImageCount,
     variants_created: createdVariantCount,
-    variant_pricing_updated: variantUpdateSuccess
+    variant_pricing_updated: variantUpdateSuccess,
+    images_assigned_to_variants: imageAssignmentCount
   });
 
   return new Response(JSON.stringify({
@@ -165,6 +185,7 @@ async function handleProductEnhancements(
     price_set: productPrice,
     images_uploaded: uploadedImageCount,
     variants_created: createdVariantCount,
+    images_assigned_to_variants: imageAssignmentCount,
     image_upload_status: uploadedImageCount > 0 ? 'SUCCESS' : 'FAILED'
   }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
