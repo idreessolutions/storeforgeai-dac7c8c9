@@ -15,7 +15,7 @@ serve(async (req) => {
   try {
     const { shopifyUrl, accessToken, product } = await req.json();
 
-    console.log('Adding product to Shopify:', product.title);
+    console.log('Adding winning product to Shopify:', product.title);
 
     // Validate inputs
     if (!shopifyUrl || !accessToken || !product) {
@@ -82,21 +82,55 @@ serve(async (req) => {
       return variantData;
     });
 
-    // Prepare the product payload with clean data
+    // Process and validate images - CRITICAL for winning products
+    const processedImages = [];
+    if (product.images && Array.isArray(product.images)) {
+      for (const imageUrl of product.images) {
+        if (typeof imageUrl === 'string' && imageUrl.startsWith('http')) {
+          processedImages.push({
+            src: imageUrl,
+            alt: cleanTitle,
+            position: processedImages.length + 1
+          });
+        }
+      }
+    }
+
+    // Ensure we have at least 6 images for winning products
+    if (processedImages.length < 6) {
+      console.log('Warning: Product has fewer than 6 images, adding default images');
+      const defaultImages = [
+        'https://images.unsplash.com/photo-1560472354-b33c5c44a43?w=800&h=800&fit=crop',
+        'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=800&h=800&fit=crop',
+        'https://images.unsplash.com/photo-1563770660-4d3ac67cbdac?w=800&h=800&fit=crop',
+        'https://images.unsplash.com/photo-1545579149-b0c4be64b8bb?w=800&h=800&fit=crop',
+        'https://images.unsplash.com/photo-1587614203-a3b71edc4d8e?w=800&h=800&fit=crop',
+        'https://images.unsplash.com/photo-1565814329452-e1efa11c5b89?w=800&h=800&fit=crop'
+      ];
+      
+      for (let i = processedImages.length; i < 6; i++) {
+        processedImages.push({
+          src: defaultImages[i % defaultImages.length],
+          alt: cleanTitle,
+          position: i + 1
+        });
+      }
+    }
+
+    console.log(`Processed ${processedImages.length} images for product: ${cleanTitle}`);
+
+    // Prepare the product payload with clean data and images
     const productPayload = {
       product: {
         title: cleanTitle,
-        body_html: product.body_html || `<p>${product.description || 'Premium quality product with excellent features and benefits.'}</p>`,
-        vendor: product.vendor || 'TrendingProducts',
+        body_html: product.body_html || `<div>${product.description || 'Premium quality product with excellent features and benefits.'}</div>`,
+        vendor: product.vendor || 'TrendingWins',
         product_type: product.product_type || 'General',
         handle: cleanHandle,
         status: 'active',
         published: true,
-        tags: product.tags || 'trending, bestseller, premium quality',
-        images: product.images && Array.isArray(product.images) ? product.images.map(url => ({
-          src: url,
-          alt: cleanTitle
-        })) : [],
+        tags: product.tags || 'trending, bestseller, premium quality, winning product',
+        images: processedImages,
         variants: preparedVariants
       }
     };
@@ -112,13 +146,14 @@ serve(async (req) => {
       ];
     }
 
-    console.log('Clean product payload:', JSON.stringify({
+    console.log('Winning product payload:', JSON.stringify({
       title: productPayload.product.title,
       handle: productPayload.product.handle,
       variants: productPayload.product.variants.map(v => ({ title: v.title, price: v.price, sku: v.sku, option1: v.option1 })),
       images: productPayload.product.images.length,
       hasOptions: !!productPayload.product.options,
-      optionsCount: productPayload.product.options?.length || 0
+      optionsCount: productPayload.product.options?.length || 0,
+      imageUrls: productPayload.product.images.slice(0, 3).map(img => img.src)
     }, null, 2));
 
     const response = await fetch(apiUrl, {
@@ -127,7 +162,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
         'X-Shopify-Access-Token': accessToken,
         'Accept': 'application/json',
-        'User-Agent': 'StoreForge AI/1.0'
+        'User-Agent': 'TrendingWins/1.0'
       },
       body: JSON.stringify(productPayload),
     });
@@ -171,7 +206,7 @@ serve(async (req) => {
     }
 
     const responseData = await response.json();
-    console.log('Product added successfully:', responseData.product?.id, 'Title:', responseData.product?.title);
+    console.log('Winning product added successfully:', responseData.product?.id, 'Title:', responseData.product?.title, 'Images:', responseData.product?.images?.length);
 
     return new Response(JSON.stringify({ 
       success: true, 
