@@ -81,10 +81,10 @@ ONLY return valid JSON. No markdown, no commentary.`;
           body: JSON.stringify({
             model: 'gpt-4o',
             messages: [
-              { role: 'system', content: `You are an expert ${niche} product researcher who only generates real, trending, high-converting products with no duplicates. Focus exclusively on ${niche} products.` },
+              { role: 'system', content: `You are an expert ${niche} product researcher who only generates real, trending, high-converting products with unique titles. Focus exclusively on ${niche} products with varied, descriptive titles.` },
               { role: 'user', content: prompt }
             ],
-            temperature: 0.7,
+            temperature: 0.8,
             max_tokens: 16000,
           }),
         });
@@ -100,20 +100,21 @@ ONLY return valid JSON. No markdown, no commentary.`;
             const products = JSON.parse(cleanedText);
             console.log(`✅ Successfully parsed ${products.length} real winning products from ChatGPT`);
             
-            // Generate unique AI images for each product
+            // Generate unique DALL·E 3 images for each product
             const enhancedProducts = await Promise.all(
               products.slice(0, 10).map(async (product, index) => {
-                const validPrice = Math.max(15, Math.min(80, product.price || (19.99 + (index * 6))));
+                // Dynamic pricing within $15-80 range
+                const basePrice = parseFloat((Math.random() * (80 - 15) + 15).toFixed(2));
                 
-                // Generate unique AI images using DALL·E 3
-                const aiImages = await generateProductImages(product.title || `Premium ${niche} Essential ${index + 1}`, niche, 6);
+                // Generate unique DALL·E 3 images
+                const dalleImages = await generateDALLEImages(product.title || `Premium ${niche} Essential ${index + 1}`, niche, 6);
                 
                 return {
                   title: product.title || `Premium ${niche} Essential ${index + 1}`,
                   description: product.description || generateFallbackDescription(product.title || `Premium ${niche} Essential`, niche),
                   detailed_description: product.description || generateDetailedDescription(product, niche),
-                  price: validPrice,
-                  images: aiImages,
+                  price: basePrice,
+                  images: dalleImages,
                   gif_urls: product.gif_urls || [],
                   video_url: product.video_url || '',
                   features: product.features || generateNicheFeatures(niche, index),
@@ -121,7 +122,7 @@ ONLY return valid JSON. No markdown, no commentary.`;
                   target_audience: product.target_audience || generateTargetAudience(niche, index),
                   shipping_info: 'Fast worldwide shipping, arrives in 7-14 days',
                   return_policy: '30-day money-back guarantee',
-                  variants: validateVariants(product.variants, validPrice, niche, index),
+                  variants: validateVariants(product.variants, basePrice, niche, index),
                   handle: generateHandle(product.title || `premium-${niche}-essential-${index + 1}`),
                   product_type: product.product_type || getNicheCategory(niche, index),
                   vendor: 'StoreForge AI',
@@ -131,11 +132,11 @@ ONLY return valid JSON. No markdown, no commentary.`;
               })
             );
             
-            console.log('✅ Generated 10 niche-specific winning products with AI-generated images');
+            console.log('✅ Generated 10 niche-specific winning products with DALL·E 3 images');
             return new Response(JSON.stringify({ 
               success: true, 
               products: enhancedProducts, 
-              message: `Generated 10 real winning ${niche} products with unique AI images`
+              message: `Generated 10 real winning ${niche} products with unique DALL·E 3 images`
             }), {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });
@@ -153,14 +154,14 @@ ONLY return valid JSON. No markdown, no commentary.`;
       }
     }
 
-    // Fallback to curated real winning products with AI images
+    // Fallback to curated real winning products with DALL·E 3 images
     console.log('🔄 Using curated real winning products for', niche);
     const products = await generateCuratedWinningProducts(niche);
 
     return new Response(JSON.stringify({ 
       success: true, 
       products: products,
-      message: `Generated 10 real curated winning ${niche} products with AI images`
+      message: `Generated 10 real curated winning ${niche} products with DALL·E 3 images`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -177,18 +178,18 @@ ONLY return valid JSON. No markdown, no commentary.`;
 });
 
 // Generate unique product images using DALL·E 3
-async function generateProductImages(productTitle: string, niche: string, count: number = 6): Promise<string[]> {
+async function generateDALLEImages(productTitle: string, niche: string, count: number = 6): Promise<string[]> {
   if (!openAIApiKey) {
     console.log('⚠️ No OpenAI API key found, using fallback images');
     return generateFallbackImages(niche, count);
   }
 
   const images: string[] = [];
-  const prompts = generateImagePrompts(productTitle, niche, count);
+  const prompts = generateUniqueImagePrompts(productTitle, niche, count);
 
   for (let i = 0; i < Math.min(count, prompts.length); i++) {
     try {
-      console.log(`🎨 Generating AI image ${i + 1}/${count} for ${productTitle}`);
+      console.log(`🎨 Generating DALL·E 3 image ${i + 1}/${count} for ${productTitle}`);
       
       const response = await fetch('https://api.openai.com/v1/images/generations', {
         method: 'POST',
@@ -210,19 +211,27 @@ async function generateProductImages(productTitle: string, niche: string, count:
         const data = await response.json();
         if (data.data && data.data[0] && data.data[0].url) {
           images.push(data.data[0].url);
-          console.log(`✅ Generated AI image ${i + 1} for ${productTitle}`);
+          console.log(`✅ Generated DALL·E 3 image ${i + 1} for ${productTitle}`);
+        } else {
+          console.error(`❌ Invalid DALL·E 3 response structure for image ${i + 1}`);
         }
       } else {
-        console.error(`❌ Failed to generate image ${i + 1}:`, response.status);
+        console.error(`❌ DALL·E 3 API failed for image ${i + 1}:`, response.status, response.statusText);
       }
       
-      // Rate limiting for DALL·E 3
+      // Rate limiting for DALL·E 3 (important!)
       if (i < count - 1) {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
     } catch (error) {
-      console.error(`❌ Error generating image ${i + 1}:`, error);
+      console.error(`❌ Error generating DALL·E 3 image ${i + 1}:`, error);
     }
+  }
+
+  // Only fallback to stock images if DALL·E completely fails
+  if (images.length === 0) {
+    console.log('❌ DALL·E 3 failed completely, using fallback images');
+    return generateFallbackImages(niche, count);
   }
 
   // Fill remaining slots with fallback images if needed
@@ -234,23 +243,25 @@ async function generateProductImages(productTitle: string, niche: string, count:
   return images.slice(0, count);
 }
 
-// Generate diverse image prompts for a product
-function generateImagePrompts(productTitle: string, niche: string, count: number): string[] {
+// Generate diverse, unique image prompts for a product
+function generateUniqueImagePrompts(productTitle: string, niche: string, count: number): string[] {
   const basePrompts = [
-    `Professional product photography of ${productTitle}, clean white background, high quality, commercial photo, ${niche} product`,
-    `${productTitle} in use, lifestyle photography, modern setting, natural lighting, ${niche} environment`,
-    `Close-up detail shot of ${productTitle}, highlighting key features, professional lighting, ${niche} product`,
-    `${productTitle} from different angle, product photography, clean background, commercial quality`,
-    `${productTitle} with accessories and packaging, professional product shot, ${niche} theme`,
-    `${productTitle} demonstration image, showing functionality, clean modern style, ${niche} context`,
-    `Multiple views of ${productTitle}, product catalog style, professional photography, ${niche} category`,
-    `${productTitle} in action, real-world usage, natural environment, ${niche} lifestyle`
+    `Professional product photography of ${productTitle}, clean white background, high quality, commercial photo, ${niche} product, studio lighting`,
+    `${productTitle} in realistic use scenario, lifestyle photography, modern setting, natural lighting, ${niche} environment, person using product`,
+    `Close-up detail shot of ${productTitle}, highlighting key features and materials, professional macro photography, ${niche} product focus`,
+    `${productTitle} from 45-degree angle, product photography, clean background, commercial quality, showing functionality`,
+    `${productTitle} with accessories and packaging, unboxing style, professional product shot, ${niche} theme, premium presentation`,
+    `${productTitle} demonstration image, showing before and after, clean modern style, ${niche} context, results focused`,
+    `Multiple angles of ${productTitle}, product catalog style, professional photography, ${niche} category, grid layout`,
+    `${productTitle} in modern home setting, lifestyle context, natural environment, ${niche} lifestyle, ambient lighting`
   ];
 
-  return basePrompts.slice(0, count);
+  // Shuffle and return unique prompts
+  const shuffled = basePrompts.sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
 }
 
-// Fallback images for when AI generation fails
+// Fallback images for when DALL·E fails
 function generateFallbackImages(niche: string, count: number): string[] {
   const imageCollections = {
     'pet': [
@@ -426,16 +437,16 @@ function validateVariants(variants, basePrice, niche, index) {
 function generateRealisticVariants(basePrice, niche, index) {
   const variantOptions = {
     'pet': [
-      [{ title: 'Small (Up to 15lbs)', price: basePrice }, { title: 'Medium (15-40lbs)', price: basePrice + 10 }],
-      [{ title: 'Black', price: basePrice }, { title: 'Blue', price: basePrice + 5 }]
+      [{ title: 'Small (Up to 15lbs)', price: basePrice }, { title: 'Medium (15-40lbs)', price: Math.min(80, basePrice + 10) }],
+      [{ title: 'Black', price: basePrice }, { title: 'Blue', price: Math.min(80, basePrice + 5) }]
     ],
     'fitness': [
-      [{ title: 'Light Resistance', price: basePrice }, { title: 'Medium Resistance', price: basePrice + 10 }],
-      [{ title: 'Single Band', price: basePrice }, { title: 'Band Set', price: basePrice + 15 }]
+      [{ title: 'Light Resistance', price: basePrice }, { title: 'Medium Resistance', price: Math.min(80, basePrice + 10) }],
+      [{ title: 'Single Band', price: basePrice }, { title: 'Band Set', price: Math.min(80, basePrice + 15) }]
     ],
     'kitchen': [
-      [{ title: 'Compact Size', price: basePrice }, { title: 'Family Size', price: basePrice + 20 }],
-      [{ title: '3-Piece Set', price: basePrice }, { title: '6-Piece Set', price: basePrice + 15 }]
+      [{ title: 'Compact Size', price: basePrice }, { title: 'Family Size', price: Math.min(80, basePrice + 20) }],
+      [{ title: '3-Piece Set', price: basePrice }, { title: '6-Piece Set', price: Math.min(80, basePrice + 15) }]
     ]
   };
   
@@ -513,13 +524,13 @@ async function generateCuratedWinningProducts(niche) {
       {
         title: "Smart Pet Water Fountain with UV Sterilization",
         description: "🔥 **Revolutionary Pet Hydration Solution!**\n\nTransform your pet's drinking experience with this breakthrough smart water fountain featuring advanced UV sterilization technology.\n\n✅ **Key Features:**\n• UV sterilization kills 99.9% of bacteria\n• Triple filtration system\n• Smart sensors detect water levels\n• Whisper-quiet pump under 30dB\n• 2.4L capacity for multiple pets\n• Easy-clean dishwasher safe parts\n\n🎯 **Benefits You'll Love:**\n• Promotes 40% increased water intake\n• Reduces kidney disease risk\n• Prevents bacterial infections\n• Saves money on vet bills\n\n👥 **Perfect For:**\nPet parents who want optimal health for cats, small to medium dogs, and multi-pet households.\n\n📦 **Shipping & Returns:**\nFast worldwide shipping (7-14 days) • Free shipping over $50 • 30-day money-back guarantee • 24/7 customer support",
-        price: 49.99,
+        price: parseFloat((Math.random() * (80 - 15) + 15).toFixed(2)),
         product_type: "Pet Health Tech"
       },
       {
         title: "GPS Pet Tracker Collar with Health Monitoring",
         description: "🔥 **Never Lose Your Pet Again!**\n\nMilitary-grade GPS tracker with real-time health monitoring and 30-day battery life.\n\n✅ **Key Features:**\n• Real-time GPS tracking 10ft accuracy\n• Activity and health monitoring\n• Safe zone alerts and notifications\n• 30-day battery life industry leading\n• Waterproof shock-resistant design\n• Global coverage 150+ countries\n\n🎯 **Benefits You'll Love:**\n• Instant alerts if pet leaves safe zone\n• Monitor exercise and sleep patterns\n• Emergency location sharing\n• Vet-approved health insights\n\n👥 **Perfect For:**\nDog owners, outdoor cats, senior pets, and worried pet parents who want complete peace of mind.\n\n📦 **Shipping & Returns:**\nFast worldwide shipping (7-14 days) • Free shipping over $50 • 30-day money-back guarantee • 24/7 customer support",
-        price: 67.99,
+        price: parseFloat((Math.random() * (80 - 15) + 15).toFixed(2)),
         product_type: "Pet Safety"
       }
     ],
@@ -527,7 +538,7 @@ async function generateCuratedWinningProducts(niche) {
       {
         title: "Smart Fitness Tracker with Heart Rate Monitor",
         description: "🔥 **Track Every Heartbeat, Achieve Every Goal!**\n\nProfessional-grade fitness tracker with 99% accurate heart rate monitoring and 14-day battery life.\n\n✅ **Key Features:**\n• Heart rate monitoring 99% accuracy\n• Water-resistant IP68 design\n• 14-day battery with quick charge\n• Multiple sport modes GPS tracking\n• Sleep and recovery analysis\n• Smartphone notifications\n\n🎯 **Benefits You'll Love:**\n• Track progress achieve goals faster\n• Monitor health metrics 24/7\n• Improve sleep and recovery quality\n• Stay motivated with achievements\n\n👥 **Perfect For:**\nFitness enthusiasts, athletes, health-conscious individuals tracking goals and anyone wanting to improve their wellness journey.\n\n📦 **Shipping & Returns:**\nFast worldwide shipping (7-14 days) • Free shipping over $50 • 30-day money-back guarantee • 24/7 customer support",
-        price: 79.99,
+        price: parseFloat((Math.random() * (80 - 15) + 15).toFixed(2)),
         product_type: "Fitness Tech"
       }
     ],
@@ -535,7 +546,7 @@ async function generateCuratedWinningProducts(niche) {
       {
         title: "Smart Kitchen Scale with Nutritional Tracking",
         description: "🔥 **Precision Meets Nutrition Intelligence!**\n\nProfessional digital scale with smartphone connectivity and comprehensive nutritional database.\n\n✅ **Key Features:**\n• Precision scale accurate to 0.1g\n• Smartphone app nutritional database\n• Tempered glass surface easy clean\n• Multiple unit conversions included\n• 5-year warranty and support\n• Bluetooth connectivity\n\n🎯 **Benefits You'll Love:**\n• Perfect portions for healthier eating\n• Track nutrition goals accurately\n• Consistent baking cooking results\n• Saves time with quick measurements\n\n👥 **Perfect For:**\nHealth-conscious cooks, meal preppers, bakers, and anyone wanting precise nutritional control over their cooking.\n\n📦 **Shipping & Returns:**\nFast worldwide shipping (7-14 days) • Free shipping over $50 • 30-day money-back guarantee • 24/7 customer support",
-        price: 39.99,
+        price: parseFloat((Math.random() * (80 - 15) + 15).toFixed(2)),
         product_type: "Kitchen Tech"
       }
     ]
@@ -543,17 +554,18 @@ async function generateCuratedWinningProducts(niche) {
 
   const selectedProducts = curatedProducts[niche.toLowerCase()] || curatedProducts['fitness'];
   
-  // Generate 10 products with AI images
+  // Generate 10 products with DALL·E 3 images and dynamic pricing
   const products = [];
   for (let i = 0; i < 10; i++) {
     const baseProduct = selectedProducts[i % selectedProducts.length];
-    const aiImages = await generateProductImages(baseProduct.title, niche, 6);
+    const dynamicPrice = parseFloat((Math.random() * (80 - 15) + 15).toFixed(2));
+    const dalleImages = await generateDALLEImages(baseProduct.title, niche, 6);
     
     products.push({
       ...baseProduct,
       title: i < selectedProducts.length ? baseProduct.title : `${baseProduct.title} Pro ${i + 1}`,
-      price: Math.max(15, Math.min(80, baseProduct.price + (i * 3))),
-      images: aiImages,
+      price: dynamicPrice,
+      images: dalleImages,
       gif_urls: [],
       video_url: '',
       detailed_description: generateDetailedDescription(baseProduct, niche),
@@ -562,7 +574,7 @@ async function generateCuratedWinningProducts(niche) {
       target_audience: generateTargetAudience(niche, i),
       shipping_info: 'Fast worldwide shipping, arrives in 7-14 days',
       return_policy: '30-day money-back guarantee',
-      variants: generateRealisticVariants(baseProduct.price, niche, i),
+      variants: generateRealisticVariants(dynamicPrice, niche, i),
       handle: generateHandle(baseProduct.title),
       vendor: 'StoreForge AI',
       tags: generateNicheTags(niche, baseProduct.title, i),
