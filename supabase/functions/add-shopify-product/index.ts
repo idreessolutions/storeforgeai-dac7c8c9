@@ -34,69 +34,151 @@ serve(async (req) => {
     const safeDescription = product.description || 'High-quality winning product designed to enhance your lifestyle.';
     const appliedThemeColor = themeColor || '#1E40AF';
     
-    // Create rich HTML description with theme color styling
+    // Create rich HTML description with theme color styling and proper structure
     const formattedDescription = `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333;">
-        <div style="background: linear-gradient(135deg, ${appliedThemeColor}, ${appliedThemeColor}dd); color: white; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 24px;">
-          <h2 style="margin: 0; font-size: 24px; font-weight: bold;">${safeTitle}</h2>
-          <p style="margin: 8px 0 0 0; font-size: 16px; opacity: 0.95;">🔥 TRENDING NOW - Limited Time Offer!</p>
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 800px;">
+        <!-- Hero Section -->
+        <div style="background: linear-gradient(135deg, ${appliedThemeColor}, ${appliedThemeColor}dd); color: white; padding: 24px; border-radius: 12px; text-align: center; margin-bottom: 32px; box-shadow: 0 4px 16px ${appliedThemeColor}33;">
+          <h1 style="margin: 0; font-size: 28px; font-weight: bold; line-height: 1.2;">${safeTitle}</h1>
+          <p style="margin: 12px 0 0 0; font-size: 18px; opacity: 0.95;">🔥 TRENDING NOW - Limited Time Offer!</p>
         </div>
         
-        <div style="margin-bottom: 24px; padding: 0 8px;">
-          ${safeDescription.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong style="color: ' + appliedThemeColor + ';">$1</strong>')}
+        <!-- Main Description -->
+        <div style="margin-bottom: 32px; padding: 0 16px; font-size: 16px; line-height: 1.7;">
+          ${formatDescriptionContent(safeDescription, appliedThemeColor)}
         </div>
 
-        ${product.features ? `
-        <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid ${appliedThemeColor};">
-          <h3 style="color: ${appliedThemeColor}; font-size: 18px; margin: 0 0 12px 0; display: flex; align-items: center;">
-            <span style="margin-right: 8px;">✨</span> Key Features
-          </h3>
-          <ul style="margin: 0; padding-left: 20px; color: #555;">
-            ${product.features.map(feature => `<li style="margin-bottom: 8px; line-height: 1.5;"><strong>${feature}</strong></li>`).join('')}
-          </ul>
-        </div>
-        ` : ''}
-
-        ${product.benefits ? `
-        <div style="background: linear-gradient(135deg, ${appliedThemeColor}11, ${appliedThemeColor}22); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-          <h3 style="color: ${appliedThemeColor}; font-size: 18px; margin: 0 0 12px 0; display: flex; align-items: center;">
-            <span style="margin-right: 8px;">🎯</span> Benefits You'll Love
-          </h3>
-          <div style="display: grid; gap: 8px;">
-            ${product.benefits.map(benefit => `<div style="display: flex; align-items: center; color: #333;"><span style="color: ${appliedThemeColor}; margin-right: 8px; font-weight: bold;">✓</span> ${benefit}</div>`).join('')}
+        <!-- Features Section -->
+        ${product.features && product.features.length > 0 ? `
+        <div style="background: linear-gradient(135deg, ${appliedThemeColor}08, ${appliedThemeColor}15); padding: 24px; border-radius: 12px; margin-bottom: 24px; border-left: 4px solid ${appliedThemeColor};">
+          <h2 style="color: ${appliedThemeColor}; font-size: 22px; margin: 0 0 16px 0; display: flex; align-items: center; font-weight: bold;">
+            <span style="margin-right: 12px; font-size: 24px;">✨</span> Key Features
+          </h2>
+          <div style="display: grid; gap: 12px;">
+            ${product.features.map(feature => 
+              `<div style="display: flex; align-items: flex-start; gap: 12px;">
+                <span style="color: ${appliedThemeColor}; font-weight: bold; font-size: 18px; margin-top: 2px;">•</span>
+                <span style="color: #333; font-size: 16px; line-height: 1.5;"><strong>${feature}</strong></span>
+              </div>`
+            ).join('')}
           </div>
         </div>
         ` : ''}
 
-        <div style="background-color: #fff; border: 2px solid ${appliedThemeColor}; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-          <h3 style="color: ${appliedThemeColor}; font-size: 18px; margin: 0 0 12px 0; display: flex; align-items: center;">
-            <span style="margin-right: 8px;">👥</span> Perfect For
-          </h3>
-          <p style="margin: 0; color: #555; font-style: italic; font-size: 16px;">${product.target_audience || `${product.category} enthusiasts and professionals`}</p>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
-          <div style="background-color: #f1f5f9; padding: 16px; border-radius: 8px;">
-            <h4 style="color: ${appliedThemeColor}; font-size: 16px; margin: 0 0 8px 0; display: flex; align-items: center;">
-              <span style="margin-right: 8px;">🚚</span> Shipping
-            </h4>
-            <p style="margin: 0; color: #555; font-size: 14px;">${product.shipping_info || 'Fast worldwide shipping'}</p>
-          </div>
-          <div style="background-color: #f1f5f9; padding: 16px; border-radius: 8px;">
-            <h4 style="color: ${appliedThemeColor}; font-size: 16px; margin: 0 0 8px 0; display: flex; align-items: center;">
-              <span style="margin-right: 8px;">🔄</span> Returns
-            </h4>
-            <p style="margin: 0; color: #555; font-size: 14px;">${product.return_policy || '30-day money-back guarantee'}</p>
+        <!-- Benefits Section -->
+        ${product.benefits && product.benefits.length > 0 ? `
+        <div style="background: linear-gradient(135deg, ${appliedThemeColor}12, ${appliedThemeColor}25); padding: 24px; border-radius: 12px; margin-bottom: 24px;">
+          <h2 style="color: ${appliedThemeColor}; font-size: 22px; margin: 0 0 16px 0; display: flex; align-items: center; font-weight: bold;">
+            <span style="margin-right: 12px; font-size: 24px;">🎯</span> Benefits You'll Love
+          </h2>
+          <div style="display: grid; gap: 10px;">
+            ${product.benefits.map(benefit => 
+              `<div style="display: flex; align-items: center; gap: 12px;">
+                <span style="color: ${appliedThemeColor}; margin-right: 8px; font-weight: bold; font-size: 16px;">✓</span>
+                <span style="color: #333; font-size: 16px;">${benefit}</span>
+              </div>`
+            ).join('')}
           </div>
         </div>
+        ` : ''}
 
-        <div style="background: linear-gradient(135deg, ${appliedThemeColor}, ${appliedThemeColor}dd); color: white; padding: 24px; border-radius: 12px; text-align: center; box-shadow: 0 4px 12px ${appliedThemeColor}33;">
-          <h3 style="margin: 0 0 8px 0; font-size: 20px; font-weight: bold;">🎉 Special Launch Offer!</h3>
-          <p style="margin: 0 0 12px 0; font-size: 16px; opacity: 0.95;">Limited time: FREE shipping + satisfaction guarantee</p>
-          <p style="margin: 0; font-size: 14px; opacity: 0.9;">⏰ This deal won't last long - order now!</p>
+        <!-- Target Audience Section -->
+        <div style="background: #ffffff; border: 2px solid ${appliedThemeColor}; padding: 24px; border-radius: 12px; margin-bottom: 24px;">
+          <h2 style="color: ${appliedThemeColor}; font-size: 22px; margin: 0 0 12px 0; display: flex; align-items: center; font-weight: bold;">
+            <span style="margin-right: 12px; font-size: 24px;">👥</span> Perfect For
+          </h2>
+          <p style="margin: 0; color: #555; font-style: italic; font-size: 17px; line-height: 1.6;">${product.target_audience || `${product.category} enthusiasts and professionals seeking premium quality solutions`}</p>
+        </div>
+
+        <!-- Shipping & Returns -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 32px;">
+          <div style="background: #f8fafc; padding: 20px; border-radius: 10px; border-top: 3px solid ${appliedThemeColor};">
+            <h3 style="color: ${appliedThemeColor}; font-size: 18px; margin: 0 0 10px 0; display: flex; align-items: center; font-weight: bold;">
+              <span style="margin-right: 10px; font-size: 20px;">🚚</span> Shipping
+            </h3>
+            <p style="margin: 0; color: #555; font-size: 15px; line-height: 1.5;">${product.shipping_info || 'Fast worldwide shipping, arrives in 7-14 days'}</p>
+          </div>
+          <div style="background: #f8fafc; padding: 20px; border-radius: 10px; border-top: 3px solid ${appliedThemeColor};">
+            <h3 style="color: ${appliedThemeColor}; font-size: 18px; margin: 0 0 10px 0; display: flex; align-items: center; font-weight: bold;">
+              <span style="margin-right: 10px; font-size: 20px;">🔄</span> Returns
+            </h3>
+            <p style="margin: 0; color: #555; font-size: 15px; line-height: 1.5;">${product.return_policy || '30-day money-back guarantee'}</p>
+          </div>
+        </div>
+
+        <!-- Call to Action -->
+        <div style="background: linear-gradient(135deg, ${appliedThemeColor}, ${appliedThemeColor}dd); color: white; padding: 32px; border-radius: 16px; text-align: center; box-shadow: 0 8px 24px ${appliedThemeColor}40; margin-bottom: 24px;">
+          <h2 style="margin: 0 0 12px 0; font-size: 24px; font-weight: bold;">🎉 Special Launch Offer!</h2>
+          <p style="margin: 0 0 16px 0; font-size: 18px; opacity: 0.95;">Limited time: FREE shipping + satisfaction guarantee</p>
+          <p style="margin: 0; font-size: 16px; opacity: 0.9;">⏰ This deal won't last long - order now and join thousands of satisfied customers!</p>
+        </div>
+
+        <!-- Trust Badges -->
+        <div style="display: flex; justify-content: center; gap: 24px; padding: 20px; background: #f9fafb; border-radius: 12px; margin-top: 24px;">
+          <div style="text-align: center;">
+            <div style="font-size: 24px; margin-bottom: 4px;">🛡️</div>
+            <div style="font-size: 12px; color: #666; font-weight: 500;">SECURE PAYMENT</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 24px; margin-bottom: 4px;">🚚</div>
+            <div style="font-size: 12px; color: #666; font-weight: 500;">FAST SHIPPING</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 24px; margin-bottom: 4px;">💯</div>
+            <div style="font-size: 12px; color: #666; font-weight: 500;">SATISFACTION GUARANTEED</div>
+          </div>
         </div>
       </div>
     `;
+
+    // Validate and process variants with proper pricing
+    const processedVariants = (product.variants || []).map((variant, index) => {
+      const validPrice = Math.max(15, Math.min(80, parseFloat(variant.price) || product.price || 29.99));
+      const comparePrice = validPrice < 60 ? (validPrice * 1.25).toFixed(2) : null;
+      
+      return {
+        title: variant.title || 'Standard',
+        price: validPrice.toFixed(2),
+        compare_at_price: comparePrice,
+        sku: variant.sku || generateSKU(product.product_type || 'PRD', index),
+        inventory_management: null,
+        inventory_policy: 'continue',
+        inventory_quantity: 999,
+        weight: 0.5,
+        weight_unit: 'lb',
+        requires_shipping: true,
+        taxable: true,
+        fulfillment_service: 'manual',
+        option1: variant.title || 'Standard'
+      };
+    });
+
+    // Ensure we have at least one variant
+    if (processedVariants.length === 0) {
+      const defaultPrice = Math.max(15, Math.min(80, product.price || 29.99));
+      processedVariants.push({
+        title: 'Standard',
+        price: defaultPrice.toFixed(2),
+        compare_at_price: defaultPrice < 60 ? (defaultPrice * 1.25).toFixed(2) : null,
+        sku: generateSKU(product.product_type || 'PRD', 0),
+        inventory_management: null,
+        inventory_policy: 'continue',
+        inventory_quantity: 999,
+        weight: 0.5,
+        weight_unit: 'lb',
+        requires_shipping: true,
+        taxable: true,
+        fulfillment_service: 'manual',
+        option1: 'Standard'
+      });
+    }
+
+    // Process images with proper validation
+    const processedImages = (product.images || []).slice(0, 8).map((url, index) => ({
+      src: url,
+      alt: `${safeTitle} - Image ${index + 1}`,
+      position: index + 1
+    }));
 
     const productPayload = {
       product: {
@@ -107,28 +189,11 @@ serve(async (req) => {
         handle: product.handle || generateHandle(safeTitle),
         status: 'active',
         published: true,
-        tags: product.tags || 'winning product, trending, bestseller',
-        images: (product.images || []).map((url, index) => ({
-          src: url,
-          alt: `${safeTitle} - Image ${index + 1}`,
-          position: index + 1
-        })),
-        variants: (product.variants || []).map((variant, index) => ({
-          title: variant.title || 'Standard',
-          price: typeof variant.price === 'number' ? variant.price.toFixed(2) : parseFloat(String(variant.price || product.price || 29.99)).toFixed(2),
-          sku: variant.sku || `${product.product_type?.substring(0,3).toUpperCase() || 'PRD'}-${String(index + 1).padStart(3, '0')}`,
-          inventory_management: null,
-          inventory_policy: 'continue',
-          inventory_quantity: 999,
-          weight: 0.5,
-          weight_unit: 'lb',
-          requires_shipping: true,
-          taxable: true,
-          compare_at_price: variant.price ? (variant.price * 1.3).toFixed(2) : null,
-          fulfillment_service: 'manual'
-        })),
-        seo_title: safeTitle,
-        seo_description: safeDescription ? safeDescription.substring(0, 160).replace(/[^\w\s]/gi, '') : `Buy ${safeTitle} - Premium quality with fast shipping.`,
+        tags: product.tags || `winning-product, trending, bestseller, ${product.category?.toLowerCase() || 'general'}`,
+        images: processedImages,
+        variants: processedVariants,
+        seo_title: safeTitle.length > 60 ? safeTitle.substring(0, 60) : safeTitle,
+        seo_description: generateSEODescription(safeDescription, safeTitle),
         metafields: [
           {
             namespace: 'custom',
@@ -150,8 +215,14 @@ serve(async (req) => {
           },
           {
             namespace: 'custom',
-            key: 'product_category',
+            key: 'niche_category',
             value: product.category || 'general',
+            type: 'single_line_text_field'
+          },
+          {
+            namespace: 'custom',
+            key: 'target_audience',
+            value: product.target_audience || '',
             type: 'single_line_text_field'
           }
         ]
@@ -159,34 +230,25 @@ serve(async (req) => {
     };
 
     // Add options for multiple variants
-    if (productPayload.product.variants.length > 1) {
+    if (processedVariants.length > 1) {
       productPayload.product.options = [
         {
-          name: 'Type',
+          name: 'Variant',
           position: 1,
-          values: productPayload.product.variants.map(variant => variant.title)
+          values: processedVariants.map(variant => variant.title)
         }
       ];
-      
-      // Add option1 field for multiple variants
-      productPayload.product.variants.forEach((variant, index) => {
-        variant.option1 = variant.title;
-      });
     }
 
-    console.log('Real winning product payload:', JSON.stringify({
+    console.log('Enhanced product payload:', JSON.stringify({
       title: productPayload.product.title,
       handle: productPayload.product.handle,
       product_type: productPayload.product.product_type,
       vendor: productPayload.product.vendor,
       theme_color: appliedThemeColor,
-      variants: productPayload.product.variants.map(v => ({ title: v.title, price: v.price, sku: v.sku })),
-      images: {
-        count: productPayload.product.images.length,
-        samples: productPayload.product.images.slice(0, 2).map(img => ({ src: img.src, alt: img.alt }))
-      },
-      features_count: product.features?.length || 0,
-      benefits_count: product.benefits?.length || 0
+      variants_count: processedVariants.length,
+      images_count: processedImages.length,
+      price_range: `$${Math.min(...processedVariants.map(v => parseFloat(v.price)))} - $${Math.max(...processedVariants.map(v => parseFloat(v.price)))}`
     }, null, 2));
 
     const response = await fetch(apiUrl, {
@@ -242,11 +304,15 @@ serve(async (req) => {
     console.log('✅ Real winning product uploaded successfully:', {
       id: responseData.product?.id,
       title: responseData.product?.title,
+      handle: responseData.product?.handle,
       product_type: responseData.product?.product_type,
       vendor: responseData.product?.vendor,
       theme_color: appliedThemeColor,
-      images: responseData.product?.images?.length || 0,
-      variants: responseData.product?.variants?.length || 0
+      images_count: responseData.product?.images?.length || 0,
+      variants_count: responseData.product?.variants?.length || 0,
+      price_range: responseData.product?.variants ? 
+        `$${Math.min(...responseData.product.variants.map(v => parseFloat(v.price)))} - $${Math.max(...responseData.product.variants.map(v => parseFloat(v.price)))}` : 
+        'N/A'
     });
 
     return new Response(JSON.stringify({ 
@@ -267,6 +333,29 @@ serve(async (req) => {
     });
   }
 });
+
+function formatDescriptionContent(description, themeColor) {
+  return description
+    .replace(/\n/g, '<br>')
+    .replace(/\*\*(.*?)\*\*/g, `<strong style="color: ${themeColor};">$1</strong>`)
+    .replace(/🔥/g, '<span style="color: #FF6B35; font-weight: bold;">🔥</span>')
+    .replace(/✅/g, `<span style="color: ${themeColor};">✅</span>`)
+    .replace(/🎯/g, `<span style="color: ${themeColor};">🎯</span>`)
+    .replace(/👥/g, `<span style="color: ${themeColor};">👥</span>`)
+    .replace(/📦/g, `<span style="color: ${themeColor};">📦</span>`);
+}
+
+function generateSEODescription(description, title) {
+  const cleanDescription = description.replace(/[^\w\s]/gi, ' ').replace(/\s+/g, ' ').trim();
+  const excerpt = cleanDescription.substring(0, 140);
+  return `${excerpt}... Shop ${title} with fast shipping and satisfaction guarantee.`;
+}
+
+function generateSKU(productType, index) {
+  const prefix = productType ? productType.substring(0, 3).toUpperCase() : 'PRD';
+  const timestamp = Date.now().toString().slice(-6);
+  return `${prefix}-${timestamp}-${String(index + 1).padStart(2, '0')}`;
+}
 
 function generateHandle(title) {
   return title
