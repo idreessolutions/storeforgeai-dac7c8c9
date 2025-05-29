@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -28,10 +27,18 @@ serve(async (req) => {
     const timestamp = Date.now();
     const uniqueHandle = generateUniqueHandle(product.title, timestamp);
 
-    // Ensure proper variant structure to avoid "Default Title" conflicts
-    const processedVariants = product.variants && product.variants.length > 0 
-      ? product.variants.map((variant, index) => ({
-          title: variant.title || `Option ${index + 1}`,
+    // CRITICAL FIX: Ensure proper variant structure to avoid "Default Title" conflicts
+    let processedVariants = [];
+    
+    if (product.variants && product.variants.length > 0) {
+      // Process existing variants but ensure they don't conflict with "Default Title"
+      processedVariants = product.variants.map((variant, index) => {
+        const variantTitle = variant.title && variant.title !== 'Default Title' 
+          ? variant.title 
+          : `Option ${index + 1}`;
+        
+        return {
+          title: variantTitle,
           price: typeof variant.price === 'number' ? variant.price.toFixed(2) : parseFloat(String(variant.price)).toFixed(2),
           sku: `${uniqueHandle.toUpperCase()}-${String(index + 1).padStart(2, '0')}-${timestamp}`,
           inventory_management: null,
@@ -42,22 +49,24 @@ serve(async (req) => {
           requires_shipping: true,
           taxable: true,
           compare_at_price: null
-        }))
-      : [
-          {
-            title: 'Standard',
-            price: typeof product.price === 'number' ? product.price.toFixed(2) : parseFloat(String(product.price)).toFixed(2),
-            sku: `${uniqueHandle.toUpperCase()}-01-${timestamp}`,
-            inventory_management: null,
-            inventory_policy: 'continue',
-            inventory_quantity: 999,
-            weight: 0.5,
-            weight_unit: 'lb',
-            requires_shipping: true,
-            taxable: true,
-            compare_at_price: null
-          }
-        ];
+        };
+      });
+    } else {
+      // Create a single variant with a clear, non-conflicting title
+      processedVariants = [{
+        title: 'Standard Version',
+        price: typeof product.price === 'number' ? product.price.toFixed(2) : parseFloat(String(product.price)).toFixed(2),
+        sku: `${uniqueHandle.toUpperCase()}-01-${timestamp}`,
+        inventory_management: null,
+        inventory_policy: 'continue',
+        inventory_quantity: 999,
+        weight: 0.5,
+        weight_unit: 'lb',
+        requires_shipping: true,
+        taxable: true,
+        compare_at_price: null
+      }];
+    }
 
     // Prepare product payload for Shopify
     const productPayload = {
@@ -81,6 +90,7 @@ serve(async (req) => {
       vendor: productPayload.product.vendor,
       theme_color: themeColor,
       variants_count: productPayload.product.variants.length,
+      variant_titles: productPayload.product.variants.map(v => v.title),
       images_count: product.images?.length || 0,
       price_range: `$${Math.min(...productPayload.product.variants.map(v => parseFloat(v.price)))} - $${Math.max(...productPayload.product.variants.map(v => parseFloat(v.price)))}`
     });
@@ -112,6 +122,12 @@ serve(async (req) => {
             console.log('Handle conflict detected, retrying with new handle...');
             const retryHandle = `${uniqueHandle}-retry-${Math.random().toString(36).substring(2, 8)}`;
             productPayload.product.handle = retryHandle;
+            
+            // Update SKUs for retry
+            productPayload.product.variants = productPayload.product.variants.map((variant, index) => ({
+              ...variant,
+              sku: `${retryHandle.toUpperCase()}-${String(index + 1).padStart(2, '0')}-${timestamp}`
+            }));
             
             const retryResponse = await fetch(apiUrl, {
               method: 'POST',
