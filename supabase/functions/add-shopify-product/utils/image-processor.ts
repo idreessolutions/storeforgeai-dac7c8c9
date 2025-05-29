@@ -8,7 +8,18 @@ export class ImageProcessor {
         return false;
       }
       
-      const response = await fetch(imageUrl, { method: 'HEAD' });
+      // Quick validation for common image hosting domains
+      const validDomains = ['images.unsplash.com', 'oaidalleapiprodscus.blob.core.windows.net', 'cdn.shopify.com'];
+      const url = new URL(imageUrl);
+      if (validDomains.some(domain => url.hostname.includes(domain))) {
+        return true;
+      }
+      
+      // For other domains, do a quick HEAD request
+      const response = await fetch(imageUrl, { 
+        method: 'HEAD',
+        signal: AbortSignal.timeout(5000) // 5 second timeout
+      });
       return response.ok;
     } catch {
       return false;
@@ -29,11 +40,11 @@ export class ImageProcessor {
       const imageUrl = images[i];
       
       try {
-        console.log(`📷 Uploading image ${i + 1}/${images.length}: ${imageUrl}`);
+        console.log(`📷 Uploading image ${i + 1}/${images.length}: ${imageUrl.substring(0, 50)}...`);
         
         const isValid = await this.verifyImageUrl(imageUrl);
         if (!isValid) {
-          console.error(`❌ Invalid image URL at index ${i}:`, imageUrl);
+          console.log(`⚠️ Skipping invalid image URL at index ${i}`);
           continue;
         }
         
@@ -47,9 +58,9 @@ export class ImageProcessor {
         
         if (result) {
           uploadedCount++;
-          console.log(`✅ Successfully uploaded image ${i + 1} to Shopify:`, result.image.id);
+          console.log(`✅ Successfully uploaded image ${i + 1} to Shopify`);
         } else {
-          console.error(`❌ Failed to upload image ${i + 1}`);
+          console.log(`⚠️ Failed to upload image ${i + 1}, continuing...`);
         }
         
         // Rate limiting between uploads
@@ -57,10 +68,11 @@ export class ImageProcessor {
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
       } catch (error) {
-        console.error(`❌ Error uploading image ${i + 1}:`, error);
+        console.log(`⚠️ Error uploading image ${i + 1}, continuing:`, error.message);
       }
     }
     
+    console.log(`📸 Upload complete: ${uploadedCount}/${images.length} images successfully uploaded`);
     return uploadedCount;
   }
 }
