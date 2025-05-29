@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { ShopifyAPIClient } from "./utils/shopify-api.ts";
@@ -20,8 +19,8 @@ serve(async (req) => {
     const { shopifyUrl, accessToken, themeColor, product } = await req.json();
     
     console.log('✅ Uploading UNIQUE Winning Product to Shopify:', product.title);
-    console.log('🖼️ Images to upload:', product.images?.length || 0);
     console.log('🎨 Applying theme color:', themeColor);
+    console.log('🎯 Product features:', product.features?.slice(0, 3) || ['Premium quality', 'Durable design', 'Easy to use']);
     
     // Validate required parameters
     if (!shopifyUrl || !accessToken || !product) {
@@ -66,7 +65,7 @@ serve(async (req) => {
       product_type: productPayload.product.product_type,
       vendor: productPayload.product.vendor,
       theme_color: themeColor,
-      images_count: product.images?.length || 0,
+      features: product.features?.slice(0, 3) || [],
       price: productPrice
     });
 
@@ -76,7 +75,7 @@ serve(async (req) => {
 
     console.log('✅ Product created successfully:', createdProduct.id);
 
-    // Process product enhancements with prioritized image uploads
+    // Process product enhancements with DALL·E 3 image generation
     return await handleProductEnhancements(createdProduct, product, shopifyClient, imageProcessor, variantManager, themeColor, productPrice);
 
   } catch (error) {
@@ -100,43 +99,23 @@ async function handleProductEnhancements(
   themeColor: string,
   productPrice: string
 ) {
-  // STEP 1: PRIORITY - Upload images to Shopify IMMEDIATELY
+  // STEP 1: PRIORITY - Generate and upload DALL·E 3 images
   let uploadedImageCount = 0;
   let imageIds: string[] = [];
   
-  if (product.images && product.images.length > 0) {
-    console.log(`🚀 PRIORITY: Uploading ${product.images.length} images to Shopify...`);
-    
-    // Ensure images are passed as string array
-    let imageUrls: string[] = [];
-    
-    for (let i = 0; i < product.images.length; i++) {
-      const img = product.images[i];
-      if (typeof img === 'string') {
-        imageUrls.push(img);
-      } else if (typeof img === 'object' && img && 'src' in img && typeof img.src === 'string') {
-        imageUrls.push(img.src);
-      } else {
-        console.log(`⚠️ Skipping invalid image at index ${i}:`, img);
-      }
-    }
-    
-    console.log(`📸 Processing ${imageUrls.length} valid image URLs out of ${product.images.length} total`);
-    
-    const uploadResult = await imageProcessor.uploadProductImages(
-      createdProduct.id,
-      imageUrls,
-      product.title,
-      product.variants
-    );
-    
-    uploadedImageCount = uploadResult.uploadedCount;
-    imageIds = uploadResult.imageIds;
-    
-    console.log(`📸 Image upload result: ${uploadedImageCount}/${imageUrls.length} images uploaded`);
-  } else {
-    console.log('⚠️ No images provided for this product');
-  }
+  console.log(`🚀 PRIORITY: Generating DALL·E 3 images for ${product.title}...`);
+  
+  const uploadResult = await imageProcessor.uploadProductImages(
+    createdProduct.id,
+    product.title,
+    product.features || ['Premium quality', 'Durable design', 'Easy to use'],
+    product.category || 'General'
+  );
+  
+  uploadedImageCount = uploadResult.uploadedCount;
+  imageIds = uploadResult.imageIds;
+  
+  console.log(`📸 Image upload result: ${uploadedImageCount} images uploaded`);
 
   // STEP 2: Update the default variant with proper pricing
   let variantUpdateSuccess = false;
@@ -164,7 +143,7 @@ async function handleProductEnhancements(
     }
   }
 
-  // STEP 4: Assign images to variants
+  // STEP 4: Assign images to variants (at least 1 image per variant)
   let imageAssignmentCount = 0;
   if (imageIds.length > 0 && createdVariants.length > 0) {
     console.log(`🎯 Assigning ${imageIds.length} images to ${createdVariants.length} variants...`);

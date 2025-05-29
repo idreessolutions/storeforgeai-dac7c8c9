@@ -58,7 +58,7 @@ export class ShopifyAPIClient {
   }
 
   async uploadImage(productId: string, imageData: ShopifyImage) {
-    const apiUrl = `${this.shopifyUrl}/admin/api/2024-10/products/${productId}/images.json`;
+    const apiUrl = `${this.shopifyUrl}/admin/api/2023-04/products/${productId}/images.json`;
     
     console.log(`📸 Uploading image to Shopify product ${productId}`);
     console.log(`🖼️ Image data:`, { 
@@ -103,7 +103,7 @@ export class ShopifyAPIClient {
   }
 
   async assignImageToVariant(imageId: string, variantId: string): Promise<boolean> {
-    const apiUrl = `${this.shopifyUrl}/admin/api/2024-10/products/images/${imageId}.json`;
+    const apiUrl = `${this.shopifyUrl}/admin/api/2023-04/products/images/${imageId}.json`;
     
     try {
       console.log(`🔗 Assigning image ${imageId} to variant ${variantId}...`);
