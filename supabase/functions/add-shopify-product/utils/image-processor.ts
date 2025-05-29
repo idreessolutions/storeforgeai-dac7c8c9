@@ -14,7 +14,8 @@ export class ImageProcessor {
         'images.unsplash.com', 
         'oaidalleapiprodscus.blob.core.windows.net',
         'cdn.openai.com',
-        'cdn.shopify.com'
+        'cdn.shopify.com',
+        'dalle-3.openai.com'
       ];
       
       const url = new URL(imageUrl);
@@ -47,18 +48,25 @@ export class ImageProcessor {
     }
 
     console.log(`🖼️ Starting upload of ${images.length} images to Shopify product ${productId}...`);
+    console.log(`🔍 Sample image URL: ${images[0]?.substring(0, 100)}...`);
     
     for (let i = 0; i < images.length; i++) {
       const imageUrl = images[i];
       
       try {
         console.log(`📷 Processing image ${i + 1}/${images.length}`);
-        console.log(`🔗 Image URL: ${imageUrl}`);
+        console.log(`🔗 Image URL: ${typeof imageUrl === 'string' ? imageUrl.substring(0, 100) + '...' : 'Invalid URL type: ' + typeof imageUrl}`);
+        
+        // Ensure imageUrl is a string
+        if (typeof imageUrl !== 'string') {
+          console.log(`⚠️ Skipping invalid image at index ${i}: Expected string, got ${typeof imageUrl}`);
+          continue;
+        }
         
         // Verify the image URL is valid
         const isValid = await this.verifyImageUrl(imageUrl);
         if (!isValid) {
-          console.log(`⚠️ Skipping invalid image URL at index ${i}: ${imageUrl}`);
+          console.log(`⚠️ Skipping invalid image URL at index ${i}: ${imageUrl.substring(0, 100)}...`);
           continue;
         }
         
@@ -87,11 +95,32 @@ export class ImageProcessor {
         // Rate limiting between uploads (Shopify has strict limits)
         if (i < images.length - 1) {
           console.log(`⏱️ Rate limiting delay before next image...`);
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Increased delay
         }
       } catch (error) {
         console.log(`❌ Error uploading image ${i + 1}:`, error.message);
         console.log(`🔍 Error details:`, error);
+        
+        // Retry once on error
+        try {
+          console.log(`🔄 Retrying upload for image ${i + 1}...`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          const retryResult = await this.shopifyClient.uploadImage(productId, {
+            src: imageUrl,
+            alt: `${productTitle} - Image ${i + 1}`,
+            position: i + 1
+          });
+          
+          if (retryResult && retryResult.image) {
+            uploadedCount++;
+            console.log(`✅ Retry successful for image ${i + 1} (ID: ${retryResult.image.id})`);
+          } else {
+            console.log(`❌ Retry failed for image ${i + 1}`);
+          }
+        } catch (retryError) {
+          console.log(`❌ Retry also failed for image ${i + 1}:`, retryError.message);
+        }
       }
     }
     

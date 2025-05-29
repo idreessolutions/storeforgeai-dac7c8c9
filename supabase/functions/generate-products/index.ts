@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -52,21 +51,21 @@ async function generateHighQualityImages(productTitle: string, niche: string): P
   try {
     console.log(`🎨 Generating 6-8 DALL·E 3 images for: ${productTitle}`);
     
-    // Generate 6-8 different styled images
+    // Generate 6-8 different styled images with professional prompts
     const imagePrompts = [
-      `A professional product photo of ${productTitle}, isolated, clean white background, 1024x1024, product-focused, soft lighting`,
-      `${productTitle} in use, lifestyle photo, natural setting, clean background, 1024x1024, high quality`,
-      `Close-up detail shot of ${productTitle}, premium quality, white background, 1024x1024, professional photography`,
-      `${productTitle} with accessories, complete set, clean background, 1024x1024, ecommerce style`,
-      `Multiple angles of ${productTitle}, product showcase, white background, 1024x1024, professional`,
-      `${productTitle} in packaging, unboxing view, clean background, 1024x1024, retail quality`,
-      `${productTitle} features highlighted, technical view, white background, 1024x1024, detailed shot`
+      `A professional product photo of ${productTitle}, 1024x1024, clean white background, studio lighting, sharp detail`,
+      `${productTitle} lifestyle photo, in use, natural lighting, clean background, 1024x1024, high quality`,
+      `Close-up detail shot of ${productTitle}, 1024x1024, clean white background, studio lighting, sharp detail`,
+      `${productTitle} with packaging, unboxing view, 1024x1024, clean white background, studio lighting`,
+      `Multiple angles of ${productTitle}, product showcase, 1024x1024, clean white background, studio lighting`,
+      `${productTitle} features highlighted, technical view, 1024x1024, clean white background, studio lighting`,
+      `${productTitle} premium quality shot, 1024x1024, clean white background, studio lighting, sharp detail`
     ];
 
-    // Generate 6-7 images (leave room for potential failures)
+    // Generate images with proper error handling
     for (let i = 0; i < Math.min(7, imagePrompts.length); i++) {
       try {
-        console.log(`🖼️ Generating image ${i + 1}/7: ${imagePrompts[i].substring(0, 50)}...`);
+        console.log(`🖼️ Generating DALL·E 3 image ${i + 1}/7: ${imagePrompts[i].substring(0, 50)}...`);
         
         const response = await fetch('https://api.openai.com/v1/images/generations', {
           method: 'POST',
@@ -89,16 +88,19 @@ async function generateHighQualityImages(productTitle: string, niche: string): P
           if (data.data && data.data[0] && data.data[0].url) {
             const imageUrl = data.data[0].url;
             images.push(imageUrl);
-            console.log(`✅ DALL·E 3 image ${i + 1} generated successfully`);
+            console.log(`✅ DALL·E 3 image ${i + 1} generated successfully: ${imageUrl.substring(0, 50)}...`);
+          } else {
+            console.log(`⚠️ DALL·E 3 image ${i + 1} failed - no URL in response`);
           }
         } else {
-          console.log(`⚠️ DALL·E 3 image ${i + 1} failed, continuing...`);
+          const errorText = await response.text();
+          console.log(`⚠️ DALL·E 3 image ${i + 1} failed: ${response.status} - ${errorText}`);
         }
         
-        // Small delay between requests to avoid rate limits
+        // Delay between requests to avoid rate limits
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
-        console.log(`⚠️ Error generating image ${i + 1}:`, error.message);
+        console.log(`⚠️ Error generating DALL·E 3 image ${i + 1}:`, error.message);
       }
     }
   } catch (error) {
@@ -112,8 +114,8 @@ async function generateHighQualityImages(productTitle: string, niche: string): P
     images.push(...fallbackImages);
   }
 
-  console.log(`📸 Total images generated: ${images.length}`);
-  return images.slice(0, 7); // Return exactly 7 images
+  console.log(`📸 Total images generated: ${images.length} - Sample: ${images[0]?.substring(0, 50)}...`);
+  return images.slice(0, 7); // Return exactly 7 images as strings
 }
 
 // Reliable fallback images that are guaranteed to work
@@ -238,7 +240,7 @@ async function generateCuratedUniqueProducts(niche: string) {
     const title = titles[i];
     const basePrice = parseFloat((Math.random() * (80 - 15) + 15).toFixed(2));
     
-    // Generate high-quality images using DALL·E 3
+    // Generate high-quality images using DALL·E 3 - ENSURE STRINGS ONLY
     const images = await generateHighQualityImages(title, niche);
     
     const product = {
@@ -246,7 +248,7 @@ async function generateCuratedUniqueProducts(niche: string) {
       description: generateProductDescription(title, niche),
       detailed_description: generateProductDescription(title, niche),
       price: basePrice,
-      images: images,
+      images: images, // This is now guaranteed to be an array of strings
       gif_urls: [],
       video_url: '',
       features: generateFeatures(niche, i),

@@ -60,7 +60,11 @@ export class ShopifyAPIClient {
     const apiUrl = `${this.shopifyUrl}/admin/api/2024-10/products/${productId}/images.json`;
     
     console.log(`📸 Uploading image to Shopify product ${productId}`);
-    console.log(`🖼️ Image data:`, { src: imageData.src.substring(0, 100) + '...', alt: imageData.alt, position: imageData.position });
+    console.log(`🖼️ Image data:`, { 
+      src: imageData.src.substring(0, 100) + '...', 
+      alt: imageData.alt, 
+      position: imageData.position 
+    });
     
     try {
       const response = await fetch(apiUrl, {
@@ -75,11 +79,21 @@ export class ShopifyAPIClient {
       if (!response.ok) {
         const errorText = await response.text();
         console.log(`❌ Image upload failed: ${response.status} - ${errorText}`);
+        
+        // Try to parse error details
+        try {
+          const errorData = JSON.parse(errorText);
+          console.log(`🔍 Shopify error details:`, errorData);
+        } catch (parseError) {
+          console.log(`🔍 Raw error response: ${errorText}`);
+        }
+        
         return null;
       }
 
       const result = await response.json();
       console.log(`✅ Image uploaded successfully: ${result.image?.id || 'Unknown ID'}`);
+      console.log(`🔗 Uploaded image URL: ${result.image?.src?.substring(0, 100)}...`);
       return result;
     } catch (error) {
       console.log(`❌ Image upload error:`, error.message);
