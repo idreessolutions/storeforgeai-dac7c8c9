@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -17,10 +18,10 @@ serve(async (req) => {
     const { niche } = await req.json();
     console.log('Generate products request:', { niche });
 
-    // Use OpenAI API for better product generation
+    // Use OpenAI API for better product generation if available
     if (openAIApiKey) {
       try {
-        console.log('Using OpenAI API for high-quality winning products...');
+        console.log('Using OpenAI API for premium winning products...');
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -44,7 +45,7 @@ CRITICAL REQUIREMENTS:
 
 PRODUCT STRUCTURE (JSON):
 {
-  "title": "🔥 Irresistible Product Name (3-5 words, benefit-focused)",
+  "title": "🔥 Irresistible Product Name (benefit-focused)",
   "description": "⚡ TRANSFORM YOUR LIFE TODAY! 300-400 word benefit-driven description with emotional appeal, urgency, social proof, and clear value proposition. Use emojis, power words like REVOLUTIONARY, GAME-CHANGING, ESSENTIAL. Focus on problems solved and customer outcomes.",
   "price": 39.99,
   "images": ["https://images.unsplash.com/photo-ID?w=800&h=800&fit=crop&auto=format", "...8-10 UNIQUE images"],
@@ -211,6 +212,41 @@ function enhanceToWinningProduct(product, niche, index) {
 function getUniqueProductImages(niche, index) {
   // Each product gets completely different images - no repeating
   const imageCollections = {
+    'gaming': [
+      // Product 0 - Gaming Chair
+      [
+        'https://images.unsplash.com/photo-1664302086456-6c0d5c0c2f84?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1541508090715-fcb5e0b8ad6b?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1593305841991-05c297ba4575?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1660766877359-4e3ab7fb2a29?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1612198188060-c7c2a3b66eae?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1616400619175-5beda3a17896?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1504333638930-c8787321eee0?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1623479322729-28b25c16b011?w=800&h=800&fit=crop&auto=format'
+      ],
+      // Product 1 - Gaming Mouse
+      [
+        'https://images.unsplash.com/photo-1527814050087-3793815479db?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1625842268584-8f3296236761?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1567486373493-2cc52b5e0cd1?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1559568811-bd5c207c8e8c?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1526492485709-6ff1df28c6b4?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1610735099020-3e5b1b7bd5c8?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=800&h=800&fit=crop&auto=format'
+      ],
+      // Product 2 - RGB Lighting
+      [
+        'https://images.unsplash.com/photo-1546074177-ffdda98d214f?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1625906802598-d7ad926bcbf9?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1626199172885-b3cb82f0a1b4?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1615796153287-98eaa14cdd86?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1616574236744-14d77fe2523d?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1632834340850-7dd5c8b69e5d?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1593640495253-23196b27a87f?w=800&h=800&fit=crop&auto=format'
+      ]
+    ],
     'pet': [
       // Product 0 - Smart Pet Feeder
       [
@@ -238,12 +274,12 @@ function getUniqueProductImages(niche, index) {
       [
         'https://images.unsplash.com/photo-1574144611937-0df059b5ef3e?w=800&h=800&fit=crop&auto=format',
         'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=800&h=800&fit=crop&auto=format',
-        'https://images.unsplash.com/photo-1574144611937-0df059b5ef3e?w=800&h=800&fit=crop&auto=format',
         'https://images.unsplash.com/photo-1592194996308-7b43878e84a6?w=800&h=800&fit=crop&auto=format',
         'https://images.unsplash.com/photo-1535930891776-0c2dfb7fda1a?w=800&h=800&fit=crop&auto=format',
         'https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=800&h=800&fit=crop&auto=format',
         'https://images.unsplash.com/photo-1592754862816-1a21a4ea2281?w=800&h=800&fit=crop&auto=format',
-        'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=800&fit=crop&auto=format'
+        'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1619965695295-cc7f3b9b1a4b?w=800&h=800&fit=crop&auto=format'
       ]
     ],
     'fitness': [
@@ -262,12 +298,12 @@ function getUniqueProductImages(niche, index) {
       [
         'https://images.unsplash.com/photo-1544928147-79a2dbc1f389?w=800&h=800&fit=crop&auto=format',
         'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&h=800&fit=crop&auto=format',
-        'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=800&fit=crop&auto=format',
         'https://images.unsplash.com/photo-1506629905645-b178c0146b54?w=800&h=800&fit=crop&auto=format',
         'https://images.unsplash.com/photo-1599901860904-17e6ed7083a0?w=800&h=800&fit=crop&auto=format',
         'https://images.unsplash.com/photo-1588286840104-8957b019727f?w=800&h=800&fit=crop&auto=format',
-        'https://images.unsplash.com/photo-1571019613914-85a0ad0b1e1a?w=800&h=800&fit=crop&auto=format',
-        'https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?w=800&h=800&fit=crop&auto=format'
+        'https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1566241134516-b96ceaa3b1b9?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1620188467120-5042ed1eb5da?w=800&h=800&fit=crop&auto=format'
       ]
     ],
     'kitchen': [
@@ -296,7 +332,8 @@ function getUniqueProductImages(niche, index) {
     ]
   };
 
-  const selectedImages = imageCollections[niche.toLowerCase()]?.[index % 10] || imageCollections['fitness'][0];
+  const nicheKey = niche.toLowerCase();
+  const selectedImages = imageCollections[nicheKey]?.[index % 10] || imageCollections['fitness'][0];
   
   // Ensure we always have at least 8 images by cycling through if needed
   while (selectedImages.length < 8) {
@@ -308,6 +345,7 @@ function getUniqueProductImages(niche, index) {
 
 function getNicheCategory(niche) {
   const categories = {
+    'gaming': 'Gaming & Electronics',
     'pet': 'Pet Supplies',
     'fitness': 'Fitness & Health',
     'kitchen': 'Kitchen & Dining',
@@ -320,6 +358,18 @@ function getNicheCategory(niche) {
 
 function getWinningTitle(niche, index) {
   const winningTitles = {
+    'gaming': [
+      '🔥 Ultimate Gaming Chair Comfort Pro',
+      '⚡ Pro Gaming Mouse Precision Elite',
+      '💎 RGB Gaming Desk Lighting System',
+      '🔥 Immersive Gaming Headset Pro',
+      '⚡ Game Controller Phone Grip Pro',
+      '💎 Customizable Keycap Set Elite',
+      '🔥 Gaming Monitor Stand Organizer',
+      '⚡ Portable Gaming Console Holder',
+      '💎 Wireless Gaming Keyboard RGB',
+      '🔥 Gaming Desk Mat XXL Pro'
+    ],
     'pet': [
       '🔥 Smart Pet Camera with Treat Dispenser',
       '⚡ Self-Cleaning Pet Grooming Brush Pro',
@@ -358,12 +408,17 @@ function getWinningTitle(niche, index) {
     ]
   };
 
-  const selectedTitles = winningTitles[niche.toLowerCase()] || winningTitles['fitness'];
+  const selectedTitles = winningTitles[niche.toLowerCase()] || winningTitles['gaming'];
   return selectedTitles[index] || `🔥 Premium ${niche} Essential Pro`;
 }
 
 function getWinningDescription(niche, index) {
   const winningDescriptions = {
+    'gaming': [
+      "🎮 TRANSFORM YOUR GAMING EXPERIENCE FOREVER! This revolutionary gaming chair delivers professional-grade comfort that keeps you at peak performance for hours. ⚡ Features premium memory foam, ergonomic lumbar support, and 4D armrests that adapt to your body. 🔥 VIRAL SENSATION: Thousands of pro gamers trust this game-changing chair to reduce fatigue and improve focus. Your competitive edge starts here! 💎 Over 50,000 satisfied gamers can't be wrong! Limited stock - ORDER NOW and dominate every match!",
+      
+      "🕹️ UNLEASH YOUR TRUE GAMING POTENTIAL! This precision gaming mouse is taking the esports world by storm with its tournament-grade accuracy. ⚡ Features 16,000 DPI sensor, customizable RGB lighting, and ultra-responsive clicks that give you the competitive advantage. 💎 GAME CHANGER: No more missed shots, no more lag - just pure precision that separates winners from losers! Professional gamers worldwide choose this mouse for championship performance. ✨ Your victory starts now! HURRY - Limited time offer!"
+    ],
     'pet': [
       "🐾 TRANSFORM YOUR PET CARE FOREVER! This revolutionary smart camera lets you watch, talk to, and reward your furry friend from anywhere in the world. Never miss a precious moment or worry about your pet's wellbeing again! ⚡ Features crystal-clear HD video, two-way audio, and remote treat dispensing that keeps your bond strong no matter the distance. 🔥 VIRAL SENSATION: Thousands of pet parents trust this game-changing device to reduce separation anxiety and stay connected. Your pet deserves the best - and so do you! ⭐ Over 50,000 happy customers can't be wrong! Limited stock - ORDER NOW!",
       
@@ -373,21 +428,27 @@ function getWinningDescription(niche, index) {
       "⚡ ACHIEVE YOUR DREAM BODY FASTER! This advanced fitness tracker monitors your every move with incredible accuracy - heart rate, calories, sleep, and 14 workout modes. 🔥 REVOLUTIONARY DESIGN: Waterproof for any challenge, while smart notifications keep you connected to what matters. 💎 7-day battery life means less charging, more training! Join thousands who've transformed their lives with this essential wearable technology. Your fitness journey starts now! 🏆 Rated #1 by fitness enthusiasts worldwide! Don't wait - your transformation begins TODAY!",
       
       "💪 BUILD STRENGTH ANYWHERE, ANYTIME! This complete resistance band system replaces an entire gym - 5 resistance levels, door anchor, and everything you need for unlimited workouts. ⚡ PERFECT FOR ALL FITNESS LEVELS: These bands let you sculpt your body and customize intensity like never before. 🔥 Made from premium materials that won't snap or lose elasticity. Compact, portable, and built to last. Thousands have achieved incredible results - now it's your turn! 🔥 Transform your body in just 30 days! LIMITED STOCK ALERT!"
+    ],
+    'kitchen': [
+      "🍳 REVOLUTIONIZE YOUR COOKING GAME! This smart digital scale connects to your phone and tracks nutrition automatically - never guess portions again! ⚡ Features precision sensors, comprehensive food database, and meal planning that transforms how you cook. 🔥 VIRAL KITCHEN ESSENTIAL: Thousands of home chefs use this to create restaurant-quality meals and achieve health goals. Perfect for baking, meal prep, and portion control! 💎 Makes cooking effortless and enjoyable. Join the kitchen revolution that's changing lives! ⭐ Over 75,000 satisfied customers! ORDER NOW - Limited time pricing!",
+      
+      "🥄 UPGRADE YOUR KITCHEN INSTANTLY! This premium silicone utensil set withstands 450°F heat and protects your expensive cookware from scratches. ⚡ Complete 12-piece set includes everything you need for professional cooking results. 🔥 GAME CHANGER: Non-stick safe, dishwasher friendly, and ergonomic handles that make cooking a joy. No more melted plastic or damaged pans! 💎 Essential for every modern kitchen. Thousands of home chefs can't cook without these! ✨ Transform your cooking today! HURRY - Special launch pricing!"
     ]
   };
 
-  const selectedDescriptions = winningDescriptions[niche.toLowerCase()] || winningDescriptions['fitness'];
+  const selectedDescriptions = winningDescriptions[niche.toLowerCase()] || winningDescriptions['gaming'];
   return selectedDescriptions[index % selectedDescriptions.length] || `🌟 DISCOVER THE GAME-CHANGING ${niche.toUpperCase()} SOLUTION! ⚡ This premium quality product delivers outstanding results that exceed all expectations. 🔥 Engineered for maximum performance and durability, it's perfect for both beginners and professionals. Join thousands of satisfied customers who have already experienced the incredible difference quality makes. 💎 With its innovative design and proven reliability, this is an essential addition to your ${niche} collection that you'll use and love every single day! ⭐ Backed by our satisfaction guarantee! ORDER NOW - Limited time offer!`;
 }
 
 function getVariantName(niche, index) {
   const variantNames = {
+    'gaming': ['Standard Edition', 'Pro Edition', 'Elite Bundle'],
     'pet': ['Small Size', 'Large Size', 'Premium Bundle'],
     'fitness': ['Starter Pack', 'Pro Pack', 'Elite Bundle'], 
     'kitchen': ['Standard', 'Deluxe', 'Professional']
   };
   
-  const names = variantNames[niche.toLowerCase()] || variantNames['fitness'];
+  const names = variantNames[niche.toLowerCase()] || variantNames['gaming'];
   return names[index] || `Option ${index + 1}`;
 }
 
@@ -405,7 +466,7 @@ function getWinningVariants(niche, basePrice, index) {
 function generateCleanHandle(title) {
   return title
     .toLowerCase()
-    .replace(/[🔥⚡💎✨🌟💪🐾🏆⭐]/g, '') // Remove emojis
+    .replace(/[🔥⚡💎✨🌟💪🐾🏆⭐🎮🕹️🍳🥄]/g, '') // Remove emojis
     .replace(/[^a-z0-9\s-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')

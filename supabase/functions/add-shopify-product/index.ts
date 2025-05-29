@@ -88,7 +88,13 @@ serve(async (req) => {
     
     if (product.images && Array.isArray(product.images)) {
       for (let i = 0; i < product.images.length; i++) {
-        const imageUrl = product.images[i];
+        let imageUrl = product.images[i];
+        
+        // Handle both string URLs and object format
+        if (typeof imageUrl === 'object' && imageUrl.src) {
+          imageUrl = imageUrl.src;
+        }
+        
         if (typeof imageUrl === 'string' && imageUrl.startsWith('http')) {
           // Ensure images are properly formatted for Shopify API
           const imageData = {
