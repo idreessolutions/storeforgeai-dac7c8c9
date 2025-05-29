@@ -82,9 +82,9 @@ serve(async (req) => {
       return variantData;
     });
 
-    // CRITICAL: Process and validate images properly for Shopify
+    // CRITICAL: Process and validate images properly for Shopify - ENSURE UNIQUE IMAGES
     const processedImages = [];
-    console.log('Processing images for product:', cleanTitle);
+    console.log('Processing unique images for product:', cleanTitle);
     
     if (product.images && Array.isArray(product.images)) {
       for (let i = 0; i < product.images.length; i++) {
@@ -103,39 +103,12 @@ serve(async (req) => {
           }
           
           processedImages.push(imageData);
-          console.log(`Added image ${i + 1}: ${imageUrl}`);
+          console.log(`Added unique image ${i + 1}: ${imageUrl}`);
         }
       }
     }
 
-    // Ensure we have at least 6 high-quality images for winning products
-    if (processedImages.length < 6) {
-      console.log('Warning: Product has fewer than 6 images, adding curated winning product images');
-      
-      // Add high-quality, curated product images based on niche
-      const additionalImages = [
-        'https://images.unsplash.com/photo-1560472354-b33c5c44a43e?w=800&h=800&fit=crop&auto=format',
-        'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=800&h=800&fit=crop&auto=format',
-        'https://images.unsplash.com/photo-1563770660-4d3ac67cbdac?w=800&h=800&fit=crop&auto=format',
-        'https://images.unsplash.com/photo-1545579149-b0c4be64b8bb?w=800&h=800&fit=crop&auto=format',
-        'https://images.unsplash.com/photo-1587614203-a3b71edc4d8e?w=800&h=800&fit=crop&auto=format',
-        'https://images.unsplash.com/photo-1565814329452-e1efa11c5b89?w=800&h=800&fit=crop&auto=format',
-        'https://images.unsplash.com/photo-1574612330781-c3fdc95cd203?w=800&h=800&fit=crop&auto=format',
-        'https://images.unsplash.com/photo-1507003211169-0a1dd7bf2113?w=800&h=800&fit=crop&auto=format'
-      ];
-      
-      // Add images until we have at least 8
-      for (let i = processedImages.length; i < 8 && i < additionalImages.length; i++) {
-        processedImages.push({
-          src: additionalImages[i],
-          alt: `${cleanTitle} - Product View ${i + 1}`,
-          position: i + 1
-        });
-        console.log(`Added additional image ${i + 1}: ${additionalImages[i]}`);
-      }
-    }
-
-    console.log(`Successfully processed ${processedImages.length} images for product: ${cleanTitle}`);
+    console.log(`Successfully processed ${processedImages.length} unique images for product: ${cleanTitle}`);
 
     // Prepare the product payload with clean data and optimized images
     const productPayload = {
@@ -148,7 +121,7 @@ serve(async (req) => {
         status: 'active',
         published: true,
         tags: product.tags || 'trending, bestseller, premium quality, winning product',
-        images: processedImages, // This is the critical fix for media content
+        images: processedImages, // This ensures unique media content for each product
         variants: preparedVariants,
         seo_title: cleanTitle,
         seo_description: product.description ? product.description.substring(0, 160) : `Buy ${cleanTitle} - Premium quality with fast shipping.`
@@ -169,6 +142,7 @@ serve(async (req) => {
     console.log('Winning product payload:', JSON.stringify({
       title: productPayload.product.title,
       handle: productPayload.product.handle,
+      product_type: productPayload.product.product_type,
       variants: productPayload.product.variants.map(v => ({ title: v.title, price: v.price, sku: v.sku, option1: v.option1 })),
       images: {
         count: productPayload.product.images.length,
@@ -231,6 +205,7 @@ serve(async (req) => {
     console.log('Winning product added successfully:', {
       id: responseData.product?.id,
       title: responseData.product?.title,
+      product_type: responseData.product?.product_type,
       images: responseData.product?.images?.length || 0,
       variants: responseData.product?.variants?.length || 0
     });

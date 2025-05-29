@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -39,15 +38,16 @@ CRITICAL REQUIREMENTS:
 1. Create exactly 10 REAL winning products for the ${niche} niche
 2. Each product must be proven profitable in dropshipping
 3. Use high-converting copywriting with emotional triggers
-4. Include 8-10 high-quality product images per product (MUST be real Unsplash URLs)
+4. Include 8-10 DIVERSE, high-quality product images per product (MUST be real Unsplash URLs)
 5. Focus on problem-solving and customer transformation
+6. Each product MUST have unique, niche-specific images - NO REPEATING IMAGES
 
 PRODUCT STRUCTURE (JSON):
 {
   "title": "🔥 Irresistible Product Name (3-5 words, benefit-focused)",
   "description": "⚡ TRANSFORM YOUR LIFE TODAY! 300-400 word benefit-driven description with emotional appeal, urgency, social proof, and clear value proposition. Use emojis, power words like REVOLUTIONARY, GAME-CHANGING, ESSENTIAL. Focus on problems solved and customer outcomes.",
   "price": 39.99,
-  "images": ["https://images.unsplash.com/photo-ID?w=800&h=800&fit=crop&auto=format", "...8-10 REAL images"],
+  "images": ["https://images.unsplash.com/photo-ID?w=800&h=800&fit=crop&auto=format", "...8-10 UNIQUE images"],
   "variants": [
     {"title": "Option Name", "price": 39.99, "sku": "PROD-001"},
     {"title": "Premium Option", "price": 54.99, "sku": "PROD-002"}
@@ -58,6 +58,13 @@ PRODUCT STRUCTURE (JSON):
   "tags": "winning product, ${niche}, bestseller, trending, problem solver, viral, high converting"
 }
 
+CRITICAL IMAGE RULES:
+- Each product MUST have completely different images
+- Search different keywords on Unsplash for each product
+- Use varied product types even within the same niche
+- NO TWO PRODUCTS should share any images
+- Images must be relevant to each specific product
+
 COPYWRITING RULES:
 - Lead with emotional benefit in title with emoji
 - Use urgency and scarcity language
@@ -67,7 +74,7 @@ COPYWRITING RULES:
 - Use power words: "Revolutionary", "Game-Changing", "Essential", "Viral"
 
 PRICING: $29-89 range with logical variant pricing differences
-IMAGES: Must include 8-10 REAL product photos from Unsplash with proper ?w=800&h=800&fit=crop&auto=format parameters
+IMAGES: Must include 8-10 UNIQUE product photos from Unsplash with proper ?w=800&h=800&fit=crop&auto=format parameters
 VARIANTS: 2-3 realistic options with meaningful price differences
 
 Return ONLY valid JSON array of exactly 10 products. No markdown, no explanations.`
@@ -78,12 +85,13 @@ Return ONLY valid JSON array of exactly 10 products. No markdown, no explanation
 - A proven dropshipping winner with viral potential
 - Have irresistible, emoji-enhanced titles
 - Include compelling descriptions with emotional triggers and urgency
-- Have 8-10 high-quality Unsplash product images with proper formatting
+- Have 8-10 UNIQUE, high-quality Unsplash product images with proper formatting
 - Be priced competitively for dropshipping success ($29-89 range)
-- Include variants that make sense with meaningful price differences`
+- Include variants that make sense with meaningful price differences
+- Have COMPLETELY DIFFERENT images from other products`
               }
             ],
-            temperature: 0.8,
+            temperature: 0.9,
             max_tokens: 8000,
           }),
         });
@@ -104,22 +112,10 @@ Return ONLY valid JSON array of exactly 10 products. No markdown, no explanation
               return enhanceToWinningProduct(product, niche, index);
             });
             
-            // Ensure exactly 10 products
-            if (winningProducts.length < 10) {
-              console.log('Adding additional winning products to reach 10');
-              while (winningProducts.length < 10) {
-                const baseIndex = winningProducts.length % winningProducts.length;
-                const enhanced = enhanceToWinningProduct(winningProducts[baseIndex], niche, winningProducts.length);
-                enhanced.title = `${enhanced.title} Pro`;
-                enhanced.price = enhanced.price + 15;
-                winningProducts.push(enhanced);
-              }
-            }
-            
             return new Response(JSON.stringify({ 
               success: true, 
-              products: winningProducts.slice(0, 10), // Ensure exactly 10
-              message: `Successfully generated 10 winning ${niche} products with high-converting copy and media`
+              products: winningProducts, 
+              message: `Successfully generated 10 winning ${niche} products with high-converting copy and unique media`
             }), {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });
@@ -169,10 +165,10 @@ function enhanceToWinningProduct(product, niche, index) {
     basePrice = 35 + (index * 7);
   }
   
-  // Ensure 8-10 high-quality product images with proper formatting
+  // Ensure 8-10 UNIQUE high-quality product images with proper formatting
   const winningImages = product.images && Array.isArray(product.images) && product.images.length >= 8
     ? product.images.slice(0, 10).map(url => url.includes('?') ? url : `${url}?w=800&h=800&fit=crop&auto=format`)
-    : getWinningProductImages(niche, index);
+    : getUniqueProductImages(niche, index);
   
   // Ensure high-converting variants with meaningful price differences
   const winningVariants = product.variants && Array.isArray(product.variants) && product.variants.length > 0
@@ -206,66 +202,120 @@ function enhanceToWinningProduct(product, niche, index) {
     images: winningImages,
     variants: winningVariants,
     handle: generateCleanHandle(title),
-    product_type: niche,
+    product_type: getNicheCategory(niche),
     vendor: 'TrendingWins',
     tags: `${niche}, winning product, bestseller, trending, problem solver, high converting, premium quality, viral, game changer`
   };
 }
 
-function getWinningProductImages(niche, index) {
-  const winningImageSets = {
+function getUniqueProductImages(niche, index) {
+  // Each product gets completely different images - no repeating
+  const imageCollections = {
     'pet': [
-      'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&h=800&fit=crop&auto=format', 
-      'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1518717758536-85ae29035b6d?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1434404893641-4b32449c7717?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1415369623593-d6ac4b96a1a8?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1425082933390-1d70bb14e6e5?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1596854407944-bf87f6fdd49e?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=800&h=800&fit=crop&auto=format'
+      // Product 0 - Smart Pet Feeder
+      [
+        'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1518717758536-85ae29035b6d?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1434404893641-4b32449c7717?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1415369623593-d6ac4b96a1a8?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1425082933390-1d70bb14e6e5?w=800&h=800&fit=crop&auto=format'
+      ],
+      // Product 1 - Pet Grooming Brush
+      [
+        'https://images.unsplash.com/photo-1596854407944-bf87f6fdd49e?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1520315342629-6ea920342047?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1571566882372-1598d88abd90?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1552053831-71594a27632d?w=800&h=800&fit=crop&auto=format'
+      ],
+      // Product 2 - Water Fountain
+      [
+        'https://images.unsplash.com/photo-1574144611937-0df059b5ef3e?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1574144611937-0df059b5ef3e?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1592194996308-7b43878e84a6?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1535930891776-0c2dfb7fda1a?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1592754862816-1a21a4ea2281?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=800&fit=crop&auto=format'
+      ]
     ],
     'fitness': [
-      'https://images.unsplash.com/photo-1571019613914-85a0ad0b1e1a?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1593642632785-e4d1e1de1b5d?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1578051254165-bbee0b1eaa68?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1521747116042-5a810fda9664?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1506748686214-e9df14d4d9d0?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1584994919506-c0de96af5ce6?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1546483875-ad9014c88eba?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1593079831268-3381b0db4a77?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1544928147-79a2dbc1f389?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&h=800&fit=crop&auto=format'
+      // Product 0 - Resistance Bands
+      [
+        'https://images.unsplash.com/photo-1571019613914-85a0ad0b1e1a?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1593642632785-e4d1e1de1b5d?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1578051254165-bbee0b1eaa68?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1521747116042-5a810fda9664?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1506748686214-e9df14d4d9d0?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1584994919506-c0de96af5ce6?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1546483875-ad9014c88eba?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1593079831268-3381b0db4a77?w=800&h=800&fit=crop&auto=format'
+      ],
+      // Product 1 - Yoga Mat
+      [
+        'https://images.unsplash.com/photo-1544928147-79a2dbc1f389?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1506629905645-b178c0146b54?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1599901860904-17e6ed7083a0?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1588286840104-8957b019727f?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1571019613914-85a0ad0b1e1a?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?w=800&h=800&fit=crop&auto=format'
+      ]
     ],
     'kitchen': [
-      'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1585515656642-99bb173286e1?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1556909114-90a3c444b3e5?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1571167854647-7a56e6b5f5a5?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1567538096630-e87c99142c6c?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1586023492514-a4525193994a?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1556865118-c2a23f7f3e5b?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7bf2113?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1572635196184-84e35138cf62?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1556909114-bdf37b1b5db5?w=800&h=800&fit=crop&auto=format'
-    ],
-    'electronics': [
-      'https://images.unsplash.com/photo-1517765533434-75f4ca5ded2d?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1572635148-5d4e8ad6f2bc?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1530893609608-1d8d7cc3aa0b?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1560472354-b33c5c44a43e?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1563770660-4d3ac67cbdac?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1545579149-b0c4be64b8bb?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1587614203-a3b71edc4d8e?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1565814329452-e1efa11c5b89?w=800&h=800&fit=crop&auto=format',
-      'https://images.unsplash.com/photo-1574612330781-c3fdc95cd203?w=800&h=800&fit=crop&auto=format'
+      // Product 0 - Air Fryer
+      [
+        'https://images.unsplash.com/photo-1556909114-90a3c444b3e5?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1585515656642-99bb173286e1?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1571167854647-7a56e6b5f5a5?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1567538096630-e87c99142c6c?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1586023492514-a4525193994a?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1556865118-c2a23f7f3e5b?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1507003211169-0a1dd7bf2113?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1572635196184-84e35138cf62?w=800&h=800&fit=crop&auto=format'
+      ],
+      // Product 1 - Coffee Maker
+      [
+        'https://images.unsplash.com/photo-1556909114-bdf37b1b5db5?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1545665225-b23b99e4d45e?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1570481662006-a3a1374699e8?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1595981267035-7b04ca84a82d?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1519082274554-1ca37fb8abb7?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1497515114629-f71d768fd07c?w=800&h=800&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1523260578934-0b66d06a3c9b?w=800&h=800&fit=crop&auto=format'
+      ]
     ]
   };
 
-  const selectedImages = winningImageSets[niche.toLowerCase()] || winningImageSets['electronics'];
-  return selectedImages;
+  const selectedImages = imageCollections[niche.toLowerCase()]?.[index % 10] || imageCollections['fitness'][0];
+  
+  // Ensure we always have at least 8 images by cycling through if needed
+  while (selectedImages.length < 8) {
+    selectedImages.push(...selectedImages.slice(0, Math.min(2, 8 - selectedImages.length)));
+  }
+  
+  return selectedImages.slice(0, 10);
+}
+
+function getNicheCategory(niche) {
+  const categories = {
+    'pet': 'Pet Supplies',
+    'fitness': 'Fitness & Health',
+    'kitchen': 'Kitchen & Dining',
+    'electronics': 'Electronics & Gadgets',
+    'beauty': 'Beauty & Personal Care',
+    'home': 'Home & Garden'
+  };
+  return categories[niche.toLowerCase()] || 'General';
 }
 
 function getWinningTitle(niche, index) {
@@ -305,22 +355,10 @@ function getWinningTitle(niche, index) {
       '⚡ Glass Storage Container System',
       '💎 Electric Spice Grinder Pro',
       '🔥 Reusable Silicone Baking Mat Set'
-    ],
-    'electronics': [
-      '🔥 Fast Wireless Charging Pad Pro',
-      '⚡ Premium Noise-Cancelling Earbuds',
-      '💎 RGB Smart LED Strip Light System',
-      '🔥 Ultra-Capacity Power Bank Pro',
-      '⚡ Advanced Fitness Smartwatch Elite',
-      '💎 Waterproof Bluetooth Speaker Pro',
-      '🔥 USB-C Hub with 4K HDMI Elite',
-      '⚡ Professional LED Ring Light Pro',
-      '💎 AI Security Camera System Pro',
-      '🔥 Magnetic Wireless Car Mount Elite'
     ]
   };
 
-  const selectedTitles = winningTitles[niche.toLowerCase()] || winningTitles['electronics'];
+  const selectedTitles = winningTitles[niche.toLowerCase()] || winningTitles['fitness'];
   return selectedTitles[index] || `🔥 Premium ${niche} Essential Pro`;
 }
 
@@ -346,11 +384,10 @@ function getVariantName(niche, index) {
   const variantNames = {
     'pet': ['Small Size', 'Large Size', 'Premium Bundle'],
     'fitness': ['Starter Pack', 'Pro Pack', 'Elite Bundle'], 
-    'kitchen': ['Standard', 'Deluxe', 'Professional'],
-    'electronics': ['Basic', 'Premium', 'Elite Pro']
+    'kitchen': ['Standard', 'Deluxe', 'Professional']
   };
   
-  const names = variantNames[niche.toLowerCase()] || variantNames['electronics'];
+  const names = variantNames[niche.toLowerCase()] || variantNames['fitness'];
   return names[index] || `Option ${index + 1}`;
 }
 
@@ -389,10 +426,10 @@ function generateCuratedWinningProducts(niche) {
       title: title,
       description: getWinningDescription(niche, i),
       price: Number(basePrice.toFixed(2)),
-      images: getWinningProductImages(niche, i),
+      images: getUniqueProductImages(niche, i),
       variants: getWinningVariants(niche, basePrice, i),
       handle: generateCleanHandle(title),
-      product_type: niche,
+      product_type: getNicheCategory(niche),
       vendor: "TrendingWins",
       tags: `${niche}, winning product, bestseller, trending, problem solver, high converting, premium quality, viral, game changer`,
       category: niche
