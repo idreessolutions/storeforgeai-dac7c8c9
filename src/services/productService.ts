@@ -27,12 +27,14 @@ export const addProductsToShopify = async (
   shopifyUrl: string,
   accessToken: string,
   userNiche: string,
-  onProgress: (progress: number, currentProduct: string) => void
+  onProgress: (progress: number, currentProduct: string) => void,
+  themeColor: string = '#1E40AF'
 ): Promise<boolean> => {
   try {
     console.log('Starting product addition process...');
     console.log('Shopify URL:', shopifyUrl);
     console.log('Niche:', userNiche);
+    console.log('Theme Color:', themeColor);
     console.log('Access token provided:', !!accessToken);
     
     // Comprehensive input validation
@@ -100,14 +102,15 @@ export const addProductsToShopify = async (
           { title: 'Default', price: product.price, sku: 'DEFAULT-001' }
         ];
 
-        // Use Supabase edge function to add product to Shopify
+        // Use Supabase edge function to add product to Shopify with theme color
         const { data, error } = await supabase.functions.invoke('add-shopify-product', {
           body: {
             shopifyUrl: `https://${storeName}.myshopify.com`,
             accessToken,
+            themeColor, // Pass theme color to edge function
             product: {
               title: product.title.trim(),
-              body_html: `<p>${product.description.trim()}</p>`,
+              description: product.description.trim(),
               vendor: product.vendor || 'StoreForge AI',
               product_type: product.product_type || userNiche || 'General',
               handle: product.handle || generateHandle(product.title),
@@ -157,7 +160,7 @@ export const addProductsToShopify = async (
           });
           
           // Store product data in Supabase database AND storage bucket
-          await storeProductInSupabase(product, data.product?.id, userNiche);
+          await storeProductInSupabase(product, data.product?.id, userNiche, themeColor);
           await storeProductInStorageBucket(product, data.product?.id, userNiche);
           
         } else {
@@ -253,8 +256,8 @@ export const applyThemeColor = async (
   }
 };
 
-// Store individual product data in Supabase database
-async function storeProductInSupabase(product: Product, shopifyProductId: string | undefined, niche: string) {
+// Store individual product data in Supabase database with theme color
+async function storeProductInSupabase(product: Product, shopifyProductId: string | undefined, niche: string, themeColor?: string) {
   try {
     const { error } = await supabase
       .from('product_uploads')
@@ -275,7 +278,7 @@ async function storeProductInSupabase(product: Product, shopifyProductId: string
     if (error) {
       console.error('Error storing product in Supabase:', error);
     } else {
-      console.log(`Product ${product.title} stored in Supabase database`);
+      console.log(`Product ${product.title} stored in Supabase database with theme color: ${themeColor}`);
     }
   } catch (error) {
     console.error('Failed to store product in Supabase database:', error);

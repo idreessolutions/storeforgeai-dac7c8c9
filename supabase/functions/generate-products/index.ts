@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -30,7 +29,7 @@ Return a valid JSON array with this structure:
 [
   {
     "title": "string (SEO-friendly, concise, no emojis)",
-    "description": "string (500–800 characters, benefit-focused)",
+    "description": "string (500–800 characters, benefit-focused, persuasive)",
     "price": number,
     "category": "string",
     "tags": ["string", "string"],
@@ -53,7 +52,7 @@ Requirements:
 - Products should be based on actual trending items
 - NO DUPLICATES - each product must be completely different
 
-ONLY return JSON. Do NOT include commentary or markdown.`;
+ONLY return valid JSON. Do NOT include commentary or markdown.`;
 
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
@@ -83,16 +82,16 @@ ONLY return JSON. Do NOT include commentary or markdown.`;
             const products = JSON.parse(cleanedText);
             console.log(`✅ Successfully parsed ${products.length} winning products from ChatGPT`);
             
-            // Enhance products to match Shopify format
+            // Enhance products to match Shopify format and ensure quality
             const enhancedProducts = products.slice(0, 10).map((product, index) => ({
-              title: product.title,
-              description: product.description,
-              price: product.price,
+              title: product.title || `Winning ${niche} Product ${index + 1}`,
+              description: product.description || `High-quality ${niche} product designed to solve your problems and enhance your lifestyle.`,
+              price: product.price || (29.99 + (index * 5)),
               images: product.image_urls || [],
               variants: product.variants || [
-                { title: 'Standard', price: product.price, sku: `${niche.toUpperCase().substring(0,3)}-${String(index + 1).padStart(3, '0')}-1` }
+                { title: 'Standard', price: product.price || (29.99 + (index * 5)), sku: `${niche.toUpperCase().substring(0,3)}-${String(index + 1).padStart(3, '0')}-1` }
               ],
-              handle: generateHandle(product.title),
+              handle: generateHandle(product.title || `winning-${niche}-product-${index + 1}`),
               product_type: product.category || niche,
               vendor: 'StoreForge AI',
               tags: Array.isArray(product.tags) ? product.tags.join(', ') : `${niche}, winning product, trending`,
@@ -401,12 +400,24 @@ function generateDiverseWinningProducts(niche) {
 
   const selectedProducts = productsByNiche[niche.toLowerCase()] || petProducts;
   
-  return selectedProducts.slice(0, 10).map((product, index) => ({
-    ...product,
-    handle: generateHandle(product.title),
-    product_type: product.category,
-    vendor: 'StoreForge AI',
-    tags: `${niche}, winning product, trending, bestseller`,
-    category: niche
-  }));
+  // Generate exactly 10 products by expanding if needed
+  const products = [];
+  for (let i = 0; i < 10; i++) {
+    const baseIndex = i % selectedProducts.length;
+    const base = selectedProducts[baseIndex];
+    const variation = Math.floor(i / selectedProducts.length) + 1;
+    
+    products.push({
+      ...base,
+      title: variation > 1 ? `${base.title} - Edition ${variation}` : base.title,
+      price: base.price + (variation - 1) * 10,
+      handle: generateHandle(variation > 1 ? `${base.title}-edition-${variation}` : base.title),
+      product_type: base.category,
+      vendor: 'StoreForge AI',
+      tags: `${niche}, winning product, trending, bestseller`,
+      category: niche
+    });
+  }
+  
+  return products;
 }

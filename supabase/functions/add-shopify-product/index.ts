@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { shopifyUrl, accessToken, product } = await req.json();
+    const { shopifyUrl, accessToken, product, themeColor } = await req.json();
 
     console.log('✅ Step 2: Upload Product to Shopify via Admin API:', product.title);
 
@@ -28,26 +28,42 @@ serve(async (req) => {
     
     console.log('Shopify API URL:', apiUrl);
 
-    // ✅ Enhanced product payload structure based on your code
+    // Enhanced product payload with proper formatting and theme color integration
+    const safeTitle = product.title || 'Untitled Product';
+    const safeDescription = product.description || 'High-quality product designed to enhance your lifestyle.';
+    const appliedThemeColor = themeColor || '#1E40AF';
+    
+    // Apply theme color to product description
+    const formattedDescription = `<div style="color: ${appliedThemeColor};">
+      <p>${safeDescription}</p>
+      <p><strong>Key Features:</strong></p>
+      <ul>
+        <li>Premium quality materials</li>
+        <li>Fast shipping worldwide</li>
+        <li>30-day money-back guarantee</li>
+        <li>24/7 customer support</li>
+      </ul>
+    </div>`;
+
     const productPayload = {
       product: {
-        title: product.title,
-        body_html: `<p>${product.description}</p>`,
+        title: safeTitle,
+        body_html: formattedDescription,
         vendor: product.vendor || 'StoreForge AI',
         product_type: product.product_type || product.category || 'General',
-        handle: product.handle || generateHandle(product.title),
+        handle: product.handle || generateHandle(safeTitle),
         status: 'active',
         published: true,
         tags: product.tags || 'winning product, trending',
-        images: (product.images || []).map((url, index) => ({
+        images: (product.images || product.image_urls || []).map((url, index) => ({
           src: url,
-          alt: `${product.title} - Image ${index + 1}`,
+          alt: `${safeTitle} - Image ${index + 1}`,
           position: index + 1
         })),
         variants: (product.variants || []).map((variant, index) => ({
-          title: variant.title,
-          price: typeof variant.price === 'number' ? variant.price.toFixed(2) : parseFloat(String(variant.price)).toFixed(2),
-          sku: variant.sku || `${product.product_type?.substring(0,3).toUpperCase()}-${String(index + 1).padStart(3, '0')}`,
+          title: variant.title || 'Standard',
+          price: typeof variant.price === 'number' ? variant.price.toFixed(2) : parseFloat(String(variant.price || product.price || 29.99)).toFixed(2),
+          sku: variant.sku || `${product.product_type?.substring(0,3).toUpperCase() || 'PRD'}-${String(index + 1).padStart(3, '0')}`,
           inventory_management: null,
           inventory_policy: 'continue',
           inventory_quantity: 999,
@@ -58,8 +74,8 @@ serve(async (req) => {
           compare_at_price: null,
           fulfillment_service: 'manual'
         })),
-        seo_title: product.title,
-        seo_description: product.description ? product.description.substring(0, 160) : `Buy ${product.title} - Premium quality with fast shipping.`
+        seo_title: safeTitle,
+        seo_description: safeDescription ? safeDescription.substring(0, 160) : `Buy ${safeTitle} - Premium quality with fast shipping.`
       }
     };
 
@@ -79,11 +95,12 @@ serve(async (req) => {
       });
     }
 
-    console.log('Product payload:', JSON.stringify({
+    console.log('Product payload with theme color:', JSON.stringify({
       title: productPayload.product.title,
       handle: productPayload.product.handle,
       product_type: productPayload.product.product_type,
       vendor: productPayload.product.vendor,
+      theme_color: appliedThemeColor,
       variants: productPayload.product.variants.map(v => ({ title: v.title, price: v.price, sku: v.sku })),
       images: {
         count: productPayload.product.images.length,
@@ -141,11 +158,12 @@ serve(async (req) => {
     }
 
     const responseData = await response.json();
-    console.log('✅ Product uploaded successfully:', {
+    console.log('✅ Product uploaded successfully with theme color applied:', {
       id: responseData.product?.id,
       title: responseData.product?.title,
       product_type: responseData.product?.product_type,
       vendor: responseData.product?.vendor,
+      theme_color: appliedThemeColor,
       images: responseData.product?.images?.length || 0,
       variants: responseData.product?.variants?.length || 0
     });
