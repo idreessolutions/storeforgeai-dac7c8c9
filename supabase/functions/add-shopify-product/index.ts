@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -27,48 +28,8 @@ serve(async (req) => {
     const timestamp = Date.now();
     const uniqueHandle = generateUniqueHandle(product.title, timestamp);
 
-    // CRITICAL FIX: Ensure proper variant structure to avoid "Default Title" conflicts
-    let processedVariants = [];
-    
-    if (product.variants && product.variants.length > 0) {
-      // Process existing variants but ensure they don't conflict with "Default Title"
-      processedVariants = product.variants.map((variant, index) => {
-        const variantTitle = variant.title && variant.title !== 'Default Title' 
-          ? variant.title 
-          : `Option ${index + 1}`;
-        
-        return {
-          title: variantTitle,
-          price: typeof variant.price === 'number' ? variant.price.toFixed(2) : parseFloat(String(variant.price)).toFixed(2),
-          sku: `${uniqueHandle.toUpperCase()}-${String(index + 1).padStart(2, '0')}-${timestamp}`,
-          inventory_management: null,
-          inventory_policy: 'continue',
-          inventory_quantity: 999,
-          weight: 0.5,
-          weight_unit: 'lb',
-          requires_shipping: true,
-          taxable: true,
-          compare_at_price: null
-        };
-      });
-    } else {
-      // Create a single variant with a clear, non-conflicting title
-      processedVariants = [{
-        title: 'Standard Version',
-        price: typeof product.price === 'number' ? product.price.toFixed(2) : parseFloat(String(product.price)).toFixed(2),
-        sku: `${uniqueHandle.toUpperCase()}-01-${timestamp}`,
-        inventory_management: null,
-        inventory_policy: 'continue',
-        inventory_quantity: 999,
-        weight: 0.5,
-        weight_unit: 'lb',
-        requires_shipping: true,
-        taxable: true,
-        compare_at_price: null
-      }];
-    }
-
-    // Prepare product payload for Shopify
+    // CRITICAL FIX: Let Shopify handle variants automatically by not sending any variants
+    // This prevents "Default Title" conflicts completely
     const productPayload = {
       product: {
         title: product.title,
@@ -79,7 +40,8 @@ serve(async (req) => {
         status: 'active',
         published: true,
         tags: product.tags || '',
-        variants: processedVariants
+        // Don't send variants - let Shopify create the default one
+        // We'll update it after product creation if needed
       }
     };
 
@@ -89,10 +51,8 @@ serve(async (req) => {
       product_type: productPayload.product.product_type,
       vendor: productPayload.product.vendor,
       theme_color: themeColor,
-      variants_count: productPayload.product.variants.length,
-      variant_titles: productPayload.product.variants.map(v => v.title),
       images_count: product.images?.length || 0,
-      price_range: `$${Math.min(...productPayload.product.variants.map(v => parseFloat(v.price)))} - $${Math.max(...productPayload.product.variants.map(v => parseFloat(v.price)))}`
+      has_variants: product.variants && product.variants.length > 0
     });
 
     // Create product in Shopify
@@ -123,12 +83,6 @@ serve(async (req) => {
             const retryHandle = `${uniqueHandle}-retry-${Math.random().toString(36).substring(2, 8)}`;
             productPayload.product.handle = retryHandle;
             
-            // Update SKUs for retry
-            productPayload.product.variants = productPayload.product.variants.map((variant, index) => ({
-              ...variant,
-              sku: `${retryHandle.toUpperCase()}-${String(index + 1).padStart(2, '0')}-${timestamp}`
-            }));
-            
             const retryResponse = await fetch(apiUrl, {
               method: 'POST',
               headers: {
@@ -145,7 +99,7 @@ serve(async (req) => {
             
             const retryData = await retryResponse.json();
             console.log('✅ Product created successfully after handle retry');
-            return await handleImageUpload(retryData.product, product, shopifyUrl, accessToken, themeColor);
+            return await handleImageUploadAndVariants(retryData.product, product, shopifyUrl, accessToken, themeColor);
           }
         }
       } catch (parseError) {
@@ -160,8 +114,8 @@ serve(async (req) => {
 
     console.log('✅ Product created successfully:', createdProduct.id);
 
-    // Upload images to Shopify
-    return await handleImageUpload(createdProduct, product, shopifyUrl, accessToken, themeColor);
+    // Upload images and handle variants separately
+    return await handleImageUploadAndVariants(createdProduct, product, shopifyUrl, accessToken, themeColor);
 
   } catch (error) {
     console.error('❌ Error adding real winning product to Shopify:', error);
@@ -175,7 +129,41 @@ serve(async (req) => {
   }
 });
 
-async function handleImageUpload(createdProduct, product, shopifyUrl, accessToken, themeColor) {
+async function handleImageUploadAndVariants(createdProduct, product, shopifyUrl, accessToken, themeColor) {
+  // First, update the default variant pricing if needed
+  if (createdProduct.variants && createdProduct.variants.length > 0 && product.price) {
+    const defaultVariant = createdProduct.variants[0];
+    try {
+      console.log('🔄 Updating default variant pricing...');
+      
+      const variantUpdateResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/variants/${defaultVariant.id}.json`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': accessToken,
+        },
+        body: JSON.stringify({
+          variant: {
+            id: defaultVariant.id,
+            price: typeof product.price === 'number' ? product.price.toFixed(2) : parseFloat(String(product.price)).toFixed(2),
+            inventory_quantity: 999,
+            inventory_management: null,
+            inventory_policy: 'continue'
+          }
+        }),
+      });
+
+      if (variantUpdateResponse.ok) {
+        console.log('✅ Default variant updated successfully');
+      } else {
+        const variantError = await variantUpdateResponse.text();
+        console.error('❌ Failed to update variant:', variantError);
+      }
+    } catch (variantError) {
+      console.error('❌ Error updating variant:', variantError);
+    }
+  }
+
   // Upload DALL·E 3 images to Shopify using the images endpoint
   if (product.images && product.images.length > 0) {
     console.log(`🖼️ Uploading ${product.images.length} DALL·E 3 images to Shopify...`);
@@ -228,7 +216,7 @@ async function handleImageUpload(createdProduct, product, shopifyUrl, accessToke
     theme_color: themeColor,
     images_count: product.images?.length || 0,
     variants_count: createdProduct.variants?.length || 0,
-    price_range: `$${Math.min(...createdProduct.variants.map(v => parseFloat(v.price)))} - $${Math.max(...createdProduct.variants.map(v => parseFloat(v.price)))}`
+    default_price: createdProduct.variants?.[0]?.price || product.price
   });
 
   return new Response(JSON.stringify({
