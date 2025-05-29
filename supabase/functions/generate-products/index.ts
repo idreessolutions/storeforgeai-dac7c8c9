@@ -15,14 +15,14 @@ serve(async (req) => {
 
   try {
     const { niche } = await req.json();
-    console.log('✅ Generating 10 real winning products for niche:', niche);
+    console.log('✅ Generating 10 REAL winning products for niche:', niche);
 
-    // Use ChatGPT API to generate actual winning products
+    // Use ChatGPT API to generate actual winning products with UNIQUE titles
     if (openAIApiKey) {
       try {
-        console.log('🤖 Using GPT-4o to generate 10 unique winning products...');
+        console.log('🤖 Using GPT-4o to generate 10 COMPLETELY UNIQUE winning products...');
         
-        const prompt = `Generate 10 COMPLETELY UNIQUE, REAL winning products currently trending and selling well in the "${niche}" niche. Each product must be COMPLETELY DIFFERENT.
+        const prompt = `Generate 10 COMPLETELY UNIQUE, REAL winning products currently trending and selling well in the "${niche}" niche. Each product must be COMPLETELY DIFFERENT with NO SIMILAR NAMES.
 
 CRITICAL REQUIREMENTS:
 - 10 COMPLETELY DIFFERENT product types (no duplicates, variations, or similar items)
@@ -30,10 +30,10 @@ CRITICAL REQUIREMENTS:
 - Real trending products currently popular in ${niche} niche
 - Prices between $15-80 with realistic market pricing
 - SEO-optimized conversion titles (engaging, benefit-focused, 50-70 chars)
-- Professional 500+ word descriptions with proper formatting
+- Professional 500-800 word descriptions with proper formatting
 - 2-4 realistic variants per product (colors, sizes, styles)
 
-DESCRIPTION FORMAT (EXACTLY):
+DESCRIPTION FORMAT (EXACTLY 500-800 WORDS):
 🔥 **[Compelling Hook with Emotional Trigger]**
 
 **Why This ${niche} Product is Taking Over:**
@@ -41,7 +41,7 @@ DESCRIPTION FORMAT (EXACTLY):
 
 ✅ **KEY FEATURES:**
 • [Specific technical feature with numbers/specs]
-• [Unique capability that competitors don't have]
+• [Unique capability that competitors don't have]  
 • [Premium materials/build quality detail]
 • [Smart technology/innovation aspect]
 • [User-friendly design element]
@@ -55,22 +55,34 @@ DESCRIPTION FORMAT (EXACTLY):
 • [Professional results comparison]
 
 👥 **PERFECT FOR:**
-[Detailed paragraph about specific target audience, their pain points, use cases, and why they desperately need this product]
+[Detailed paragraph about specific target audience, their pain points, use cases, and why they desperately need this product. Include specific scenarios, demographics, and emotional connections.]
 
-📦 **WHAT YOU GET:**
+📦 **WHAT'S INCLUDED:**
 • [Main product with specifications]
 • [Included accessories/bonuses]
 • [Warranty/guarantee details]
-• [Shipping and support information]
+• [Premium packaging information]
 
-🚀 **LIMITED TIME:** [Urgency/scarcity element]
+🚚 **SHIPPING & RETURNS:**
+Fast worldwide shipping arrives in 7-14 days. FREE shipping on orders over $50. 30-day money-back guarantee. 24/7 customer support available.
+
+🚀 **LIMITED TIME OFFER:** [Urgency/scarcity element with specific deadline]
+
+⭐ **CUSTOMER TESTIMONIALS:**
+"[Specific customer quote with name and result]" - Sarah M., verified buyer
+"[Another specific testimonial with outcome]" - Mike T., 5-star review
+
+[Additional compelling content to reach 500-800 words with emotional storytelling, social proof, and call-to-action elements]
+
+UNIQUE PRODUCT EXAMPLES FOR ${niche}:
+${generateUniqueProductExamples(niche)}
 
 Return ONLY valid JSON array with this exact structure:
 
 [
   {
     "title": "[Specific descriptive product name optimized for conversion - NO NUMBERS]",
-    "description": "[Complete formatted description as above]",
+    "description": "[Complete 500-800 word formatted description as above]",
     "price": [Random number between 15-80 with 2 decimals],
     "category": "${niche}",
     "product_type": "[Specific subcategory]",
@@ -81,13 +93,10 @@ Return ONLY valid JSON array with this exact structure:
     "variants": [
       { "title": "[Specific Color/Size 1]", "price": [base_price], "sku": "UNIQUE-${niche.substring(0,3).toUpperCase()}-001" },
       { "title": "[Specific Color/Size 2]", "price": [base_price + 5], "sku": "UNIQUE-${niche.substring(0,3).toUpperCase()}-002" },
-      { "title": "[Premium Option]", "price": [base_price + 10], "sku": "UNIQUE-${niche.substring(0,3).toUpperCase()}-003" }
+      { "title": "[Premium Option]", "price": [base_price + 15], "sku": "UNIQUE-${niche.substring(0,3).toUpperCase()}-003" }
     ]
   }
 ]
-
-EXAMPLES OF UNIQUE TITLES FOR ${niche}:
-${generateExampleTitles(niche)}
 
 ONLY return valid JSON. No markdown, no commentary.`;
 
@@ -100,7 +109,7 @@ ONLY return valid JSON. No markdown, no commentary.`;
           body: JSON.stringify({
             model: 'gpt-4o',
             messages: [
-              { role: 'system', content: `You are an expert ${niche} product researcher who only generates real, trending, high-converting products with unique titles and descriptions. Focus exclusively on ${niche} products with completely different, specific titles. NO NUMBERING ALLOWED.` },
+              { role: 'system', content: `You are an expert ${niche} product researcher who generates COMPLETELY UNIQUE, real trending products. Never use similar titles or product types. Each product must be ENTIRELY different from the others. Focus on completely different product categories within ${niche}.` },
               { role: 'user', content: prompt }
             ],
             temperature: 0.9,
@@ -117,17 +126,17 @@ ONLY return valid JSON. No markdown, no commentary.`;
           try {
             const cleanedText = message.replace(/```json\n?|\n?```/g, '').trim();
             const products = JSON.parse(cleanedText);
-            console.log(`✅ Successfully parsed ${products.length} unique products from GPT-4o`);
+            console.log(`✅ Successfully parsed ${products.length} UNIQUE products from GPT-4o`);
             
-            // Generate unique DALL·E 3 images for each product
+            // Generate 6-8 unique DALL·E 3 images for each product
             const enhancedProducts = await Promise.all(
               products.slice(0, 10).map(async (product, index) => {
                 // Generate realistic dynamic pricing
                 const basePrice = parseFloat((Math.random() * (80 - 15) + 15).toFixed(2));
                 
                 // Generate 6-8 unique DALL·E 3 images per product
-                console.log(`🎨 Generating DALL·E 3 images for: ${product.title}`);
-                const dalleImages = await generateDALLEImages(product.title, niche, 6);
+                console.log(`🎨 Generating 6-8 DALL·E 3 images for: ${product.title}`);
+                const dalleImages = await generateDALLEImages(product.title, niche, 7);
                 
                 return {
                   title: product.title,
@@ -145,14 +154,14 @@ ONLY return valid JSON. No markdown, no commentary.`;
                   variants: validateVariants(product.variants, basePrice, niche, index),
                   handle: generateHandle(product.title),
                   product_type: product.product_type || getNicheCategory(niche, index),
-                  vendor: 'Your Store Name',
+                  vendor: 'Premium Store', // This will be updated in add-shopify-product
                   tags: product.tags || generateNicheTags(niche, product.title, index),
                   category: niche
                 };
               })
             );
             
-            console.log('✅ Generated 10 unique winning products with DALL·E 3 images');
+            console.log('✅ Generated 10 UNIQUE winning products with DALL·E 3 images');
             return new Response(JSON.stringify({ 
               success: true, 
               products: enhancedProducts, 
@@ -175,13 +184,13 @@ ONLY return valid JSON. No markdown, no commentary.`;
     }
 
     // Fallback to curated real winning products with DALL·E 3 images
-    console.log('🔄 Using curated real winning products for', niche);
-    const products = await generateCuratedWinningProducts(niche);
+    console.log('🔄 Using curated UNIQUE winning products for', niche);
+    const products = await generateCuratedUniqueProducts(niche);
 
     return new Response(JSON.stringify({ 
       success: true, 
       products: products,
-      message: `Generated 10 curated winning ${niche} products with DALL·E 3 images`
+      message: `Generated 10 curated UNIQUE ${niche} products with DALL·E 3 images`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -197,35 +206,55 @@ ONLY return valid JSON. No markdown, no commentary.`;
   }
 });
 
-function generateExampleTitles(niche: string): string {
+function generateUniqueProductExamples(niche: string): string {
   const examples = {
     'pet': [
-      '- "Smart Pet Water Fountain with UV Sterilization"',
-      '- "Interactive Puzzle Feeder for Anxious Dogs"', 
-      '- "GPS Tracking Collar with Health Monitor"',
-      '- "Self-Cleaning Cat Litter Box System"',
-      '- "Automatic Treat Dispensing Camera"'
+      '- "Auto-Refilling Smart Water Bowl with UV Purification"',
+      '- "GPS Activity Collar with Health Monitoring"', 
+      '- "Interactive Puzzle Treat Dispenser"',
+      '- "Orthopedic Memory Foam Pet Bed"',
+      '- "Professional De-Shedding Grooming Tool"',
+      '- "Wireless Pet Camera with Two-Way Audio"',
+      '- "Automatic Laser Toy for Indoor Cats"',
+      '- "Elevated Slow-Feed Dog Bowl Set"',
+      '- "Waterproof LED Safety Collar"',
+      '- "Pet Hair Vacuum Attachment Kit"'
+    ],
+    'home decor': [
+      '- "Smart RGB Ambient Lighting System"',
+      '- "Floating Cloud Humidifier with LEDs"',
+      '- "Wireless Charging Station Nightstand"',
+      '- "Magnetic Levitating Plant Pot"',
+      '- "Voice-Activated Smart Mirror"',
+      '- "Himalayan Salt Rock Lamp"',
+      '- "Geometric Metal Wall Art Collection"',
+      '- "Essential Oil Diffuser Clock"',
+      '- "Touch-Sensitive Table Lamp"',
+      '- "3D Holographic Photo Frame"'
     ],
     'fitness': [
-      '- "Smart Resistance Band Set with App"',
-      '- "Portable Gym Door Anchor System"',
-      '- "Wireless Heart Rate Monitor Chest Strap"',
+      '- "Resistance Band Door Anchor System"',
+      '- "Smart Jump Rope with App Tracking"',
       '- "Adjustable Foam Roller with Vibration"',
-      '- "Compact Home Gym Cable Machine"'
+      '- "Wireless Bluetooth Heart Rate Monitor"',
+      '- "Compact Home Gym Cable Machine"',
+      '- "Smart Water Bottle with Hydration Tracking"',
+      '- "Suspension Trainer for Full Body Workouts"',
+      '- "Digital Posture Corrector with Alerts"',
+      '- "Muscle Recovery Massage Gun"',
+      '- "Smart Yoga Mat with Pose Detection"'
     ],
     'kitchen': [
-      '- "Digital Food Scale with Nutrition Tracker"',
-      '- "Silicone Air Fryer Liner Set"',
-      '- "Magnetic Knife Block for Counter"',
-      '- "Glass Meal Prep Container Set"',
-      '- "Electric Spice Grinder with Storage"'
-    ],
-    'home-decor': [
-      '- "LED Strip Lights with Music Sync"',
-      '- "Floating Wall Shelves with Hidden Brackets"',
-      '- "Smart Aromatherapy Diffuser with Timer"',
-      '- "Geometric Metal Wall Art Set"',
-      '- "Wireless Charging Station with Lamp"'
+      '- "Digital Food Scale with Nutrition Database"',
+      '- "Silicone Air Fryer Accessories Set"',
+      '- "Magnetic Knife Block for Refrigerator"',
+      '- "Glass Meal Prep Container System"',
+      '- "Electric Spice Grinder with Storage"',
+      '- "Smart Coffee Mug Warmer"',
+      '- "Adjustable Measuring Cup Set"',
+      '- "Non-Slip Cutting Board with Compartments"',
+      '- "Herb Growing Kit for Countertop"',
+      '- "Digital Kitchen Timer with Multiple Alarms"'
     ]
   };
   
@@ -234,7 +263,7 @@ function generateExampleTitles(niche: string): string {
 }
 
 // Generate 6-8 unique product images using DALL·E 3
-async function generateDALLEImages(productTitle: string, niche: string, count: number = 6): Promise<string[]> {
+async function generateDALLEImages(productTitle: string, niche: string, count: number = 7): Promise<string[]> {
   if (!openAIApiKey) {
     console.log('⚠️ No OpenAI API key found, using fallback images');
     return generateFallbackImages(niche, count);
@@ -266,11 +295,10 @@ async function generateDALLEImages(productTitle: string, niche: string, count: n
       if (response.ok) {
         const data = await response.json();
         if (data.data && data.data[0] && data.data[0].url) {
-          // Validate the URL before adding
           const imageUrl = data.data[0].url;
           if (imageUrl && imageUrl.startsWith('http')) {
             images.push(imageUrl);
-            console.log(`✅ Generated DALL·E 3 image ${i + 1} for ${productTitle}: ${imageUrl.substring(0, 50)}...`);
+            console.log(`✅ Generated DALL·E 3 image ${i + 1} for ${productTitle}`);
           } else {
             console.error(`❌ Invalid DALL·E 3 URL for image ${i + 1}: ${imageUrl}`);
           }
@@ -305,14 +333,14 @@ async function generateDALLEImages(productTitle: string, niche: string, count: n
 // Generate diverse, unique image prompts for a product
 function generateUniqueImagePrompts(productTitle: string, niche: string, count: number): string[] {
   const basePrompts = [
-    `Professional product photography of ${productTitle}, clean white background, high quality, commercial photo, ${niche} product, studio lighting, 4K resolution, no text or watermarks`,
-    `${productTitle} in realistic use scenario, lifestyle photography, modern setting, natural lighting, ${niche} environment, person using product, professional shot, no text`,
-    `Close-up detail shot of ${productTitle}, highlighting key features and materials, professional macro photography, ${niche} product focus, premium quality, no text`,
-    `${productTitle} from 45-degree angle, product photography, clean background, commercial quality, showing functionality, ${niche} context, no watermarks`,
-    `${productTitle} with accessories and packaging, unboxing style, professional product shot, ${niche} theme, premium presentation, modern design, no text`,
-    `${productTitle} demonstration image, showing before and after results, clean modern style, ${niche} context, results focused, lifestyle setting, no text`,
-    `Multiple angles of ${productTitle}, product catalog style, professional photography, ${niche} category, clean layout, commercial quality, no watermarks`,
-    `${productTitle} in modern home setting, lifestyle context, natural environment, ${niche} lifestyle, ambient lighting, real-world usage, no text`
+    `Professional ecommerce product photography of ${productTitle}, clean white background, studio lighting, high quality, commercial photo, ${niche} product, 4K resolution, no text or watermarks`,
+    `${productTitle} in realistic lifestyle use scenario, modern home setting, natural lighting, ${niche} environment, person using product professionally, lifestyle photography, no text`,
+    `Close-up detail shot of ${productTitle}, highlighting premium materials and key features, professional macro photography, ${niche} product focus, premium quality details, no text`,
+    `${productTitle} from 45-degree angle showing functionality, product photography, clean background, commercial quality, demonstrating use, ${niche} context, no watermarks`,
+    `${productTitle} with premium packaging and accessories, unboxing style, professional product photography, ${niche} theme, luxury presentation, modern design, no text`,
+    `${productTitle} demonstration showing before and after results, clean modern style, ${niche} lifestyle context, results focused, lifestyle setting, no text`,
+    `Multiple angles of ${productTitle} arranged artistically, product catalog style, professional photography, ${niche} category, clean layout, commercial quality, no watermarks`,
+    `${productTitle} in premium modern environment, lifestyle context, ambient lighting, ${niche} lifestyle, real-world usage scenario, professional setting, no text`
   ];
 
   // Shuffle and return unique prompts
@@ -329,27 +357,21 @@ function generateFallbackImages(niche: string, count: number): string[] {
       'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
       'https://images.unsplash.com/photo-1415369629372-26f2fe60c467?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
       'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
-      'https://images.unsplash.com/photo-1493406300581-484b937cdc41?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80'
+      'https://images.unsplash.com/photo-1493406300581-484b937cdc41?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
+      'https://images.unsplash.com/photo-1552053831-71594a27632d?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80'
     ],
-    'fitness': [
-      'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
-      'https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
-      'https://images.unsplash.com/photo-1593079831268-3381b0db4a77?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
-      'https://images.unsplash.com/photo-1606889464198-fcb18894cf4c?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
-      'https://images.unsplash.com/photo-1583500178999-2471e7e1e7d4?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
-      'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80'
-    ],
-    'kitchen': [
-      'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
-      'https://images.unsplash.com/photo-1584308972272-9e4e7685e80f?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
-      'https://images.unsplash.com/photo-1556909231-f92a2b5b9b3d?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
-      'https://images.unsplash.com/photo-1574781330855-d0db613cc95c?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
-      'https://images.unsplash.com/photo-1571019612338-ed0d39c85235?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
-      'https://images.unsplash.com/photo-1585515656ae3-9b4fc2abbc72?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80'
+    'home decor': [
+      'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
+      'https://images.unsplash.com/photo-1554995207-c18c203602cb?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
+      'https://images.unsplash.com/photo-1563298723-dcfebaa392e3?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
+      'https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
+      'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
+      'https://images.unsplash.com/photo-1571919743851-c2945cbeb367?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
+      'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80'
     ]
   };
-
-  const nicheImages = imageCollections[niche.toLowerCase()] || imageCollections['fitness'];
+  
+  const nicheImages = imageCollections[niche.toLowerCase()] || imageCollections['pet'];
   return nicheImages.slice(0, count);
 }
 
@@ -553,64 +575,160 @@ function generateHandle(title: string): string {
     .substring(0, 100);
 }
 
-async function generateCuratedWinningProducts(niche: string) {
-  // ... keep existing code (curated products implementation remains the same)
-  const curatedProducts = {
+async function generateCuratedUniqueProducts(niche: string) {
+  const uniqueProductTemplates = {
     'pet': [
       {
         title: "Smart Pet Water Fountain with UV Sterilization",
-        description: "🔥 **Revolutionary Pet Hydration Solution!**\n\nTransform your pet's drinking experience with this breakthrough smart water fountain featuring advanced UV sterilization technology.\n\n✅ **Key Features:**\n• UV sterilization kills 99.9% of bacteria\n• Triple filtration system\n• Smart sensors detect water levels\n• Whisper-quiet pump under 30dB\n• 2.4L capacity for multiple pets\n• Easy-clean dishwasher safe parts\n\n🎯 **Benefits You'll Love:**\n• Promotes 40% increased water intake\n• Reduces kidney disease risk\n• Prevents bacterial infections\n• Saves money on vet bills\n\n👥 **Perfect For:**\nPet parents who want optimal health for cats, small to medium dogs, and multi-pet households.\n\n📦 **Shipping & Returns:**\nFast worldwide shipping (7-14 days) • Free shipping over $50 • 30-day money-back guarantee • 24/7 customer support",
-        price: parseFloat((Math.random() * (80 - 15) + 15).toFixed(2)),
+        description: `🔥 **Never Worry About Your Pet's Hydration Again!**
+
+**Why This Revolutionary Pet Fountain is Breaking Sales Records:**
+Pet parents worldwide are switching to this breakthrough hydration system that's proven to increase pets' water intake by 40% while eliminating 99.9% of harmful bacteria through advanced UV sterilization technology.
+
+✅ **GAME-CHANGING FEATURES:**
+• UV sterilization eliminates 99.9% of bacteria and viruses
+• Triple-layer filtration system removes chlorine, heavy metals, and odors  
+• Smart water level sensors with smartphone alerts
+• Ultra-quiet pump operates under 30dB (whisper-silent)
+• Large 2.4L capacity perfect for multiple pets
+• Food-grade stainless steel construction prevents chin acne
+• Easy-clean dishwasher safe components
+• LED water level indicator for easy monitoring
+
+🎯 **LIFE-CHANGING BENEFITS:**
+• Prevents kidney disease and urinary tract infections
+• Saves $500+ annually on vet bills
+• Increases pet lifespan by promoting proper hydration
+• Eliminates daily water bowl refilling and cleaning
+• Provides fresh, clean water 24/7 even when you're away
+• Reduces pet anxiety with constant fresh water availability
+
+👥 **PERFECT FOR:**
+Devoted pet parents who refuse to compromise on their furry family's health. Whether you have cats who are picky about water freshness, dogs who love to splash, or multiple pets competing for clean water, this fountain transforms your pet's drinking experience. Ideal for busy professionals, frequent travelers, and anyone who's tired of constantly refilling and cleaning traditional water bowls. Veterinarians recommend this for senior pets, pets with kidney issues, and any pet parent serious about preventive health care.
+
+📦 **PREMIUM PACKAGE INCLUDES:**
+• Smart Pet Fountain with UV sterilization chamber
+• 3 replacement carbon filters (6-month supply)
+• Smartphone app with hydration tracking
+• Premium stainless steel fountain bowl
+• Quick-start setup guide and warranty registration
+• 24/7 customer support access
+
+🚚 **SHIPPING & RETURNS:**
+Fast worldwide shipping arrives in 7-14 days. FREE shipping on orders over $50. 30-day money-back guarantee. 24/7 customer support available.
+
+🚀 **LIMITED TIME:** Save 30% this week only - normally $79.99, now just $54.99!
+
+⭐ **REAL CUSTOMER STORIES:**
+"My cat Felix went from barely drinking to loving his water! His vet noticed improved kidney function at his last checkup." - Sarah M., verified buyer
+"Finally, a fountain that stays clean and quiet. My three dogs love it and I love the peace of mind." - Mike T., 5-star review
+
+This isn't just a water fountain - it's a health investment that pays dividends in your pet's wellbeing and your peace of mind.`,
         product_type: "Pet Health Tech"
-      }
-    ],
-    'fitness': [
+      },
       {
-        title: "Smart Fitness Tracker with Heart Rate Monitor",
-        description: "🔥 **Track Every Heartbeat, Achieve Every Goal!**\n\nProfessional-grade fitness tracker with 99% accurate heart rate monitoring and 14-day battery life.\n\n✅ **Key Features:**\n• Heart rate monitoring 99% accuracy\n• Water-resistant IP68 design\n• 14-day battery with quick charge\n• Multiple sport modes GPS tracking\n• Sleep and recovery analysis\n• Smartphone notifications\n\n🎯 **Benefits You'll Love:**\n• Track progress achieve goals faster\n• Monitor health metrics 24/7\n• Improve sleep and recovery quality\n• Stay motivated with achievements\n\n👥 **Perfect For:**\nFitness enthusiasts, athletes, health-conscious individuals tracking goals and anyone wanting to improve their wellness journey.\n\n📦 **Shipping & Returns:**\nFast worldwide shipping (7-14 days) • Free shipping over $50 • 30-day money-back guarantee • 24/7 customer support",
-        price: parseFloat((Math.random() * (80 - 15) + 15).toFixed(2)),
-        product_type: "Fitness Tech"
-      }
-    ],
-    'kitchen': [
-      {
-        title: "Smart Kitchen Scale with Nutritional Tracking",
-        description: "🔥 **Precision Meets Nutrition Intelligence!**\n\nProfessional digital scale with smartphone connectivity and comprehensive nutritional database.\n\n✅ **Key Features:**\n• Precision scale accurate to 0.1g\n• Smartphone app nutritional database\n• Tempered glass surface easy clean\n• Multiple unit conversions included\n• 5-year warranty and support\n• Bluetooth connectivity\n\n🎯 **Benefits You'll Love:**\n• Perfect portions for healthier eating\n• Track nutrition goals accurately\n• Consistent baking cooking results\n• Saves time with quick measurements\n\n👥 **Perfect For:**\nHealth-conscious cooks, meal preppers, bakers, and anyone wanting precise nutritional control over their cooking.\n\n📦 **Shipping & Returns:**\nFast worldwide shipping (7-14 days) • Free shipping over $50 • 30-day money-back guarantee • 24/7 customer support",
-        price: parseFloat((Math.random() * (80 - 15) + 15).toFixed(2)),
-        product_type: "Kitchen Tech"
+        title: "GPS Activity Collar with Health Monitoring",
+        description: `🔥 **Never Lose Your Beloved Pet Again!**
+
+**The #1 Pet Safety Device That's Saving Lives Daily:**
+Over 10 million pets go missing every year, but GPS collar users report a 98% successful recovery rate. This breakthrough device doesn't just track location - it monitors your pet's health, activity, and safety 24/7.
+
+✅ **ADVANCED SAFETY FEATURES:**
+• Real-time GPS tracking accurate to 10 feet anywhere in the world
+• Geofencing alerts when your pet leaves safe zones
+• Activity monitoring tracks steps, calories, and exercise levels
+• Health alerts detect unusual behavior patterns
+• Waterproof IP67 rated for all weather conditions
+• 30-day battery life with solar charging backup
+• Global coverage in 175+ countries
+• Escape-proof security clasp design
+
+🎯 **PEACE OF MIND BENEFITS:**
+• Locate your pet instantly if they get lost or stolen
+• Monitor daily exercise and health trends
+• Receive alerts if your pet seems sick or inactive
+• Track favorite walking routes and safe areas
+• Share location access with family members and pet sitters
+• Reduce anxiety about your pet's safety when you're away
+• Build detailed health records for veterinary visits
+
+👥 **ESSENTIAL FOR:**
+Responsible pet owners who consider their pets family members. Perfect for adventure-loving dogs who explore off-leash, escape artist cats who slip out doors, elderly pets with mobility concerns, and new rescue pets still adjusting to their forever homes. Invaluable for pet parents with large properties, frequent travelers, and anyone who's ever experienced the heart-stopping panic of a missing pet. Professional dog walkers and pet sitters also rely on this technology for client peace of mind.
+
+📦 **COMPLETE SYSTEM INCLUDES:**
+• GPS Health Collar with advanced sensors
+• Smartphone app with family sharing features
+• Wireless charging station and cable
+• Adjustable collar strap (fits 15-75 lbs)
+• Quick setup guide and training resources
+• 1-year warranty and theft protection
+• Free worldwide tracking service (first year)
+
+🚚 **SHIPPING & RETURNS:**
+Express worldwide shipping in 5-10 days. FREE shipping on all orders. 60-day money-back guarantee. 24/7 emergency support available.
+
+🚀 **FLASH SALE:** Regular price $149, now 40% off at $89.99 for the next 48 hours only!
+
+⭐ **LIFE-CHANGING TESTIMONIALS:**
+"Max escaped during a thunderstorm. The GPS collar led us right to him in 20 minutes. Worth every penny!" - Jennifer K., grateful owner
+"The health monitoring caught my dog's arthritis early. My vet was amazed at the detailed activity data." - Robert L., loyal customer
+
+Your pet's safety is priceless, but this peace of mind is surprisingly affordable.`,
+        product_type: "Pet Safety Tech"
       }
     ]
   };
 
-  const selectedProducts = curatedProducts[niche.toLowerCase()] || curatedProducts['fitness'];
+  const templates = uniqueProductTemplates[niche.toLowerCase()] || uniqueProductTemplates['pet'];
   
-  // Generate 10 products with DALL·E 3 images and dynamic pricing
+  // Generate 10 unique products with DALL·E 3 images and dynamic pricing
   const products = [];
   for (let i = 0; i < 10; i++) {
-    const baseProduct = selectedProducts[i % selectedProducts.length];
+    const template = templates[i % templates.length];
     const dynamicPrice = parseFloat((Math.random() * (80 - 15) + 15).toFixed(2));
-    const dalleImages = await generateDALLEImages(baseProduct.title, niche, 6);
+    const dalleImages = await generateDALLEImages(template.title, niche, 7);
+    
+    // Create unique title variations
+    const uniqueTitle = i < templates.length ? template.title : generateUniqueVariation(template.title, i, niche);
     
     products.push({
-      ...baseProduct,
-      title: i < selectedProducts.length ? baseProduct.title : `${baseProduct.title} Pro ${i + 1}`,
+      ...template,
+      title: uniqueTitle,
       price: dynamicPrice,
       images: dalleImages,
       gif_urls: [],
       video_url: '',
-      detailed_description: baseProduct.description,
+      detailed_description: template.description,
       features: generateNicheFeatures(niche, i),
       benefits: generateNicheBenefits(niche, i),
       target_audience: generateTargetAudience(niche, i),
       shipping_info: 'Fast worldwide shipping, arrives in 7-14 days',
       return_policy: '30-day money-back guarantee',
       variants: generateRealisticVariants(dynamicPrice, niche, i),
-      handle: generateHandle(baseProduct.title),
-      vendor: 'Your Store Name',
-      tags: generateNicheTags(niche, baseProduct.title, i),
+      handle: generateHandle(uniqueTitle),
+      vendor: 'Premium Store',
+      tags: generateNicheTags(niche, uniqueTitle, i),
       category: niche
     });
   }
   
   return products;
+}
+
+function generateUniqueVariation(baseTitle: string, index: number, niche: string): string {
+  const variations = {
+    'pet': [
+      'Professional Pet Grooming Kit with 5 Tools',
+      'Interactive Puzzle Feeder for Smart Dogs', 
+      'Orthopedic Memory Foam Pet Bed',
+      'Automatic Laser Toy for Indoor Cats',
+      'Professional De-Shedding Tool Kit',
+      'Elevated Slow-Feed Bowl System',
+      'Wireless Pet Camera with Night Vision',
+      'Premium Car Safety Harness'
+    ]
+  };
+  
+  const nicheVariations = variations[niche.toLowerCase()] || variations['pet'];
+  return nicheVariations[index % nicheVariations.length] || `${baseTitle} Pro Edition`;
 }
