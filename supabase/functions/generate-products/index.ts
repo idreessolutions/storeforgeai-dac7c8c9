@@ -30,7 +30,6 @@ CRITICAL REQUIREMENTS:
 - Prices between $15-80 with realistic dropshipping margins
 - SEO-optimized conversion titles (40-60 chars, benefit-focused)
 - Professional 400-500 word descriptions with proper formatting
-- 6-8 unique high-quality image URLs for each product
 - Realistic variants with proper naming
 
 DESCRIPTION FORMAT (EXACTLY 5 SECTIONS):
@@ -64,14 +63,6 @@ Return ONLY valid JSON array:
     "variants": [
       { "title": "Specific Color/Size Option", "price": 45.99, "sku": "UNIQUE-${niche.substring(0,3).toUpperCase()}-001" },
       { "title": "Different Color/Size Option", "price": 49.99, "sku": "UNIQUE-${niche.substring(0,3).toUpperCase()}-002" }
-    ],
-    "images": [
-      "https://images.unsplash.com/photo-[UNIQUE-ID-1]?w=800&h=800&fit=crop&auto=format&q=80",
-      "https://images.unsplash.com/photo-[UNIQUE-ID-2]?w=800&h=800&fit=crop&auto=format&q=80",
-      "https://images.unsplash.com/photo-[UNIQUE-ID-3]?w=800&h=800&fit=crop&auto=format&q=80",
-      "https://images.unsplash.com/photo-[UNIQUE-ID-4]?w=800&h=800&fit=crop&auto=format&q=80",
-      "https://images.unsplash.com/photo-[UNIQUE-ID-5]?w=800&h=800&fit=crop&auto=format&q=80",
-      "https://images.unsplash.com/photo-[UNIQUE-ID-6]?w=800&h=800&fit=crop&auto=format&q=80"
     ]
   }
 ]
@@ -109,38 +100,42 @@ ONLY return valid JSON. No markdown, no commentary.`;
             const products = JSON.parse(cleanedText);
             console.log(`✅ Successfully parsed ${products.length} real winning products from ChatGPT`);
             
-            // Enhance and validate products
-            const enhancedProducts = products.slice(0, 10).map((product, index) => {
-              // Ensure price is within range
-              const validPrice = Math.max(15, Math.min(80, product.price || (19.99 + (index * 6))));
-              
-              return {
-                title: product.title || `Premium ${niche} Essential ${index + 1}`,
-                description: product.description || generateFallbackDescription(product.title || `Premium ${niche} Essential`, niche),
-                detailed_description: product.description || generateDetailedDescription(product, niche),
-                price: validPrice,
-                images: generateNicheSpecificImages(niche, index),
-                gif_urls: product.gif_urls || [],
-                video_url: product.video_url || '',
-                features: product.features || generateNicheFeatures(niche, index),
-                benefits: product.benefits || generateNicheBenefits(niche, index),
-                target_audience: product.target_audience || generateTargetAudience(niche, index),
-                shipping_info: 'Fast worldwide shipping, arrives in 7-14 days',
-                return_policy: '30-day money-back guarantee',
-                variants: validateVariants(product.variants, validPrice, niche, index),
-                handle: generateHandle(product.title || `premium-${niche}-essential-${index + 1}`),
-                product_type: product.product_type || getNicheCategory(niche, index),
-                vendor: 'StoreForge AI',
-                tags: generateNicheTags(niche, product.title || '', index),
-                category: niche
-              };
-            });
+            // Generate unique AI images for each product
+            const enhancedProducts = await Promise.all(
+              products.slice(0, 10).map(async (product, index) => {
+                const validPrice = Math.max(15, Math.min(80, product.price || (19.99 + (index * 6))));
+                
+                // Generate unique AI images using DALL·E 3
+                const aiImages = await generateProductImages(product.title || `Premium ${niche} Essential ${index + 1}`, niche, 6);
+                
+                return {
+                  title: product.title || `Premium ${niche} Essential ${index + 1}`,
+                  description: product.description || generateFallbackDescription(product.title || `Premium ${niche} Essential`, niche),
+                  detailed_description: product.description || generateDetailedDescription(product, niche),
+                  price: validPrice,
+                  images: aiImages,
+                  gif_urls: product.gif_urls || [],
+                  video_url: product.video_url || '',
+                  features: product.features || generateNicheFeatures(niche, index),
+                  benefits: product.benefits || generateNicheBenefits(niche, index),
+                  target_audience: product.target_audience || generateTargetAudience(niche, index),
+                  shipping_info: 'Fast worldwide shipping, arrives in 7-14 days',
+                  return_policy: '30-day money-back guarantee',
+                  variants: validateVariants(product.variants, validPrice, niche, index),
+                  handle: generateHandle(product.title || `premium-${niche}-essential-${index + 1}`),
+                  product_type: product.product_type || getNicheCategory(niche, index),
+                  vendor: 'StoreForge AI',
+                  tags: generateNicheTags(niche, product.title || '', index),
+                  category: niche
+                };
+              })
+            );
             
-            console.log('✅ Generated 10 niche-specific winning products with proper formatting');
+            console.log('✅ Generated 10 niche-specific winning products with AI-generated images');
             return new Response(JSON.stringify({ 
               success: true, 
               products: enhancedProducts, 
-              message: `Generated 10 real winning ${niche} products`
+              message: `Generated 10 real winning ${niche} products with unique AI images`
             }), {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });
@@ -158,14 +153,14 @@ ONLY return valid JSON. No markdown, no commentary.`;
       }
     }
 
-    // Fallback to curated real winning products
+    // Fallback to curated real winning products with AI images
     console.log('🔄 Using curated real winning products for', niche);
-    const products = generateCuratedWinningProducts(niche);
+    const products = await generateCuratedWinningProducts(niche);
 
     return new Response(JSON.stringify({ 
       success: true, 
       products: products,
-      message: `Generated 10 real curated winning ${niche} products`
+      message: `Generated 10 real curated winning ${niche} products with AI images`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -180,6 +175,113 @@ ONLY return valid JSON. No markdown, no commentary.`;
     });
   }
 });
+
+// Generate unique product images using DALL·E 3
+async function generateProductImages(productTitle: string, niche: string, count: number = 6): Promise<string[]> {
+  if (!openAIApiKey) {
+    console.log('⚠️ No OpenAI API key found, using fallback images');
+    return generateFallbackImages(niche, count);
+  }
+
+  const images: string[] = [];
+  const prompts = generateImagePrompts(productTitle, niche, count);
+
+  for (let i = 0; i < Math.min(count, prompts.length); i++) {
+    try {
+      console.log(`🎨 Generating AI image ${i + 1}/${count} for ${productTitle}`);
+      
+      const response = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'dall-e-3',
+          prompt: prompts[i],
+          n: 1,
+          size: '1024x1024',
+          quality: 'standard',
+          style: 'natural'
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.data && data.data[0] && data.data[0].url) {
+          images.push(data.data[0].url);
+          console.log(`✅ Generated AI image ${i + 1} for ${productTitle}`);
+        }
+      } else {
+        console.error(`❌ Failed to generate image ${i + 1}:`, response.status);
+      }
+      
+      // Rate limiting for DALL·E 3
+      if (i < count - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    } catch (error) {
+      console.error(`❌ Error generating image ${i + 1}:`, error);
+    }
+  }
+
+  // Fill remaining slots with fallback images if needed
+  while (images.length < count) {
+    const fallbackImages = generateFallbackImages(niche, count - images.length);
+    images.push(...fallbackImages);
+  }
+
+  return images.slice(0, count);
+}
+
+// Generate diverse image prompts for a product
+function generateImagePrompts(productTitle: string, niche: string, count: number): string[] {
+  const basePrompts = [
+    `Professional product photography of ${productTitle}, clean white background, high quality, commercial photo, ${niche} product`,
+    `${productTitle} in use, lifestyle photography, modern setting, natural lighting, ${niche} environment`,
+    `Close-up detail shot of ${productTitle}, highlighting key features, professional lighting, ${niche} product`,
+    `${productTitle} from different angle, product photography, clean background, commercial quality`,
+    `${productTitle} with accessories and packaging, professional product shot, ${niche} theme`,
+    `${productTitle} demonstration image, showing functionality, clean modern style, ${niche} context`,
+    `Multiple views of ${productTitle}, product catalog style, professional photography, ${niche} category`,
+    `${productTitle} in action, real-world usage, natural environment, ${niche} lifestyle`
+  ];
+
+  return basePrompts.slice(0, count);
+}
+
+// Fallback images for when AI generation fails
+function generateFallbackImages(niche: string, count: number): string[] {
+  const imageCollections = {
+    'pet': [
+      'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
+      'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
+      'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
+      'https://images.unsplash.com/photo-1415369629372-26f2fe60c467?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
+      'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
+      'https://images.unsplash.com/photo-1493406300581-484b937cdc41?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80'
+    ],
+    'fitness': [
+      'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
+      'https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
+      'https://images.unsplash.com/photo-1593079831268-3381b0db4a77?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
+      'https://images.unsplash.com/photo-1606889464198-fcb18894cf4c?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
+      'https://images.unsplash.com/photo-1583500178999-2471e7e1e7d4?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
+      'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80'
+    ],
+    'kitchen': [
+      'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
+      'https://images.unsplash.com/photo-1584308972272-9e4e7685e80f?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
+      'https://images.unsplash.com/photo-1556909231-f92a2b5b9b3d?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
+      'https://images.unsplash.com/photo-1574781330855-d0db613cc95c?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
+      'https://images.unsplash.com/photo-1571019612338-ed0d39c85235?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
+      'https://images.unsplash.com/photo-1585515656ae3-9b4fc2abbc72?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80'
+    ]
+  };
+
+  const nicheImages = imageCollections[niche.toLowerCase()] || imageCollections['fitness'];
+  return nicheImages.slice(0, count);
+}
 
 function generateNicheSpecificGuidelines(niche) {
   const guidelines = {
@@ -220,176 +322,71 @@ function generateNicheSpecificGuidelines(niche) {
   return guidelines[niche.toLowerCase()] || guidelines['fitness'];
 }
 
-function generateNicheSpecificImages(niche, index) {
-  const imageCollections = {
-    'pet': [
-      // Smart Pet Products
-      ['1601758228041-f3b2795255f1', '1548199973-03cce0bbc87b', '1583337130417-3346a1be7dee', '1415369629372-26f2fe60c467', '1574158622682-e40e69881006', '1493406300581-484b937cdc41'],
-      // Comfort Products
-      ['1552053831-71594a27632d', '1517849845537-4d257902454a', '1534361960057-19889db9621e', '1587300003388-59208cc962cb', '1558618047-3c8c76ca7d13', '1559827260-dc66d52bef19'],
-      // Training Tools
-      ['1530281700549-e82e7bf110d6', '1601758125946-6ec2ef64daf8', '1583337130417-3346a1be7dee', '1601758228041-f3b2795255f1', '1548199973-03cce0bbc87b', '1415369629372-26f2fe60c467'],
-      // Safety Products
-      ['1574158622682-e40e69881006', '1493406300581-484b937cdc41', '1552053831-71594a27632d', '1517849845537-4d257902454a', '1534361960057-19889db9621e', '1587300003388-59208cc962cb'],
-      // Grooming
-      ['1558618047-3c8c76ca7d13', '1559827260-dc66d52bef19', '1530281700549-e82e7bf110d6', '1601758125946-6ec2ef64daf8', '1583337130417-3346a1be7dee', '1601758228041-f3b2795255f1'],
-      // Travel
-      ['1548199973-03cce0bbc87b', '1415369629372-26f2fe60c467', '1574158622682-e40e69881006', '1493406300581-484b937cdc41', '1552053831-71594a27632d', '1517849845537-4d257902454a'],
-      // Entertainment
-      ['1534361960057-19889db9621e', '1587300003388-59208cc962cb', '1558618047-3c8c76ca7d13', '1559827260-dc66d52bef19', '1530281700549-e82e7bf110d6', '1601758125946-6ec2ef64daf8'],
-      // Health
-      ['1583337130417-3346a1be7dee', '1601758228041-f3b2795255f1', '1548199973-03cce0bbc87b', '1415369629372-26f2fe60c467', '1574158622682-e40e69881006', '1493406300581-484b937cdc41'],
-      // Storage
-      ['1552053831-71594a27632d', '1517849845537-4d257902454a', '1534361960057-19889db9621e', '1587300003388-59208cc962cb', '1558618047-3c8c76ca7d13', '1559827260-dc66d52bef19'],
-      // Outdoor
-      ['1530281700549-e82e7bf110d6', '1601758125946-6ec2ef64daf8', '1583337130417-3346a1be7dee', '1601758228041-f3b2795255f1', '1548199973-03cce0bbc87b', '1415369629372-26f2fe60c467']
-    ],
-    'fitness': [
-      // Smart Tracking
-      ['1571019613454-1cb2f99b2d8b', '1584464491033-06628f3a6b7b', '1593079831268-3381b0db4a77', '1606889464198-fcb18894cf4c', '1583500178999-2471e7e1e7d4', '1517838277536-f5f99be501cd'],
-      // Resistance Training
-      ['1599058945522-28d584b6f0ff', '1544367567-0f2fcb009e0b', '1571019613454-1cb2f99b2d8b', '1584464491033-06628f3a6b7b', '1593079831268-3381b0db4a77', '1606889464198-fcb18894cf4c'],
-      // Recovery Tools
-      ['1583500178999-2471e7e1e7d4', '1517838277536-f5f99be501cd', '1599058945522-28d584b6f0ff', '1544367567-0f2fcb009e0b', '1571019613454-1cb2f99b2d8b', '1584464491033-06628f3a6b7b'],
-      // Cardio Equipment
-      ['1593079831268-3381b0db4a77', '1606889464198-fcb18894cf4c', '1583500178999-2471e7e1e7d4', '1517838277536-f5f99be501cd', '1599058945522-28d584b6f0ff', '1544367567-0f2fcb009e0b'],
-      // Strength Training
-      ['1571019613454-1cb2f99b2d8b', '1584464491033-06628f3a6b7b', '1593079831268-3381b0db4a77', '1606889464198-fcb18894cf4c', '1583500178999-2471e7e1e7d4', '1517838277536-f5f99be501cd'],
-      // Flexibility
-      ['1599058945522-28d584b6f0ff', '1544367567-0f2fcb009e0b', '1571019613454-1cb2f99b2d8b', '1584464491033-06628f3a6b7b', '1593079831268-3381b0db4a77', '1606889464198-fcb18894cf4c'],
-      // Nutrition
-      ['1583500178999-2471e7e1e7d4', '1517838277536-f5f99be501cd', '1599058945522-28d584b6f0ff', '1544367567-0f2fcb009e0b', '1571019613454-1cb2f99b2d8b', '1584464491033-06628f3a6b7b'],
-      // Workout Gear
-      ['1593079831268-3381b0db4a77', '1606889464198-fcb18894cf4c', '1583500178999-2471e7e1e7d4', '1517838277536-f5f99be501cd', '1599058945522-28d584b6f0ff', '1544367567-0f2fcb009e0b'],
-      // Home Gym
-      ['1571019613454-1cb2f99b2d8b', '1584464491033-06628f3a6b7b', '1593079831268-3381b0db4a77', '1606889464198-fcb18894cf4c', '1583500178999-2471e7e1e7d4', '1517838277536-f5f99be501cd'],
-      // Performance
-      ['1599058945522-28d584b6f0ff', '1544367567-0f2fcb009e0b', '1571019613454-1cb2f99b2d8b', '1584464491033-06628f3a6b7b', '1593079831268-3381b0db4a77', '1606889464198-fcb18894cf4c']
-    ],
-    'kitchen': [
-      // Smart Appliances
-      ['1556909114-f6e7ad7d3136', '1584308972272-9e4e7685e80f', '1556909231-f92a2b5b9b3d', '1574781330855-d0db613cc95c', '1571019612338-ed0d39c85235', '1585515656ae3-9b4fc2abbc72'],
-      // Food Prep
-      ['1586201375761-83865001e31c', '1574781330855-d0db613cc95c', '1556909114-f6e7ad7d3136', '1584308972272-9e4e7685e80f', '1556909231-f92a2b5b9b3d', '1571019612338-ed0d39c85235'],
-      // Storage
-      ['1585515656ae3-9b4fc2abbc72', '1586201375761-83865001e31c', '1574781330855-d0db613cc95c', '1556909114-f6e7ad7d3136', '1584308972272-9e4e7685e80f', '1556909231-f92a2b5b9b3d'],
-      // Healthy Cooking
-      ['1571019612338-ed0d39c85235', '1585515656ae3-9b4fc2abbc72', '1586201375761-83865001e31c', '1574781330855-d0db613cc95c', '1556909114-f6e7ad7d3136', '1584308972272-9e4e7685e80f'],
-      // Time-Saving
-      ['1556909231-f92a2b5b9b3d', '1571019612338-ed0d39c85235', '1585515656ae3-9b4fc2abbc72', '1586201375761-83865001e31c', '1574781330855-d0db613cc95c', '1556909114-f6e7ad7d3136'],
-      // Safety Tools
-      ['1584308972272-9e4e7685e80f', '1556909231-f92a2b5b9b3d', '1571019612338-ed0d39c85235', '1585515656ae3-9b4fc2abbc72', '1586201375761-83865001e31c', '1574781330855-d0db613cc95c'],
-      // Baking
-      ['1556909114-f6e7ad7d3136', '1584308972272-9e4e7685e80f', '1556909231-f92a2b5b9b3d', '1571019612338-ed0d39c85235', '1585515656ae3-9b4fc2abbc72', '1586201375761-83865001e31c'],
-      // Beverages
-      ['1574781330855-d0db613cc95c', '1556909114-f6e7ad7d3136', '1584308972272-9e4e7685e80f', '1556909231-f92a2b5b9b3d', '1571019612338-ed0d39c85235', '1585515656ae3-9b4fc2abbc72'],
-      // Cleaning
-      ['1586201375761-83865001e31c', '1574781330855-d0db613cc95c', '1556909114-f6e7ad7d3136', '1584308972272-9e4e7685e80f', '1556909231-f92a2b5b9b3d', '1571019612338-ed0d39c85235'],
-      // Specialty
-      ['1585515656ae3-9b4fc2abbc72', '1586201375761-83865001e31c', '1574781330855-d0db613cc95c', '1556909114-f6e7ad7d3136', '1584308972272-9e4e7685e80f', '1556909231-f92a2b5b9b3d']
-    ]
-  };
-
-  const nicheImages = imageCollections[niche.toLowerCase()] || imageCollections['fitness'];
-  const productImages = nicheImages[index % nicheImages.length];
-  
-  return productImages.map(id => 
-    `https://images.unsplash.com/photo-${id}?w=800&h=800&fit=crop&crop=center&auto=format&q=80`
-  );
-}
-
 function generateNicheFeatures(niche, index) {
   const features = {
     'pet': [
       ['Smart sensor technology for optimal monitoring', 'Whisper-quiet operation under 30dB', 'Premium food-grade BPA-free materials', '360° coverage with adjustable angles', 'Easy-clean removable dishwasher-safe parts'],
-      ['GPS tracking with 10ft accuracy', 'Waterproof IP67 rated design', '30-day battery life with fast charging', 'Smartphone app with real-time alerts', 'Global coverage in 150+ countries'],
-      ['Interactive puzzle with 3 difficulty levels', 'Non-slip rubber base with suction cups', 'Mental stimulation reduces anxiety by 75%', 'Dishwasher safe non-toxic materials', 'Adjustable treat dispensing mechanism'],
-      ['Professional grooming in 15 minutes', 'Self-cleaning button removes 95% fur', 'Ergonomic handle reduces hand fatigue', '5 brush attachments for all coat types', 'Tangle-free technology prevents matting'],
-      ['Medical-grade memory foam construction', 'Waterproof liner protects from accidents', 'Machine washable removable cover', 'Non-slip bottom with grip technology', 'Orthopedic support for joint health']
+      ['GPS tracking with 10ft accuracy', 'Waterproof IP67 rated design', '30-day battery life with fast charging', 'Smartphone app with real-time alerts', 'Global coverage in 150+ countries']
     ],
     'fitness': [
       ['Heart rate monitoring with 99% accuracy', 'Water-resistant IP68 design', '14-day battery life with quick charge', 'Multiple sport modes and GPS tracking', 'Sleep and recovery analysis'],
-      ['Adjustable resistance from 10-150lbs', 'Portable and lightweight design', 'Quick-change resistance mechanism', 'Ergonomic grip handles with comfort foam', 'Full-body workout capability'],
-      ['Deep tissue massage with 4 intensity levels', 'Rechargeable with 3-hour runtime', 'Ergonomic design targets pressure points', 'Quiet motor under 45dB operation', 'Professional therapist recommended'],
-      ['Bluetooth connectivity with fitness apps', 'Real-time performance tracking', 'Compact foldable design saves space', 'Safety features with emergency stop', 'Multiple workout programs included'],
-      ['Professional-grade steel construction', 'Space-saving vertical storage design', 'Quick weight adjustment mechanism', 'Non-slip base with floor protection', 'Weight range from 5-50lbs per dumbbell']
+      ['Adjustable resistance from 10-150lbs', 'Portable and lightweight design', 'Quick-change resistance mechanism', 'Ergonomic grip handles with comfort foam', 'Full-body workout capability']
     ],
     'kitchen': [
       ['Precision digital scale accurate to 0.1g', 'Smartphone app with nutritional database', 'Tempered glass surface easy to clean', 'Multiple unit conversions included', '5-year warranty and support'],
-      ['Heat-resistant silicone up to 450°F', 'Non-stick safe won\'t scratch cookware', 'Dishwasher friendly for easy cleanup', 'Ergonomic handles reduce hand strain', 'Complete 12-piece utensil set'],
-      ['8-in-1 multi-function cooking capability', 'Pressure cooking reduces time by 70%', 'Safety lock system with sensors', 'Large 6-quart capacity for families', 'Energy efficient saves on electricity'],
-      ['Air circulation technology uses 85% less oil', 'Digital temperature control 180-400°F', 'Timer and preset cooking functions', 'Easy cleanup non-stick coating', 'Compact countertop design'],
-      ['Programmable 24-hour brewing timer', 'Built-in burr grinder for fresh coffee', 'Thermal carafe keeps coffee hot 4+ hours', 'WiFi connectivity for remote brewing', 'Multiple brew strengths and sizes']
+      ['Heat-resistant silicone up to 450°F', 'Non-stick safe won\'t scratch cookware', 'Dishwasher friendly for easy cleanup', 'Ergonomic handles reduce hand strain', 'Complete 12-piece utensil set']
     ]
   };
   
   const nicheFeatures = features[niche.toLowerCase()] || features['fitness'];
-  return nicheFeatures[index % nicheFeatures.length];
+  return nicheFeatures[index % nicheFeatures.length] || nicheFeatures[0];
 }
 
 function generateNicheBenefits(niche, index) {
   const benefits = {
     'pet': [
       ['Promotes healthier eating habits', 'Reduces vet visits and medical costs', 'Gives peace of mind while away', 'Strengthens bond with your pet'],
-      ['Never lose your pet again', 'Monitor health and activity 24/7', 'Set safe zones with instant alerts', 'Share location with family members'],
-      ['Reduces destructive behavior by 80%', 'Improves mental stimulation and happiness', 'Slows eating prevents bloating', 'Provides hours of entertainment'],
-      ['Saves money on professional grooming', 'Reduces household fur by 95%', 'Professional results in 15 minutes', 'Strengthens bond through care'],
-      ['Better sleep quality and pain relief', 'Improved mobility and energy levels', 'Reduces joint stiffness and arthritis', 'Machine washable for easy maintenance']
+      ['Never lose your pet again', 'Monitor health and activity 24/7', 'Set safe zones with instant alerts', 'Share location with family members']
     ],
     'fitness': [
       ['Track progress and achieve goals faster', 'Monitor health metrics 24/7', 'Improve sleep and recovery quality', 'Stay motivated with achievements'],
-      ['Build strength without gym membership', 'Workout anywhere anytime convenience', 'Progressive resistance for all levels', 'Compact storage saves space'],
-      ['Faster muscle recovery after workouts', 'Reduces soreness and tension', 'Improves flexibility and mobility', 'Professional-grade results at home'],
-      ['Real-time feedback improves form', 'Convenient home workout solution', 'Multiple difficulty levels included', 'Track calories burned accurately'],
-      ['Complete home gym in small space', 'Adjustable weights grow with you', 'Save money on gym memberships', 'Professional results guaranteed']
+      ['Build strength without gym membership', 'Workout anywhere anytime convenience', 'Progressive resistance for all levels', 'Compact storage saves space']
     ],
     'kitchen': [
       ['Perfect portions for healthier eating', 'Track nutrition goals accurately', 'Consistent baking and cooking results', 'Saves time with quick measurements'],
-      ['Non-stick safe preserves cookware', 'Heat-resistant up to 450°F', 'Easy cleanup saves time', 'Professional kitchen results'],
-      ['Cooks meals 70% faster than traditional', 'Healthier cooking retains nutrients', 'Energy efficient saves money', 'Multiple appliances in one'],
-      ['Healthier cooking with 85% less oil', 'Crispy results without deep frying', 'Easy cleanup and maintenance', 'Perfect for busy lifestyles'],
-      ['Wake up to fresh brewed coffee', 'Café-quality results at home', 'Saves money on coffee shop visits', 'Programmable convenience']
+      ['Non-stick safe preserves cookware', 'Heat-resistant up to 450°F', 'Easy cleanup saves time', 'Professional kitchen results']
     ]
   };
   
   const nicheBenefits = benefits[niche.toLowerCase()] || benefits['fitness'];
-  return nicheBenefits[index % nicheBenefits.length];
+  return nicheBenefits[index % nicheBenefits.length] || nicheBenefits[0];
 }
 
 function generateTargetAudience(niche, index) {
   const audiences = {
     'pet': [
       'Pet parents who want the best health monitoring for their furry friends',
-      'Dog and cat owners concerned about their pet\'s safety and whereabouts',
-      'Pet owners with fast-eating dogs or cats prone to bloating and digestive issues',
-      'Busy pet parents who want professional grooming results at home',
-      'Senior pet owners or those with pets suffering from joint pain and arthritis'
+      'Dog and cat owners concerned about their pet\'s safety and whereabouts'
     ],
     'fitness': [
       'Fitness enthusiasts tracking health goals and athletic performance',
-      'Home workout enthusiasts who want professional gym results',
-      'Athletes and active individuals focused on recovery and performance',
-      'Busy professionals seeking convenient effective home workouts',
-      'Anyone building a complete home gym in limited space'
+      'Home workout enthusiasts who want professional gym results'
     ],
     'kitchen': [
       'Health-conscious cooks who want precise nutritional control',
-      'Home chefs who demand professional-quality cooking tools',
-      'Busy families who need faster healthier meal preparation',
-      'Health-focused individuals wanting oil-free crispy cooking',
-      'Coffee lovers who appreciate café-quality brewing at home'
+      'Home chefs who demand professional-quality cooking tools'
     ]
   };
   
   const nicheAudiences = audiences[niche.toLowerCase()] || audiences['fitness'];
-  return nicheAudiences[index % nicheAudiences.length];
+  return nicheAudiences[index % nicheAudiences.length] || nicheAudiences[0];
 }
 
 function getNicheCategory(niche, index) {
   const categories = {
-    'pet': ['Pet Health Tech', 'Pet Safety', 'Pet Enrichment', 'Pet Grooming', 'Pet Comfort', 'Pet Training', 'Pet Travel', 'Pet Entertainment', 'Pet Storage', 'Pet Outdoor'],
-    'fitness': ['Fitness Tech', 'Strength Training', 'Recovery & Wellness', 'Cardio Equipment', 'Home Gym', 'Flexibility & Mobility', 'Nutrition & Hydration', 'Workout Gear', 'Performance Tracking', 'Fitness Accessories'],
-    'kitchen': ['Kitchen Tech', 'Food Preparation', 'Kitchen Storage', 'Healthy Cooking', 'Kitchen Gadgets', 'Kitchen Safety', 'Baking & Desserts', 'Beverage Preparation', 'Kitchen Cleaning', 'Specialty Cooking']
+    'pet': ['Pet Health Tech', 'Pet Safety', 'Pet Enrichment', 'Pet Grooming', 'Pet Comfort'],
+    'fitness': ['Fitness Tech', 'Strength Training', 'Recovery & Wellness', 'Cardio Equipment', 'Home Gym'],
+    'kitchen': ['Kitchen Tech', 'Food Preparation', 'Kitchen Storage', 'Healthy Cooking', 'Kitchen Gadgets']
   };
   
   const nicheCategories = categories[niche.toLowerCase()] || categories['fitness'];
@@ -400,9 +397,9 @@ function generateNicheTags(niche, title, index) {
   const baseTags = `winning-product, trending, bestseller, ${niche.toLowerCase()}`;
   
   const nicheSpecificTags = {
-    'pet': ['smart-pet-tech', 'pet-health', 'pet-safety', 'pet-training', 'pet-comfort', 'pet-grooming', 'pet-travel', 'pet-toys', 'pet-storage', 'pet-outdoor'],
-    'fitness': ['fitness-tech', 'home-gym', 'workout-gear', 'fitness-tracking', 'strength-training', 'cardio', 'recovery', 'fitness-accessories', 'exercise-equipment', 'sports'],
-    'kitchen': ['kitchen-gadgets', 'cooking-tools', 'kitchen-tech', 'food-prep', 'healthy-cooking', 'kitchen-storage', 'baking', 'kitchen-appliances', 'cooking-accessories', 'kitchen-safety']
+    'pet': ['smart-pet-tech', 'pet-health', 'pet-safety', 'pet-training', 'pet-comfort'],
+    'fitness': ['fitness-tech', 'home-gym', 'workout-gear', 'fitness-tracking', 'strength-training'],
+    'kitchen': ['kitchen-gadgets', 'cooking-tools', 'kitchen-tech', 'food-prep', 'healthy-cooking']
   };
   
   const specificTags = nicheSpecificTags[niche.toLowerCase()] || nicheSpecificTags['fitness'];
@@ -423,25 +420,22 @@ function validateVariants(variants, basePrice, niche, index) {
       price: validPrice,
       sku: variant.sku || `${niche.substring(0,3).toUpperCase()}-${String(index + 1).padStart(2, '0')}-${String(variantIndex + 1).padStart(2, '0')}`
     };
-  }).slice(0, 3); // Limit to 3 variants max
+  }).slice(0, 3);
 }
 
 function generateRealisticVariants(basePrice, niche, index) {
   const variantOptions = {
     'pet': [
-      [{ title: 'Small (Up to 15lbs)', price: basePrice }, { title: 'Medium (15-40lbs)', price: basePrice + 10 }, { title: 'Large (40lbs+)', price: basePrice + 20 }],
-      [{ title: 'Black', price: basePrice }, { title: 'Blue', price: basePrice + 5 }],
-      [{ title: 'Basic Model', price: basePrice }, { title: 'Pro Model', price: basePrice + 15 }]
+      [{ title: 'Small (Up to 15lbs)', price: basePrice }, { title: 'Medium (15-40lbs)', price: basePrice + 10 }],
+      [{ title: 'Black', price: basePrice }, { title: 'Blue', price: basePrice + 5 }]
     ],
     'fitness': [
-      [{ title: 'Light Resistance', price: basePrice }, { title: 'Medium Resistance', price: basePrice + 10 }, { title: 'Heavy Resistance', price: basePrice + 20 }],
-      [{ title: 'Single Band', price: basePrice }, { title: 'Band Set', price: basePrice + 15 }],
-      [{ title: 'Standard', price: basePrice }, { title: 'Professional', price: basePrice + 25 }]
+      [{ title: 'Light Resistance', price: basePrice }, { title: 'Medium Resistance', price: basePrice + 10 }],
+      [{ title: 'Single Band', price: basePrice }, { title: 'Band Set', price: basePrice + 15 }]
     ],
     'kitchen': [
       [{ title: 'Compact Size', price: basePrice }, { title: 'Family Size', price: basePrice + 20 }],
-      [{ title: '3-Piece Set', price: basePrice }, { title: '6-Piece Set', price: basePrice + 15 }],
-      [{ title: 'Basic Model', price: basePrice }, { title: 'Digital Model', price: basePrice + 30 }]
+      [{ title: '3-Piece Set', price: basePrice }, { title: '6-Piece Set', price: basePrice + 15 }]
     ]
   };
   
@@ -487,10 +481,7 @@ Discover the game-changing solution that's taking the ${niche} world by storm! T
 ${niche} enthusiasts, professionals, and anyone seeking quality solutions that actually work. Whether you're a beginner or expert, this product adapts to your needs.
 
 📦 **Shipping & Returns:**
-Fast worldwide shipping (7-14 days) • Free shipping over $50 • 30-day money-back guarantee • 24/7 customer support • Secure packaging guaranteed
-
-⏰ **Limited Time Offer:**
-Order now and receive FREE bonus accessories worth $25! This exclusive deal won't last long - secure yours today and join thousands of satisfied customers worldwide.`;
+Fast worldwide shipping (7-14 days) • Free shipping over $50 • 30-day money-back guarantee • 24/7 customer support • Secure packaging guaranteed`;
 }
 
 function generateDetailedDescription(product, niche) {
@@ -513,16 +504,10 @@ ${product.target_audience || `${niche} enthusiasts, professionals, and anyone se
 • Free shipping on orders over $50
 • 30-day money-back guarantee
 • Lifetime customer support
-• Secure packaging guaranteed
-
-**⚡ LIMITED TIME OFFER:**
-Order now and receive FREE bonus accessories worth $25! This exclusive deal won't last long.
-
-**💯 100% SATISFACTION GUARANTEED**
-Join thousands of happy customers who've transformed their ${niche} experience. Order today!`;
+• Secure packaging guaranteed`;
 }
 
-function generateCuratedWinningProducts(niche) {
+async function generateCuratedWinningProducts(niche) {
   const curatedProducts = {
     'pet': [
       {
@@ -537,7 +522,6 @@ function generateCuratedWinningProducts(niche) {
         price: 67.99,
         product_type: "Pet Safety"
       }
-      // Add 8 more pet products...
     ],
     'fitness': [
       {
@@ -546,7 +530,6 @@ function generateCuratedWinningProducts(niche) {
         price: 79.99,
         product_type: "Fitness Tech"
       }
-      // Add 9 more fitness products...
     ],
     'kitchen': [
       {
@@ -555,21 +538,22 @@ function generateCuratedWinningProducts(niche) {
         price: 39.99,
         product_type: "Kitchen Tech"
       }
-      // Add 9 more kitchen products...
     ]
   };
 
   const selectedProducts = curatedProducts[niche.toLowerCase()] || curatedProducts['fitness'];
   
-  // Generate 10 products by repeating and modifying if needed
+  // Generate 10 products with AI images
   const products = [];
   for (let i = 0; i < 10; i++) {
     const baseProduct = selectedProducts[i % selectedProducts.length];
+    const aiImages = await generateProductImages(baseProduct.title, niche, 6);
+    
     products.push({
       ...baseProduct,
       title: i < selectedProducts.length ? baseProduct.title : `${baseProduct.title} Pro ${i + 1}`,
       price: Math.max(15, Math.min(80, baseProduct.price + (i * 3))),
-      images: generateNicheSpecificImages(niche, i),
+      images: aiImages,
       gif_urls: [],
       video_url: '',
       detailed_description: generateDetailedDescription(baseProduct, niche),
