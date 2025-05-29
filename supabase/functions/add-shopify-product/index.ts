@@ -15,119 +15,71 @@ serve(async (req) => {
   try {
     const { shopifyUrl, accessToken, product } = await req.json();
 
-    console.log('Adding REAL winning product to Shopify:', product.title);
+    console.log('✅ Step 2: Upload Product to Shopify via Admin API:', product.title);
 
     // Validate inputs
     if (!shopifyUrl || !accessToken || !product) {
       throw new Error('Missing required parameters');
     }
 
-    // Construct the Shopify Admin API URL
-    const apiUrl = `${shopifyUrl}/admin/api/2024-10/products.json`;
+    // Extract domain from URL
+    const domain = shopifyUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    const apiUrl = `https://${domain}/admin/api/2024-10/products.json`;
     
     console.log('Shopify API URL:', apiUrl);
 
-    // Use the professional title as-is (no cleaning needed)
-    const productTitle = product.title;
-    
-    // Generate clean handle from title
-    const cleanHandle = productTitle
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
-
-    // Process variants with realistic naming and pricing
-    const processedVariants = product.variants.map((variant, index) => {
-      let variantTitle = variant.title;
-      let price = typeof variant.price === 'number' ? variant.price : parseFloat(String(variant.price));
-      
-      if (isNaN(price) || price <= 0) {
-        price = 29.99 + (index * 10);
-      }
-      
-      const variantData = {
-        title: variantTitle,
-        price: price.toFixed(2),
-        sku: variant.sku || `${product.product_type?.substring(0,3).toUpperCase()}-${String(index + 1).padStart(3, '0')}`,
-        inventory_management: null,
-        inventory_policy: 'continue',
-        inventory_quantity: 999,
-        weight: 0.5,
-        weight_unit: 'lb',
-        requires_shipping: true,
-        taxable: true,
-        compare_at_price: null,
-        fulfillment_service: 'manual'
-      };
-
-      // Add option1 field for multiple variants
-      if (product.variants.length > 1) {
-        variantData.option1 = variantTitle;
-      }
-
-      return variantData;
-    });
-
-    // Process high-quality, relevant product images
-    const processedImages = [];
-    console.log('Processing relevant product images for:', productTitle);
-    
-    if (product.images && Array.isArray(product.images)) {
-      for (let i = 0; i < product.images.length; i++) {
-        let imageUrl = product.images[i];
-        
-        // Handle both string URLs and object format
-        if (typeof imageUrl === 'object' && imageUrl.src) {
-          imageUrl = imageUrl.src;
-        }
-        
-        if (typeof imageUrl === 'string' && imageUrl.startsWith('http')) {
-          const imageData = {
-            src: imageUrl,
-            alt: `${productTitle} - ${i === 0 ? 'Main Product Image' : `Image ${i + 1}`}`,
-            position: i + 1
-          };
-          
-          processedImages.push(imageData);
-          console.log(`Added relevant image ${i + 1}: ${imageUrl}`);
-        }
-      }
-    }
-
-    console.log(`Successfully processed ${processedImages.length} relevant images for: ${productTitle}`);
-
-    // Prepare the winning product payload with proper categorization
+    // ✅ Enhanced product payload structure based on your code
     const productPayload = {
       product: {
-        title: productTitle,
-        body_html: `<div class="product-description">${product.description}</div>`,
-        vendor: product.vendor || 'TrendingWins',
-        product_type: product.product_type || 'General',
-        handle: cleanHandle,
+        title: product.title,
+        body_html: `<p>${product.description}</p>`,
+        vendor: product.vendor || 'StoreForge AI',
+        product_type: product.product_type || product.category || 'General',
+        handle: product.handle || generateHandle(product.title),
         status: 'active',
         published: true,
-        tags: product.tags || 'winning product, bestseller, trending',
-        images: processedImages,
-        variants: processedVariants,
-        seo_title: productTitle,
-        seo_description: product.description ? product.description.substring(0, 160) : `Buy ${productTitle} - Premium quality with fast shipping.`
+        tags: product.tags || 'winning product, trending',
+        images: (product.images || []).map((url, index) => ({
+          src: url,
+          alt: `${product.title} - Image ${index + 1}`,
+          position: index + 1
+        })),
+        variants: (product.variants || []).map((variant, index) => ({
+          title: variant.title,
+          price: typeof variant.price === 'number' ? variant.price.toFixed(2) : parseFloat(String(variant.price)).toFixed(2),
+          sku: variant.sku || `${product.product_type?.substring(0,3).toUpperCase()}-${String(index + 1).padStart(3, '0')}`,
+          inventory_management: null,
+          inventory_policy: 'continue',
+          inventory_quantity: 999,
+          weight: 0.5,
+          weight_unit: 'lb',
+          requires_shipping: true,
+          taxable: true,
+          compare_at_price: null,
+          fulfillment_service: 'manual'
+        })),
+        seo_title: product.title,
+        seo_description: product.description ? product.description.substring(0, 160) : `Buy ${product.title} - Premium quality with fast shipping.`
       }
     };
 
     // Add options for multiple variants
-    if (processedVariants.length > 1) {
+    if (productPayload.product.variants.length > 1) {
       productPayload.product.options = [
         {
           name: 'Type',
           position: 1,
-          values: processedVariants.map(variant => variant.title)
+          values: productPayload.product.variants.map(variant => variant.title)
         }
       ];
+      
+      // Add option1 field for multiple variants
+      productPayload.product.variants.forEach((variant, index) => {
+        variant.option1 = variant.title;
+      });
     }
 
-    console.log('REAL winning product payload:', JSON.stringify({
+    console.log('Product payload:', JSON.stringify({
       title: productPayload.product.title,
       handle: productPayload.product.handle,
       product_type: productPayload.product.product_type,
@@ -145,7 +97,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
         'X-Shopify-Access-Token': accessToken,
         'Accept': 'application/json',
-        'User-Agent': 'TrendingWins/1.0'
+        'User-Agent': 'StoreForge AI/1.0'
       },
       body: JSON.stringify(productPayload),
     });
@@ -189,7 +141,7 @@ serve(async (req) => {
     }
 
     const responseData = await response.json();
-    console.log('REAL winning product added successfully:', {
+    console.log('✅ Product uploaded successfully:', {
       id: responseData.product?.id,
       title: responseData.product?.title,
       product_type: responseData.product?.product_type,
@@ -216,3 +168,13 @@ serve(async (req) => {
     });
   }
 });
+
+function generateHandle(title) {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .substring(0, 255);
+}
