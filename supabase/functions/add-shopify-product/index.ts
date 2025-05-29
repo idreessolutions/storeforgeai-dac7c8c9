@@ -40,13 +40,12 @@ serve(async (req) => {
       product: {
         title: product.title,
         body_html: styledDescription,
-        vendor: storeName || 'Premium Store', // FIXED: Use actual store name
+        vendor: storeName || 'Premium Store',
         product_type: product.product_type || 'General',
         handle: uniqueHandle,
         status: 'active',
         published: true,
         tags: product.tags || '',
-        // Don't send variants initially to avoid conflicts
       }
     };
 
@@ -115,7 +114,7 @@ async function handleProductEnhancements(createdProduct: any, product: any, shop
         body: JSON.stringify({
           variant: {
             id: defaultVariant.id,
-            price: productPrice, // FIXED: Ensure proper price setting
+            price: productPrice,
             compare_at_price: (parseFloat(productPrice) * 1.3).toFixed(2),
             inventory_quantity: 999,
             inventory_management: null,
@@ -139,6 +138,7 @@ async function handleProductEnhancements(createdProduct: any, product: any, shop
   }
 
   // STEP 2: Upload DALL·E 3 images to Shopify (FIXED IMAGE UPLOAD)
+  let uploadedImageCount = 0;
   if (product.images && product.images.length > 0) {
     console.log(`🖼️ Uploading ${product.images.length} DALL·E 3 images to Shopify...`);
     
@@ -150,6 +150,18 @@ async function handleProductEnhancements(createdProduct: any, product: any, shop
         // FIXED: Validate image URL before upload
         if (!imageUrl || typeof imageUrl !== 'string' || !imageUrl.startsWith('http')) {
           console.error(`❌ Invalid image URL at index ${i}:`, imageUrl);
+          continue;
+        }
+        
+        // Verify the image URL is accessible before uploading to Shopify
+        try {
+          const imageCheckResponse = await fetch(imageUrl, { method: 'HEAD' });
+          if (!imageCheckResponse.ok) {
+            console.error(`❌ Image URL not accessible: ${imageUrl}`);
+            continue;
+          }
+        } catch (checkError) {
+          console.error(`❌ Failed to verify image URL: ${imageUrl}`, checkError);
           continue;
         }
         
@@ -172,6 +184,7 @@ async function handleProductEnhancements(createdProduct: any, product: any, shop
 
         if (imageResponse.ok) {
           const imageData = await imageResponse.json();
+          uploadedImageCount++;
           console.log(`✅ Successfully uploaded DALL·E image ${i + 1} to Shopify:`, imageData.image.id);
         } else {
           const imageError = await imageResponse.text();
@@ -189,6 +202,7 @@ async function handleProductEnhancements(createdProduct: any, product: any, shop
   }
 
   // STEP 3: Create additional product variants (FIXED VARIANT CONFLICTS)
+  let createdVariantCount = 0;
   if (product.variants && product.variants.length > 1) {
     console.log(`🔄 Creating ${product.variants.length - 1} additional variants...`);
     
@@ -263,6 +277,7 @@ async function handleProductEnhancements(createdProduct: any, product: any, shop
             });
 
             if (variantResponse.ok) {
+              createdVariantCount++;
               console.log(`✅ Successfully created variant: ${variant.title} - ${variantPrice}`);
             } else {
               const variantError = await variantResponse.text();
@@ -289,8 +304,8 @@ async function handleProductEnhancements(createdProduct: any, product: any, shop
     title: createdProduct.title,
     handle: createdProduct.handle,
     price: productPrice,
-    images_uploaded: product.images?.length || 0,
-    variants_processed: product.variants?.length || 0
+    images_uploaded: uploadedImageCount,
+    variants_created: createdVariantCount
   });
 
   return new Response(JSON.stringify({
@@ -298,8 +313,8 @@ async function handleProductEnhancements(createdProduct: any, product: any, shop
     product: createdProduct,
     message: `Successfully added UNIQUE winning product: ${createdProduct.title}`,
     price_set: productPrice,
-    images_uploaded: product.images?.length || 0,
-    variants_created: product.variants?.length || 0
+    images_uploaded: uploadedImageCount,
+    variants_created: createdVariantCount
   }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });

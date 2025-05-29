@@ -206,62 +206,6 @@ ONLY return valid JSON. No markdown, no commentary.`;
   }
 });
 
-function generateUniqueProductExamples(niche: string): string {
-  const examples = {
-    'pet': [
-      '- "Auto-Refilling Smart Water Bowl with UV Purification"',
-      '- "GPS Activity Collar with Health Monitoring"', 
-      '- "Interactive Puzzle Treat Dispenser"',
-      '- "Orthopedic Memory Foam Pet Bed"',
-      '- "Professional De-Shedding Grooming Tool"',
-      '- "Wireless Pet Camera with Two-Way Audio"',
-      '- "Automatic Laser Toy for Indoor Cats"',
-      '- "Elevated Slow-Feed Dog Bowl Set"',
-      '- "Waterproof LED Safety Collar"',
-      '- "Pet Hair Vacuum Attachment Kit"'
-    ],
-    'home decor': [
-      '- "Smart RGB Ambient Lighting System"',
-      '- "Floating Cloud Humidifier with LEDs"',
-      '- "Wireless Charging Station Nightstand"',
-      '- "Magnetic Levitating Plant Pot"',
-      '- "Voice-Activated Smart Mirror"',
-      '- "Himalayan Salt Rock Lamp"',
-      '- "Geometric Metal Wall Art Collection"',
-      '- "Essential Oil Diffuser Clock"',
-      '- "Touch-Sensitive Table Lamp"',
-      '- "3D Holographic Photo Frame"'
-    ],
-    'fitness': [
-      '- "Resistance Band Door Anchor System"',
-      '- "Smart Jump Rope with App Tracking"',
-      '- "Adjustable Foam Roller with Vibration"',
-      '- "Wireless Bluetooth Heart Rate Monitor"',
-      '- "Compact Home Gym Cable Machine"',
-      '- "Smart Water Bottle with Hydration Tracking"',
-      '- "Suspension Trainer for Full Body Workouts"',
-      '- "Digital Posture Corrector with Alerts"',
-      '- "Muscle Recovery Massage Gun"',
-      '- "Smart Yoga Mat with Pose Detection"'
-    ],
-    'kitchen': [
-      '- "Digital Food Scale with Nutrition Database"',
-      '- "Silicone Air Fryer Accessories Set"',
-      '- "Magnetic Knife Block for Refrigerator"',
-      '- "Glass Meal Prep Container System"',
-      '- "Electric Spice Grinder with Storage"',
-      '- "Smart Coffee Mug Warmer"',
-      '- "Adjustable Measuring Cup Set"',
-      '- "Non-Slip Cutting Board with Compartments"',
-      '- "Herb Growing Kit for Countertop"',
-      '- "Digital Kitchen Timer with Multiple Alarms"'
-    ]
-  };
-  
-  const nicheExamples = examples[niche.toLowerCase()] || examples['fitness'];
-  return nicheExamples.join('\n');
-}
-
 // Generate 6-8 unique product images using DALL·E 3
 async function generateDALLEImages(productTitle: string, niche: string, count: number = 7): Promise<string[]> {
   if (!openAIApiKey) {
@@ -298,7 +242,7 @@ async function generateDALLEImages(productTitle: string, niche: string, count: n
           const imageUrl = data.data[0].url;
           if (imageUrl && imageUrl.startsWith('http')) {
             images.push(imageUrl);
-            console.log(`✅ Generated DALL·E 3 image ${i + 1} for ${productTitle}`);
+            console.log(`✅ Generated DALL·E 3 image ${i + 1} for ${productTitle}: ${imageUrl.substring(0, 50)}...`);
           } else {
             console.error(`❌ Invalid DALL·E 3 URL for image ${i + 1}: ${imageUrl}`);
           }
@@ -312,7 +256,7 @@ async function generateDALLEImages(productTitle: string, niche: string, count: n
       
       // Rate limiting for DALL·E 3 (important!)
       if (i < count - 1) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 3000)); // Increased delay
       }
     } catch (error) {
       console.error(`❌ Error generating DALL·E 3 image ${i + 1}:`, error);
@@ -360,14 +304,14 @@ function generateFallbackImages(niche: string, count: number): string[] {
       'https://images.unsplash.com/photo-1493406300581-484b937cdc41?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
       'https://images.unsplash.com/photo-1552053831-71594a27632d?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80'
     ],
-    'home decor': [
-      'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
-      'https://images.unsplash.com/photo-1554995207-c18c203602cb?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
-      'https://images.unsplash.com/photo-1563298723-dcfebaa392e3?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
-      'https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
-      'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
-      'https://images.unsplash.com/photo-1571919743851-c2945cbeb367?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
-      'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80'
+    'fitness': [
+      'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
+      'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
+      'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
+      'https://images.unsplash.com/photo-1593079831268-3381b0db4a77?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
+      'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
+      'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80',
+      'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1024&h=1024&fit=crop&crop=center&auto=format&q=80'
     ]
   };
   
@@ -375,43 +319,36 @@ function generateFallbackImages(niche: string, count: number): string[] {
   return nicheImages.slice(0, count);
 }
 
-function generateNicheSpecificGuidelines(niche: string) {
-  const guidelines = {
-    'pet': `- Product 1: Smart feeding/monitoring device
-- Product 2: Comfort/sleeping solution  
-- Product 3: Training/behavior tool
-- Product 4: Safety/tracking device
-- Product 5: Grooming/hygiene product
-- Product 6: Travel/transport accessory
-- Product 7: Entertainment/puzzle toy
-- Product 8: Health/wellness item
-- Product 9: Storage/organization solution
-- Product 10: Outdoor/exercise equipment`,
-    
-    'fitness': `- Product 1: Smart tracking/monitoring device
-- Product 2: Resistance training equipment
-- Product 3: Recovery/wellness tool
-- Product 4: Cardio/endurance accessory
-- Product 5: Strength training gear
-- Product 6: Flexibility/mobility aid
-- Product 7: Nutrition/hydration solution
-- Product 8: Workout clothing/gear
-- Product 9: Home gym equipment
-- Product 10: Performance supplement`,
-    
-    'kitchen': `- Product 1: Smart cooking appliance
-- Product 2: Food preparation tool
-- Product 3: Storage/organization solution
-- Product 4: Healthy cooking device
-- Product 5: Time-saving gadget
-- Product 6: Safety/convenience tool
-- Product 7: Baking/dessert accessory
-- Product 8: Beverage preparation
-- Product 9: Cleaning/maintenance tool
-- Product 10: Specialty cooking equipment`
+function generateUniqueProductExamples(niche: string): string {
+  const examples = {
+    'pet': [
+      '- "Auto-Refilling Smart Water Bowl with UV Purification"',
+      '- "GPS Activity Collar with Health Monitoring"', 
+      '- "Interactive Puzzle Treat Dispenser"',
+      '- "Orthopedic Memory Foam Pet Bed"',
+      '- "Professional De-Shedding Grooming Tool"',
+      '- "Wireless Pet Camera with Two-Way Audio"',
+      '- "Automatic Laser Toy for Indoor Cats"',
+      '- "Elevated Slow-Feed Dog Bowl Set"',
+      '- "Waterproof LED Safety Collar"',
+      '- "Pet Hair Vacuum Attachment Kit"'
+    ],
+    'fitness': [
+      '- "Resistance Band Door Anchor System"',
+      '- "Smart Jump Rope with App Tracking"',
+      '- "Adjustable Foam Roller with Vibration"',
+      '- "Wireless Bluetooth Heart Rate Monitor"',
+      '- "Compact Home Gym Cable Machine"',
+      '- "Smart Water Bottle with Hydration Tracking"',
+      '- "Suspension Trainer for Full Body Workouts"',
+      '- "Digital Posture Corrector with Alerts"',
+      '- "Muscle Recovery Massage Gun"',
+      '- "Smart Yoga Mat with Pose Detection"'
+    ]
   };
   
-  return guidelines[niche.toLowerCase()] || guidelines['fitness'];
+  const nicheExamples = examples[niche.toLowerCase()] || examples['fitness'];
+  return nicheExamples.join('\n');
 }
 
 function generateNicheFeatures(niche: string, index: number) {
@@ -423,10 +360,6 @@ function generateNicheFeatures(niche: string, index: number) {
     'fitness': [
       ['Heart rate monitoring with 99% accuracy', 'Water-resistant IP68 design', '14-day battery life with quick charge', 'Multiple sport modes and GPS tracking', 'Sleep and recovery analysis'],
       ['Adjustable resistance from 10-150lbs', 'Portable and lightweight design', 'Quick-change resistance mechanism', 'Ergonomic grip handles with comfort foam', 'Full-body workout capability']
-    ],
-    'kitchen': [
-      ['Precision digital scale accurate to 0.1g', 'Smartphone app with nutritional database', 'Tempered glass surface easy to clean', 'Multiple unit conversions included', '5-year warranty and support'],
-      ['Heat-resistant silicone up to 450°F', 'Non-stick safe won\'t scratch cookware', 'Dishwasher friendly for easy cleanup', 'Ergonomic handles reduce hand strain', 'Complete 12-piece utensil set']
     ]
   };
   
@@ -443,10 +376,6 @@ function generateNicheBenefits(niche: string, index: number) {
     'fitness': [
       ['Track progress and achieve goals faster', 'Monitor health metrics 24/7', 'Improve sleep and recovery quality', 'Stay motivated with achievements'],
       ['Build strength without gym membership', 'Workout anywhere anytime convenience', 'Progressive resistance for all levels', 'Compact storage saves space']
-    ],
-    'kitchen': [
-      ['Perfect portions for healthier eating', 'Track nutrition goals accurately', 'Consistent baking and cooking results', 'Saves time with quick measurements'],
-      ['Non-stick safe preserves cookware', 'Heat-resistant up to 450°F', 'Easy cleanup saves time', 'Professional kitchen results']
     ]
   };
   
@@ -463,10 +392,6 @@ function generateTargetAudience(niche: string, index: number) {
     'fitness': [
       'Fitness enthusiasts tracking health goals and athletic performance',
       'Home workout enthusiasts who want professional gym results'
-    ],
-    'kitchen': [
-      'Health-conscious cooks who want precise nutritional control',
-      'Home chefs who demand professional-quality cooking tools'
     ]
   };
   
@@ -477,8 +402,7 @@ function generateTargetAudience(niche: string, index: number) {
 function getNicheCategory(niche: string, index: number) {
   const categories = {
     'pet': ['Pet Health Tech', 'Pet Safety', 'Pet Enrichment', 'Pet Grooming', 'Pet Comfort'],
-    'fitness': ['Fitness Tech', 'Strength Training', 'Recovery & Wellness', 'Cardio Equipment', 'Home Gym'],
-    'kitchen': ['Kitchen Tech', 'Food Preparation', 'Kitchen Storage', 'Healthy Cooking', 'Kitchen Gadgets']
+    'fitness': ['Fitness Tech', 'Strength Training', 'Recovery & Wellness', 'Cardio Equipment', 'Home Gym']
   };
   
   const nicheCategories = categories[niche.toLowerCase()] || categories['fitness'];
@@ -490,8 +414,7 @@ function generateNicheTags(niche: string, title: string, index: number) {
   
   const nicheSpecificTags = {
     'pet': ['smart-pet-tech', 'pet-health', 'pet-safety', 'pet-training', 'pet-comfort'],
-    'fitness': ['fitness-tech', 'home-gym', 'workout-gear', 'fitness-tracking', 'strength-training'],
-    'kitchen': ['kitchen-gadgets', 'cooking-tools', 'kitchen-tech', 'food-prep', 'healthy-cooking']
+    'fitness': ['fitness-tech', 'home-gym', 'workout-gear', 'fitness-tracking', 'strength-training']
   };
   
   const specificTags = nicheSpecificTags[niche.toLowerCase()] || nicheSpecificTags['fitness'];
@@ -539,18 +462,6 @@ function generateRealisticVariants(basePrice: number, niche: string, index: numb
         { title: 'Single Band', price: basePrice }, 
         { title: 'Band Set (3-Pack)', price: Math.min(80, basePrice + 15) },
         { title: 'Premium Set', price: Math.min(80, basePrice + 25) }
-      ]
-    ],
-    'kitchen': [
-      [
-        { title: 'Compact Size', price: basePrice }, 
-        { title: 'Family Size', price: Math.min(80, basePrice + 20) },
-        { title: 'Professional Size', price: Math.min(80, basePrice + 35) }
-      ],
-      [
-        { title: '3-Piece Set', price: basePrice }, 
-        { title: '6-Piece Set', price: Math.min(80, basePrice + 15) },
-        { title: '12-Piece Set', price: Math.min(80, basePrice + 28) }
       ]
     ]
   };
@@ -625,56 +536,6 @@ Fast worldwide shipping arrives in 7-14 days. FREE shipping on orders over $50. 
 
 This isn't just a water fountain - it's a health investment that pays dividends in your pet's wellbeing and your peace of mind.`,
         product_type: "Pet Health Tech"
-      },
-      {
-        title: "GPS Activity Collar with Health Monitoring",
-        description: `🔥 **Never Lose Your Beloved Pet Again!**
-
-**The #1 Pet Safety Device That's Saving Lives Daily:**
-Over 10 million pets go missing every year, but GPS collar users report a 98% successful recovery rate. This breakthrough device doesn't just track location - it monitors your pet's health, activity, and safety 24/7.
-
-✅ **ADVANCED SAFETY FEATURES:**
-• Real-time GPS tracking accurate to 10 feet anywhere in the world
-• Geofencing alerts when your pet leaves safe zones
-• Activity monitoring tracks steps, calories, and exercise levels
-• Health alerts detect unusual behavior patterns
-• Waterproof IP67 rated for all weather conditions
-• 30-day battery life with solar charging backup
-• Global coverage in 175+ countries
-• Escape-proof security clasp design
-
-🎯 **PEACE OF MIND BENEFITS:**
-• Locate your pet instantly if they get lost or stolen
-• Monitor daily exercise and health trends
-• Receive alerts if your pet seems sick or inactive
-• Track favorite walking routes and safe areas
-• Share location access with family members and pet sitters
-• Reduce anxiety about your pet's safety when you're away
-• Build detailed health records for veterinary visits
-
-👥 **ESSENTIAL FOR:**
-Responsible pet owners who consider their pets family members. Perfect for adventure-loving dogs who explore off-leash, escape artist cats who slip out doors, elderly pets with mobility concerns, and new rescue pets still adjusting to their forever homes. Invaluable for pet parents with large properties, frequent travelers, and anyone who's ever experienced the heart-stopping panic of a missing pet. Professional dog walkers and pet sitters also rely on this technology for client peace of mind.
-
-📦 **COMPLETE SYSTEM INCLUDES:**
-• GPS Health Collar with advanced sensors
-• Smartphone app with family sharing features
-• Wireless charging station and cable
-• Adjustable collar strap (fits 15-75 lbs)
-• Quick setup guide and training resources
-• 1-year warranty and theft protection
-• Free worldwide tracking service (first year)
-
-🚚 **SHIPPING & RETURNS:**
-Express worldwide shipping in 5-10 days. FREE shipping on all orders. 60-day money-back guarantee. 24/7 emergency support available.
-
-🚀 **FLASH SALE:** Regular price $149, now 40% off at $89.99 for the next 48 hours only!
-
-⭐ **LIFE-CHANGING TESTIMONIALS:**
-"Max escaped during a thunderstorm. The GPS collar led us right to him in 20 minutes. Worth every penny!" - Jennifer K., grateful owner
-"The health monitoring caught my dog's arthritis early. My vet was amazed at the detailed activity data." - Robert L., loyal customer
-
-Your pet's safety is priceless, but this peace of mind is surprisingly affordable.`,
-        product_type: "Pet Safety Tech"
       }
     ]
   };
