@@ -91,13 +91,16 @@ serve(async (req) => {
           alt: cleanTitle
         })) : [],
         variants: preparedVariants,
-        options: preparedVariants.length > 1 ? [
-          {
-            name: 'Type',
-            position: 1,
-            values: preparedVariants.map(variant => variant.title)
-          }
-        ] : []
+        // Fix: Only add options if we have multiple variants
+        ...(preparedVariants.length > 1 ? {
+          options: [
+            {
+              name: 'Type',
+              position: 1,
+              values: preparedVariants.map(variant => variant.title)
+            }
+          ]
+        } : {})
       }
     };
 
@@ -105,7 +108,8 @@ serve(async (req) => {
       title: productPayload.product.title,
       handle: productPayload.product.handle,
       variants: productPayload.product.variants.map(v => ({ title: v.title, price: v.price, sku: v.sku })),
-      images: productPayload.product.images.length
+      images: productPayload.product.images.length,
+      hasOptions: !!productPayload.product.options
     }, null, 2));
 
     const response = await fetch(apiUrl, {
