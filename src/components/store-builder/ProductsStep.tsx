@@ -39,9 +39,8 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
     setCurrentProduct("");
 
     try {
-      console.log('🚀 Starting enhanced product addition with theme color:', formData.themeColor);
+      console.log('🚀 Starting 10 unique winning products addition with theme color:', formData.themeColor);
       
-      // Pass theme color to the enhanced product addition function
       await addProductsToShopify(
         formData.shopifyUrl,
         formData.accessToken,
@@ -50,14 +49,14 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
           setProgress(progress);
           setCurrentProduct(productName);
         },
-        formData.themeColor || '#1E40AF' // Use selected theme color
+        formData.themeColor || '#1E40AF'
       );
 
       handleInputChange('productsAdded', true);
       
       toast({
-        title: "10 Winning Products Added Successfully! 🎉",
-        description: `Your store now features 10 high-converting ${formData.niche} products with your custom theme color, detailed descriptions, and premium images.`,
+        title: "10 Unique Winning Products Added Successfully! 🎉",
+        description: `Your store now features 10 completely different, high-converting ${formData.niche} products with premium images, detailed descriptions, and your custom theme styling.`,
       });
 
     } catch (error) {
@@ -86,9 +85,9 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
           >
             <PackagePlus className="h-10 w-10 text-white" />
           </div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Add 10 Winning Products</h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">Add 10 Unique Winning Products</h2>
           <p className="text-gray-600">
-            Let our AI add 10 high-converting, professionally curated products to your store with your custom theme styling.
+            Let our AI add 10 completely different, high-converting winning products to your store with premium images and your custom theme styling.
           </p>
         </div>
 
@@ -104,20 +103,24 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
             </div>
             <h3 className="text-2xl font-semibold text-gray-900 mb-2 flex items-center justify-center gap-2">
               <Sparkles className="h-6 w-6 text-yellow-500" />
-              10 Winning Products Added Successfully!
+              10 Unique Winning Products Added Successfully!
               <Sparkles className="h-6 w-6 text-yellow-500" />
             </h3>
             <p className="text-gray-600 mb-4">
-              Your store is now fully stocked with 10 premium winning products, each featuring:
+              Your store is now fully stocked with 10 completely different premium winning products, each featuring:
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6 text-sm text-gray-700">
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500" />
-                Detailed product descriptions (300-500 words)
+                10 completely unique product types
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500" />
-                6-10 high-quality product images
+                Detailed 400-600 word descriptions
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-green-500" />
+                6-10 unique high-quality images each
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500" />
@@ -131,10 +134,6 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 <CheckCircle className="h-4 w-4 text-green-500" />
                 Realistic pricing and variants
               </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500" />
-                Secure backup in Supabase
-              </div>
             </div>
             <Button 
               disabled 
@@ -145,7 +144,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               }}
             >
               <CheckCircle className="mr-2 h-4 w-4" />
-              10 Winning Products Successfully Added
+              10 Unique Winning Products Successfully Added
             </Button>
           </div>
         ) : (
@@ -154,7 +153,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-gray-700">
-                    Adding winning products to your store...
+                    Adding unique winning products to your store...
                   </p>
                   <span 
                     className="text-sm font-semibold"
@@ -181,12 +180,13 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
             <div className="mb-6 p-4 bg-gray-50 rounded-lg border-l-4" style={{ borderColor: formData.themeColor || '#1E40AF' }}>
               <h4 className="font-semibold text-gray-800 mb-2">What you'll get:</h4>
               <ul className="text-sm text-gray-600 space-y-1">
-                <li>• 10 carefully curated winning products in your niche</li>
-                <li>• Professional product descriptions with features & benefits</li>
-                <li>• High-quality images and multimedia content</li>
+                <li>• 10 completely different winning products in your niche</li>
+                <li>• Each product is unique - no duplicates or variations</li>
+                <li>• Professional 400-600 word product descriptions</li>
+                <li>• 6-10 unique high-quality images per product</li>
                 <li>• SEO-optimized titles, tags, and metadata</li>
                 <li>• Custom styling with your selected theme color</li>
-                <li>• Realistic pricing and variant options</li>
+                <li>• Realistic pricing with proper profit margins</li>
               </ul>
             </div>
             
@@ -202,12 +202,12 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               {isAdding ? (
                 <div className="flex items-center justify-center">
                   <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                  Adding 10 Winning Products...
+                  Adding 10 Unique Winning Products...
                 </div>
               ) : (
                 <div className="flex items-center justify-center">
                   <Sparkles className="h-5 w-5 mr-2" />
-                  Add 10 Winning Products Now
+                  Add 10 Unique Winning Products Now
                   <Sparkles className="h-5 w-5 ml-2" />
                 </div>
               )}

@@ -1,168 +1,246 @@
 
-import React from "react";
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-interface MentorshipFormData {
-  fullName: string;
-  email: string;
-  phoneNumber: string;
-  whyMentorship: string;
-  budgetRange: string;
-  investmentAmount: string;
-  incomeGoal: string;
-  businessExperience: string;
-  additionalInfo: string;
-}
+import { Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface MentorshipFormProps {
-  formData: MentorshipFormData;
-  handleInputChange: (field: string, value: string) => void;
-  onSubmit: () => void;
-  isSubmitting: boolean;
+  onSuccess: () => void;
 }
 
-const MentorshipForm = ({ formData, handleInputChange, onSubmit, isSubmitting }: MentorshipFormProps) => {
+const MentorshipForm = ({ onSuccess }: MentorshipFormProps) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    fullName: "",
+    email: "",
+    phoneNumber: "",
+    businessExperience: "",
+    incomeGoal: "",
+    investmentAmount: "",
+    budgetRange: "",
+    whyMentorship: "",
+    additionalInfo: ""
+  });
+
+  const { toast } = useToast();
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.fullName || !formData.email) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in your name and email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Generate a unique session ID for this application
+      const sessionId = `mentorship_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+      
+      console.log('Submitting mentorship application:', formData);
+      
+      const { error } = await supabase
+        .from('mentorship_applications')
+        .insert({
+          session_id: sessionId, // Use generated session ID instead of foreign key
+          full_name: formData.fullName,
+          email: formData.email,
+          phone_number: formData.phoneNumber,
+          business_experience: formData.businessExperience,
+          income_goal: formData.incomeGoal,
+          investment_amount: formData.investmentAmount,
+          budget_range: formData.budgetRange,
+          why_mentorship: formData.whyMentorship,
+          additional_info: formData.additionalInfo
+        });
+
+      if (error) {
+        console.error('Database error:', error);
+        throw new Error(error.message);
+      }
+
+      // Store in Supabase Storage as backup
+      try {
+        const fileName = `mentorship/${sessionId}-${Date.now()}.json`;
+        const fileContent = new Blob([JSON.stringify({
+          ...formData,
+          sessionId,
+          submittedAt: new Date().toISOString()
+        }, null, 2)], {
+          type: 'application/json'
+        });
+
+        await supabase.storage
+          .from('product-data')
+          .upload(fileName, fileContent);
+        
+        console.log('✅ Mentorship application stored in storage bucket');
+      } catch (storageError) {
+        console.warn('Storage backup failed:', storageError);
+        // Don't fail the submission if storage fails
+      }
+
+      toast({
+        title: "Application Submitted Successfully! 🎉",
+        description: "We've received your mentorship application and will contact you within 24 hours to discuss your journey to success.",
+      });
+
+      onSuccess();
+    } catch (error) {
+      console.error('Error submitting mentorship application:', error);
+      toast({
+        title: "Submission Failed",
+        description: error instanceof Error ? error.message : "An error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <Card className="border-0 shadow-lg max-w-3xl mx-auto">
-      <CardHeader className="text-center pb-4">
-        <CardTitle className="text-2xl font-bold text-gray-900">1-on-1 Mentorship Application</CardTitle>
-        <p className="text-gray-600 text-sm">Get personalized guidance from successful entrepreneurs</p>
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle className="text-2xl font-bold text-center">Apply for 1-on-1 Mentorship</CardTitle>
+        <p className="text-gray-600 text-center">
+          Get personalized guidance from our experts to accelerate your e-commerce success
+        </p>
       </CardHeader>
-      <CardContent className="space-y-4 max-h-96 overflow-y-auto px-6">
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="fullName" className="text-sm">Full Name *</Label>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="fullName">Full Name *</Label>
+              <Input
+                id="fullName"
+                value={formData.fullName}
+                onChange={(e) => handleInputChange('fullName', e.target.value)}
+                placeholder="Enter your full name"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="email">Email Address *</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => handleInputChange('email', e.target.value)}
+                placeholder="Enter your email"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="phoneNumber">Phone Number</Label>
             <Input
-              id="fullName"
-              placeholder="Enter your full name"
-              value={formData.fullName}
-              onChange={(e) => handleInputChange('fullName', e.target.value)}
-              className="text-sm"
+              id="phoneNumber"
+              value={formData.phoneNumber}
+              onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+              placeholder="Enter your phone number"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-sm">Email Address *</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="your@email.com"
-              value={formData.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
-              className="text-sm"
+
+          <div>
+            <Label htmlFor="businessExperience">Business Experience</Label>
+            <Select onValueChange={(value) => handleInputChange('businessExperience', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select your experience level" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="beginner">Complete Beginner</SelectItem>
+                <SelectItem value="some">Some Experience (1-2 years)</SelectItem>
+                <SelectItem value="intermediate">Intermediate (3-5 years)</SelectItem>
+                <SelectItem value="advanced">Advanced (5+ years)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="incomeGoal">Monthly Income Goal</Label>
+            <Select onValueChange={(value) => handleInputChange('incomeGoal', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select your income goal" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1k-5k">$1,000 - $5,000</SelectItem>
+                <SelectItem value="5k-10k">$5,000 - $10,000</SelectItem>
+                <SelectItem value="10k-25k">$10,000 - $25,000</SelectItem>
+                <SelectItem value="25k-50k">$25,000 - $50,000</SelectItem>
+                <SelectItem value="50k+">$50,000+</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="investmentAmount">Investment Amount Available</Label>
+            <Select onValueChange={(value) => handleInputChange('investmentAmount', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select your investment budget" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="under-1k">Under $1,000</SelectItem>
+                <SelectItem value="1k-5k">$1,000 - $5,000</SelectItem>
+                <SelectItem value="5k-10k">$5,000 - $10,000</SelectItem>
+                <SelectItem value="10k-25k">$10,000 - $25,000</SelectItem>
+                <SelectItem value="25k+">$25,000+</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="whyMentorship">Why do you want mentorship?</Label>
+            <Textarea
+              id="whyMentorship"
+              value={formData.whyMentorship}
+              onChange={(e) => handleInputChange('whyMentorship', e.target.value)}
+              placeholder="Tell us about your goals and what you hope to achieve..."
+              rows={3}
             />
           </div>
-        </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="phoneNumber" className="text-sm">Phone Number *</Label>
-          <Input
-            id="phoneNumber"
-            placeholder="EX: +1 (212)-456-7890"
-            value={formData.phoneNumber}
-            onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-            className="text-sm"
-          />
-          <p className="text-xs text-gray-500">Please include your country code (e.g., +1 for US)</p>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="whyMentorship" className="text-sm">Why do you want mentorship?</Label>
-          <Textarea
-            id="whyMentorship"
-            placeholder="Tell us your goals and what you hope to achieve..."
-            value={formData.whyMentorship}
-            onChange={(e) => handleInputChange('whyMentorship', e.target.value)}
-            rows={3}
-            className="text-sm"
-          />
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="budgetRange" className="text-sm">Monthly Budget Range</Label>
-            <Select value={formData.budgetRange} onValueChange={(value) => handleInputChange('budgetRange', value)}>
-              <SelectTrigger className="text-sm">
-                <SelectValue placeholder="Select your budget" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="under-1000">Under $1,000</SelectItem>
-                <SelectItem value="1000-5000">$1,000 - $5,000</SelectItem>
-                <SelectItem value="5000-10000">$5,000 - $10,000</SelectItem>
-                <SelectItem value="10000-plus">$10,000+</SelectItem>
-              </SelectContent>
-            </Select>
+          <div>
+            <Label htmlFor="additionalInfo">Additional Information</Label>
+            <Textarea
+              id="additionalInfo"
+              value={formData.additionalInfo}
+              onChange={(e) => handleInputChange('additionalInfo', e.target.value)}
+              placeholder="Any additional information you'd like to share..."
+              rows={3}
+            />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="investmentAmount" className="text-sm">How much can you invest?</Label>
-            <Select value={formData.investmentAmount} onValueChange={(value) => handleInputChange('investmentAmount', value)}>
-              <SelectTrigger className="text-sm">
-                <SelectValue placeholder="Select investment range" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="under-500">Under $500</SelectItem>
-                <SelectItem value="500-2000">$500 - $2,000</SelectItem>
-                <SelectItem value="2000-5000">$2,000 - $5,000</SelectItem>
-                <SelectItem value="5000-plus">$5,000+</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
 
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="incomeGoal" className="text-sm">Income Goal</Label>
-            <Select value={formData.incomeGoal} onValueChange={(value) => handleInputChange('incomeGoal', value)}>
-              <SelectTrigger className="text-sm">
-                <SelectValue placeholder="Select your goal" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1000-month">$1,000/month</SelectItem>
-                <SelectItem value="5000-month">$5,000/month</SelectItem>
-                <SelectItem value="10000-month">$10,000/month</SelectItem>
-                <SelectItem value="25000-month">$25,000+/month</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="businessExperience" className="text-sm">Business Experience</Label>
-            <Select value={formData.businessExperience} onValueChange={(value) => handleInputChange('businessExperience', value)}>
-              <SelectTrigger className="text-sm">
-                <SelectValue placeholder="Select experience level" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="beginner">Beginner</SelectItem>
-                <SelectItem value="some-experience">Some Experience</SelectItem>
-                <SelectItem value="experienced">Experienced</SelectItem>
-                <SelectItem value="expert">Expert</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="additionalInfo" className="text-sm">Additional Information</Label>
-          <Textarea
-            id="additionalInfo"
-            placeholder="Any additional details you'd like to share..."
-            value={formData.additionalInfo}
-            onChange={(e) => handleInputChange('additionalInfo', e.target.value)}
-            rows={3}
-            className="text-sm"
-          />
-        </div>
-
-        <Button 
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 text-sm font-semibold mt-6"
-          onClick={onSubmit}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? "Submitting Application..." : "Submit Application"}
-        </Button>
+          <Button
+            type="submit"
+            className="w-full py-3 text-lg font-semibold"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <div className="flex items-center justify-center">
+                <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                Submitting Application...
+              </div>
+            ) : (
+              "Submit Mentorship Application"
+            )}
+          </Button>
+        </form>
       </CardContent>
     </Card>
   );
