@@ -33,58 +33,46 @@ serve(async (req) => {
             messages: [
               {
                 role: 'system',
-                content: `You are an expert dropshipping product curator who generates REAL, high-quality winning products that convert well and look professional in Shopify stores.
+                content: `You are an expert dropshipping product curator who creates REAL, high-converting winning products for Shopify stores.
 
 CRITICAL REQUIREMENTS:
-1. Create exactly 10 REAL, high-converting products for the ${niche} niche
-2. Each product MUST be a real product that exists and can be dropshipped
-3. Use actual product data - no placeholders or generic content
-4. Products must look ready to sell immediately
+1. Create exactly 10 REAL winning products for the ${niche} niche
+2. Each product must be dropshipping-ready and look professional
+3. Use real product names, not placeholder text
+4. Create compelling, benefit-focused descriptions
+5. Include realistic pricing and professional variants
 
 PRODUCT STRUCTURE (JSON):
 {
-  "title": "Real Product Name (3-8 words, keyword-rich)",
-  "description": "150-250 word benefit-focused description with emotional triggers and clear value proposition",
+  "title": "Real Product Name (3-6 words, no timestamps or IDs)",
+  "description": "200-300 word benefit-focused description that sells the product with emotional appeal and clear value",
   "price": 29.99,
-  "images": ["url1", "url2", "url3", "url4", "url5", "url6"],
+  "images": ["https://images.unsplash.com/photo-ID?w=800&h=800&fit=crop", "..."],
   "variants": [
     {"title": "Color/Size Option", "price": 29.99, "sku": "PROD-001"},
     {"title": "Color/Size Option", "price": 34.99, "sku": "PROD-002"}
   ],
-  "handle": "url-friendly-slug",
+  "handle": "url-friendly-product-name",
   "product_type": "${niche}",
   "vendor": "TrendingProducts",
-  "tags": "winning product, ${niche}, trending, bestseller, viral, must have"
+  "tags": "winning product, ${niche}, trending, bestseller"
 }
 
-IMAGE REQUIREMENTS:
-- Use ONLY real Unsplash images that match the product
-- Format: https://images.unsplash.com/photo-[ID]?w=800&h=800&fit=crop
-- 6-8 different high-quality images per product
-- Images must actually show the type of product described
+PRICING: $19-89 range with logical variant pricing
+VARIANTS: 2-3 realistic options (colors, sizes, bundles) with clean SKUs
+IMAGES: Use real Unsplash photos that match the product type
 
-PRICING REQUIREMENTS:
-- Realistic dropshipping prices ($19-$89 range)
-- Competitive with market rates
-- Include profit margins for dropshippers
-
-VARIANT REQUIREMENTS:
-- 2-3 realistic variants per product (colors, sizes, bundles)
-- Each variant needs unique, professional SKU
-- Prices should vary logically ($5-15 difference)
-
-Return ONLY valid JSON array. No markdown, no explanations.`
+Return ONLY valid JSON array of 10 products. No markdown, no explanations.`
               },
               {
                 role: 'user',
                 content: `Generate exactly 10 REAL winning products for "${niche}" niche. Each must be:
 - A real product that can be dropshipped
-- High-converting with emotional appeal
-- Complete with all required fields
-- Ready to sell immediately
-- Include 6-8 real product images from Unsplash
-- Realistic variants and pricing
-- Professional titles and descriptions`
+- Have compelling titles (NO timestamps or random IDs)
+- Include benefit-focused descriptions
+- Have realistic pricing and variants
+- Include 6+ real product images
+- Be ready to sell immediately`
               }
             ],
             temperature: 0.8,
@@ -103,70 +91,30 @@ Return ONLY valid JSON array. No markdown, no explanations.`
             const products = JSON.parse(cleanedText);
             console.log(`Successfully parsed ${products.length} products from OpenAI`);
             
-            // Validate and format products to ensure quality
-            const formattedProducts = products.slice(0, 10).map((product, index) => {
-              // Ensure valid pricing
-              let basePrice = typeof product.price === 'number' ? product.price : (25 + (index * 3));
-              if (isNaN(basePrice) || basePrice < 19) {
-                basePrice = 25 + (index * 3);
-              }
-              
-              // Ensure we have quality images
-              const qualityImages = product.images && Array.isArray(product.images) && product.images.length >= 6 
-                ? product.images.slice(0, 8) 
-                : generateNicheImages(niche, index);
-              
-              // Ensure quality variants with professional SKUs
-              const qualityVariants = product.variants && Array.isArray(product.variants) && product.variants.length > 0
-                ? product.variants.map((variant, vIndex) => {
-                    let variantPrice = typeof variant.price === 'number' ? variant.price : basePrice + (vIndex * 5);
-                    if (isNaN(variantPrice)) {
-                      variantPrice = basePrice + (vIndex * 5);
-                    }
-                    return {
-                      title: variant.title || `Option ${vIndex + 1}`,
-                      price: Number(variantPrice.toFixed(2)),
-                      sku: variant.sku || `${niche.toUpperCase().substring(0,3)}-${String(index + 1).padStart(3, '0')}-${String(vIndex + 1)}`
-                    };
-                  })
-                : [
-                  { title: 'Standard', price: Number(basePrice.toFixed(2)), sku: `${niche.toUpperCase().substring(0,3)}-${String(index + 1).padStart(3, '0')}-1` },
-                  { title: 'Premium', price: Number((basePrice + 10).toFixed(2)), sku: `${niche.toUpperCase().substring(0,3)}-${String(index + 1).padStart(3, '0')}-2` }
-                ];
-              
-              // Ensure professional product data
-              return {
-                title: product.title || generateWinningTitle(niche, index),
-                description: product.description || generateWinningDescription(niche, index),
-                price: Number(basePrice.toFixed(2)),
-                images: qualityImages,
-                variants: qualityVariants,
-                handle: product.handle || generateHandle(product.title || `winning-${niche}-product-${index + 1}`),
-                product_type: product.product_type || niche,
-                vendor: product.vendor || 'TrendingProducts',
-                tags: product.tags || `${niche}, winning product, trending, bestseller, premium quality, viral, must have, dropshipping`
-              };
+            // Validate and enhance products to ensure they're high quality
+            const enhancedProducts = products.slice(0, 10).map((product, index) => {
+              return enhanceProduct(product, niche, index);
             });
             
             return new Response(JSON.stringify({ 
               success: true, 
-              products: formattedProducts,
+              products: enhancedProducts,
               message: `Successfully generated 10 winning ${niche} products using AI`
             }), {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });
           } catch (e) {
-            console.error('JSON parsing failed, using fallback products:', e);
+            console.error('JSON parsing failed, using premium fallback products:', e);
           }
         }
       } catch (error) {
-        console.error('OpenAI request failed, using fallback products:', error);
+        console.error('OpenAI request failed, using premium fallback products:', error);
       }
     }
 
-    // Enhanced fallback to high-quality predefined products
-    console.log('Using enhanced high-quality products for', niche);
-    const products = generateHighQualityProducts(niche);
+    // Premium fallback to high-quality predefined products
+    console.log('Using premium high-quality products for', niche);
+    const products = generatePremiumProducts(niche);
 
     return new Response(JSON.stringify({ 
       success: true, 
@@ -187,7 +135,56 @@ Return ONLY valid JSON array. No markdown, no explanations.`
   }
 });
 
-function generateNicheImages(niche: string, index: number) {
+function enhanceProduct(product, niche, index) {
+  // Ensure clean, professional title
+  let title = product.title || getWinningTitle(niche, index);
+  title = title.replace(/[0-9]{10,}/g, '').replace(/[-_][a-z0-9]{8,}/gi, '').trim();
+  
+  // Ensure valid pricing
+  let basePrice = typeof product.price === 'number' ? product.price : (29 + (index * 5));
+  if (isNaN(basePrice) || basePrice < 19) {
+    basePrice = 29 + (index * 5);
+  }
+  
+  // Ensure quality images
+  const qualityImages = product.images && Array.isArray(product.images) && product.images.length >= 6 
+    ? product.images.slice(0, 8) 
+    : getQualityImages(niche, index);
+  
+  // Ensure professional variants
+  const professionalVariants = product.variants && Array.isArray(product.variants) && product.variants.length > 0
+    ? product.variants.map((variant, vIndex) => {
+        let variantPrice = typeof variant.price === 'number' ? variant.price : basePrice + (vIndex * 5);
+        if (isNaN(variantPrice)) {
+          variantPrice = basePrice + (vIndex * 5);
+        }
+        
+        // Clean variant titles
+        let variantTitle = variant.title || `Option ${vIndex + 1}`;
+        variantTitle = variantTitle.replace(/[0-9]{10,}/g, '').replace(/[-_][a-z0-9]{8,}/gi, '').trim();
+        
+        return {
+          title: variantTitle,
+          price: Number(variantPrice.toFixed(2)),
+          sku: `${niche.toUpperCase().substring(0,3)}-${String(index + 1).padStart(3, '0')}-${String(vIndex + 1)}`
+        };
+      })
+    : getProfessionalVariants(niche, basePrice, index);
+  
+  return {
+    title: title,
+    description: product.description || getWinningDescription(niche, index),
+    price: Number(basePrice.toFixed(2)),
+    images: qualityImages,
+    variants: professionalVariants,
+    handle: generateCleanHandle(title),
+    product_type: niche,
+    vendor: 'TrendingProducts',
+    tags: `${niche}, winning product, trending, bestseller, premium quality, dropshipping`
+  };
+}
+
+function getQualityImages(niche, index) {
   const imageCollections = {
     'pet': [
       'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=800&h=800&fit=crop',
@@ -235,55 +232,112 @@ function generateNicheImages(niche: string, index: number) {
   return selectedImages;
 }
 
-function generateWinningTitle(niche: string, index: number) {
+function getWinningTitle(niche, index) {
   const titles = {
     'pet': [
-      'Smart Pet Camera with Treat Dispenser',
+      'Smart Pet Camera Treat Dispenser',
       'Self-Cleaning Pet Grooming Brush',
       'Interactive Dog Puzzle Toy',
       'Automatic Pet Water Fountain',
       'GPS Pet Tracker Collar',
-      'Orthopedic Pet Memory Foam Bed',
+      'Orthopedic Memory Foam Pet Bed',
       'Portable Pet Travel Carrier',
       'LED Safety Pet Collar',
       'Pet Training Clicker Set',
-      'Anti-Anxiety Pet Calming Bed'
+      'Anti-Anxiety Calming Pet Bed'
     ],
     'fitness': [
       'Smart Fitness Tracker Watch',
       'Resistance Bands Exercise Set',
       'Foam Roller Muscle Recovery',
       'Adjustable Dumbbells Home Gym',
-      'Yoga Mat Non-Slip Premium',
-      'Protein Shaker Bottle Smart',
+      'Premium Non-Slip Yoga Mat',
+      'Smart Protein Shaker Bottle',
       'Ab Wheel Core Trainer',
-      'Bluetooth Wireless Earbuds Sport',
-      'Massage Gun Deep Tissue',
+      'Wireless Bluetooth Sports Earbuds',
+      'Deep Tissue Massage Gun',
       'Pull-Up Bar Doorway Trainer'
+    ],
+    'kitchen': [
+      'Smart Kitchen Scale Digital',
+      'Silicone Cooking Utensil Set',
+      'Electric Pressure Cooker Multi-Function',
+      'Air Fryer Oven Countertop',
+      'Programmable Coffee Maker WiFi',
+      'Hydroponic Herb Garden Kit',
+      'Non-Stick Cookware Set Professional',
+      'Glass Food Storage Container Set',
+      'Electric Spice Coffee Grinder',
+      'Silicone Baking Mat Set Reusable'
+    ],
+    'electronics': [
+      'Wireless Charging Pad Fast',
+      'Noise-Cancelling Bluetooth Earbuds',
+      'LED Strip Lights RGB Smart',
+      'Portable Power Bank Ultra-Capacity',
+      'Fitness Tracking Smartwatch',
+      'Waterproof Bluetooth Speaker Portable',
+      'USB-C Hub Multi-Port HDMI',
+      'LED Ring Light Professional',
+      'Security Camera AI Night Vision',
+      'Magnetic Wireless Car Mount'
     ]
   };
 
-  const selectedTitles = titles[niche.toLowerCase()] || titles['fitness'];
-  return selectedTitles[index] || `Premium ${niche} Essential ${index + 1}`;
+  const selectedTitles = titles[niche.toLowerCase()] || titles['electronics'];
+  return selectedTitles[index] || `Premium ${niche} Essential`;
 }
 
-function generateWinningDescription(niche: string, index: number) {
+function getWinningDescription(niche, index) {
   const descriptions = {
     'pet': [
-      "Transform your pet care routine with this revolutionary smart camera that lets you watch, interact, and treat your furry friend from anywhere in the world. Features crystal-clear HD video, two-way audio communication, and remote treat dispensing via smartphone app. Perfect for reducing separation anxiety and maintaining that special bond with your pet, no matter where life takes you. Trusted by over 50,000 pet parents worldwide.",
-      "Say goodbye to messy grooming sessions with this viral self-cleaning brush that's taking the pet world by storm! Removes 95% of loose fur with gentle bristles that massage while they groom. The revolutionary one-click cleaning button retracts all collected hair for effortless cleanup. Veterinarian recommended for healthier coats and reduced shedding around your home."
+      "Transform your pet care routine with this revolutionary smart camera that lets you watch, interact, and treat your furry friend from anywhere in the world. Features crystal-clear HD video, two-way audio communication, and remote treat dispensing via smartphone app. Perfect for reducing separation anxiety and maintaining that special bond with your pet, no matter where life takes you. The built-in treat dispenser holds up to 4.5 cups of treats and works with most small treats. Night vision capability ensures you can check on your pet 24/7. Trusted by over 50,000 pet parents worldwide for peace of mind and staying connected.",
+      "Say goodbye to messy grooming sessions with this viral self-cleaning brush that's taking the pet world by storm! Removes 95% of loose fur with gentle bristles that massage while they groom. The revolutionary one-click cleaning button retracts all collected hair for effortless cleanup. Reduces shedding dramatically, prevents painful matting, and leaves your pet's coat shiny and healthy. Veterinarian recommended and loved by over 100,000 pet owners worldwide. Works on all coat types and sizes. The ergonomic handle provides comfortable grip during extended grooming sessions."
     ],
     'fitness': [
-      "Achieve your fitness goals faster with this advanced fitness tracker that monitors your heart rate, calories, sleep patterns, and 14 different workout modes with incredible accuracy. Waterproof design perfect for any activity, while smart notifications keep you connected. Long-lasting 7-day battery life means less charging, more training. Join thousands who've transformed their health journey.",
-      "Build strength anywhere with this complete resistance bands set that replaces an entire gym. Features 5 resistance levels, door anchor, ankle straps, and handles for unlimited workout possibilities. Perfect for all fitness levels with customizable intensity. Compact and portable design lets you maintain your fitness routine at home, office, or while traveling."
+      "Achieve your fitness goals faster with this advanced fitness tracker that monitors your heart rate, calories, sleep patterns, and 14 different workout modes with incredible accuracy. Waterproof design perfect for any activity, while smart notifications keep you connected. Long-lasting 7-day battery life means less charging, more training. Features built-in GPS, stress monitoring, and guided breathing exercises. Compatible with iOS and Android. Join thousands of fitness enthusiasts who've transformed their health journey with this essential wearable technology that motivates you every step of the way.",
+      "Build strength anywhere with this complete resistance bands set that replaces an entire gym. Features 5 resistance levels (10-50 lbs), door anchor, ankle straps, and cushioned handles for unlimited workout possibilities. Perfect for all fitness levels, these bands allow you to customize workout intensity and target every muscle group effectively. Made from premium natural latex that won't snap or lose elasticity. Compact, portable, and built to last. Includes access to online workout videos and exercise guide."
     ]
   };
 
   const selectedDescriptions = descriptions[niche.toLowerCase()] || descriptions['fitness'];
-  return selectedDescriptions[index % selectedDescriptions.length] || `Experience the premium quality and innovative design of this must-have ${niche} product. Engineered for durability and performance, it delivers exceptional results that exceed expectations. Join thousands of satisfied customers who have already discovered the difference quality makes.`;
+  return selectedDescriptions[index % selectedDescriptions.length] || `Experience the premium quality and innovative design of this must-have ${niche} product. Engineered for durability and exceptional performance, it delivers outstanding results that exceed expectations. Perfect for both beginners and professionals, this item combines cutting-edge technology with user-friendly design. Join thousands of satisfied customers who have already discovered the difference quality makes. With its sleek design and reliable functionality, this product is an essential addition to your ${niche} collection that you'll use and love every day.`;
 }
 
-function generateHandle(title: string): string {
+function getProfessionalVariants(niche, basePrice, index) {
+  const variantTemplates = {
+    'pet': [
+      [
+        { title: 'Small Size', price: basePrice, sku: `PET-SM-${String(index + 1).padStart(3, '0')}` },
+        { title: 'Large Size', price: basePrice + 10, sku: `PET-LG-${String(index + 1).padStart(3, '0')}` }
+      ],
+      [
+        { title: 'Standard', price: basePrice, sku: `PET-STD-${String(index + 1).padStart(3, '0')}` },
+        { title: 'Premium Bundle', price: basePrice + 15, sku: `PET-PREM-${String(index + 1).padStart(3, '0')}` }
+      ]
+    ],
+    'fitness': [
+      [
+        { title: 'Basic Set', price: basePrice, sku: `FIT-BASIC-${String(index + 1).padStart(3, '0')}` },
+        { title: 'Pro Set', price: basePrice + 20, sku: `FIT-PRO-${String(index + 1).padStart(3, '0')}` }
+      ],
+      [
+        { title: 'Light Resistance', price: basePrice, sku: `FIT-LIGHT-${String(index + 1).padStart(3, '0')}` },
+        { title: 'Heavy Resistance', price: basePrice + 10, sku: `FIT-HEAVY-${String(index + 1).padStart(3, '0')}` }
+      ]
+    ]
+  };
+
+  const templates = variantTemplates[niche.toLowerCase()] || variantTemplates['fitness'];
+  const selectedTemplate = templates[index % templates.length];
+  
+  return selectedTemplate.map(variant => ({
+    ...variant,
+    price: Number(variant.price.toFixed(2))
+  }));
+}
+
+function generateCleanHandle(title) {
   return title
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '')
@@ -293,14 +347,14 @@ function generateHandle(title: string): string {
     .substring(0, 100);
 }
 
-function generateHighQualityProducts(niche: string) {
-  const winningProducts = {
+function generatePremiumProducts(niche) {
+  const premiumProducts = {
     'pet': [
       {
-        title: "Smart Pet Camera with Treat Dispenser",
-        description: "Never miss a moment with your furry friend! This revolutionary smart camera lets you watch, talk, and treat your pet from anywhere in the world. Features crystal-clear 1080p HD video, two-way audio, motion alerts, and remote treat dispensing via smartphone app. Over 50,000 pet parents trust this device to keep their pets happy, secure, and entertained while away. Perfect for reducing separation anxiety and maintaining that special bond with your pet, no matter where life takes you. The built-in treat dispenser holds up to 4.5 cups of treats and works with most small treats under 15mm. Night vision capability ensures you can check on your pet 24/7.",
+        title: "Smart Pet Camera Treat Dispenser",
+        description: "Transform your pet care routine with this revolutionary smart camera that lets you watch, interact, and treat your furry friend from anywhere in the world. Features crystal-clear HD video, two-way audio communication, and remote treat dispensing via smartphone app. Perfect for reducing separation anxiety and maintaining that special bond with your pet, no matter where life takes you. The built-in treat dispenser holds up to 4.5 cups of treats and works with most small treats under 15mm. Night vision capability ensures you can check on your pet 24/7. Trusted by over 50,000 pet parents worldwide.",
         price: 89.99,
-        images: generateNicheImages('pet', 0),
+        images: getQualityImages('pet', 0),
         variants: [
           { title: "White Camera", price: 89.99, sku: "PET-CAM-WHT-001" },
           { title: "Black Camera", price: 89.99, sku: "PET-CAM-BLK-001" },
@@ -309,13 +363,13 @@ function generateHighQualityProducts(niche: string) {
         handle: "smart-pet-camera-treat-dispenser",
         product_type: "Pet Electronics",
         vendor: "TrendingProducts",
-        tags: "pet camera, smart home, pet monitoring, treat dispenser, bestseller, viral, trending, must have"
+        tags: "pet camera, smart home, pet monitoring, treat dispenser, bestseller, viral, trending"
       },
       {
         title: "Self-Cleaning Pet Grooming Brush",
-        description: "Transform grooming time into bonding time with this viral self-cleaning brush that's taking the pet world by storm! Removes 95% of loose fur with gentle bristles that massage while they groom. The magic one-click button retracts all collected hair for effortless cleanup. Reduces shedding dramatically, prevents painful matting, and leaves your pet's coat shiny and healthy. Veterinarian recommended and loved by over 100,000 pet owners worldwide. Works on all coat types and sizes. The ergonomic handle provides comfortable grip during extended grooming sessions. Say goodbye to fur everywhere and hello to a happier, healthier pet!",
+        description: "Say goodbye to messy grooming sessions with this viral self-cleaning brush that's taking the pet world by storm! Removes 95% of loose fur with gentle bristles that massage while they groom. The magic one-click button retracts all collected hair for effortless cleanup. Reduces shedding dramatically, prevents painful matting, and leaves your pet's coat shiny and healthy. Veterinarian recommended and loved by over 100,000 pet owners worldwide. Works on all coat types and sizes. The ergonomic handle provides comfortable grip during extended grooming sessions.",
         price: 24.99,
-        images: generateNicheImages('pet', 1),
+        images: getQualityImages('pet', 1),
         variants: [
           { title: "For Small Pets", price: 24.99, sku: "PET-BRUSH-SM-001" },
           { title: "For Large Pets", price: 29.99, sku: "PET-BRUSH-LG-001" },
@@ -324,46 +378,31 @@ function generateHighQualityProducts(niche: string) {
         handle: "self-cleaning-pet-grooming-brush",
         product_type: "Pet Grooming",
         vendor: "TrendingProducts",
-        tags: "pet brush, grooming, self cleaning, viral, shedding, bestseller, must have"
+        tags: "pet brush, grooming, self cleaning, viral, shedding, bestseller"
       }
     ],
     'fitness': [
       {
-        title: "Smart Fitness Tracker Watch Pro",
-        description: "Stay on top of your fitness goals with this advanced fitness tracker that's revolutionizing how people approach health and wellness. Track heart rate, calories burned, sleep patterns, steps, and 14 different workout modes with incredible accuracy. Its waterproof design means you can wear it during any workout, swimming, or daily activity while smart notifications keep you connected. The long-lasting battery provides up to 7 days of use on a single charge. Features built-in GPS, stress monitoring, and guided breathing exercises. Compatible with iOS and Android. Join thousands of fitness enthusiasts who've transformed their health journey with this essential wearable technology.",
+        title: "Smart Fitness Tracker Watch",
+        description: "Achieve your fitness goals faster with this advanced fitness tracker that monitors your heart rate, calories, sleep patterns, and 14 different workout modes with incredible accuracy. Waterproof design perfect for any activity, while smart notifications keep you connected. Long-lasting 7-day battery life means less charging, more training. Features built-in GPS, stress monitoring, and guided breathing exercises. Compatible with iOS and Android. Join thousands of fitness enthusiasts who've transformed their health journey with this essential wearable technology.",
         price: 49.99,
-        images: generateNicheImages('fitness', 0),
+        images: getQualityImages('fitness', 0),
         variants: [
           { title: "Black Band", price: 49.99, sku: "FIT-TRACK-BLK-001" },
           { title: "Pink Band", price: 49.99, sku: "FIT-TRACK-PNK-001" },
           { title: "Blue Band", price: 49.99, sku: "FIT-TRACK-BLU-001" }
         ],
-        handle: "smart-fitness-tracker-watch-pro",
+        handle: "smart-fitness-tracker-watch",
         product_type: "Fitness Technology",
         vendor: "TrendingProducts",
-        tags: "fitness tracker, health, wearable technology, workout, wellness, trending, bestseller"
-      },
-      {
-        title: "Resistance Bands Complete Training Set",
-        description: "Level up your workouts with this complete resistance bands set that's helping thousands build strength, enhance flexibility, and tone muscles from home or the gym. This versatile 11-piece set includes 5 resistance levels (10-50 lbs), door anchor, ankle straps, and cushioned handles for unlimited workout possibilities. Perfect for all fitness levels, these bands allow you to customize workout intensity and target every muscle group effectively. Made from premium natural latex that won't snap or lose elasticity. Compact, portable, and built to last. Includes access to online workout videos and exercise guide. Join the resistance training revolution and discover why personal trainers worldwide recommend this complete fitness solution.",
-        price: 39.99,
-        images: generateNicheImages('fitness', 1),
-        variants: [
-          { title: "Standard Set", price: 39.99, sku: "RES-BAND-STD-001" },
-          { title: "Pro Set + Guide", price: 49.99, sku: "RES-BAND-PRO-001" },
-          { title: "Premium Set + Bag", price: 59.99, sku: "RES-BAND-PREM-001" }
-        ],
-        handle: "resistance-bands-complete-training-set",
-        product_type: "Fitness Equipment",
-        vendor: "TrendingProducts",
-        tags: "resistance bands, strength training, fitness equipment, home workout, flexibility, bestseller"
+        tags: "fitness tracker, health, wearable technology, workout, wellness, trending"
       }
     ]
   };
 
-  const selectedProducts = winningProducts[niche.toLowerCase()] || winningProducts['fitness'];
+  const selectedProducts = premiumProducts[niche.toLowerCase()] || premiumProducts['fitness'];
   
-  // Generate exactly 10 products by expanding and varying the base templates
+  // Generate exactly 10 products by expanding the base templates
   const products = [];
   for (let i = 0; i < 10; i++) {
     const baseIndex = i % selectedProducts.length;
@@ -374,7 +413,7 @@ function generateHighQualityProducts(niche: string) {
       title: variation > 1 ? `${base.title} Pro v${variation}` : base.title,
       description: base.description,
       price: Number((base.price + (variation - 1) * 15 + (i * 3)).toFixed(2)),
-      images: generateNicheImages(niche, i),
+      images: getQualityImages(niche, i),
       variants: base.variants.map((variant, idx) => ({
         ...variant,
         price: Number((variant.price + (variation - 1) * 15 + (i * 3)).toFixed(2)),
@@ -383,7 +422,7 @@ function generateHighQualityProducts(niche: string) {
       handle: variation > 1 ? `${base.handle}-pro-v${variation}` : base.handle,
       product_type: base.product_type,
       vendor: base.vendor,
-      tags: `${base.tags}, premium v${variation}, professional grade, limited edition`,
+      tags: `${base.tags}, premium v${variation}, professional grade`,
       category: niche
     });
   }

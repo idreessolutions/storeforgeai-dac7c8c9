@@ -27,36 +27,42 @@ serve(async (req) => {
     
     console.log('Shopify API URL:', apiUrl);
 
-    // Generate completely unique identifiers with current timestamp
-    const timestamp = Date.now();
-    const randomSuffix = Math.random().toString(36).substring(2, 15);
-    const uniqueId = `${timestamp}-${randomSuffix}`;
-
-    // Generate unique handle
-    const baseHandle = product.handle || product.title.toLowerCase()
+    // Clean up the product title - remove any timestamps or random IDs
+    const cleanTitle = product.title.replace(/[0-9]{10,}/g, '').replace(/[-_][a-z0-9]{8,}/gi, '').trim();
+    
+    // Generate clean handle from title
+    const cleanHandle = cleanTitle
+      .toLowerCase()
       .replace(/[^a-z0-9\s-]/g, '')
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '');
-    
-    const uniqueHandle = `${baseHandle}-${uniqueId}`;
 
-    // Prepare variants - ensure we have valid prices
+    // Prepare clean variants with professional names and SKUs
     const preparedVariants = product.variants.map((variant, index) => {
-      const variantId = `${timestamp}-v${index}-${randomSuffix}`;
-      const baseTitle = variant.title || 'Default';
-      const uniqueVariantTitle = `${baseTitle}-${variantId}`;
+      // Clean variant title - remove timestamps and random IDs
+      let variantTitle = variant.title.replace(/[0-9]{10,}/g, '').replace(/[-_][a-z0-9]{8,}/gi, '').trim();
+      if (!variantTitle || variantTitle.length < 2) {
+        variantTitle = index === 0 ? 'Standard' : `Option ${index + 1}`;
+      }
       
-      // Ensure price is a valid number
+      // Ensure price is valid
       let price = parseFloat(variant.price);
       if (isNaN(price) || price <= 0) {
-        price = 29.99; // Default fallback price
+        price = 29.99 + (index * 5);
+      }
+      
+      // Clean SKU - use meaningful format
+      let cleanSKU = variant.sku;
+      if (!cleanSKU || cleanSKU.includes('undefined') || cleanSKU.length > 50) {
+        const titleCode = cleanTitle.substring(0, 3).toUpperCase();
+        cleanSKU = `${titleCode}-${String(index + 1).padStart(3, '0')}`;
       }
       
       return {
-        title: uniqueVariantTitle,
+        title: variantTitle,
         price: price.toFixed(2),
-        sku: `${variant.sku || 'SKU'}-${variantId}`,
+        sku: cleanSKU,
         inventory_management: null,
         inventory_policy: 'continue',
         inventory_quantity: 999,
@@ -65,38 +71,42 @@ serve(async (req) => {
         requires_shipping: true,
         taxable: true,
         compare_at_price: null,
-        fulfillment_service: 'manual',
-        option1: `${baseTitle}-${variantId}` // This must match the option values
+        fulfillment_service: 'manual'
       };
     });
 
-    // Create option values that exactly match the variant option1 values
-    const optionValues = preparedVariants.map(variant => variant.option1);
-
-    // Prepare the product payload with proper options structure
+    // Prepare the product payload with clean data
     const productPayload = {
       product: {
-        title: `${product.title} ${uniqueId}`,
-        body_html: product.body_html || `<p>${product.description || 'High-quality product'}</p>`,
-        vendor: product.vendor || 'StoreForge AI',
+        title: cleanTitle,
+        body_html: product.body_html || `<p>${product.description || 'Premium quality product with excellent features and benefits.'}</p>`,
+        vendor: product.vendor || 'TrendingProducts',
         product_type: product.product_type || 'General',
-        handle: uniqueHandle,
+        handle: cleanHandle,
         status: 'active',
         published: true,
-        tags: product.tags || 'winning products, trending',
-        images: product.images || [],
+        tags: product.tags || 'trending, bestseller, premium quality',
+        images: product.images && Array.isArray(product.images) ? product.images.map(url => ({
+          src: url,
+          alt: cleanTitle
+        })) : [],
         variants: preparedVariants,
-        options: [
+        options: preparedVariants.length > 1 ? [
           {
-            name: 'Size',
+            name: 'Type',
             position: 1,
-            values: optionValues
+            values: preparedVariants.map(variant => variant.title)
           }
-        ]
+        ] : []
       }
     };
 
-    console.log('Product payload:', JSON.stringify(productPayload, null, 2));
+    console.log('Clean product payload:', JSON.stringify({
+      title: productPayload.product.title,
+      handle: productPayload.product.handle,
+      variants: productPayload.product.variants.map(v => ({ title: v.title, price: v.price, sku: v.sku })),
+      images: productPayload.product.images.length
+    }, null, 2));
 
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -121,7 +131,6 @@ serve(async (req) => {
         const errorData = JSON.parse(errorText);
         if (errorData.errors) {
           if (typeof errorData.errors === 'object') {
-            // Handle structured errors
             const errorMessages = [];
             for (const [field, messages] of Object.entries(errorData.errors)) {
               if (Array.isArray(messages)) {
@@ -149,7 +158,7 @@ serve(async (req) => {
     }
 
     const responseData = await response.json();
-    console.log('Product added successfully:', responseData.product?.id);
+    console.log('Product added successfully:', responseData.product?.id, 'Title:', responseData.product?.title);
 
     return new Response(JSON.stringify({ 
       success: true, 
