@@ -108,7 +108,7 @@ ONLY return valid JSON. No commentary or markdown.`;
               images: ensureUniqueImages(product.image_urls || [], niche, index),
               gif_urls: product.gif_urls || [],
               video_url: product.video_url || '',
-              features: product.features || [`Premium ${niche} quality`, 'Fast shipping', 'Money-back guarantee`],
+              features: product.features || [`Premium ${niche} quality`, 'Fast shipping', 'Money-back guarantee'],
               benefits: product.benefits || ['Solves your problem', 'Saves time', 'Great value'],
               target_audience: product.target_audience || `${niche} enthusiasts`,
               shipping_info: product.shipping_info || 'Ships worldwide in 7-14 days',
