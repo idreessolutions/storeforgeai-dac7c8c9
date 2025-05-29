@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 interface Product {
@@ -113,6 +112,13 @@ export const addProductsToShopify = async (
             { title: 'Standard', price: product.price, sku: `STD-${timestamp}-${String(i + 1).padStart(3, '0')}` }
           ];
 
+          // Ensure images are passed as simple string URLs
+          const processedImages = Array.isArray(product.images) 
+            ? product.images.filter(img => typeof img === 'string' && img.length > 0)
+            : [];
+
+          console.log(`📷 Product has ${processedImages.length} images ready for upload`);
+
           // Use Supabase edge function to add product to Shopify
           const { data, error } = await supabase.functions.invoke('add-shopify-product', {
             body: {
@@ -134,10 +140,7 @@ export const addProductsToShopify = async (
                 status: 'active',
                 published: true,
                 tags: product.tags || `${userNiche}, winning products, trending, bestseller`,
-                images: product.images?.map(url => ({
-                  src: url,
-                  alt: product.title
-                })) || [],
+                images: processedImages, // Pass as simple string array
                 variants: processedVariants.map((variant, variantIndex) => ({
                   title: variant.title,
                   price: typeof variant.price === 'number' ? variant.price.toFixed(2) : parseFloat(String(variant.price)).toFixed(2),

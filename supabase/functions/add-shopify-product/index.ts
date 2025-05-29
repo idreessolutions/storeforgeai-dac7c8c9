@@ -104,12 +104,29 @@ async function handleProductEnhancements(
   let uploadedImageCount = 0;
   if (product.images && product.images.length > 0) {
     console.log(`🚀 PRIORITY: Uploading ${product.images.length} images to Shopify...`);
+    
+    // Ensure images are passed as string array
+    let imageUrls: string[] = [];
+    
+    for (let i = 0; i < product.images.length; i++) {
+      const img = product.images[i];
+      if (typeof img === 'string') {
+        imageUrls.push(img);
+      } else if (typeof img === 'object' && img && 'src' in img && typeof img.src === 'string') {
+        imageUrls.push(img.src);
+      } else {
+        console.log(`⚠️ Skipping invalid image at index ${i}:`, img);
+      }
+    }
+    
+    console.log(`📸 Processing ${imageUrls.length} valid image URLs out of ${product.images.length} total`);
+    
     uploadedImageCount = await imageProcessor.uploadProductImages(
       createdProduct.id,
-      product.images,
+      imageUrls,
       product.title
     );
-    console.log(`📸 Image upload result: ${uploadedImageCount}/${product.images.length} images uploaded`);
+    console.log(`📸 Image upload result: ${uploadedImageCount}/${imageUrls.length} images uploaded`);
   } else {
     console.log('⚠️ No images provided for this product');
   }

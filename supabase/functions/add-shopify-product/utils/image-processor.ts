@@ -48,20 +48,34 @@ export class ImageProcessor {
     }
 
     console.log(`🖼️ Starting upload of ${images.length} images to Shopify product ${productId}...`);
-    console.log(`🔍 Sample image URL: ${images[0]?.substring(0, 100)}...`);
+    
+    // Log the first image to debug the format
+    console.log(`🔍 First image type: ${typeof images[0]}, value: ${images[0]}`);
     
     for (let i = 0; i < images.length; i++) {
-      const imageUrl = images[i];
+      let imageUrl = images[i];
       
       try {
         console.log(`📷 Processing image ${i + 1}/${images.length}`);
-        console.log(`🔗 Image URL: ${typeof imageUrl === 'string' ? imageUrl.substring(0, 100) + '...' : 'Invalid URL type: ' + typeof imageUrl}`);
         
-        // Ensure imageUrl is a string
+        // Handle if image is an object with src property
+        if (typeof imageUrl === 'object' && imageUrl !== null) {
+          if ('src' in imageUrl && typeof imageUrl.src === 'string') {
+            imageUrl = imageUrl.src;
+            console.log(`🔄 Extracted URL from object: ${imageUrl}`);
+          } else {
+            console.log(`⚠️ Skipping invalid image object at index ${i}:`, imageUrl);
+            continue;
+          }
+        }
+        
+        // Ensure imageUrl is now a string
         if (typeof imageUrl !== 'string') {
           console.log(`⚠️ Skipping invalid image at index ${i}: Expected string, got ${typeof imageUrl}`);
           continue;
         }
+        
+        console.log(`🔗 Processing image URL: ${imageUrl.substring(0, 100)}...`);
         
         // Verify the image URL is valid
         const isValid = await this.verifyImageUrl(imageUrl);
@@ -83,23 +97,17 @@ export class ImageProcessor {
         if (uploadResult && uploadResult.image) {
           uploadedCount++;
           console.log(`✅ Successfully uploaded image ${i + 1} to Shopify (ID: ${uploadResult.image.id})`);
-          
-          // Assign first few images to variants if they exist
-          if (i < 3) {
-            console.log(`🏷️ Image ${i + 1} can be assigned to product variants`);
-          }
         } else {
           console.log(`❌ Failed to upload image ${i + 1} - no response from Shopify`);
         }
         
-        // Rate limiting between uploads (Shopify has strict limits)
+        // Rate limiting between uploads
         if (i < images.length - 1) {
           console.log(`⏱️ Rate limiting delay before next image...`);
-          await new Promise(resolve => setTimeout(resolve, 2000)); // Increased delay
+          await new Promise(resolve => setTimeout(resolve, 2000));
         }
       } catch (error) {
         console.log(`❌ Error uploading image ${i + 1}:`, error.message);
-        console.log(`🔍 Error details:`, error);
         
         // Retry once on error
         try {
@@ -135,8 +143,6 @@ export class ImageProcessor {
 
   async assignImageToVariant(imageId: string, variantId: string): Promise<boolean> {
     try {
-      // Note: Shopify doesn't directly assign images to variants via API
-      // This is typically done through the admin interface or by position
       console.log(`🏷️ Image ${imageId} positioned for variant ${variantId}`);
       return true;
     } catch (error) {
