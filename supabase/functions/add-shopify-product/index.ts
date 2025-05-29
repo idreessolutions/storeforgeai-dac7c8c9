@@ -15,7 +15,8 @@ serve(async (req) => {
   try {
     const { shopifyUrl, accessToken, product, themeColor } = await req.json();
 
-    console.log('✅ Uploading Product to Shopify:', product.title);
+    console.log('✅ Uploading Real Winning Product to Shopify:', product.title);
+    console.log('🎨 Applying theme color:', themeColor);
 
     // Validate inputs
     if (!shopifyUrl || !accessToken || !product) {
@@ -28,64 +29,71 @@ serve(async (req) => {
     
     console.log('Shopify API URL:', apiUrl);
 
-    // Enhanced product payload with theme color integration and comprehensive details
-    const safeTitle = product.title || 'Untitled Product';
-    const safeDescription = product.description || 'High-quality product designed to enhance your lifestyle.';
-    const detailedDescription = product.detailed_description || product.description || safeDescription;
+    // Enhanced product payload with theme color integration
+    const safeTitle = product.title || 'Premium Product';
+    const safeDescription = product.description || 'High-quality winning product designed to enhance your lifestyle.';
     const appliedThemeColor = themeColor || '#1E40AF';
     
     // Create rich HTML description with theme color styling
     const formattedDescription = `
-      <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-        <div style="color: ${appliedThemeColor}; font-size: 18px; font-weight: bold; margin-bottom: 16px;">
-          ${safeTitle}
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333;">
+        <div style="background: linear-gradient(135deg, ${appliedThemeColor}, ${appliedThemeColor}dd); color: white; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 24px;">
+          <h2 style="margin: 0; font-size: 24px; font-weight: bold;">${safeTitle}</h2>
+          <p style="margin: 8px 0 0 0; font-size: 16px; opacity: 0.95;">🔥 TRENDING NOW - Limited Time Offer!</p>
         </div>
         
-        <div style="margin-bottom: 20px;">
-          <p style="font-size: 16px; color: #333;">${safeDescription}</p>
+        <div style="margin-bottom: 24px; padding: 0 8px;">
+          ${safeDescription.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong style="color: ' + appliedThemeColor + ';">$1</strong>')}
         </div>
 
         ${product.features ? `
-        <div style="margin-bottom: 20px;">
-          <h3 style="color: ${appliedThemeColor}; font-size: 16px; margin-bottom: 10px;">✨ Key Features:</h3>
-          <ul style="color: #555; padding-left: 20px;">
-            ${product.features.map(feature => `<li style="margin-bottom: 5px;">${feature}</li>`).join('')}
+        <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid ${appliedThemeColor};">
+          <h3 style="color: ${appliedThemeColor}; font-size: 18px; margin: 0 0 12px 0; display: flex; align-items: center;">
+            <span style="margin-right: 8px;">✨</span> Key Features
+          </h3>
+          <ul style="margin: 0; padding-left: 20px; color: #555;">
+            ${product.features.map(feature => `<li style="margin-bottom: 8px; line-height: 1.5;"><strong>${feature}</strong></li>`).join('')}
           </ul>
         </div>
         ` : ''}
 
         ${product.benefits ? `
-        <div style="margin-bottom: 20px;">
-          <h3 style="color: ${appliedThemeColor}; font-size: 16px; margin-bottom: 10px;">🎯 Benefits:</h3>
-          <ul style="color: #555; padding-left: 20px;">
-            ${product.benefits.map(benefit => `<li style="margin-bottom: 5px;">${benefit}</li>`).join('')}
-          </ul>
+        <div style="background: linear-gradient(135deg, ${appliedThemeColor}11, ${appliedThemeColor}22); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+          <h3 style="color: ${appliedThemeColor}; font-size: 18px; margin: 0 0 12px 0; display: flex; align-items: center;">
+            <span style="margin-right: 8px;">🎯</span> Benefits You'll Love
+          </h3>
+          <div style="display: grid; gap: 8px;">
+            ${product.benefits.map(benefit => `<div style="display: flex; align-items: center; color: #333;"><span style="color: ${appliedThemeColor}; margin-right: 8px; font-weight: bold;">✓</span> ${benefit}</div>`).join('')}
+          </div>
         </div>
         ` : ''}
 
-        <div style="margin-bottom: 20px;">
-          <h3 style="color: ${appliedThemeColor}; font-size: 16px; margin-bottom: 10px;">📦 Product Details:</h3>
-          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid ${appliedThemeColor};">
-            <p style="margin: 0; color: #555;">${detailedDescription}</p>
+        <div style="background-color: #fff; border: 2px solid ${appliedThemeColor}; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+          <h3 style="color: ${appliedThemeColor}; font-size: 18px; margin: 0 0 12px 0; display: flex; align-items: center;">
+            <span style="margin-right: 8px;">👥</span> Perfect For
+          </h3>
+          <p style="margin: 0; color: #555; font-style: italic; font-size: 16px;">${product.target_audience || `${product.category} enthusiasts and professionals`}</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+          <div style="background-color: #f1f5f9; padding: 16px; border-radius: 8px;">
+            <h4 style="color: ${appliedThemeColor}; font-size: 16px; margin: 0 0 8px 0; display: flex; align-items: center;">
+              <span style="margin-right: 8px;">🚚</span> Shipping
+            </h4>
+            <p style="margin: 0; color: #555; font-size: 14px;">${product.shipping_info || 'Fast worldwide shipping'}</p>
+          </div>
+          <div style="background-color: #f1f5f9; padding: 16px; border-radius: 8px;">
+            <h4 style="color: ${appliedThemeColor}; font-size: 16px; margin: 0 0 8px 0; display: flex; align-items: center;">
+              <span style="margin-right: 8px;">🔄</span> Returns
+            </h4>
+            <p style="margin: 0; color: #555; font-size: 14px;">${product.return_policy || '30-day money-back guarantee'}</p>
           </div>
         </div>
 
-        ${product.target_audience ? `
-        <div style="margin-bottom: 20px;">
-          <h3 style="color: ${appliedThemeColor}; font-size: 16px; margin-bottom: 10px;">👥 Perfect For:</h3>
-          <p style="color: #555; font-style: italic;">${product.target_audience}</p>
-        </div>
-        ` : ''}
-
-        <div style="margin-bottom: 20px;">
-          <h3 style="color: ${appliedThemeColor}; font-size: 16px; margin-bottom: 10px;">🚚 Shipping & Returns:</h3>
-          <p style="color: #555; margin-bottom: 8px;"><strong>Shipping:</strong> ${product.shipping_info || 'Fast worldwide shipping'}</p>
-          <p style="color: #555; margin: 0;"><strong>Returns:</strong> ${product.return_policy || '30-day money-back guarantee'}</p>
-        </div>
-
-        <div style="background-color: ${appliedThemeColor}; color: white; padding: 15px; border-radius: 8px; text-align: center; margin-top: 20px;">
-          <p style="margin: 0; font-weight: bold; font-size: 16px;">🎉 Special Launch Offer - Limited Time!</p>
-          <p style="margin: 8px 0 0 0; font-size: 14px;">Order now and get FREE shipping + our satisfaction guarantee!</p>
+        <div style="background: linear-gradient(135deg, ${appliedThemeColor}, ${appliedThemeColor}dd); color: white; padding: 24px; border-radius: 12px; text-align: center; box-shadow: 0 4px 12px ${appliedThemeColor}33;">
+          <h3 style="margin: 0 0 8px 0; font-size: 20px; font-weight: bold;">🎉 Special Launch Offer!</h3>
+          <p style="margin: 0 0 12px 0; font-size: 16px; opacity: 0.95;">Limited time: FREE shipping + satisfaction guarantee</p>
+          <p style="margin: 0; font-size: 14px; opacity: 0.9;">⏰ This deal won't last long - order now!</p>
         </div>
       </div>
     `;
@@ -116,11 +124,11 @@ serve(async (req) => {
           weight_unit: 'lb',
           requires_shipping: true,
           taxable: true,
-          compare_at_price: variant.price ? (variant.price * 1.5).toFixed(2) : null,
+          compare_at_price: variant.price ? (variant.price * 1.3).toFixed(2) : null,
           fulfillment_service: 'manual'
         })),
         seo_title: safeTitle,
-        seo_description: safeDescription ? safeDescription.substring(0, 160) : `Buy ${safeTitle} - Premium quality with fast shipping.`,
+        seo_description: safeDescription ? safeDescription.substring(0, 160).replace(/[^\w\s]/gi, '') : `Buy ${safeTitle} - Premium quality with fast shipping.`,
         metafields: [
           {
             namespace: 'custom',
@@ -139,6 +147,12 @@ serve(async (req) => {
             key: 'benefits',
             value: JSON.stringify(product.benefits || []),
             type: 'json'
+          },
+          {
+            namespace: 'custom',
+            key: 'product_category',
+            value: product.category || 'general',
+            type: 'single_line_text_field'
           }
         ]
       }
@@ -160,7 +174,7 @@ serve(async (req) => {
       });
     }
 
-    console.log('Product payload with theme color and enhanced details:', JSON.stringify({
+    console.log('Real winning product payload:', JSON.stringify({
       title: productPayload.product.title,
       handle: productPayload.product.handle,
       product_type: productPayload.product.product_type,
@@ -169,7 +183,7 @@ serve(async (req) => {
       variants: productPayload.product.variants.map(v => ({ title: v.title, price: v.price, sku: v.sku })),
       images: {
         count: productPayload.product.images.length,
-        samples: productPayload.product.images.slice(0, 3).map(img => ({ src: img.src, alt: img.alt }))
+        samples: productPayload.product.images.slice(0, 2).map(img => ({ src: img.src, alt: img.alt }))
       },
       features_count: product.features?.length || 0,
       benefits_count: product.benefits?.length || 0
@@ -225,15 +239,14 @@ serve(async (req) => {
     }
 
     const responseData = await response.json();
-    console.log('✅ Product uploaded successfully with comprehensive details and theme color:', {
+    console.log('✅ Real winning product uploaded successfully:', {
       id: responseData.product?.id,
       title: responseData.product?.title,
       product_type: responseData.product?.product_type,
       vendor: responseData.product?.vendor,
       theme_color: appliedThemeColor,
       images: responseData.product?.images?.length || 0,
-      variants: responseData.product?.variants?.length || 0,
-      metafields: responseData.product?.metafields?.length || 0
+      variants: responseData.product?.variants?.length || 0
     });
 
     return new Response(JSON.stringify({ 
