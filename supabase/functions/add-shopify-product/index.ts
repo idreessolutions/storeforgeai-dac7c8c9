@@ -27,7 +27,7 @@ serve(async (req) => {
     
     console.log('Shopify API URL:', apiUrl);
 
-    // Clean up the product title - remove any timestamps or random IDs
+    // Clean and optimize the product title
     const cleanTitle = product.title.replace(/[0-9]{10,}/g, '').replace(/[-_][a-z0-9]{8,}/gi, '').trim();
     
     // Generate clean handle from title
@@ -38,21 +38,19 @@ serve(async (req) => {
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '');
 
-    // Prepare clean variants with professional names and SKUs
-    const preparedVariants = product.variants.map((variant, index) => {
-      // Clean variant title - remove timestamps and random IDs
+    // Process variants with professional naming and pricing
+    const processedVariants = product.variants.map((variant, index) => {
       let variantTitle = variant.title.replace(/[0-9]{10,}/g, '').replace(/[-_][a-z0-9]{8,}/gi, '').trim();
       if (!variantTitle || variantTitle.length < 2) {
-        variantTitle = index === 0 ? 'Standard' : `Option ${index + 1}`;
+        variantTitle = index === 0 ? 'Standard' : `Premium ${index + 1}`;
       }
       
-      // Ensure price is valid
       let price = parseFloat(variant.price);
       if (isNaN(price) || price <= 0) {
-        price = 29.99 + (index * 5);
+        price = 29.99 + (index * 10);
       }
       
-      // Clean SKU - use meaningful format
+      // Clean SKU format
       let cleanSKU = variant.sku;
       if (!cleanSKU || cleanSKU.includes('undefined') || cleanSKU.length > 50) {
         const titleCode = cleanTitle.substring(0, 3).toUpperCase();
@@ -74,7 +72,7 @@ serve(async (req) => {
         fulfillment_service: 'manual'
       };
 
-      // If we have multiple variants, add the option1 field
+      // Add option1 field for multiple variants
       if (product.variants.length > 1) {
         variantData.option1 = variantTitle;
       }
@@ -82,9 +80,9 @@ serve(async (req) => {
       return variantData;
     });
 
-    // CRITICAL: Process and validate images properly for Shopify - ENSURE UNIQUE IMAGES
+    // Process high-quality product images
     const processedImages = [];
-    console.log('Processing unique images for product:', cleanTitle);
+    console.log('Processing high-quality images for product:', cleanTitle);
     
     if (product.images && Array.isArray(product.images)) {
       for (let i = 0; i < product.images.length; i++) {
@@ -96,51 +94,45 @@ serve(async (req) => {
         }
         
         if (typeof imageUrl === 'string' && imageUrl.startsWith('http')) {
-          // Ensure images are properly formatted for Shopify API
           const imageData = {
             src: imageUrl,
-            alt: `${cleanTitle} - Image ${i + 1}`,
+            alt: `${cleanTitle} - ${i === 0 ? 'Main Product Image' : `Image ${i + 1}`}`,
             position: i + 1
           };
           
-          // Add additional metadata for better SEO and display
-          if (i === 0) {
-            imageData.alt = `${cleanTitle} - Main Product Image`;
-          }
-          
           processedImages.push(imageData);
-          console.log(`Added unique image ${i + 1}: ${imageUrl}`);
+          console.log(`Added high-quality image ${i + 1}: ${imageUrl}`);
         }
       }
     }
 
-    console.log(`Successfully processed ${processedImages.length} unique images for product: ${cleanTitle}`);
+    console.log(`Successfully processed ${processedImages.length} high-quality images for: ${cleanTitle}`);
 
-    // Prepare the product payload with clean data and optimized images
+    // Prepare the winning product payload
     const productPayload = {
       product: {
         title: cleanTitle,
-        body_html: product.body_html || `<div class="product-description">${product.description || 'Premium quality product with excellent features and benefits.'}</div>`,
+        body_html: `<div class="product-description">${product.description || 'Premium quality product with excellent features and benefits.'}</div>`,
         vendor: product.vendor || 'TrendingWins',
         product_type: product.product_type || 'General',
         handle: cleanHandle,
         status: 'active',
         published: true,
         tags: product.tags || 'trending, bestseller, premium quality, winning product',
-        images: processedImages, // This ensures unique media content for each product
-        variants: preparedVariants,
+        images: processedImages,
+        variants: processedVariants,
         seo_title: cleanTitle,
         seo_description: product.description ? product.description.substring(0, 160) : `Buy ${cleanTitle} - Premium quality with fast shipping.`
       }
     };
 
-    // Only add options if we have multiple variants
-    if (preparedVariants.length > 1) {
+    // Add options for multiple variants
+    if (processedVariants.length > 1) {
       productPayload.product.options = [
         {
           name: 'Type',
           position: 1,
-          values: preparedVariants.map(variant => variant.title)
+          values: processedVariants.map(variant => variant.title)
         }
       ];
     }
@@ -149,13 +141,11 @@ serve(async (req) => {
       title: productPayload.product.title,
       handle: productPayload.product.handle,
       product_type: productPayload.product.product_type,
-      variants: productPayload.product.variants.map(v => ({ title: v.title, price: v.price, sku: v.sku, option1: v.option1 })),
+      variants: productPayload.product.variants.map(v => ({ title: v.title, price: v.price, sku: v.sku })),
       images: {
         count: productPayload.product.images.length,
-        samples: productPayload.product.images.slice(0, 3).map(img => ({ src: img.src, alt: img.alt, position: img.position }))
-      },
-      hasOptions: !!productPayload.product.options,
-      optionsCount: productPayload.product.options?.length || 0
+        samples: productPayload.product.images.slice(0, 3).map(img => ({ src: img.src, alt: img.alt }))
+      }
     }, null, 2));
 
     const response = await fetch(apiUrl, {

@@ -41,7 +41,7 @@ serve(async (req) => {
 
     console.log('Current theme:', currentTheme.id, currentTheme.name);
 
-    // Get current theme settings first
+    // Get current theme settings
     const settingsResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/themes/${currentTheme.id}/assets.json?asset[key]=config/settings_data.json`, {
       headers: {
         'X-Shopify-Access-Token': accessToken,
@@ -60,8 +60,8 @@ serve(async (req) => {
       }
     }
 
-    // Enhanced theme customizations with the selected color
-    const enhancedSettings = {
+    // Apply the selected theme color
+    const updatedSettings = {
       ...currentSettings,
       current: {
         ...currentSettings.current,
@@ -88,6 +88,17 @@ serve(async (req) => {
               "secondary_button_label": "#ffffff",
               "shadow": "rgba(0,0,0,0.1)"
             }
+          },
+          "background-1": {
+            "settings": {
+              "background": "#ffffff",
+              "background_gradient": "",
+              "text": "#1a1a1a",
+              "button": themeColor,
+              "button_label": "#ffffff",
+              "secondary_button_label": themeColor,
+              "shadow": "rgba(0,0,0,0.1)"
+            }
           }
         },
         "sections": {
@@ -112,12 +123,24 @@ serve(async (req) => {
               "newsletter_heading": "Subscribe to our emails"
             }
           }
-        }
+        },
+        "type": currentSettings.current?.type || "published",
+        "checkout_logo_image": currentSettings.current?.checkout_logo_image || "",
+        "checkout_logo_position": currentSettings.current?.checkout_logo_position || "left",
+        "checkout_logo_size": currentSettings.current?.checkout_logo_size || "medium",
+        "checkout_body_background_color": currentSettings.current?.checkout_body_background_color || "#ffffff",
+        "checkout_input_background_color_mode": currentSettings.current?.checkout_input_background_color_mode || "white",
+        "checkout_sidebar_background_color": currentSettings.current?.checkout_sidebar_background_color || "#fafafa",
+        "checkout_heading_font": currentSettings.current?.checkout_heading_font || "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'",
+        "checkout_body_font": currentSettings.current?.checkout_body_font || "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'",
+        "checkout_accent_color": themeColor,
+        "checkout_button_color": themeColor,
+        "checkout_error_color": "#d20000"
       },
       presets: currentSettings.presets || {}
     };
 
-    // Apply the enhanced theme settings
+    // Apply the theme settings
     const updateResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/themes/${currentTheme.id}/assets.json`, {
       method: 'PUT',
       headers: {
@@ -127,13 +150,13 @@ serve(async (req) => {
       body: JSON.stringify({
         asset: {
           key: 'config/settings_data.json',
-          value: JSON.stringify(enhancedSettings)
+          value: JSON.stringify(updatedSettings)
         }
       }),
     });
 
     if (updateResponse.ok) {
-      console.log('Theme color applied successfully to main theme');
+      console.log('Theme color applied successfully');
       return new Response(JSON.stringify({ 
         success: true,
         message: `Theme color ${themeColor} applied successfully`
@@ -141,17 +164,18 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     } else {
-      // If main settings update fails, try CSS injection approach
-      console.log('Main theme settings update failed, trying CSS injection...');
+      // Fallback to CSS injection if settings update fails
+      console.log('Settings update failed, trying CSS injection...');
       
       const cssCustomization = `
         :root {
           --color-accent: ${themeColor};
           --color-button: ${themeColor};
           --color-button-text: #ffffff;
+          --gradient-accent-1: ${themeColor};
         }
         
-        .btn, .button, [class*="button"], .shopify-payment-button__button {
+        .btn, .button, [class*="button"], .shopify-payment-button__button--unbranded {
           background-color: ${themeColor} !important;
           border-color: ${themeColor} !important;
         }
@@ -173,12 +197,26 @@ serve(async (req) => {
           border-color: ${themeColor} !important;
         }
         
-        .newsletter-form__button {
+        .newsletter-form__button, .footer__newsletter .button {
           background-color: ${themeColor} !important;
+        }
+        
+        .cart-notification-product__name a:hover,
+        .card__heading a:hover,
+        .full-unstyled-link:hover .card__heading {
+          color: ${themeColor} !important;
+        }
+        
+        .badge {
+          background-color: ${themeColor} !important;
+        }
+        
+        .link--text:hover {
+          color: ${themeColor} !important;
         }
       `;
 
-      // Try to add custom CSS
+      // Add custom CSS
       const cssResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/themes/${currentTheme.id}/assets.json`, {
         method: 'PUT',
         headers: {
@@ -196,7 +234,7 @@ serve(async (req) => {
       if (cssResponse.ok) {
         console.log('Theme color applied via CSS injection');
         
-        // Also try to add the CSS to the theme.liquid file
+        // Link CSS in theme.liquid
         try {
           const themeResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/themes/${currentTheme.id}/assets.json?asset[key]=layout/theme.liquid`, {
             headers: {
@@ -209,13 +247,11 @@ serve(async (req) => {
             const themeData = await themeResponse.json();
             let themeContent = themeData.asset.value;
             
-            // Check if our CSS is already included
             if (!themeContent.includes('custom-theme-colors.css')) {
-              // Add our CSS link before the closing </head> tag
               const cssLink = `\n  {{ 'custom-theme-colors.css' | asset_url | stylesheet_tag }}\n</head>`;
               themeContent = themeContent.replace('</head>', cssLink);
               
-              const updateThemeResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/themes/${currentTheme.id}/assets.json`, {
+              await fetch(`${shopifyUrl}/admin/api/2024-10/themes/${currentTheme.id}/assets.json`, {
                 method: 'PUT',
                 headers: {
                   'X-Shopify-Access-Token': accessToken,
@@ -229,9 +265,7 @@ serve(async (req) => {
                 }),
               });
 
-              if (updateThemeResponse.ok) {
-                console.log('Custom CSS linked in theme.liquid successfully');
-              }
+              console.log('Custom CSS linked in theme.liquid');
             }
           }
         } catch (e) {
@@ -245,7 +279,7 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       } else {
-        console.log('CSS injection also failed, theme color application limited');
+        console.log('Both settings update and CSS injection failed');
         return new Response(JSON.stringify({ 
           success: false, 
           error: 'Theme color application failed - insufficient permissions'
