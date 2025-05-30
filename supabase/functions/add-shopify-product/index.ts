@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { ShopifyAPIClient } from "./utils/shopify-api.ts";
@@ -75,7 +76,7 @@ serve(async (req) => {
 
     console.log('✅ Product created successfully:', createdProduct.id);
 
-    // Process product enhancements with DALL·E 3 image generation
+    // Process product enhancements with product-specific DALL·E 3 image generation
     return await handleProductEnhancements(createdProduct, product, shopifyClient, imageProcessor, variantManager, themeColor, productPrice);
 
   } catch (error) {
@@ -99,23 +100,24 @@ async function handleProductEnhancements(
   themeColor: string,
   productPrice: string
 ) {
-  // STEP 1: PRIORITY - Generate and upload DALL·E 3 images
+  // STEP 1: PRIORITY - Generate and upload product-specific DALL·E 3 images
   let uploadedImageCount = 0;
   let imageIds: string[] = [];
   
-  console.log(`🚀 PRIORITY: Generating DALL·E 3 images for ${product.title}...`);
+  console.log(`🚀 PRIORITY: Generating product-specific DALL·E 3 images for ${product.title}...`);
   
   const uploadResult = await imageProcessor.uploadProductImages(
     createdProduct.id,
     product.title,
     product.features || ['Premium quality', 'Durable design', 'Easy to use'],
-    product.category || 'General'
+    product.category || 'General',
+    themeColor
   );
   
   uploadedImageCount = uploadResult.uploadedCount;
   imageIds = uploadResult.imageIds;
   
-  console.log(`📸 Image upload result: ${uploadedImageCount} images uploaded`);
+  console.log(`📸 Product-specific image upload result: ${uploadedImageCount} images uploaded`);
 
   // STEP 2: Update the default variant with proper pricing
   let variantUpdateSuccess = false;
@@ -135,22 +137,20 @@ async function handleProductEnhancements(
       product.variants,
       productPrice
     );
-    createdVariantCount = additionalVariants.length;
+    createdVariantCount = additionalVariants;
     
-    // Safely spread the additional variants
-    if (Array.isArray(additionalVariants)) {
-      createdVariants.push(...additionalVariants);
-    }
+    // Note: We're not adding additional variants to createdVariants array 
+    // since processProductVariants returns a count, not variant objects
   }
 
-  // STEP 4: Assign images to variants (at least 1 image per variant)
+  // STEP 4: Assign product-specific images to variants (at least 1 image per variant)
   let imageAssignmentCount = 0;
   if (imageIds.length > 0 && createdVariants.length > 0) {
-    console.log(`🎯 Assigning ${imageIds.length} images to ${createdVariants.length} variants...`);
+    console.log(`🎯 Assigning ${imageIds.length} product-specific images to ${createdVariants.length} variants...`);
     imageAssignmentCount = await imageProcessor.assignImagesToVariants(imageIds, createdVariants);
   }
 
-  console.log('✅ UNIQUE Product upload completed successfully:', {
+  console.log('✅ UNIQUE Product with product-specific images upload completed successfully:', {
     id: createdProduct.id,
     title: createdProduct.title,
     handle: createdProduct.handle,
@@ -164,7 +164,7 @@ async function handleProductEnhancements(
   return new Response(JSON.stringify({
     success: true,
     product: createdProduct,
-    message: `Successfully added UNIQUE winning product: ${createdProduct.title}`,
+    message: `Successfully added UNIQUE winning product with product-specific images: ${createdProduct.title}`,
     price_set: productPrice,
     images_uploaded: uploadedImageCount,
     variants_created: createdVariantCount,
