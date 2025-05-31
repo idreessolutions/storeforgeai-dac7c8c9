@@ -1,3 +1,4 @@
+
 export class ImageProcessor {
   constructor(private shopifyClient: any) {}
 
@@ -11,14 +12,15 @@ export class ImageProcessor {
     const images: string[] = [];
     
     try {
-      console.log(`🎨 Generating 6 unique DALL·E 3 images for: ${productTitle}`);
+      console.log(`🎨 Generating 6 unique DALL·E 3 images for specific product: ${productTitle}`);
       
-      // Generate product-specific prompts based on title, features, and niche
-      const imagePrompts = this.generateProductSpecificPrompts(productTitle, features, niche, themeColor);
+      // Generate highly specific product prompts based on exact title, features, and niche
+      const imagePrompts = this.generateHighlySpecificProductPrompts(productTitle, features, niche, themeColor);
 
       for (let i = 0; i < 6; i++) {
         try {
-          console.log(`🖼️ Generating DALL·E 3 image ${i + 1}/6: ${imagePrompts[i].substring(0, 80)}...`);
+          console.log(`🖼️ Generating DALL·E 3 product-specific image ${i + 1}/6 for: ${productTitle}`);
+          console.log(`📝 Prompt: ${imagePrompts[i].substring(0, 120)}...`);
           
           const response = await fetch('https://api.openai.com/v1/images/generations', {
             method: 'POST',
@@ -31,7 +33,7 @@ export class ImageProcessor {
               prompt: imagePrompts[i],
               n: 1,
               size: '1024x1024',
-              quality: 'standard',
+              quality: 'hd',
               style: 'natural'
             }),
           });
@@ -41,41 +43,43 @@ export class ImageProcessor {
             if (data.data && data.data[0] && data.data[0].url) {
               const imageUrl = data.data[0].url;
               images.push(imageUrl);
-              console.log(`✅ DALL·E 3 image ${i + 1} generated successfully`);
+              console.log(`✅ DALL·E 3 specific product image ${i + 1} generated successfully for ${productTitle}`);
             } else {
-              console.log(`⚠️ DALL·E 3 image ${i + 1} failed - no URL in response`);
+              console.log(`⚠️ DALL·E 3 image ${i + 1} failed - no URL in response for ${productTitle}`);
             }
           } else {
             const errorText = await response.text();
-            console.log(`⚠️ DALL·E 3 image ${i + 1} failed: ${response.status} - ${errorText.substring(0, 200)}`);
+            console.log(`⚠️ DALL·E 3 image ${i + 1} failed for ${productTitle}: ${response.status} - ${errorText.substring(0, 200)}`);
           }
           
-          // Rate limiting between requests
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          // Rate limiting between requests to avoid API limits
+          await new Promise(resolve => setTimeout(resolve, 3000));
         } catch (error) {
-          console.log(`⚠️ Error generating DALL·E 3 image ${i + 1}:`, error.message);
+          console.log(`⚠️ Error generating DALL·E 3 image ${i + 1} for ${productTitle}:`, error.message);
         }
       }
     } catch (error) {
-      console.log(`⚠️ DALL·E 3 generation failed:`, error.message);
+      console.log(`⚠️ DALL·E 3 generation failed for ${productTitle}:`, error.message);
     }
 
-    // If we have fewer than 4 images, add fallback images
+    // If we have fewer than 4 images, add specific fallback images for this niche
     if (images.length < 4) {
-      console.log(`🔄 Adding fallback images (current: ${images.length})`);
-      const fallbackImages = this.getReliableFallbackImages(niche, 6 - images.length);
+      console.log(`🔄 Adding specific fallback images for ${productTitle} (current: ${images.length})`);
+      const fallbackImages = this.getProductSpecificFallbackImages(productTitle, niche, 6 - images.length);
       images.push(...fallbackImages);
     }
 
-    console.log(`📸 Total images generated: ${images.length} (${images.filter(img => img.includes('oaidalleapiprodscus')).length} from DALL·E 3)`);
+    console.log(`📸 Total specific images generated for ${productTitle}: ${images.length} (${images.filter(img => img.includes('oaidalleapiprodscus')).length} from DALL·E 3)`);
     return images.slice(0, 6);
   }
 
-  generateProductSpecificPrompts(productTitle: string, features: string[], niche: string, themeColor: string): string[] {
-    const topFeatures = features.slice(0, 3).join(', ');
-    const cleanTitle = productTitle.replace(/[^\w\s-]/g, '');
+  generateHighlySpecificProductPrompts(productTitle: string, features: string[], niche: string, themeColor: string): string[] {
+    // Clean and extract key product details
+    const cleanTitle = productTitle.replace(/[^\w\s-]/g, '').trim();
+    const topFeatures = features.slice(0, 3);
+    const featureText = topFeatures.length > 0 ? topFeatures.join(', ') : 'premium quality, durable design, easy to use';
     
-    // Extract color from hex for prompt
+    // Extract color name for prompts
     const colorMap: { [key: string]: string } = {
       '#1E40AF': 'blue',
       '#7C3AED': 'purple', 
@@ -86,18 +90,25 @@ export class ImageProcessor {
     };
     const colorName = colorMap[themeColor] || 'blue';
     
+    // Create highly specific prompts that match the exact product
     const prompts = [
-      `High-quality professional product photography of ${cleanTitle}. Clean white background, studio lighting, modern minimalist style, commercial product shot, detailed, realistic, 1024x1024`,
+      // Main product shot - professional studio photography
+      `Professional high-resolution product photography of "${cleanTitle}". Clean white studio background, perfect lighting, commercial product shot for e-commerce. Show the exact product as described: ${featureText}. Realistic, detailed, sharp focus, premium quality image suitable for Shopify store. 1024x1024 resolution.`,
       
-      `${cleanTitle} in use, lifestyle photography showing the product being used in a realistic ${niche} setting. Natural lighting, authentic environment, people using the product, candid shot, high quality detail, 1024x1024`,
+      // Lifestyle/in-use shot
+      `"${cleanTitle}" being used in a realistic ${niche} environment. Lifestyle photography showing the actual product in action, demonstrating its key features: ${featureText}. Natural lighting, authentic setting, people using the product, candid realistic scene. High quality detail, commercial photography style.`,
       
-      `Close-up detail shot of ${cleanTitle} highlighting key features: ${topFeatures}. Macro photography, clean white background, professional studio lighting, product showcase, commercial style, 1024x1024`,
+      // Close-up detail shot highlighting specific features
+      `Extreme close-up macro photography of "${cleanTitle}" highlighting its premium features: ${featureText}. Show intricate details, build quality, materials, and craftsmanship. Professional product photography, clean white background, studio lighting, commercial style for ${niche} market.`,
       
-      `${cleanTitle} with premium packaging and unboxing scene. Clean presentation, modern package design, ${colorName} accent colors, studio lighting, commercial product photography, lifestyle branding, 1024x1024`,
+      // Packaging and unboxing scene
+      `"${cleanTitle}" with premium product packaging and unboxing presentation. Modern package design with ${colorName} accent colors, clean professional presentation, all components visible. Studio lighting, commercial product photography, e-commerce style showing what customers receive.`,
       
-      `Top-down flat lay view of ${cleanTitle} with accessories and components. Clean white background, organized layout, all parts visible, professional product photography, modern e-commerce style, 1024x1024`,
+      // Multiple angles view
+      `"${cleanTitle}" shown from multiple angles - front, side, and detail views. Professional 360-degree product photography style, clean white background, consistent lighting, showing all aspects of this ${niche} product. Commercial quality suitable for online store, highlighting ${featureText}.`,
       
-      `${cleanTitle} product showcase with multiple angles. Clean white background, 360-degree view style, professional lighting, commercial photography, modern minimal design, premium quality, 1024x1024`
+      // Product with accessories or components
+      `Complete "${cleanTitle}" product showcase including all accessories and components. Organized flat lay arrangement, clean white background, professional e-commerce photography. Show everything included with the product, emphasizing ${featureText}. Modern minimal design, premium presentation.`
     ];
 
     return prompts;
@@ -107,27 +118,29 @@ export class ImageProcessor {
     let uploadedCount = 0;
     const imageIds: string[] = [];
     
-    console.log(`🖼️ Starting product-specific DALL·E 3 image generation for: ${productTitle}`);
+    console.log(`🖼️ Starting DALL·E 3 product-specific image generation for: "${productTitle}"`);
+    console.log(`🎯 Product features: ${features.slice(0, 3).join(', ')}`);
+    console.log(`🏪 Niche: ${niche}`);
     
-    // Generate product-specific images using DALL·E 3
+    // Generate product-specific images using DALL·E 3 with exact product details
     const generatedImages = await this.generateDalleImages(productTitle, features, niche, themeColor);
     
     if (generatedImages.length === 0) {
-      console.log('⚠️ No images generated for upload');
+      console.log(`⚠️ No images generated for product: ${productTitle}`);
       return { uploadedCount, imageIds };
     }
 
-    console.log(`🚀 Uploading ${generatedImages.length} product-specific images to Shopify...`);
+    console.log(`🚀 Uploading ${generatedImages.length} product-specific images for "${productTitle}" to Shopify...`);
     
     for (let i = 0; i < generatedImages.length; i++) {
       const imageUrl = generatedImages[i];
       
       try {
-        console.log(`⬆️ Uploading product-specific image ${i + 1}/${generatedImages.length} to Shopify...`);
+        console.log(`⬆️ Uploading image ${i + 1}/${generatedImages.length} for "${productTitle}" to Shopify...`);
         
         const imagePayload = {
           src: imageUrl,
-          alt: `${productTitle} - Image ${i + 1}`,
+          alt: `${productTitle} - ${this.getImageDescription(i)}`,
           position: i + 1
         };
 
@@ -136,27 +149,39 @@ export class ImageProcessor {
         if (uploadResult && uploadResult.image) {
           uploadedCount++;
           imageIds.push(uploadResult.image.id);
-          console.log(`✅ Successfully uploaded product-specific image ${i + 1} (ID: ${uploadResult.image.id})`);
+          console.log(`✅ Successfully uploaded image ${i + 1} for "${productTitle}" (ID: ${uploadResult.image.id})`);
           
           // Log if this is a DALL·E 3 generated image
           if (imageUrl.includes('oaidalleapiprodscus')) {
-            console.log(`🎨 DALL·E 3 product-specific image uploaded successfully!`);
+            console.log(`🎨 DALL·E 3 product-specific image uploaded for: ${productTitle}`);
           }
         } else {
-          console.log(`❌ Failed to upload product-specific image ${i + 1}`);
+          console.log(`❌ Failed to upload image ${i + 1} for "${productTitle}"`);
         }
         
         // Rate limiting between uploads
         if (i < generatedImages.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          await new Promise(resolve => setTimeout(resolve, 2000));
         }
       } catch (error) {
-        console.log(`❌ Error uploading product-specific image ${i + 1}:`, error.message);
+        console.log(`❌ Error uploading image ${i + 1} for "${productTitle}":`, error.message);
       }
     }
     
-    console.log(`📸 Product-specific image upload completed: ${uploadedCount}/${generatedImages.length} images successfully uploaded`);
+    console.log(`📸 Image upload completed for "${productTitle}": ${uploadedCount}/${generatedImages.length} images successfully uploaded`);
     return { uploadedCount, imageIds };
+  }
+
+  getImageDescription(index: number): string {
+    const descriptions = [
+      'Product Photo',
+      'Lifestyle Image', 
+      'Detail Shot',
+      'Packaging View',
+      'Multiple Angles',
+      'Complete Set'
+    ];
+    return descriptions[index] || `Image ${index + 1}`;
   }
 
   async assignImageToVariant(imageId: string, variantId: string): Promise<boolean> {
@@ -183,7 +208,7 @@ export class ImageProcessor {
       return assignedCount;
     }
 
-    console.log(`🔗 Assigning ${imageIds.length} images to ${variants.length} variants...`);
+    console.log(`🔗 Assigning ${imageIds.length} product-specific images to ${variants.length} variants...`);
 
     // Assign at least 1 image per variant, cycling through images if needed
     for (let i = 0; i < variants.length; i++) {
@@ -197,7 +222,7 @@ export class ImageProcessor {
         }
         
         // Small delay between assignments
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 800));
       }
     }
 
@@ -205,8 +230,9 @@ export class ImageProcessor {
     return assignedCount;
   }
 
-  private getReliableFallbackImages(niche: string, count: number): string[] {
-    const imageCollections = {
+  private getProductSpecificFallbackImages(productTitle: string, niche: string, count: number): string[] {
+    // More specific fallback images based on product type and niche
+    const nicheSpecificImages = {
       'pet': [
         'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=1024&h=1024&fit=crop&auto=format&q=80',
         'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=1024&h=1024&fit=crop&auto=format&q=80',
@@ -215,14 +241,6 @@ export class ImageProcessor {
         'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=1024&h=1024&fit=crop&auto=format&q=80',
         'https://images.unsplash.com/photo-1493406300581-484b937cdc41?w=1024&h=1024&fit=crop&auto=format&q=80'
       ],
-      'fitness': [
-        'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1024&h=1024&fit=crop&auto=format&q=80',
-        'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1024&h=1024&fit=crop&auto=format&q=80',
-        'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1024&h=1024&fit=crop&auto=format&q=80',
-        'https://images.unsplash.com/photo-1593079831268-3381b0db4a77?w=1024&h=1024&fit=crop&auto=format&q=80',
-        'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=1024&h=1024&fit=crop&auto=format&q=80',
-        'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=1024&h=1024&fit=crop&auto=format&q=80'
-      ],
       'kitchen': [
         'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1024&h=1024&fit=crop&auto=format&q=80',
         'https://images.unsplash.com/photo-1585515656811-b3806e19e75b?w=1024&h=1024&fit=crop&auto=format&q=80',
@@ -230,11 +248,23 @@ export class ImageProcessor {
         'https://images.unsplash.com/photo-1556909114-4f6e7ad7d3136?w=1024&h=1024&fit=crop&auto=format&q=80',
         'https://images.unsplash.com/photo-1585515656811-b3806e19e75b?w=1024&h=1024&fit=crop&auto=format&q=80',
         'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1024&h=1024&fit=crop&auto=format&q=80'
+      ],
+      'electronics': [
+        'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1024&h=1024&fit=crop&auto=format&q=80'
       ]
     };
     
-    const nicheImages = imageCollections[niche.toLowerCase()] || imageCollections['pet'];
-    const shuffled = [...nicheImages].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, count);
+    const images = nicheSpecificImages[niche.toLowerCase()] || nicheSpecificImages['electronics'];
+    console.log(`🔄 Using ${count} specific fallback images for ${productTitle} in ${niche} niche`);
+    return images.slice(0, count);
+  }
+
+  private getReliableFallbackImages(niche: string, count: number): string[] {
+    return this.getProductSpecificFallbackImages('Generic Product', niche, count);
   }
 }

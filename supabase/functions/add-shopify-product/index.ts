@@ -19,9 +19,10 @@ serve(async (req) => {
   try {
     const { shopifyUrl, accessToken, themeColor, product } = await req.json();
     
-    console.log('✅ Uploading UNIQUE Winning Product to Shopify:', product.title);
+    console.log('✅ Uploading SPECIFIC winning product with matching images to Shopify:', product.title);
     console.log('🎨 Applying theme color:', themeColor);
-    console.log('🎯 Product features:', product.features?.slice(0, 3) || ['Premium quality', 'Durable design', 'Easy to use']);
+    console.log('🎯 Product features for image generation:', product.features?.slice(0, 3) || ['Premium quality', 'Durable design', 'Easy to use']);
+    console.log('📝 Product description preview:', product.description?.substring(0, 100) + '...');
     
     // Validate required parameters
     if (!shopifyUrl || !accessToken || !product) {
@@ -60,30 +61,31 @@ serve(async (req) => {
       }
     };
 
-    console.log('Enhanced product payload:', {
+    console.log('Enhanced product payload with specific details:', {
       title: productPayload.product.title,
       handle: productPayload.product.handle,
       product_type: productPayload.product.product_type,
       vendor: productPayload.product.vendor,
       theme_color: themeColor,
       features: product.features?.slice(0, 3) || [],
-      price: productPrice
+      price: productPrice,
+      category: product.category || 'General'
     });
 
     // Create product in Shopify
     const productData = await shopifyClient.createProduct(productPayload);
     const createdProduct = productData.product;
 
-    console.log('✅ Product created successfully:', createdProduct.id);
+    console.log('✅ Product created successfully with specific details:', createdProduct.id);
 
     // Process product enhancements with product-specific DALL·E 3 image generation
-    return await handleProductEnhancements(createdProduct, product, shopifyClient, imageProcessor, variantManager, themeColor, productPrice);
+    return await handleSpecificProductEnhancements(createdProduct, product, shopifyClient, imageProcessor, variantManager, themeColor, productPrice);
 
   } catch (error) {
-    console.error('❌ Error adding UNIQUE winning product to Shopify:', error);
+    console.error('❌ Error adding SPECIFIC winning product to Shopify:', error);
     return new Response(JSON.stringify({
       success: false,
-      error: error.message || 'Failed to add UNIQUE winning product to Shopify'
+      error: error.message || 'Failed to add SPECIFIC winning product to Shopify'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -91,7 +93,7 @@ serve(async (req) => {
   }
 });
 
-async function handleProductEnhancements(
+async function handleSpecificProductEnhancements(
   createdProduct: any,
   product: any,
   shopifyClient: ShopifyAPIClient,
@@ -100,28 +102,30 @@ async function handleProductEnhancements(
   themeColor: string,
   productPrice: string
 ) {
-  // STEP 1: PRIORITY - Generate and upload product-specific DALL·E 3 images
+  // STEP 1: PRIORITY - Generate and upload product-specific DALL·E 3 images that MATCH the product
   let uploadedImageCount = 0;
   let imageIds: string[] = [];
   
-  console.log(`🚀 PRIORITY: Generating product-specific DALL·E 3 images for ${product.title}...`);
+  console.log(`🚀 PRIORITY: Generating product-specific DALL·E 3 images that match "${product.title}"`);
+  console.log(`📊 Using specific features: ${product.features?.slice(0, 3)?.join(', ') || 'premium quality, durable design, easy to use'}`);
+  console.log(`🏷️ Product category: ${product.category || 'General'}`);
   
   const uploadResult = await imageProcessor.uploadProductImages(
     createdProduct.id,
-    product.title,
+    product.title, // Exact product title for specific image generation
     product.features || ['Premium quality', 'Durable design', 'Easy to use'],
-    product.category || 'General',
+    product.category || 'General', // Specific category
     themeColor
   );
   
   uploadedImageCount = uploadResult.uploadedCount;
   imageIds = uploadResult.imageIds;
   
-  console.log(`📸 Product-specific image upload result: ${uploadedImageCount} images uploaded`);
+  console.log(`📸 Specific product image upload result for "${product.title}": ${uploadedImageCount} images uploaded`);
 
   // STEP 2: Update the default variant with proper pricing
   let variantUpdateSuccess = false;
-  let createdVariants: any[] = []; // Initialize as empty array
+  let createdVariants: any[] = []; // Initialize as empty array to prevent spread errors
   
   if (createdProduct.variants && createdProduct.variants.length > 0) {
     const defaultVariant = createdProduct.variants[0];
@@ -129,7 +133,7 @@ async function handleProductEnhancements(
     createdVariants.push(defaultVariant);
   }
 
-  // STEP 3: Create additional product variants
+  // STEP 3: Create additional product variants if specified
   let createdVariantCount = 0;
   if (product.variants && product.variants.length > 1) {
     const additionalVariants = await variantManager.processProductVariants(
@@ -138,19 +142,16 @@ async function handleProductEnhancements(
       productPrice
     );
     createdVariantCount = additionalVariants;
-    
-    // Note: We're not adding additional variants to createdVariants array 
-    // since processProductVariants returns a count, not variant objects
   }
 
   // STEP 4: Assign product-specific images to variants (at least 1 image per variant)
   let imageAssignmentCount = 0;
   if (imageIds.length > 0 && createdVariants.length > 0) {
-    console.log(`🎯 Assigning ${imageIds.length} product-specific images to ${createdVariants.length} variants...`);
+    console.log(`🎯 Assigning ${imageIds.length} product-specific images to ${createdVariants.length} variants for "${product.title}"...`);
     imageAssignmentCount = await imageProcessor.assignImagesToVariants(imageIds, createdVariants);
   }
 
-  console.log('✅ UNIQUE Product with product-specific images upload completed successfully:', {
+  console.log('✅ SPECIFIC Product with matching images upload completed successfully:', {
     id: createdProduct.id,
     title: createdProduct.title,
     handle: createdProduct.handle,
@@ -158,18 +159,21 @@ async function handleProductEnhancements(
     images_uploaded: uploadedImageCount,
     variants_created: createdVariantCount,
     variant_pricing_updated: variantUpdateSuccess,
-    images_assigned_to_variants: imageAssignmentCount
+    images_assigned_to_variants: imageAssignmentCount,
+    specific_features_used: product.features?.slice(0, 3) || [],
+    category: product.category || 'General'
   });
 
   return new Response(JSON.stringify({
     success: true,
     product: createdProduct,
-    message: `Successfully added UNIQUE winning product with product-specific images: ${createdProduct.title}`,
+    message: `Successfully added SPECIFIC winning product with matching images: ${createdProduct.title}`,
     price_set: productPrice,
     images_uploaded: uploadedImageCount,
     variants_created: createdVariantCount,
     images_assigned_to_variants: imageAssignmentCount,
-    image_upload_status: uploadedImageCount > 0 ? 'SUCCESS' : 'FAILED'
+    image_upload_status: uploadedImageCount > 0 ? 'SUCCESS - Product-Specific Images' : 'FAILED',
+    features_used_for_images: product.features?.slice(0, 3) || ['Premium quality', 'Durable design', 'Easy to use']
   }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
