@@ -22,6 +22,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
   const [isAdding, setIsAdding] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentProduct, setCurrentProduct] = useState("");
+  const [currentStep, setCurrentStep] = useState("");
   const { toast } = useToast();
 
   const handleAddProducts = async () => {
@@ -37,33 +38,62 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
     setIsAdding(true);
     setProgress(0);
     setCurrentProduct("");
+    setCurrentStep("");
 
     try {
-      console.log('🚀 Starting 10 real winning products addition for niche:', formData.niche);
+      console.log('🚀 Starting complete store setup for niche:', formData.niche);
       console.log('🎨 Using theme color:', formData.themeColor);
       
+      // Step 1: Install and configure Sense theme
+      setCurrentStep("Installing Sense theme...");
+      setProgress(10);
+      
+      const { installAndConfigureSenseTheme } = await import("@/services/shopifyThemeService");
+      const storeName = extractStoreName(formData.shopifyUrl);
+      
+      if (storeName) {
+        await installAndConfigureSenseTheme({
+          storeName,
+          accessToken: formData.accessToken,
+          themeColor: formData.themeColor || '#1E40AF',
+          niche: formData.niche
+        });
+        
+        setProgress(30);
+        setCurrentStep("Theme installed successfully");
+        
+        // Small delay to show progress
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      // Step 2: Add 10 winning products
+      setCurrentStep("Generating winning products...");
+      setProgress(40);
+
       await addProductsToShopify(
         formData.shopifyUrl,
         formData.accessToken,
         formData.niche,
         (progress: number, productName: string) => {
-          setProgress(progress);
+          setProgress(40 + (progress * 0.6)); // 40% to 100%
           setCurrentProduct(productName);
+          setCurrentStep("Adding winning products...");
         },
         formData.themeColor || '#1E40AF'
       );
 
       handleInputChange('productsAdded', true);
+      setCurrentStep("Complete!");
       
       toast({
-        title: "10 Real Winning Products Added Successfully! 🎉",
-        description: `Your ${formData.niche} store now features 10 unique, trending, high-converting products with premium media, detailed descriptions, and your custom theme styling.`,
+        title: "🎉 Store Setup Complete!",
+        description: `Your ${formData.niche} store now has the Sense theme installed with your custom color and 10 winning products ready to sell!`,
       });
 
     } catch (error) {
-      console.error('Error adding real winning products:', error);
+      console.error('Error setting up store:', error);
       toast({
-        title: "Failed to Add Products",
+        title: "Setup Failed",
         description: error instanceof Error ? error.message : "An unknown error occurred. Please try again.",
         variant: "destructive",
       });
@@ -71,6 +101,33 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       setIsAdding(false);
       setProgress(0);
       setCurrentProduct("");
+      setCurrentStep("");
+    }
+  };
+
+  // Helper function to extract store name from URL
+  const extractStoreName = (url: string): string | null => {
+    try {
+      const cleanUrl = url.replace(/^https?:\/\//, '').toLowerCase();
+      
+      if (cleanUrl.includes('admin.shopify.com/store/')) {
+        const match = cleanUrl.match(/admin\.shopify\.com\/store\/([^\/\?]+)/);
+        return match ? match[1] : null;
+      }
+      
+      if (cleanUrl.includes('.myshopify.com')) {
+        const match = cleanUrl.match(/([^\/\.]+)\.myshopify\.com/);
+        return match ? match[1] : null;
+      }
+      
+      if (!cleanUrl.includes('.') && !cleanUrl.includes('/')) {
+        return cleanUrl;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error extracting store name:', error);
+      return null;
     }
   };
 
@@ -86,9 +143,9 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
           >
             <PackagePlus className="h-10 w-10 text-white" />
           </div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Add 10 Real Winning Products</h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">Complete Store Setup</h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Add 10 unique, trending, high-converting <strong>{formData.niche}</strong> products to your store with premium media, detailed descriptions, and your custom theme styling.
+            Install the <strong>Sense theme</strong> with your custom styling and add 10 trending <strong>{formData.niche}</strong> winning products - all automatically!
           </p>
         </div>
 
@@ -188,7 +245,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-gray-700">
-                    Adding real {formData.niche} winning products to your store...
+                    {currentStep || `Setting up your ${formData.niche} store...`}
                   </p>
                   <span 
                     className="text-sm font-semibold"
@@ -212,49 +269,49 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               </div>
             )}
             
-            {/* Product Quality Guarantees */}
+            {/* Updated features section */}
             <div className="mb-6 p-6 bg-gray-50 rounded-lg border-l-4" style={{ borderColor: formData.themeColor || '#1E40AF' }}>
               <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
                 <Sparkles className="h-5 w-5" style={{ color: formData.themeColor || '#1E40AF' }} />
-                What you'll get for {formData.niche}:
+                Complete {formData.niche} Store Setup:
               </h4>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
                 <div className="space-y-2">
                   <div className="flex items-start gap-2">
+                    <span className="text-purple-600 font-bold text-sm mt-0.5">🎨</span>
+                    <span><strong>Sense theme</strong> auto-installed & configured</span>
+                  </div>
+                  <div className="flex items-start gap-2">
                     <Target className="h-4 w-4 mt-0.5 text-green-600" />
-                    <span>10 unique {formData.niche} products (no duplicates)</span>
+                    <span>10 trending {formData.niche} winning products</span>
                   </div>
                   <div className="flex items-start gap-2">
                     <ImageIcon className="h-4 w-4 mt-0.5 text-blue-600" />
-                    <span>6-8 unique high-quality images per product</span>
+                    <span>Product-specific images (6 per product)</span>
                   </div>
                   <div className="flex items-start gap-2">
                     <span className="text-purple-600 font-bold text-sm mt-0.5">✍️</span>
-                    <span>Professional 400-500 word descriptions</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <DollarSign className="h-4 w-4 mt-0.5 text-green-600" />
-                    <span>Realistic pricing between $15-80</span>
+                    <span>AI-generated descriptions for {formData.niche}</span>
                   </div>
                 </div>
                 
                 <div className="space-y-2">
                   <div className="flex items-start gap-2">
                     <span className="text-orange-600 font-bold text-sm mt-0.5">🎨</span>
-                    <span>Custom styling with your theme color</span>
+                    <span>Your custom color applied to theme</span>
                   </div>
                   <div className="flex items-start gap-2">
                     <Tag className="h-4 w-4 mt-0.5 text-indigo-600" />
-                    <span>SEO-optimized titles and {formData.niche} tags</span>
+                    <span>SEO-optimized for {formData.niche} keywords</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="text-red-600 font-bold text-sm mt-0.5">🔥</span>
-                    <span>Trending products currently selling well</span>
+                    <DollarSign className="h-4 w-4 mt-0.5 text-green-600" />
+                    <span>Winning price points ($15-80)</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="text-amber-600 font-bold text-sm mt-0.5">⭐</span>
-                    <span>Proper variants and category assignment</span>
+                    <span className="text-red-600 font-bold text-sm mt-0.5">🚀</span>
+                    <span>Ready-to-sell store setup</span>
                   </div>
                 </div>
               </div>
@@ -272,12 +329,12 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               {isAdding ? (
                 <div className="flex items-center justify-center">
                   <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                  Adding 10 Real {formData.niche} Products...
+                  Setting Up Your {formData.niche} Store...
                 </div>
               ) : (
                 <div className="flex items-center justify-center">
                   <Sparkles className="h-5 w-5 mr-2" />
-                  Add 10 Real {formData.niche} Winning Products Now
+                  Setup Complete {formData.niche} Store Now
                   <Sparkles className="h-5 w-5 ml-2" />
                 </div>
               )}

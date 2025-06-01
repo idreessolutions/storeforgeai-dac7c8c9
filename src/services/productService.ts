@@ -39,7 +39,7 @@ export const addProductsToShopify = async (
   themeColor: string = '#1E40AF'
 ): Promise<boolean> => {
   try {
-    console.log('🚀 Starting real winning product addition process...');
+    console.log('🚀 Starting UNIVERSAL winning product addition for ANY niche...');
     console.log('Shopify URL:', shopifyUrl);
     console.log('Niche:', userNiche);
     console.log('Theme Color:', themeColor);
@@ -62,28 +62,28 @@ export const addProductsToShopify = async (
 
     console.log('Extracted store name:', storeName);
 
-    // Generate exactly 10 real winning products
+    // Generate exactly 10 winning products for ANY niche using AI
     let products: Product[] = [];
     try {
-      console.log('🤖 Generating 10 real winning products...');
+      console.log(`🤖 Generating 10 winning products for "${userNiche}" niche using AI...`);
       const { data, error } = await supabase.functions.invoke('generate-products', {
         body: { niche: userNiche }
       });
 
       if (error) {
         console.error('Error generating products:', error);
-        throw new Error('Failed to generate real winning products');
+        throw new Error(`Failed to generate winning ${userNiche} products`);
       }
 
       if (data?.success && data?.products) {
         products = data.products.slice(0, 10); // Ensure exactly 10 products
-        console.log(`✅ Generated ${products.length} real winning products`);
+        console.log(`✅ Generated ${products.length} winning ${userNiche} products`);
       } else {
-        throw new Error('No real winning products generated');
+        throw new Error(`No winning ${userNiche} products generated`);
       }
     } catch (error) {
       console.error('Product generation failed:', error);
-      throw new Error('Failed to generate real winning products. Please try again.');
+      throw new Error(`Failed to generate winning ${userNiche} products. Please try again.`);
     }
     
     let successCount = 0;
@@ -96,7 +96,7 @@ export const addProductsToShopify = async (
       const progress = ((i + 1) / 10) * 100;
       onProgress(progress, product.title);
       
-      console.log(`🔄 Processing real winning product ${i + 1}/10: ${product.title}`);
+      console.log(`🔄 Processing ${userNiche} product ${i + 1}/10: ${product.title}`);
       
       let retryCount = 0;
       const maxRetries = 2;
@@ -117,7 +117,7 @@ export const addProductsToShopify = async (
             ? product.images.filter(img => typeof img === 'string' && img.length > 0)
             : [];
 
-          console.log(`📷 Product has ${processedImages.length} images ready for upload`);
+          console.log(`📷 ${userNiche} product has ${processedImages.length} product-specific images ready for upload`);
 
           // Use Supabase edge function to add product to Shopify
           const { data, error } = await supabase.functions.invoke('add-shopify-product', {
@@ -134,13 +134,13 @@ export const addProductsToShopify = async (
                 target_audience: product.target_audience || `${userNiche} enthusiasts`,
                 shipping_info: product.shipping_info || 'Fast worldwide shipping, arrives in 7-14 days',
                 return_policy: product.return_policy || '30-day money-back guarantee',
-                vendor: product.vendor || 'StoreForge AI',
+                vendor: product.vendor || 'Premium Store',
                 product_type: product.product_type || userNiche || 'General',
                 handle: product.handle || generateHandle(product.title),
                 status: 'active',
                 published: true,
-                tags: product.tags || `${userNiche}, winning products, trending, bestseller`,
-                images: processedImages, // Pass as simple string array
+                tags: product.tags || `${userNiche}, winning products, trending, bestseller, hot-products`,
+                images: processedImages, // Product-specific images
                 variants: processedVariants.map((variant, variantIndex) => ({
                   title: variant.title,
                   price: typeof variant.price === 'number' ? variant.price.toFixed(2) : parseFloat(String(variant.price)).toFixed(2),
@@ -166,7 +166,7 @@ export const addProductsToShopify = async (
           if (data?.success) {
             successCount++;
             productUploaded = true;
-            console.log(`✅ Successfully added real winning product: ${product.title}`);
+            console.log(`✅ Successfully added ${userNiche} product: ${product.title}`);
             
             uploadResults.push({
               success: true,
@@ -218,16 +218,16 @@ export const addProductsToShopify = async (
     // Store upload session summary
     await storeUploadSession(uploadResults, userNiche);
     
-    console.log(`🎉 Real winning product addition completed: ${successCount}/10 successful`);
+    console.log(`🎉 ${userNiche} product addition completed: ${successCount}/10 successful`);
     
     if (successCount === 0) {
-      throw new Error(`Failed to add any real winning products. Errors: ${errors.slice(0, 3).join('; ')}`);
+      throw new Error(`Failed to add any ${userNiche} products. Errors: ${errors.slice(0, 3).join('; ')}`);
     }
     
     return true;
     
   } catch (error) {
-    console.error('💥 Real winning product addition process failed:', error);
+    console.error('💥 Product addition process failed:', error);
     throw error;
   }
 };
@@ -244,7 +244,7 @@ async function storeProductInSupabase(product: Product, shopifyProductId: string
         detailed_description: product.detailed_description,
         price: product.price,
         niche: niche,
-        vendor: product.vendor || 'StoreForge AI',
+        vendor: product.vendor || 'Premium Store',
         product_type: product.product_type || niche,
         tags: product.tags,
         images: product.images,
