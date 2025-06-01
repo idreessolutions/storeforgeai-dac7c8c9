@@ -6,7 +6,7 @@ export class ImageProcessor {
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) {
       console.log('⚠️ OpenAI API key not found, using fallback images');
-      return this.getReliableFallbackImages(niche, 6);
+      return this.getProductSpecificFallbackImages(productTitle, niche, 6);
     }
 
     const images: string[] = [];
@@ -14,13 +14,13 @@ export class ImageProcessor {
     try {
       console.log(`🎨 Generating 6 unique DALL·E 3 images for specific product: ${productTitle}`);
       
-      // Generate highly specific product prompts based on exact title, features, and niche
-      const imagePrompts = this.generateHighlySpecificProductPrompts(productTitle, features, niche, themeColor);
+      // Generate simplified, more reliable prompts
+      const imagePrompts = this.generateSimplifiedProductPrompts(productTitle, features, niche);
 
       for (let i = 0; i < 6; i++) {
         try {
-          console.log(`🖼️ Generating DALL·E 3 product-specific image ${i + 1}/6 for: ${productTitle}`);
-          console.log(`📝 Prompt: ${imagePrompts[i].substring(0, 120)}...`);
+          console.log(`🖼️ Generating DALL·E 3 product image ${i + 1}/6 for: ${productTitle}`);
+          console.log(`📝 Using prompt: ${imagePrompts[i].substring(0, 100)}...`);
           
           const response = await fetch('https://api.openai.com/v1/images/generations', {
             method: 'POST',
@@ -33,7 +33,7 @@ export class ImageProcessor {
               prompt: imagePrompts[i],
               n: 1,
               size: '1024x1024',
-              quality: 'hd',
+              quality: 'standard',
               style: 'natural'
             }),
           });
@@ -43,17 +43,17 @@ export class ImageProcessor {
             if (data.data && data.data[0] && data.data[0].url) {
               const imageUrl = data.data[0].url;
               images.push(imageUrl);
-              console.log(`✅ DALL·E 3 specific product image ${i + 1} generated successfully for ${productTitle}`);
+              console.log(`✅ DALL·E 3 specific image ${i + 1} generated successfully for ${productTitle}`);
             } else {
               console.log(`⚠️ DALL·E 3 image ${i + 1} failed - no URL in response for ${productTitle}`);
             }
           } else {
             const errorText = await response.text();
-            console.log(`⚠️ DALL·E 3 image ${i + 1} failed for ${productTitle}: ${response.status} - ${errorText.substring(0, 200)}`);
+            console.log(`⚠️ DALL·E 3 image ${i + 1} failed for ${productTitle}: ${response.status} - ${errorText.substring(0, 100)}...`);
           }
           
-          // Rate limiting between requests to avoid API limits
-          await new Promise(resolve => setTimeout(resolve, 3000));
+          // Rate limiting between requests
+          await new Promise(resolve => setTimeout(resolve, 2000));
         } catch (error) {
           console.log(`⚠️ Error generating DALL·E 3 image ${i + 1} for ${productTitle}:`, error.message);
         }
@@ -62,53 +62,34 @@ export class ImageProcessor {
       console.log(`⚠️ DALL·E 3 generation failed for ${productTitle}:`, error.message);
     }
 
-    // If we have fewer than 4 images, add specific fallback images for this niche
-    if (images.length < 4) {
-      console.log(`🔄 Adding specific fallback images for ${productTitle} (current: ${images.length})`);
+    // If we have fewer than 3 images, add product-specific fallback images
+    if (images.length < 3) {
+      console.log(`🔄 Adding product-specific fallback images for ${productTitle} (current: ${images.length})`);
       const fallbackImages = this.getProductSpecificFallbackImages(productTitle, niche, 6 - images.length);
       images.push(...fallbackImages);
     }
 
-    console.log(`📸 Total specific images generated for ${productTitle}: ${images.length} (${images.filter(img => img.includes('oaidalleapiprodscus')).length} from DALL·E 3)`);
+    console.log(`📸 Total images for ${productTitle}: ${images.length} (${images.filter(img => img.includes('oaidalleapiprodscus')).length} from DALL·E 3)`);
     return images.slice(0, 6);
   }
 
-  generateHighlySpecificProductPrompts(productTitle: string, features: string[], niche: string, themeColor: string): string[] {
-    // Clean and extract key product details
+  generateSimplifiedProductPrompts(productTitle: string, features: string[], niche: string): string[] {
+    // Clean product title for better prompt generation
     const cleanTitle = productTitle.replace(/[^\w\s-]/g, '').trim();
-    const topFeatures = features.slice(0, 3);
-    const featureText = topFeatures.length > 0 ? topFeatures.join(', ') : 'premium quality, durable design, easy to use';
     
-    // Extract color name for prompts
-    const colorMap: { [key: string]: string } = {
-      '#1E40AF': 'blue',
-      '#7C3AED': 'purple', 
-      '#DC2626': 'red',
-      '#059669': 'green',
-      '#D97706': 'orange',
-      '#BE185D': 'pink'
-    };
-    const colorName = colorMap[themeColor] || 'blue';
-    
-    // Create highly specific prompts that match the exact product
+    // Create simplified, more reliable prompts that avoid policy violations
     const prompts = [
-      // Main product shot - professional studio photography
-      `Professional high-resolution product photography of "${cleanTitle}". Clean white studio background, perfect lighting, commercial product shot for e-commerce. Show the exact product as described: ${featureText}. Realistic, detailed, sharp focus, premium quality image suitable for Shopify store. 1024x1024 resolution.`,
+      `Professional product photo of ${cleanTitle}, clean white background, studio lighting, high quality, commercial photography`,
       
-      // Lifestyle/in-use shot
-      `"${cleanTitle}" being used in a realistic ${niche} environment. Lifestyle photography showing the actual product in action, demonstrating its key features: ${featureText}. Natural lighting, authentic setting, people using the product, candid realistic scene. High quality detail, commercial photography style.`,
+      `${cleanTitle} product showcase, clean modern design, minimal background, professional lighting, e-commerce style`,
       
-      // Close-up detail shot highlighting specific features
-      `Extreme close-up macro photography of "${cleanTitle}" highlighting its premium features: ${featureText}. Show intricate details, build quality, materials, and craftsmanship. Professional product photography, clean white background, studio lighting, commercial style for ${niche} market.`,
+      `Close-up detail shot of ${cleanTitle}, premium quality, clean white background, studio photography`,
       
-      // Packaging and unboxing scene
-      `"${cleanTitle}" with premium product packaging and unboxing presentation. Modern package design with ${colorName} accent colors, clean professional presentation, all components visible. Studio lighting, commercial product photography, e-commerce style showing what customers receive.`,
+      `${cleanTitle} with elegant packaging, clean presentation, professional product photography, white background`,
       
-      // Multiple angles view
-      `"${cleanTitle}" shown from multiple angles - front, side, and detail views. Professional 360-degree product photography style, clean white background, consistent lighting, showing all aspects of this ${niche} product. Commercial quality suitable for online store, highlighting ${featureText}.`,
+      `Multiple angle view of ${cleanTitle}, product display, clean background, commercial photography`,
       
-      // Product with accessories or components
-      `Complete "${cleanTitle}" product showcase including all accessories and components. Organized flat lay arrangement, clean white background, professional e-commerce photography. Show everything included with the product, emphasizing ${featureText}. Modern minimal design, premium presentation.`
+      `${cleanTitle} lifestyle image, modern clean setting, natural lighting, professional quality`
     ];
 
     return prompts;
@@ -118,11 +99,11 @@ export class ImageProcessor {
     let uploadedCount = 0;
     const imageIds: string[] = [];
     
-    console.log(`🖼️ Starting DALL·E 3 product-specific image generation for: "${productTitle}"`);
+    console.log(`🖼️ Starting product-specific image generation for: "${productTitle}"`);
     console.log(`🎯 Product features: ${features.slice(0, 3).join(', ')}`);
     console.log(`🏪 Niche: ${niche}`);
     
-    // Generate product-specific images using DALL·E 3 with exact product details
+    // Generate product-specific images
     const generatedImages = await this.generateDalleImages(productTitle, features, niche, themeColor);
     
     if (generatedImages.length === 0) {
@@ -161,7 +142,7 @@ export class ImageProcessor {
         
         // Rate limiting between uploads
         if (i < generatedImages.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise(resolve => setTimeout(resolve, 1500));
         }
       } catch (error) {
         console.log(`❌ Error uploading image ${i + 1} for "${productTitle}":`, error.message);
@@ -231,40 +212,96 @@ export class ImageProcessor {
   }
 
   private getProductSpecificFallbackImages(productTitle: string, niche: string, count: number): string[] {
-    // More specific fallback images based on product type and niche
-    const nicheSpecificImages = {
-      'pet': [
+    // Create product-specific fallback images based on title keywords
+    const titleLower = productTitle.toLowerCase();
+    
+    // Pet product specific images based on title keywords
+    if (titleLower.includes('feeder') || titleLower.includes('food') || titleLower.includes('bowl')) {
+      return [
+        'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1415369629372-26f2fe60c467?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1493406300581-484b937cdc41?w=1024&h=1024&fit=crop&auto=format&q=80'
+      ].slice(0, count);
+    }
+    
+    if (titleLower.includes('collar') || titleLower.includes('tracker') || titleLower.includes('gps')) {
+      return [
         'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=1024&h=1024&fit=crop&auto=format&q=80',
         'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=1024&h=1024&fit=crop&auto=format&q=80',
         'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=1024&h=1024&fit=crop&auto=format&q=80',
         'https://images.unsplash.com/photo-1415369629372-26f2fe60c467?w=1024&h=1024&fit=crop&auto=format&q=80',
         'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=1024&h=1024&fit=crop&auto=format&q=80',
         'https://images.unsplash.com/photo-1493406300581-484b937cdc41?w=1024&h=1024&fit=crop&auto=format&q=80'
-      ],
-      'kitchen': [
-        'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1024&h=1024&fit=crop&auto=format&q=80',
-        'https://images.unsplash.com/photo-1585515656811-b3806e19e75b?w=1024&h=1024&fit=crop&auto=format&q=80',
-        'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1024&h=1024&fit=crop&auto=format&q=80',
-        'https://images.unsplash.com/photo-1556909114-4f6e7ad7d3136?w=1024&h=1024&fit=crop&auto=format&q=80',
-        'https://images.unsplash.com/photo-1585515656811-b3806e19e75b?w=1024&h=1024&fit=crop&auto=format&q=80',
-        'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1024&h=1024&fit=crop&auto=format&q=80'
-      ],
-      'electronics': [
-        'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=1024&h=1024&fit=crop&auto=format&q=80',
-        'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=1024&h=1024&fit=crop&auto=format&q=80',
-        'https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=1024&h=1024&fit=crop&auto=format&q=80',
-        'https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=1024&h=1024&fit=crop&auto=format&q=80',
-        'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=1024&h=1024&fit=crop&auto=format&q=80',
-        'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1024&h=1024&fit=crop&auto=format&q=80'
-      ]
-    };
+      ].slice(0, count);
+    }
     
-    const images = nicheSpecificImages[niche.toLowerCase()] || nicheSpecificImages['electronics'];
-    console.log(`🔄 Using ${count} specific fallback images for ${productTitle} in ${niche} niche`);
-    return images.slice(0, count);
-  }
-
-  private getReliableFallbackImages(niche: string, count: number): string[] {
-    return this.getProductSpecificFallbackImages('Generic Product', niche, count);
+    if (titleLower.includes('bed') || titleLower.includes('foam') || titleLower.includes('orthopedic')) {
+      return [
+        'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1415369629372-26f2fe60c467?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1493406300581-484b937cdc41?w=1024&h=1024&fit=crop&auto=format&q=80'
+      ].slice(0, count);
+    }
+    
+    if (titleLower.includes('toy') || titleLower.includes('laser') || titleLower.includes('puzzle')) {
+      return [
+        'https://images.unsplash.com/photo-1415369629372-26f2fe60c467?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1493406300581-484b937cdc41?w=1024&h=1024&fit=crop&auto=format&q=80'
+      ].slice(0, count);
+    }
+    
+    if (titleLower.includes('brush') || titleLower.includes('grooming')) {
+      return [
+        'https://images.unsplash.com/photo-1493406300581-484b937cdc41?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1415369629372-26f2fe60c467?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=1024&h=1024&fit=crop&auto=format&q=80'
+      ].slice(0, count);
+    }
+    
+    if (titleLower.includes('harness') || titleLower.includes('safety')) {
+      return [
+        'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1415369629372-26f2fe60c467?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1493406300581-484b937cdc41?w=1024&h=1024&fit=crop&auto=format&q=80'
+      ].slice(0, count);
+    }
+    
+    if (titleLower.includes('fountain') || titleLower.includes('water')) {
+      return [
+        'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1415369629372-26f2fe60c467?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=1024&h=1024&fit=crop&auto=format&q=80',
+        'https://images.unsplash.com/photo-1493406300581-484b937cdc41?w=1024&h=1024&fit=crop&auto=format&q=80'
+      ].slice(0, count);
+    }
+    
+    // Default pet product images if no specific match
+    console.log(`🔄 Using product-specific fallback images for ${productTitle}`);
+    return [
+      'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=1024&h=1024&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=1024&h=1024&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=1024&h=1024&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1415369629372-26f2fe60c467?w=1024&h=1024&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=1024&h=1024&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1493406300581-484b937cdc41?w=1024&h=1024&fit=crop&auto=format&q=80'
+    ].slice(0, count);
   }
 }
