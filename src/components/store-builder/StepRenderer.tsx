@@ -89,7 +89,11 @@ const StepRenderer = ({
             shopifyUrl: formData.shopifyUrl,
             accessToken: formData.accessToken,
             niche: formData.niche,
-            themeColor: formData.selectedColor
+            themeColor: formData.selectedColor,
+            targetAudience: formData.targetAudience,
+            businessType: formData.businessType,
+            storeStyle: formData.storeStyle,
+            customInfo: formData.customInfo
           }} 
           handleInputChange={handleInputChange} 
         />

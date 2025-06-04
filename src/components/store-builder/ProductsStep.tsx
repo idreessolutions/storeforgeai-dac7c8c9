@@ -14,6 +14,10 @@ interface ProductsStepProps {
     accessToken: string;
     niche: string;
     themeColor: string;
+    targetAudience: string;
+    businessType: string;
+    storeStyle: string;
+    customInfo: string;
   };
   handleInputChange: (field: string, value: boolean) => void;
 }
@@ -42,6 +46,10 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
 
     try {
       console.log('🚀 Starting complete store setup for niche:', formData.niche);
+      console.log('🎯 Target audience:', formData.targetAudience);
+      console.log('🏢 Business type:', formData.businessType);
+      console.log('🎨 Store style:', formData.storeStyle);
+      console.log('💬 Custom info:', formData.customInfo);
       console.log('🎨 Using theme color:', formData.themeColor);
       
       // Step 1: Install and configure Sense theme
@@ -66,7 +74,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
-      // Step 2: Add 10 winning products
+      // Step 2: Add 10 winning products with full context
       setCurrentStep("Generating winning products...");
       setProgress(40);
 
@@ -79,7 +87,11 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
           setCurrentProduct(productName);
           setCurrentStep("Adding winning products...");
         },
-        formData.themeColor || '#1E40AF'
+        formData.themeColor || '#1E40AF',
+        formData.targetAudience,
+        formData.businessType,
+        formData.storeStyle,
+        formData.customInfo
       );
 
       handleInputChange('productsAdded', true);
@@ -87,7 +99,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       
       toast({
         title: "🎉 Store Setup Complete!",
-        description: `Your ${formData.niche} store now has the Sense theme installed with your custom color and 10 winning products ready to sell!`,
+        description: `Your ${formData.niche} store for ${formData.targetAudience} now has the Sense theme installed with your custom color and 10 winning products ready to sell!`,
       });
 
     } catch (error) {
@@ -145,7 +157,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
           </div>
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Complete Store Setup</h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Install the <strong>Sense theme</strong> with your custom styling and add 10 trending <strong>{formData.niche}</strong> winning products - all automatically!
+            Install the <strong>Sense theme</strong> with your custom styling and add 10 trending <strong>{formData.niche}</strong> winning products for <strong>{formData.targetAudience}</strong> - all automatically!
           </p>
         </div>
 
@@ -165,7 +177,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               <Sparkles className="h-6 w-6 text-yellow-500" />
             </h3>
             <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-              Your store is now fully stocked with 10 unique, trending winning products specifically curated for the <strong>{formData.niche}</strong> niche, each featuring:
+              Your store is now fully stocked with 10 unique, trending winning products specifically curated for the <strong>{formData.niche}</strong> niche targeting <strong>{formData.targetAudience}</strong>, each featuring:
             </p>
             
             {/* Success Features Grid */}
@@ -245,7 +257,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-gray-700">
-                    {currentStep || `Setting up your ${formData.niche} store...`}
+                    {currentStep || `Setting up your ${formData.niche} store for ${formData.targetAudience}...`}
                   </p>
                   <span 
                     className="text-sm font-semibold"
@@ -273,7 +285,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
             <div className="mb-6 p-6 bg-gray-50 rounded-lg border-l-4" style={{ borderColor: formData.themeColor || '#1E40AF' }}>
               <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
                 <Sparkles className="h-5 w-5" style={{ color: formData.themeColor || '#1E40AF' }} />
-                Complete {formData.niche} Store Setup:
+                Complete {formData.niche} Store Setup for {formData.targetAudience}:
               </h4>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
@@ -284,7 +296,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                   </div>
                   <div className="flex items-start gap-2">
                     <Target className="h-4 w-4 mt-0.5 text-green-600" />
-                    <span>10 trending {formData.niche} winning products</span>
+                    <span>10 trending {formData.niche} winning products for {formData.targetAudience}</span>
                   </div>
                   <div className="flex items-start gap-2">
                     <ImageIcon className="h-4 w-4 mt-0.5 text-blue-600" />
@@ -292,7 +304,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                   </div>
                   <div className="flex items-start gap-2">
                     <span className="text-purple-600 font-bold text-sm mt-0.5">✍️</span>
-                    <span>AI-generated descriptions for {formData.niche}</span>
+                    <span>AI-generated descriptions for {formData.niche} targeting {formData.targetAudience}</span>
                   </div>
                 </div>
                 
@@ -307,11 +319,11 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                   </div>
                   <div className="flex items-start gap-2">
                     <DollarSign className="h-4 w-4 mt-0.5 text-green-600" />
-                    <span>Winning price points ($15-80)</span>
+                    <span>Winning price points for {formData.targetAudience} ($15-80)</span>
                   </div>
                   <div className="flex items-start gap-2">
                     <span className="text-red-600 font-bold text-sm mt-0.5">🚀</span>
-                    <span>Ready-to-sell store setup</span>
+                    <span>Ready-to-sell {formData.storeStyle} store setup</span>
                   </div>
                 </div>
               </div>
@@ -329,12 +341,12 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               {isAdding ? (
                 <div className="flex items-center justify-center">
                   <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                  Setting Up Your {formData.niche} Store...
+                  Setting Up Your {formData.niche} Store for {formData.targetAudience}...
                 </div>
               ) : (
                 <div className="flex items-center justify-center">
                   <Sparkles className="h-5 w-5 mr-2" />
-                  Setup Complete {formData.niche} Store Now
+                  Setup Complete {formData.niche} Store for {formData.targetAudience} Now
                   <Sparkles className="h-5 w-5 ml-2" />
                 </div>
               )}
