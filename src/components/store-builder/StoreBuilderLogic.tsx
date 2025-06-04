@@ -93,64 +93,22 @@ export const useStoreBuilderLogic = () => {
 
   const handleNextStep = async () => {
     console.log('Next step clicked, current step:', currentStep);
+    console.log('Current formData:', formData);
     
     try {
-      // Step 6: AI Generation - Install theme and add products
-      if (currentStep === 6) {
-        setIsGenerating(true);
-        
-        console.log('🚀 Starting AI generation with full context:', {
+      // Validate required fields for ProductsStep (step 6)
+      if (currentStep === 5) { // Going TO step 6 (ProductsStep)
+        if (!formData.niche || !formData.targetAudience) {
+          toast.error('Please fill in all required fields (niche and target audience)');
+          return;
+        }
+        console.log('✅ Required fields validated for ProductsStep:', {
           niche: formData.niche,
           targetAudience: formData.targetAudience,
           businessType: formData.businessType,
           storeStyle: formData.storeStyle,
-          themeColor: formData.selectedColor,
           customInfo: formData.customInfo
         });
-        
-        try {
-          // Step 1: Install and configure Sense theme
-          toast.info("Installing and configuring Sense theme...");
-          await installAndConfigureSenseTheme({
-            storeName: formData.storeName,
-            accessToken: formData.accessToken,
-            themeColor: formData.selectedColor,
-            niche: formData.niche
-          });
-          
-          // Step 2: Generate and add niche-specific products
-          toast.info(`Generating 10 winning ${formData.niche} products for ${formData.targetAudience}...`);
-          
-          const onProgress = (progress: number, currentProduct: string) => {
-            setFormData(prev => ({
-              ...prev,
-              progress,
-              currentProduct
-            }));
-          };
-
-          await addProductsToShopify(
-            formData.shopifyUrl,
-            formData.accessToken,
-            formData.niche,
-            onProgress,
-            formData.selectedColor,
-            formData.targetAudience,
-            formData.businessType,
-            formData.storeStyle,
-            formData.customInfo
-          );
-
-          toast.success(`Successfully created your ${formData.niche} store with 10 winning products!`);
-          setCurrentStep(currentStep + 1);
-          
-        } catch (error) {
-          console.error('Generation failed:', error);
-          toast.error(error instanceof Error ? error.message : 'Store generation failed');
-        } finally {
-          setIsGenerating(false);
-        }
-        return;
       }
 
       // Save session data and proceed to next step

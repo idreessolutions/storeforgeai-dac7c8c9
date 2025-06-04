@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,10 +29,20 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
   const { toast } = useToast();
 
   const handleAddProducts = async () => {
-    if (!formData.shopifyUrl || !formData.accessToken || !formData.niche) {
+    console.log('🚀 ProductsStep handleAddProducts called with formData:', formData);
+    
+    // Validate required fields
+    if (!formData.shopifyUrl || !formData.accessToken || !formData.niche || !formData.targetAudience) {
+      console.error('❌ Missing required fields:', {
+        shopifyUrl: !!formData.shopifyUrl,
+        accessToken: !!formData.accessToken, 
+        niche: !!formData.niche,
+        targetAudience: !!formData.targetAudience
+      });
+      
       toast({
         title: "Missing Information",
-        description: "Please ensure you have entered your Shopify URL, access token, and niche.",
+        description: "Please ensure you have entered your Shopify URL, access token, niche, and target audience.",
         variant: "destructive",
       });
       return;
@@ -45,12 +54,14 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
     setCurrentStep("");
 
     try {
-      console.log('🚀 Starting complete store setup for niche:', formData.niche);
-      console.log('🎯 Target audience:', formData.targetAudience);
-      console.log('🏢 Business type:', formData.businessType);
-      console.log('🎨 Store style:', formData.storeStyle);
-      console.log('💬 Custom info:', formData.customInfo);
-      console.log('🎨 Using theme color:', formData.themeColor);
+      console.log('🚀 Starting complete store setup with full context:', {
+        niche: formData.niche,
+        targetAudience: formData.targetAudience,
+        businessType: formData.businessType,
+        storeStyle: formData.storeStyle,
+        themeColor: formData.themeColor,
+        customInfo: formData.customInfo
+      });
       
       // Step 1: Install and configure Sense theme
       setCurrentStep("Installing Sense theme...");
@@ -78,6 +89,16 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       setCurrentStep("Generating winning products...");
       setProgress(40);
 
+      console.log('🎯 Calling addProductsToShopify with full context:', {
+        shopifyUrl: formData.shopifyUrl,
+        niche: formData.niche,
+        targetAudience: formData.targetAudience,
+        businessType: formData.businessType,
+        storeStyle: formData.storeStyle,
+        themeColor: formData.themeColor,
+        customInfo: formData.customInfo
+      });
+
       await addProductsToShopify(
         formData.shopifyUrl,
         formData.accessToken,
@@ -103,7 +124,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       });
 
     } catch (error) {
-      console.error('Error setting up store:', error);
+      console.error('❌ Error setting up store:', error);
       toast({
         title: "Setup Failed",
         description: error instanceof Error ? error.message : "An unknown error occurred. Please try again.",
