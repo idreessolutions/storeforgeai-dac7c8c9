@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { addProductsToShopify } from "@/services/productService";
 import { installAndConfigureSenseTheme } from "@/services/shopifyThemeService";
@@ -20,6 +19,14 @@ export interface FormData {
   
   // Theme/Design
   selectedColor: string;
+  
+  // Additional fields to match StepRenderer expectations
+  additionalInfo: string;
+  planActivated: boolean;
+  themeColor: string;
+  productsAdded: boolean;
+  mentorshipRequested: boolean;
+  createdViaAffiliate: boolean;
   
   // Progress tracking
   progress: number;
@@ -46,16 +53,42 @@ export const useStoreBuilderLogic = () => {
     // Theme/Design
     selectedColor: '#1E40AF',
     
+    // Additional fields
+    additionalInfo: '',
+    planActivated: false,
+    themeColor: '#1E40AF',
+    productsAdded: false,
+    mentorshipRequested: false,
+    createdViaAffiliate: false,
+    
     // Progress tracking
     progress: 0,
     currentProduct: '',
   });
 
-  const handleInputChange = (field: keyof FormData, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  const handleInputChange = (field: keyof FormData, value: string | boolean) => {
+    setFormData(prev => {
+      const updated = {
+        ...prev,
+        [field]: value
+      };
+      
+      // Keep customInfo and additionalInfo in sync
+      if (field === 'customInfo') {
+        updated.additionalInfo = value as string;
+      } else if (field === 'additionalInfo') {
+        updated.customInfo = value as string;
+      }
+      
+      // Keep selectedColor and themeColor in sync
+      if (field === 'selectedColor') {
+        updated.themeColor = value as string;
+      } else if (field === 'themeColor') {
+        updated.selectedColor = value as string;
+      }
+      
+      return updated;
+    });
   };
 
   const handleNextStep = async () => {
@@ -123,7 +156,18 @@ export const useStoreBuilderLogic = () => {
       // Save session data and proceed to next step
       await saveSessionData({
         completed_steps: currentStep + 1,
-        form_data: formData
+        niche: formData.niche,
+        target_audience: formData.targetAudience,
+        business_type: formData.businessType,
+        store_style: formData.storeStyle,
+        additional_info: formData.customInfo,
+        shopify_url: formData.shopifyUrl,
+        access_token: formData.accessToken,
+        plan_activated: formData.planActivated,
+        theme_color: formData.selectedColor,
+        products_added: formData.productsAdded,
+        mentorship_requested: formData.mentorshipRequested,
+        created_via_affiliate: formData.createdViaAffiliate
       });
       
       setCurrentStep(currentStep + 1);

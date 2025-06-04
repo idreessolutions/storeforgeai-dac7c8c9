@@ -11,24 +11,12 @@ import MentorshipStep from "./MentorshipStep";
 import LaunchStep from "./LaunchStep";
 import GetStartedStep from "./GetStartedStep";
 import FutureStep from "./FutureStep";
+import { FormData } from "./StoreBuilderLogic";
 
 interface StepRendererProps {
   currentStep: number;
-  formData: {
-    niche: string;
-    targetAudience: string;
-    businessType: string;
-    storeStyle: string;
-    additionalInfo: string;
-    shopifyUrl: string;
-    accessToken: string;
-    planActivated: boolean;
-    themeColor: string;
-    productsAdded: boolean;
-    mentorshipRequested: boolean;
-    createdViaAffiliate: boolean;
-  };
-  handleInputChange: (field: string, value: string | boolean) => void;
+  formData: FormData;
+  handleInputChange: (field: keyof FormData, value: string | boolean) => void;
   isGenerating: boolean;
   onNext: () => void;
 }
@@ -45,7 +33,7 @@ const StepRenderer = ({
       return (
         <GetStartedStep 
           onNext={onNext}
-          formData={{ themeColor: formData.themeColor }}
+          formData={{ themeColor: formData.selectedColor }}
           handleInputChange={handleInputChange}
         />
       );
@@ -53,13 +41,13 @@ const StepRenderer = ({
       return (
         <StoreDetailsStep 
           formData={formData} 
-          handleInputChange={handleInputChange} 
+          onInputChange={handleInputChange} 
         />
       );
     case 2:
       return (
         <ColorSelectionStep 
-          formData={{ themeColor: formData.themeColor }} 
+          formData={{ themeColor: formData.selectedColor }} 
           handleInputChange={handleInputChange} 
         />
       );
@@ -101,7 +89,7 @@ const StepRenderer = ({
             shopifyUrl: formData.shopifyUrl,
             accessToken: formData.accessToken,
             niche: formData.niche,
-            themeColor: formData.themeColor
+            themeColor: formData.selectedColor
           }} 
           handleInputChange={handleInputChange} 
         />
