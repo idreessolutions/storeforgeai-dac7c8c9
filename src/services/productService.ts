@@ -22,6 +22,8 @@ interface Product {
   product_type?: string;
   vendor?: string;
   tags?: string;
+  dalle_prompt_used?: string;
+  context_info?: any;
 }
 
 interface ProductUploadResult {
@@ -36,13 +38,23 @@ export const addProductsToShopify = async (
   accessToken: string,
   userNiche: string,
   onProgress: (progress: number, currentProduct: string) => void,
-  themeColor: string = '#1E40AF'
+  themeColor: string = '#1E40AF',
+  targetAudience?: string,
+  businessType?: string,
+  storeStyle?: string,
+  customInfo?: string
 ): Promise<boolean> => {
   try {
-    console.log('🚀 Starting UNIVERSAL winning product addition for ANY niche...');
-    console.log('Shopify URL:', shopifyUrl);
-    console.log('Niche:', userNiche);
-    console.log('Theme Color:', themeColor);
+    console.log('🚀 Starting niche-specific winning product addition with full context...');
+    console.log('📊 Store Context:', {
+      shopifyUrl,
+      niche: userNiche,
+      targetAudience,
+      businessType,
+      storeStyle,
+      themeColor,
+      customInfo
+    });
     
     // Comprehensive input validation
     if (!shopifyUrl || !accessToken || !userNiche) {
@@ -62,41 +74,59 @@ export const addProductsToShopify = async (
 
     console.log('Extracted store name:', storeName);
 
-    // Generate exactly 10 winning products for ANY niche using AI
+    // Generate exactly 10 niche-specific products using GPT-4 + DALL·E with full context
     let products: Product[] = [];
     try {
-      console.log(`🤖 Generating 10 winning products for "${userNiche}" niche using AI...`);
+      console.log(`🤖 Generating 10 winning products for "${userNiche}" with full context using GPT-4 + DALL·E...`);
       const { data, error } = await supabase.functions.invoke('generate-products', {
-        body: { niche: userNiche }
+        body: { 
+          niche: userNiche,
+          targetAudience: targetAudience || 'general consumers',
+          businessType: businessType || 'e-commerce',
+          storeStyle: storeStyle || 'modern',
+          themeColor: themeColor,
+          customInfo: customInfo || ''
+        }
       });
 
       if (error) {
-        console.error('Error generating products:', error);
-        throw new Error(`Failed to generate winning ${userNiche} products`);
+        console.error('Error generating niche-specific products:', error);
+        throw new Error(`Failed to generate winning ${userNiche} products for ${targetAudience}`);
       }
 
       if (data?.success && data?.products) {
         products = data.products.slice(0, 10); // Ensure exactly 10 products
-        console.log(`✅ Generated ${products.length} winning ${userNiche} products`);
+        console.log(`✅ Generated ${products.length} niche-specific winning ${userNiche} products for ${targetAudience}`);
+        
+        // Log the DALL·E prompts used
+        products.forEach((product, index) => {
+          console.log(`🎨 Product ${index + 1} - ${product.title}:`);
+          console.log(`📝 DALL·E Prompt: ${product.dalle_prompt_used || 'Fallback used'}`);
+          console.log(`📸 Images: ${product.images.length} generated`);
+          console.log(`🎯 Context: ${JSON.stringify(product.context_info)}`);
+        });
       } else {
-        throw new Error(`No winning ${userNiche} products generated`);
+        throw new Error(`No winning ${userNiche} products generated for ${targetAudience}`);
       }
     } catch (error) {
       console.error('Product generation failed:', error);
-      throw new Error(`Failed to generate winning ${userNiche} products. Please try again.`);
+      throw new Error(`Failed to generate winning ${userNiche} products for ${targetAudience}. Please try again.`);
     }
     
     let successCount = 0;
     const errors: string[] = [];
     const uploadResults: ProductUploadResult[] = [];
     
-    // Process exactly 10 products with enhanced error handling
+    // Process exactly 10 products with enhanced logging
     for (let i = 0; i < products.length; i++) {
       const product = products[i];
       const progress = ((i + 1) / 10) * 100;
       onProgress(progress, product.title);
       
-      console.log(`🔄 Processing ${userNiche} product ${i + 1}/10: ${product.title}`);
+      console.log(`🔄 Processing niche-specific product ${i + 1}/10: ${product.title}`);
+      console.log(`🎨 Using DALL·E prompt: ${product.dalle_prompt_used || 'Fallback'}`);
+      console.log(`📸 Images ready: ${product.images.length}`);
+      console.log(`🎯 Target audience: ${product.target_audience || targetAudience}`);
       
       let retryCount = 0;
       const maxRetries = 2;
@@ -117,9 +147,10 @@ export const addProductsToShopify = async (
             ? product.images.filter(img => typeof img === 'string' && img.length > 0)
             : [];
 
-          console.log(`📷 ${userNiche} product has ${processedImages.length} product-specific images ready for upload`);
+          console.log(`📷 Product has ${processedImages.length} niche-specific images ready for upload`);
+          console.log(`🔗 Image URLs preview:`, processedImages.slice(0, 2).map(url => url.substring(0, 50) + '...'));
 
-          // Use Supabase edge function to add product to Shopify
+          // Use Supabase edge function to add product to Shopify with enhanced context
           const { data, error } = await supabase.functions.invoke('add-shopify-product', {
             body: {
               shopifyUrl: `https://${storeName}.myshopify.com`,
@@ -131,7 +162,7 @@ export const addProductsToShopify = async (
                 detailed_description: product.detailed_description || product.description,
                 features: product.features || [],
                 benefits: product.benefits || [],
-                target_audience: product.target_audience || `${userNiche} enthusiasts`,
+                target_audience: product.target_audience || targetAudience || `${userNiche} enthusiasts`,
                 shipping_info: product.shipping_info || 'Fast worldwide shipping, arrives in 7-14 days',
                 return_policy: product.return_policy || '30-day money-back guarantee',
                 vendor: product.vendor || 'Premium Store',
@@ -139,8 +170,8 @@ export const addProductsToShopify = async (
                 handle: product.handle || generateHandle(product.title),
                 status: 'active',
                 published: true,
-                tags: product.tags || `${userNiche}, winning products, trending, bestseller, hot-products`,
-                images: processedImages, // Product-specific images
+                tags: product.tags || `${userNiche}, winning products, trending, bestseller, hot-products, ${(targetAudience || '').toLowerCase().replace(/\s+/g, '-')}`,
+                images: processedImages, // Niche-specific images with DALL·E prompts
                 variants: processedVariants.map((variant, variantIndex) => ({
                   title: variant.title,
                   price: typeof variant.price === 'number' ? variant.price.toFixed(2) : parseFloat(String(variant.price)).toFixed(2),
@@ -153,7 +184,9 @@ export const addProductsToShopify = async (
                   requires_shipping: true,
                   taxable: true
                 })),
-                category: userNiche
+                category: userNiche,
+                dalle_prompt_used: product.dalle_prompt_used,
+                context_info: product.context_info
               }
             }
           });
@@ -166,7 +199,9 @@ export const addProductsToShopify = async (
           if (data?.success) {
             successCount++;
             productUploaded = true;
-            console.log(`✅ Successfully added ${userNiche} product: ${product.title}`);
+            console.log(`✅ Successfully added niche-specific product: ${product.title}`);
+            console.log(`🎨 DALL·E prompt used: ${product.dalle_prompt_used}`);
+            console.log(`📸 Images uploaded: ${data.images_uploaded || processedImages.length}`);
             
             uploadResults.push({
               success: true,
@@ -174,8 +209,8 @@ export const addProductsToShopify = async (
               productTitle: product.title
             });
             
-            // Store product data in Supabase
-            await storeProductInSupabase(product, data.product?.id, userNiche, themeColor);
+            // Store product data in Supabase with enhanced logging
+            await storeProductInSupabase(product, data.product?.id, userNiche, themeColor, targetAudience);
             
           } else {
             const errorMsg = data?.error || 'Unknown error from edge function';
@@ -215,25 +250,25 @@ export const addProductsToShopify = async (
       }
     }
     
-    // Store upload session summary
-    await storeUploadSession(uploadResults, userNiche);
+    // Store upload session summary with enhanced context
+    await storeUploadSession(uploadResults, userNiche, targetAudience, businessType, storeStyle);
     
-    console.log(`🎉 ${userNiche} product addition completed: ${successCount}/10 successful`);
+    console.log(`🎉 Niche-specific product addition completed: ${successCount}/10 successful for ${userNiche} targeting ${targetAudience}`);
     
     if (successCount === 0) {
-      throw new Error(`Failed to add any ${userNiche} products. Errors: ${errors.slice(0, 3).join('; ')}`);
+      throw new Error(`Failed to add any ${userNiche} products for ${targetAudience}. Errors: ${errors.slice(0, 3).join('; ')}`);
     }
     
     return true;
     
   } catch (error) {
-    console.error('💥 Product addition process failed:', error);
+    console.error('💥 Niche-specific product addition process failed:', error);
     throw error;
   }
 };
 
-// Store product data in Supabase database
-async function storeProductInSupabase(product: Product, shopifyProductId: string | undefined, niche: string, themeColor?: string) {
+// Store product data in Supabase with enhanced context
+async function storeProductInSupabase(product: Product, shopifyProductId: string | undefined, niche: string, themeColor?: string, targetAudience?: string) {
   try {
     const { error } = await supabase
       .from('product_uploads')
@@ -252,7 +287,7 @@ async function storeProductInSupabase(product: Product, shopifyProductId: string
         video_url: product.video_url || '',
         features: product.features || [],
         benefits: product.benefits || [],
-        target_audience: product.target_audience || '',
+        target_audience: product.target_audience || targetAudience || '',
         shipping_info: product.shipping_info || '',
         return_policy: product.return_policy || '',
         variants: product.variants,
@@ -262,15 +297,20 @@ async function storeProductInSupabase(product: Product, shopifyProductId: string
     if (error) {
       console.error('Error storing product in Supabase:', error);
     } else {
-      console.log(`✅ Product ${product.title} stored in Supabase with theme color: ${themeColor}`);
+      console.log(`✅ Product ${product.title} stored in Supabase with context:`, {
+        niche,
+        targetAudience,
+        themeColor,
+        dalle_prompt: product.dalle_prompt_used
+      });
     }
   } catch (error) {
     console.error('Failed to store product in Supabase:', error);
   }
 }
 
-// Store upload session summary
-async function storeUploadSession(results: ProductUploadResult[], niche: string) {
+// Store upload session summary with enhanced context
+async function storeUploadSession(results: ProductUploadResult[], niche: string, targetAudience?: string, businessType?: string, storeStyle?: string) {
   try {
     const sessionId = Math.random().toString(36).substring(2, 15);
     const successCount = results.filter(r => r.success).length;
@@ -298,7 +338,13 @@ async function storeUploadSession(results: ProductUploadResult[], niche: string)
     if (error) {
       console.error('Error storing upload session:', error);
     } else {
-      console.log(`✅ Upload session ${sessionId} stored in Supabase`);
+      console.log(`✅ Upload session ${sessionId} stored with context:`, {
+        niche,
+        targetAudience,
+        businessType,
+        storeStyle,
+        successCount
+      });
     }
   } catch (error) {
     console.error('Failed to store upload session:', error);
