@@ -77,7 +77,7 @@ export const addProductsToShopify = async (
     // Generate exactly 10 niche-specific products using GPT-4 + DALL·E with full context
     let products: Product[] = [];
     try {
-      console.log(`🤖 Generating 10 winning products for "${userNiche}" with full context using GPT-4 + DALL·E...`);
+      console.log(`🤖 Generating 10 winning products for "${userNiche}" targeting "${targetAudience}" using GPT-4 + DALL·E...`);
       const { data, error } = await supabase.functions.invoke('generate-products', {
         body: { 
           niche: userNiche,
@@ -91,26 +91,26 @@ export const addProductsToShopify = async (
 
       if (error) {
         console.error('Error generating niche-specific products:', error);
-        throw new Error(`Failed to generate winning ${userNiche} products for ${targetAudience}`);
+        throw new Error(`Failed to generate winning ${userNiche} products for ${targetAudience}: ${error.message}`);
       }
 
       if (data?.success && data?.products) {
         products = data.products.slice(0, 10); // Ensure exactly 10 products
         console.log(`✅ Generated ${products.length} niche-specific winning ${userNiche} products for ${targetAudience}`);
         
-        // Log the DALL·E prompts used
+        // Log the product generation details
         products.forEach((product, index) => {
-          console.log(`🎨 Product ${index + 1} - ${product.title}:`);
-          console.log(`📝 DALL·E Prompt: ${product.dalle_prompt_used || 'Fallback used'}`);
-          console.log(`📸 Images: ${product.images.length} generated`);
-          console.log(`🎯 Context: ${JSON.stringify(product.context_info)}`);
+          console.log(`🎯 Product ${index + 1} - ${product.title}:`);
+          console.log(`📝 Description length: ${product.description?.length || 0} chars`);
+          console.log(`📸 Images: ${product.images?.length || 0} generated`);
+          console.log(`🎨 DALL·E Prompt: ${product.dalle_prompt_used || 'None'}`);
         });
       } else {
         throw new Error(`No winning ${userNiche} products generated for ${targetAudience}`);
       }
     } catch (error) {
       console.error('Product generation failed:', error);
-      throw new Error(`Failed to generate winning ${userNiche} products for ${targetAudience}. Please try again.`);
+      throw new Error(`Failed to generate winning ${userNiche} products for ${targetAudience}. ${error.message}`);
     }
     
     let successCount = 0;
@@ -124,8 +124,8 @@ export const addProductsToShopify = async (
       onProgress(progress, product.title);
       
       console.log(`🔄 Processing niche-specific product ${i + 1}/10: ${product.title}`);
-      console.log(`🎨 Using DALL·E prompt: ${product.dalle_prompt_used || 'Fallback'}`);
-      console.log(`📸 Images ready: ${product.images.length}`);
+      console.log(`📝 Description preview: ${product.description?.substring(0, 100)}...`);
+      console.log(`📸 Images ready: ${product.images?.length || 0}`);
       console.log(`🎯 Target audience: ${product.target_audience || targetAudience}`);
       
       let retryCount = 0;
@@ -138,7 +138,7 @@ export const addProductsToShopify = async (
           const timestamp = Date.now();
           
           // Ensure we have proper variants
-          const processedVariants = product.variants.length > 0 ? product.variants : [
+          const processedVariants = product.variants?.length > 0 ? product.variants : [
             { title: 'Standard', price: product.price, sku: `STD-${timestamp}-${String(i + 1).padStart(3, '0')}` }
           ];
 
@@ -148,7 +148,14 @@ export const addProductsToShopify = async (
             : [];
 
           console.log(`📷 Product has ${processedImages.length} niche-specific images ready for upload`);
-          console.log(`🔗 Image URLs preview:`, processedImages.slice(0, 2).map(url => url.substring(0, 50) + '...'));
+          if (processedImages.length > 0) {
+            console.log(`🔗 First image URL: ${processedImages[0].substring(0, 100)}...`);
+          }
+
+          // Ensure description is properly formatted for Shopify HTML
+          const formattedDescription = formatDescriptionForShopify(product.description, product.features, product.benefits);
+          
+          console.log(`📝 Formatted description length: ${formattedDescription.length} chars`);
 
           // Use Supabase edge function to add product to Shopify with enhanced context
           const { data, error } = await supabase.functions.invoke('add-shopify-product', {
@@ -158,8 +165,8 @@ export const addProductsToShopify = async (
               themeColor,
               product: {
                 title: product.title.trim(),
-                description: product.description.trim(),
-                detailed_description: product.detailed_description || product.description,
+                description: formattedDescription,
+                detailed_description: product.detailed_description || formattedDescription,
                 features: product.features || [],
                 benefits: product.benefits || [],
                 target_audience: product.target_audience || targetAudience || `${userNiche} enthusiasts`,
@@ -170,8 +177,8 @@ export const addProductsToShopify = async (
                 handle: product.handle || generateHandle(product.title),
                 status: 'active',
                 published: true,
-                tags: product.tags || `${userNiche}, winning products, trending, bestseller, hot-products, ${(targetAudience || '').toLowerCase().replace(/\s+/g, '-')}`,
-                images: processedImages, // Niche-specific images with DALL·E prompts
+                tags: product.tags || `${userNiche}, winning-products, trending, bestseller, hot-products, ${(targetAudience || '').toLowerCase().replace(/\s+/g, '-')}`,
+                images: processedImages,
                 variants: processedVariants.map((variant, variantIndex) => ({
                   title: variant.title,
                   price: typeof variant.price === 'number' ? variant.price.toFixed(2) : parseFloat(String(variant.price)).toFixed(2),
@@ -200,8 +207,9 @@ export const addProductsToShopify = async (
             successCount++;
             productUploaded = true;
             console.log(`✅ Successfully added niche-specific product: ${product.title}`);
-            console.log(`🎨 DALL·E prompt used: ${product.dalle_prompt_used}`);
+            console.log(`📝 Description uploaded: ${data.description_length || 'Unknown'} chars`);
             console.log(`📸 Images uploaded: ${data.images_uploaded || processedImages.length}`);
+            console.log(`🆔 Product ID: ${data.product?.id}`);
             
             uploadResults.push({
               success: true,
@@ -267,6 +275,38 @@ export const addProductsToShopify = async (
   }
 };
 
+// Format description for Shopify HTML display
+function formatDescriptionForShopify(description: string, features?: string[], benefits?: string[]): string {
+  let formattedHtml = `<div class="product-description">\n`;
+  
+  // Main description
+  if (description) {
+    formattedHtml += `<p>${description.replace(/\n/g, '</p>\n<p>')}</p>\n`;
+  }
+  
+  // Features section
+  if (features && features.length > 0) {
+    formattedHtml += `<h3>Key Features:</h3>\n<ul>\n`;
+    features.forEach(feature => {
+      formattedHtml += `<li>${feature}</li>\n`;
+    });
+    formattedHtml += `</ul>\n`;
+  }
+  
+  // Benefits section
+  if (benefits && benefits.length > 0) {
+    formattedHtml += `<h3>Benefits:</h3>\n<ul>\n`;
+    benefits.forEach(benefit => {
+      formattedHtml += `<li>${benefit}</li>\n`;
+    });
+    formattedHtml += `</ul>\n`;
+  }
+  
+  formattedHtml += `</div>`;
+  
+  return formattedHtml;
+}
+
 // Store product data in Supabase with enhanced context
 async function storeProductInSupabase(product: Product, shopifyProductId: string | undefined, niche: string, themeColor?: string, targetAudience?: string) {
   try {
@@ -315,7 +355,6 @@ async function storeUploadSession(results: ProductUploadResult[], niche: string,
     const sessionId = Math.random().toString(36).substring(2, 15);
     const successCount = results.filter(r => r.success).length;
     
-    // Convert ProductUploadResult[] to a JSON-compatible format
     const jsonResults = results.map(result => ({
       success: result.success,
       productId: result.productId || null,
@@ -331,7 +370,7 @@ async function storeUploadSession(results: ProductUploadResult[], niche: string,
         total_products: 10,
         successful_uploads: successCount,
         failed_uploads: 10 - successCount,
-        results: jsonResults as any, // Cast to any to match Json type
+        results: jsonResults as any,
         created_at: new Date().toISOString()
       });
 

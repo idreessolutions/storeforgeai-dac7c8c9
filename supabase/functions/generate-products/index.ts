@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -24,21 +23,43 @@ serve(async (req) => {
       themeColor
     });
 
-    // Try to generate products with AI first, but fall back gracefully
+    // Validate required inputs
+    if (!niche || !targetAudience) {
+      throw new Error('Niche and target audience are required');
+    }
+
+    // Try to generate products with AI first, but have robust fallback
     let products: any[] = [];
     
     try {
-      products = await generateNicheSpecificProducts(niche, targetAudience, businessType, storeStyle, themeColor, customInfo);
+      if (openAIApiKey) {
+        console.log('🤖 Using GPT-4 + DALL·E for niche-specific product generation...');
+        products = await generateNicheSpecificProducts(niche, targetAudience, businessType, storeStyle, themeColor, customInfo);
+      } else {
+        console.log('⚠️ OpenAI API key not found, using enhanced fallback generation');
+        throw new Error('OpenAI API key not available');
+      }
     } catch (aiError) {
-      console.log('⚠️ AI generation failed, using fallback:', aiError.message);
-      // Always fall back to local generation when AI fails
-      products = generateFallbackProducts(niche, targetAudience, businessType, storeStyle, themeColor);
+      console.log('⚠️ AI generation failed, using enhanced fallback:', aiError.message);
+      products = generateEnhancedFallbackProducts(niche, targetAudience, businessType, storeStyle, themeColor, customInfo);
     }
+
+    // Ensure we have exactly 10 products
+    if (products.length < 10) {
+      console.log(`⚠️ Only ${products.length} products generated, filling with additional products...`);
+      const additionalProducts = generateEnhancedFallbackProducts(niche, targetAudience, businessType, storeStyle, themeColor, customInfo);
+      products = [...products, ...additionalProducts.slice(0, 10 - products.length)];
+    }
+
+    products = products.slice(0, 10); // Ensure exactly 10
+
+    console.log(`✅ Final product count: ${products.length} niche-specific products for ${niche} targeting ${targetAudience}`);
 
     return new Response(JSON.stringify({ 
       success: true, 
       products: products,
-      message: `Generated 10 winning ${niche} products for ${targetAudience}`
+      message: `Generated 10 winning ${niche} products for ${targetAudience}`,
+      method_used: openAIApiKey ? 'AI + Fallback' : 'Enhanced Fallback'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -54,19 +75,17 @@ serve(async (req) => {
   }
 });
 
-// Generate niche-specific products using GPT-4 with all user preferences
+// Generate niche-specific products using GPT-4 with DALL·E image generation
 async function generateNicheSpecificProducts(niche: string, targetAudience: string, businessType: string, storeStyle: string, themeColor: string, customInfo?: string) {
   console.log(`🤖 Using GPT-4 to generate 10 winning ${niche} products for ${targetAudience}...`);
   
   if (!openAIApiKey) {
-    console.log('⚠️ OpenAI API key not found, using fallback generation');
     throw new Error('OpenAI API key not available');
   }
 
-  // Create detailed context for GPT-4
   const contextInfo = {
     niche,
-    targetAudience: targetAudience || 'general consumers',
+    targetAudience,
     businessType: businessType || 'e-commerce',
     storeStyle: storeStyle || 'modern',
     themeColor: themeColor || '#1E40AF',
@@ -75,7 +94,7 @@ async function generateNicheSpecificProducts(niche: string, targetAudience: stri
 
   console.log('🎯 Using detailed context for product generation:', contextInfo);
 
-  // Use GPT-4 to generate niche-specific products with DALL·E prompts
+  // Use GPT-4 to generate niche-specific products with detailed prompts
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -87,67 +106,67 @@ async function generateNicheSpecificProducts(niche: string, targetAudience: stri
       messages: [
         {
           role: 'system',
-          content: `You are an expert e-commerce product curator and DALL·E prompt engineer. Generate exactly 10 unique, trending, winning products for a specific niche with detailed DALL·E 3 image prompts. Each product must be highly relevant to the niche and target audience.`
+          content: `You are an expert e-commerce product curator specializing in creating winning products for specific niches. You must generate exactly 10 unique products that are perfectly tailored to the user's specifications.
+
+CRITICAL REQUIREMENTS:
+- ALL products must be directly related to the "${niche}" niche
+- ALL products must target "${targetAudience}" specifically  
+- Each product needs a detailed DALL·E 3 prompt that shows the EXACT product
+- Descriptions must be 400-500 words long and compelling
+- Prices must be between $15-80
+
+Return ONLY valid JSON with no additional text.`
         },
         {
           role: 'user',
-          content: `Generate 10 winning, trending products for this specific context:
+          content: `Generate exactly 10 winning products for this SPECIFIC context:
 
-NICHE: ${niche}
-TARGET AUDIENCE: ${targetAudience}
-BUSINESS TYPE: ${businessType}
-STORE STYLE: ${storeStyle}
-THEME COLOR: ${themeColor}
-${customInfo ? `CUSTOM INFO: ${customInfo}` : ''}
+NICHE: "${niche}" (ALL products must fit this niche exactly)
+TARGET AUDIENCE: "${targetAudience}" (optimize everything for this audience)
+BUSINESS TYPE: "${businessType}"
+STORE STYLE: "${storeStyle}" 
+THEME COLOR: "${themeColor}"
+${customInfo ? `ADDITIONAL REQUIREMENTS: "${customInfo}"` : ''}
 
 For each product, create:
-1. A specific, compelling product title relevant to ${niche}
-2. Price between $15-80 (appropriate for ${targetAudience})
-3. Detailed description highlighting benefits for ${targetAudience}
-4. 4-5 key features specific to ${niche}
-5. 3-4 main benefits for ${targetAudience}
-6. DETAILED DALL·E 3 image prompt that shows the exact product in a ${storeStyle} style for ${targetAudience}
 
-Each DALL·E prompt should be specific, realistic, and show the actual product being used by or relevant to ${targetAudience}. Make prompts detailed but under 400 characters.
+1. Title: Must be specific to ${niche} and appeal to ${targetAudience}
+2. Price: Between $15-80, appropriate for ${targetAudience}
+3. Description: 400-500 words highlighting benefits for ${targetAudience} in ${niche}
+4. Features: 4-5 specific features relevant to ${niche}
+5. Benefits: 3-4 benefits that ${targetAudience} would value
+6. DALL·E Prompt: Detailed prompt showing the EXACT product in use by ${targetAudience}
 
-Return ONLY a JSON array with exactly 10 products:
+DALL·E Prompts must:
+- Show the specific product clearly
+- Include ${targetAudience} using it (when relevant)
+- Match ${storeStyle} aesthetic
+- Be under 400 characters
+- Be realistic and professional
+
+Return ONLY this JSON structure:
 [
   {
-    "title": "Specific product name for ${niche}",
+    "title": "Specific ${niche} product name",
     "price": 45.99,
-    "description": "Compelling description for ${targetAudience}",
+    "description": "Detailed 400-500 word description targeting ${targetAudience} in ${niche} market...",
     "features": ["feature1", "feature2", "feature3", "feature4"],
     "benefits": ["benefit1", "benefit2", "benefit3"],
-    "dalle_prompt": "Professional product photo of [specific product] being used by ${targetAudience}, ${storeStyle} setting, high quality, realistic lighting"
+    "dalle_prompt": "Professional product photo showing [specific product] being used by ${targetAudience}, ${storeStyle} setting, realistic lighting, high quality"
   }
 ]
 
-Make all products highly specific to ${niche} and perfect for ${targetAudience}.`
+ALL 10 products must be perfectly aligned with ${niche} for ${targetAudience}.`
         }
       ],
       temperature: 0.8,
+      max_tokens: 4000,
     }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
     console.log('⚠️ GPT-4 API error:', response.status, errorText);
-    
-    // Check for quota exceeded error specifically
-    if (response.status === 429) {
-      try {
-        const errorData = JSON.parse(errorText);
-        if (errorData.error?.code === 'insufficient_quota') {
-          console.log('💳 OpenAI quota exceeded, falling back to local generation');
-          throw new Error('OpenAI quota exceeded');
-        }
-      } catch (parseError) {
-        // If we can't parse the error, still treat 429 as quota issue
-        console.log('💳 Rate limit exceeded, falling back to local generation');
-        throw new Error('Rate limit exceeded');
-      }
-    }
-    
     throw new Error(`GPT-4 API error: ${response.status}`);
   }
 
@@ -164,16 +183,17 @@ Make all products highly specific to ${niche} and perfect for ${targetAudience}.
   const aiProducts = JSON.parse(jsonMatch[0]);
   console.log(`✅ GPT-4 generated ${aiProducts.length} niche-specific products`);
   
-  // Process AI-generated products and add images using their DALL·E prompts
+  // Process AI-generated products and generate matching images
   const products = [];
   for (let i = 0; i < Math.min(10, aiProducts.length); i++) {
     const aiProduct = aiProducts[i];
     
-    console.log(`🎨 Generating images for: ${aiProduct.title}`);
-    console.log(`📝 Using DALL·E prompt: ${aiProduct.dalle_prompt}`);
+    console.log(`🎨 Processing product ${i + 1}: ${aiProduct.title}`);
+    console.log(`📝 Description length: ${aiProduct.description?.length || 0} chars`);
+    console.log(`🖼️ DALL·E prompt: ${aiProduct.dalle_prompt}`);
     
-    // Generate images using the AI-provided DALL·E prompt
-    const images = await generateImagesWithCustomPrompt(aiProduct.dalle_prompt, aiProduct.title, niche, contextInfo);
+    // Generate product-specific images using the AI-provided DALL·E prompt
+    const images = await generateProductSpecificImages(aiProduct.dalle_prompt, aiProduct.title, niche, contextInfo);
     
     const product = {
       title: aiProduct.title,
@@ -199,14 +219,14 @@ Make all products highly specific to ${niche} and perfect for ${targetAudience}.
     };
     
     products.push(product);
-    console.log(`✅ Generated niche-specific product ${i + 1}: ${aiProduct.title} with ${images.length} images`);
+    console.log(`✅ Generated niche-specific product ${i + 1}: ${aiProduct.title} with ${images.length} matching images`);
   }
   
   return products;
 }
 
-// Generate images using custom DALL·E prompts from GPT-4
-async function generateImagesWithCustomPrompt(dallePrompt: string, productTitle: string, niche: string, contextInfo: any): Promise<string[]> {
+// Generate product-specific images using DALL·E 3
+async function generateProductSpecificImages(dallePrompt: string, productTitle: string, niche: string, contextInfo: any): Promise<string[]> {
   const images: string[] = [];
   
   if (!openAIApiKey) {
@@ -215,17 +235,17 @@ async function generateImagesWithCustomPrompt(dallePrompt: string, productTitle:
   }
 
   try {
-    console.log(`🎨 Generating 6 unique images for: ${productTitle}`);
-    console.log(`📝 Base DALL·E prompt: ${dallePrompt}`);
+    console.log(`🎨 Generating 6 product-specific images for: ${productTitle}`);
+    console.log(`📝 Using DALL·E prompt: ${dallePrompt}`);
     
-    // Create variations of the base prompt for different angles/styles
+    // Create variations of the prompt for different angles
     const promptVariations = [
-      dallePrompt, // Original prompt
-      `${dallePrompt}, close-up detail shot, macro photography`,
-      `${dallePrompt}, lifestyle photography, in-use scenario`,
-      `${dallePrompt}, product packaging, unboxing presentation`,
-      `${dallePrompt}, multiple angles view, product showcase`,
-      `${dallePrompt}, ${contextInfo.storeStyle} environment, professional lighting`
+      dallePrompt, // Original
+      `${dallePrompt}, close-up product details, macro photography`,
+      `${dallePrompt}, lifestyle setting, in-use scenario`, 
+      `${dallePrompt}, product packaging view, unboxing presentation`,
+      `${dallePrompt}, multiple angles, product showcase`,
+      `${dallePrompt}, professional studio lighting, commercial photography`
     ];
 
     // Generate up to 6 images with variations
@@ -253,7 +273,9 @@ async function generateImagesWithCustomPrompt(dallePrompt: string, productTitle:
           const data = await response.json();
           if (data.data?.[0]?.url) {
             images.push(data.data[0].url);
-            console.log(`✅ Generated custom image ${i + 1} for ${productTitle}`);
+            console.log(`✅ Generated product-specific image ${i + 1} for ${productTitle}`);
+          } else {
+            console.log(`⚠️ No image URL in DALL·E response ${i + 1}`);
           }
         } else {
           const errorText = await response.text();
@@ -270,9 +292,9 @@ async function generateImagesWithCustomPrompt(dallePrompt: string, productTitle:
     console.log(`⚠️ DALL·E 3 generation failed:`, error.message);
   }
 
-  // Add niche-specific fallback images if needed
+  // Add fallback images if needed
   if (images.length < 4) {
-    console.log(`🔄 Adding niche-specific fallback images (current: ${images.length})`);
+    console.log(`🔄 Adding product-specific fallback images (current: ${images.length})`);
     const fallbackImages = getNicheSpecificFallbackImages(productTitle, niche, contextInfo, 6 - images.length);
     images.push(...fallbackImages);
   }
@@ -281,14 +303,65 @@ async function generateImagesWithCustomPrompt(dallePrompt: string, productTitle:
   return images.slice(0, 6);
 }
 
-// Enhanced fallback product generation for any niche with full context
-function generateFallbackProducts(niche: string, targetAudience?: string, businessType?: string, storeStyle?: string, themeColor?: string) {
+// Enhanced fallback product generation with proper niche matching
+function generateEnhancedFallbackProducts(niche: string, targetAudience?: string, businessType?: string, storeStyle?: string, themeColor?: string, customInfo?: string) {
   console.log(`🔄 Generating enhanced fallback products for ${niche} niche targeting ${targetAudience}`);
   
   const products = [];
   
-  // Enhanced niche-specific product templates
-  const nicheProductMap: { [key: string]: any[] } = {
+  // Enhanced niche-specific product templates that actually match the niche
+  const nicheProductMap = getNicheSpecificProductTemplates();
+  
+  // Get products for the specific niche
+  const nicheKey = niche.toLowerCase();
+  let nicheProducts = findBestNicheMatch(nicheKey, nicheProductMap);
+  
+  // If we don't have enough variety, create more products based on the niche
+  if (nicheProducts.length < 10) {
+    nicheProducts = generateMoreNicheProducts(niche, targetAudience, nicheProducts);
+  }
+  
+  for (let i = 0; i < 10; i++) {
+    const template = nicheProducts[i % nicheProducts.length];
+    const title = `${template.base} ${template.type}`;
+    const price = template.price + (Math.random() * 10 - 5); // Add variation
+
+    // Generate detailed description
+    const detailedDescription = generateDetailedDescription(title, template.desc, niche, targetAudience, customInfo);
+
+    const product = {
+      title: title,
+      description: detailedDescription,
+      detailed_description: detailedDescription,
+      price: Math.max(15, Math.min(80, price)),
+      images: getNicheSpecificFallbackImages(title, niche, { targetAudience, storeStyle }, 6),
+      gif_urls: [],
+      video_url: '',
+      features: generateNicheFeatures(template, niche, targetAudience),
+      benefits: generateNicheBenefits(template, niche, targetAudience),
+      target_audience: targetAudience || `${niche} enthusiasts`,
+      shipping_info: 'Fast worldwide shipping, arrives in 7-14 days',
+      return_policy: '30-day money-back guarantee',
+      variants: generateSmartVariants(price, niche, i),
+      handle: generateHandle(title),
+      product_type: `${niche} Products`,
+      vendor: 'Premium Store',
+      tags: `winning-product, trending, bestseller, ${niche.toLowerCase()}, hot-product, ${(targetAudience || '').toLowerCase().replace(/\s+/g, '-')}`,
+      category: niche,
+      dalle_prompt_used: `Professional product photo of ${title}, ${storeStyle || 'modern'} style, high quality`,
+      context_info: { niche, targetAudience, businessType, storeStyle, themeColor, customInfo }
+    };
+    
+    products.push(product);
+  }
+  
+  console.log(`✅ Generated 10 enhanced fallback products for ${niche} targeting ${targetAudience}`);
+  return products;
+}
+
+// Get niche-specific product templates
+function getNicheSpecificProductTemplates() {
+  return {
     'tech': [
       { base: 'Smart Wireless', type: 'Charging Pad', desc: 'Fast wireless charging with LED indicators and overheating protection', price: 34.99 },
       { base: 'Premium Bluetooth', type: 'Earbuds', desc: 'Noise-cancelling earbuds with 8-hour battery life', price: 89.99 },
@@ -324,57 +397,122 @@ function generateFallbackProducts(niche: string, targetAudience?: string, busine
       { base: 'Herb Garden', type: 'Kit', desc: 'Indoor hydroponic system for fresh herbs', price: 49.99 },
       { base: 'Spice', type: 'Grinder', desc: 'Electric grinder for coffee beans and spices', price: 29.99 },
       { base: 'Silicone Baking', type: 'Mat Set', desc: 'Reusable non-stick mats for baking and cooking', price: 19.99 }
+    ],
+    'beauty': [
+      { base: 'LED Face', type: 'Mask', desc: 'Red light therapy mask for anti-aging and acne treatment', price: 79.99 },
+      { base: 'Jade', type: 'Roller Set', desc: 'Facial massage tools for lymphatic drainage', price: 24.99 },
+      { base: 'Vitamin C', type: 'Serum', desc: 'Brightening serum with hyaluronic acid', price: 34.99 },
+      { base: 'Silk', type: 'Pillowcase', desc: 'Mulberry silk pillowcase for hair and skin care', price: 39.99 },
+      { base: 'Makeup Brush', type: 'Set Pro', desc: 'Professional makeup brushes with carrying case', price: 49.99 },
+      { base: 'Collagen', type: 'Supplement', desc: 'Marine collagen peptides for skin elasticity', price: 29.99 },
+      { base: 'Facial', type: 'Steamer', desc: 'Nano ionic steamer for deep pore cleansing', price: 59.99 },
+      { base: 'Retinol', type: 'Night Cream', desc: 'Anti-aging cream with pure retinol', price: 44.99 },
+      { base: 'Eye', type: 'Patches', desc: 'Hydrogel patches for dark circles and puffiness', price: 19.99 },
+      { base: 'Face', type: 'Cleanser', desc: 'Gentle foaming cleanser with natural ingredients', price: 24.99 }
+    ],
+    'home': [
+      { base: 'Smart', type: 'Diffuser', desc: 'Ultrasonic essential oil diffuser with app control', price: 49.99 },
+      { base: 'Memory Foam', type: 'Pillow', desc: 'Ergonomic pillow with cooling gel layer', price: 39.99 },
+      { base: 'Bamboo', type: 'Storage Organizer', desc: 'Eco-friendly storage solutions for any room', price: 29.99 },
+      { base: 'LED Strip', type: 'Lights', desc: 'Color-changing smart lights with voice control', price: 34.99 },
+      { base: 'Weighted', type: 'Blanket', desc: 'Anxiety-reducing blanket for better sleep', price: 79.99 },
+      { base: 'Air', type: 'Purifier', desc: 'HEPA filter air purifier for allergen removal', price: 89.99 },
+      { base: 'Blackout', type: 'Curtains', desc: 'Thermal insulated curtains for energy savings', price: 44.99 },
+      { base: 'Robot', type: 'Vacuum', desc: 'Smart robot vacuum with mapping technology', price: 199.99 },
+      { base: 'Humidifier', type: 'Pro', desc: 'Cool mist humidifier with humidity control', price: 59.99 },
+      { base: 'Smart', type: 'Thermostat', desc: 'WiFi thermostat with energy-saving features', price: 129.99 }
+    ],
+    'pet': [
+      { base: 'Automatic Pet', type: 'Feeder', desc: 'Smart feeder with portion control and scheduling', price: 89.99 },
+      { base: 'GPS Pet', type: 'Tracker', desc: 'Real-time location tracking with health monitoring', price: 79.99 },
+      { base: 'Orthopedic Pet', type: 'Bed', desc: 'Memory foam bed for joint support and comfort', price: 59.99 },
+      { base: 'Interactive Laser', type: 'Toy', desc: 'Automatic laser toy for mental stimulation', price: 34.99 },
+      { base: 'Self-Cleaning', type: 'Litter Box', desc: 'Automated litter box with odor control', price: 199.99 },
+      { base: 'Pet Water', type: 'Fountain', desc: 'Filtered water fountain encouraging hydration', price: 44.99 },
+      { base: 'Dog Training', type: 'Collar', desc: 'Vibration training collar with remote control', price: 69.99 },
+      { base: 'Cat Puzzle', type: 'Feeder', desc: 'Slow feeding puzzle for mental enrichment', price: 24.99 },
+      { base: 'Pet Grooming', type: 'Kit', desc: 'Professional grooming tools for home use', price: 39.99 },
+      { base: 'Car Safety', type: 'Harness', desc: 'Crash-tested harness for safe car travel', price: 29.99 }
     ]
   };
+}
 
-  // Get products for the specific niche, fallback to tech if not found
-  const nicheKey = niche.toLowerCase();
-  const nicheProducts = nicheProductMap[nicheKey] || nicheProductMap['tech'];
-  
-  for (let i = 0; i < 10; i++) {
-    const template = nicheProducts[i % nicheProducts.length];
-    const title = `${template.base} ${template.type}`;
-    const price = template.price + (Math.random() * 10 - 5); // Add variation
-
-    const product = {
-      title: title,
-      description: `${template.desc} Perfect for ${targetAudience || 'everyone'} who wants quality ${niche.toLowerCase()} products.`,
-      detailed_description: `Transform your ${niche.toLowerCase()} experience with this innovative ${title}. ${template.desc} Built with premium materials and designed for ${targetAudience || 'modern users'}. Features advanced technology for superior performance and results.`,
-      price: Math.max(15, Math.min(80, price)),
-      images: getNicheSpecificFallbackImages(title, niche, { targetAudience, storeStyle }, 6),
-      gif_urls: [],
-      video_url: '',
-      features: [
-        `Advanced ${niche.toLowerCase()} technology`,
-        `Perfect for ${targetAudience || 'all users'}`,
-        'Premium materials and construction',
-        'Easy to use and maintain',
-        'Professional-grade performance'
-      ],
-      benefits: [
-        'Saves time and effort',
-        'Improves results significantly',
-        'Built to last',
-        `Designed for ${targetAudience || 'everyone'}`
-      ],
-      target_audience: targetAudience || `${niche} enthusiasts`,
-      shipping_info: 'Fast worldwide shipping, arrives in 7-14 days',
-      return_policy: '30-day money-back guarantee',
-      variants: generateSmartVariants(price, niche, i),
-      handle: generateHandle(title),
-      product_type: `${niche} Products`,
-      vendor: 'Premium Store',
-      tags: `winning-product, trending, bestseller, ${niche.toLowerCase()}, hot-product, ${(targetAudience || '').toLowerCase().replace(/\s+/g, '-')}`,
-      category: niche,
-      dalle_prompt_used: `Professional product photo of ${title}, ${storeStyle || 'modern'} style, high quality`,
-      context_info: { niche, targetAudience, businessType, storeStyle, themeColor }
-    };
-    
-    products.push(product);
+// Find the best niche match based on the provided niche key
+function findBestNicheMatch(nicheKey: string, nicheProductMap: any) {
+  // Direct match
+  if (nicheProductMap[nicheKey]) {
+    return [...nicheProductMap[nicheKey]];
   }
   
-  console.log(`✅ Generated 10 enhanced fallback products for ${niche} targeting ${targetAudience}`);
-  return products;
+  // Partial matches
+  for (const [key, products] of Object.entries(nicheProductMap)) {
+    if (nicheKey.includes(key) || key.includes(nicheKey)) {
+      return [...products] as any[];
+    }
+  }
+  
+  // Default to tech if no match
+  return [...nicheProductMap['tech']];
+}
+
+// Generate more niche products based on the niche theme
+function generateMoreNicheProducts(niche: string, targetAudience: string, existingProducts: any[]) {
+  // Generate additional products based on the niche theme
+  const baseProduct = existingProducts[0] || { base: 'Premium', type: 'Product', desc: 'High-quality product', price: 49.99 };
+  const moreProducts = [];
+  
+  const variations = ['Pro', 'Elite', 'Advanced', 'Premium', 'Smart', 'Deluxe'];
+  const types = ['System', 'Kit', 'Set', 'Tool', 'Device', 'Accessory'];
+  
+  for (let i = 0; i < 10; i++) {
+    const variation = variations[i % variations.length];
+    const type = types[i % types.length];
+    moreProducts.push({
+      base: `${variation} ${niche}`,
+      type: type,
+      desc: `Advanced ${niche.toLowerCase()} solution for ${targetAudience}`,
+      price: 25 + (i * 8)
+    });
+  }
+  
+  return [...existingProducts, ...moreProducts];
+}
+
+// Generate detailed description for a product
+function generateDetailedDescription(title: string, baseDesc: string, niche: string, targetAudience: string, customInfo?: string): string {
+  const descriptions = [
+    `Transform your ${niche.toLowerCase()} experience with the ${title}. ${baseDesc}`,
+    `Designed specifically for ${targetAudience}, this innovative product delivers exceptional results.`,
+    `Whether you're a beginner or expert in ${niche.toLowerCase()}, this ${title} provides the perfect solution.`,
+    `Built with premium materials and cutting-edge technology, ensuring durability and performance.`,
+    `Join thousands of satisfied ${targetAudience} who have already upgraded their ${niche.toLowerCase()} routine.`,
+    customInfo ? `${customInfo} This product perfectly aligns with your specific requirements.` : '',
+    `Don't settle for ordinary products. Experience the difference with this professional-grade ${title}.`,
+    `Perfect for ${targetAudience} who demand quality, reliability, and outstanding results in their ${niche.toLowerCase()} pursuits.`
+  ].filter(Boolean).join(' ');
+  
+  return descriptions;
+}
+
+// Generate niche-specific features for a product
+function generateNicheFeatures(template: any, niche: string, targetAudience: string): string[] {
+  return [
+    `Advanced ${niche.toLowerCase()} technology`,
+    `Optimized for ${targetAudience}`,
+    'Premium materials and construction',
+    'Easy to use and maintain',
+    'Professional-grade performance'
+  ];
+}
+
+// Generate niche-specific benefits for a product
+function generateNicheBenefits(template: any, niche: string, targetAudience: string): string[] {
+  return [
+    `Perfect for ${targetAudience}`,
+    `Enhances your ${niche.toLowerCase()} results`,
+    'Saves time and effort',
+    'Built to last'
+  ];
 }
 
 // Get niche-specific fallback images based on user preferences
@@ -405,18 +543,10 @@ function getNicheSpecificFallbackImages(productTitle: string, niche: string, con
     'kitchen': [
       'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1024&h=1024&fit=crop',
       'https://images.unsplash.com/photo-1585515656811-b3806e19e75b?w=1024&h=1024&fit=crop',
-      'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1024&h=1024&fit=crop',
       'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=1024&h=1024&fit=crop',
       'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1024&h=1024&fit=crop',
-      'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1024&h=1024&fit=crop'
-    ],
-    'pet': [
-      'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=1024&h=1024&fit=crop',
-      'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=1024&h=1024&fit=crop',
-      'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=1024&h=1024&fit=crop',
-      'https://images.unsplash.com/photo-1517849845537-4d257902454a?w=1024&h=1024&fit=crop',
-      'https://images.unsplash.com/photo-1415369629372-26f2fe60c467?w=1024&h=1024&fit=crop',
-      'https://images.unsplash.com/photo-1444212477490-ca407925329e?w=1024&h=1024&fit=crop'
+      'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1024&h=1024&fit=crop',
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1024&h=1024&fit=crop'
     ],
     'beauty': [
       'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=1024&h=1024&fit=crop',
@@ -433,6 +563,14 @@ function getNicheSpecificFallbackImages(productTitle: string, niche: string, con
       'https://images.unsplash.com/photo-1554995207-c18c203602cb?w=1024&h=1024&fit=crop',
       'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=1024&h=1024&fit=crop',
       'https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1024&h=1024&fit=crop'
+    ],
+    'pet': [
+      'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=1024&h=1024&fit=crop',
+      'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=1024&h=1024&fit=crop',
+      'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=1024&h=1024&fit=crop',
+      'https://images.unsplash.com/photo-1517849845537-4d257902454a?w=1024&h=1024&fit=crop',
+      'https://images.unsplash.com/photo-1415369629372-26f2fe60c467?w=1024&h=1024&fit=crop',
+      'https://images.unsplash.com/photo-1444212477490-ca407925329e?w=1024&h=1024&fit=crop'
     ]
   };
 
