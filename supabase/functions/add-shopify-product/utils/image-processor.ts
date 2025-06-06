@@ -19,6 +19,7 @@ export class ImageProcessor {
         ? this.createPromptVariations(customPrompt, productTitle)
         : this.generateProductSpecificPrompts(productTitle, features, niche);
 
+      // DALL·E 3 only supports 1 image per request
       for (let i = 0; i < 6; i++) {
         try {
           console.log(`🖼️ Generating DALL·E 3 image ${i + 1}/6 for: ${productTitle}`);
@@ -33,7 +34,7 @@ export class ImageProcessor {
             body: JSON.stringify({
               model: 'dall-e-3',
               prompt: imagePrompts[i],
-              n: 1,
+              n: 1, // DALL·E 3 only supports n=1
               size: '1024x1024',
               quality: 'standard',
               style: 'natural'
@@ -54,8 +55,8 @@ export class ImageProcessor {
             console.log(`⚠️ DALL·E 3 image ${i + 1} failed for ${productTitle}: ${response.status} - ${errorText.substring(0, 100)}...`);
           }
           
-          // Rate limiting between requests
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          // Rate limiting between requests (DALL·E 3 has strict limits)
+          await new Promise(resolve => setTimeout(resolve, 3000));
         } catch (error) {
           console.log(`⚠️ Error generating DALL·E 3 image ${i + 1} for ${productTitle}:`, error.message);
         }
@@ -90,19 +91,19 @@ export class ImageProcessor {
     // Clean product title for better prompt generation
     const cleanTitle = productTitle.replace(/[^\w\s-]/g, '').trim();
     
-    // Create niche-aware, product-specific prompts
+    // Create niche-aware, product-specific prompts using the enhanced pattern
     const prompts = [
-      `Professional product photo of ${cleanTitle}, clean white background, studio lighting, high quality, commercial photography`,
+      `E-commerce style image of ${cleanTitle} with ${features?.slice(0, 2).join(', ') || 'premium features'} on clean white background, realistic lighting, professional photography`,
       
-      `${cleanTitle} in use, ${niche.toLowerCase()} setting, lifestyle photography, natural lighting, professional quality`,
+      `${cleanTitle} in lifestyle setting, ${niche.toLowerCase()} environment, natural lighting, high quality product photography`,
       
-      `Close-up detail shot of ${cleanTitle}, premium quality materials visible, clean white background, macro photography`,
+      `Close-up detail shot of ${cleanTitle}, premium quality materials visible, clean white background, macro photography, commercial style`,
       
-      `${cleanTitle} with elegant packaging, product presentation, professional product photography, white background`,
+      `${cleanTitle} with elegant packaging, product presentation, professional e-commerce photography, white background`,
       
-      `Multiple angle view of ${cleanTitle}, product display showcase, clean background, commercial photography`,
+      `Multiple angle view of ${cleanTitle}, product display showcase, clean background, commercial photography style`,
       
-      `${cleanTitle} lifestyle image, modern clean setting, ${niche.toLowerCase()} environment, professional lighting`
+      `${cleanTitle} lifestyle image, modern clean setting, ${niche.toLowerCase()} environment, professional studio lighting`
     ];
 
     return prompts;
