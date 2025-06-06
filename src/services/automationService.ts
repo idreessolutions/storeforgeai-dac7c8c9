@@ -55,7 +55,7 @@ export class AutomationService {
   static async getAutomationHistory(limit: number = 30): Promise<AutomationResult[]> {
     try {
       const { data, error } = await supabase
-        .from('automation_results')
+        .from('automation_results' as any)
         .select('*')
         .order('created_at', { ascending: false })
         .limit(limit);
@@ -65,7 +65,14 @@ export class AutomationService {
         return [];
       }
 
-      return data || [];
+      return (data as any[])?.map(row => ({
+        session_id: row.session_id,
+        execution_date: row.execution_date,
+        stores_processed: row.stores_processed,
+        stores_successful: row.stores_successful,
+        total_products_added: row.total_products_added,
+        results: row.results || []
+      })) || [];
     } catch (error) {
       console.error('Error fetching automation history:', error);
       return [];
@@ -82,7 +89,7 @@ export class AutomationService {
     try {
       const today = new Date().toDateString();
       const { data, error } = await supabase
-        .from('automation_results')
+        .from('automation_results' as any)
         .select('*')
         .gte('created_at', new Date(today).toISOString())
         .order('created_at', { ascending: false })
@@ -93,7 +100,7 @@ export class AutomationService {
         return { completed: false, stores_processed: 0, products_added: 0 };
       }
 
-      const todayResult = data?.[0];
+      const todayResult = (data as any[])?.[0];
       return {
         completed: !!todayResult,
         stores_processed: todayResult?.stores_processed || 0,

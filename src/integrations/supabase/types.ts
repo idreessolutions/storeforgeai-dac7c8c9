@@ -9,6 +9,39 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      automation_results: {
+        Row: {
+          created_at: string
+          execution_date: string
+          id: string
+          results: Json | null
+          session_id: string
+          stores_processed: number
+          stores_successful: number
+          total_products_added: number
+        }
+        Insert: {
+          created_at?: string
+          execution_date: string
+          id?: string
+          results?: Json | null
+          session_id: string
+          stores_processed?: number
+          stores_successful?: number
+          total_products_added?: number
+        }
+        Update: {
+          created_at?: string
+          execution_date?: string
+          id?: string
+          results?: Json | null
+          session_id?: string
+          stores_processed?: number
+          stores_successful?: number
+          total_products_added?: number
+        }
+        Relationships: []
+      }
       mentorship_applications: {
         Row: {
           additional_info: string | null
