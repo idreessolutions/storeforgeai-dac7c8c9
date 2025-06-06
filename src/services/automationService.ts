@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 
 export interface AutomationResult {
   session_id: string;
@@ -16,6 +17,8 @@ export interface AutomationResult {
     error?: string;
   }>;
 }
+
+type AutomationResultRow = Database['public']['Tables']['automation_results']['Row'];
 
 export class AutomationService {
   
@@ -42,7 +45,7 @@ export class AutomationService {
         message: data?.message || 'Daily automation completed successfully',
         data: data
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error triggering daily automation:', error);
       return {
         success: false,
@@ -55,7 +58,7 @@ export class AutomationService {
   static async getAutomationHistory(limit: number = 30): Promise<AutomationResult[]> {
     try {
       const { data, error } = await supabase
-        .from('automation_results' as any)
+        .from('automation_results')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(limit);
@@ -65,14 +68,14 @@ export class AutomationService {
         return [];
       }
 
-      return (data as any[])?.map(row => ({
+      return (data || []).map((row: AutomationResultRow) => ({
         session_id: row.session_id,
         execution_date: row.execution_date,
         stores_processed: row.stores_processed,
         stores_successful: row.stores_successful,
         total_products_added: row.total_products_added,
-        results: row.results || []
-      })) || [];
+        results: (row.results as any) || []
+      }));
     } catch (error) {
       console.error('Error fetching automation history:', error);
       return [];
@@ -89,7 +92,7 @@ export class AutomationService {
     try {
       const today = new Date().toDateString();
       const { data, error } = await supabase
-        .from('automation_results' as any)
+        .from('automation_results')
         .select('*')
         .gte('created_at', new Date(today).toISOString())
         .order('created_at', { ascending: false })
@@ -100,7 +103,7 @@ export class AutomationService {
         return { completed: false, stores_processed: 0, products_added: 0 };
       }
 
-      const todayResult = (data as any[])?.[0];
+      const todayResult = data?.[0] as AutomationResultRow | undefined;
       return {
         completed: !!todayResult,
         stores_processed: todayResult?.stores_processed || 0,
