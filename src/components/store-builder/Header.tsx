@@ -1,6 +1,6 @@
 
 import React from "react";
-import { ArrowLeft, Store } from "lucide-react";
+import { ArrowLeft, Store, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -8,9 +8,10 @@ interface HeaderProps {
   onBack: () => void;
   currentStep: number;
   totalSteps: number;
+  onViewAutomation?: () => void;
 }
 
-const Header = ({ onBack, currentStep, totalSteps }: HeaderProps) => {
+const Header = ({ onBack, currentStep, totalSteps, onViewAutomation }: HeaderProps) => {
   return (
     <div className="bg-white border-b">
       <div className="max-w-7xl mx-auto px-6 py-4 lg:px-8">
@@ -27,9 +28,17 @@ const Header = ({ onBack, currentStep, totalSteps }: HeaderProps) => {
               <span className="font-semibold text-gray-900">StoreForge AI</span>
             </div>
           </div>
-          <Badge variant="outline" className="text-blue-600 border-blue-200">
-            Step {currentStep} of {totalSteps}
-          </Badge>
+          <div className="flex items-center gap-3">
+            {onViewAutomation && (
+              <Button variant="outline" size="sm" onClick={onViewAutomation}>
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Automation Dashboard
+              </Button>
+            )}
+            <Badge variant="outline" className="text-blue-600 border-blue-200">
+              Step {currentStep} of {totalSteps}
+            </Badge>
+          </div>
         </div>
       </div>
     </div>

@@ -12,11 +12,16 @@ const AutomationDashboard = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isTriggering, setIsTriggering] = useState(false);
   const [automationHistory, setAutomationHistory] = useState<AutomationResult[]>([]);
-  const [todayStatus, setTodayStatus] = useState({
+  const [todayStatus, setTodayStatus] = useState<{
+    completed: boolean;
+    stores_processed: number;
+    products_added: number;
+    last_run?: string;
+  }>({
     completed: false,
     stores_processed: 0,
     products_added: 0,
-    last_run: undefined as string | undefined
+    last_run: undefined
   });
   const { toast } = useToast();
 
@@ -270,7 +275,7 @@ const AutomationDashboard = () => {
                               </div>
                               <div className="flex items-center gap-2">
                                 <span>{storeResult.products_added} products</span>
-                                <Badge variant={storeResult.success ? "secondary" : "destructive"} size="sm">
+                                <Badge variant={storeResult.success ? "secondary" : "destructive"}>
                                   {storeResult.success ? 'Success' : 'Failed'}
                                 </Badge>
                               </div>
