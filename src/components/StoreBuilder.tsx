@@ -9,9 +9,10 @@ import { useStoreBuilderLogic } from "./store-builder/StoreBuilderLogic";
 
 interface StoreBuilderProps {
   onBack: () => void;
+  onViewAutomation?: () => void;
 }
 
-const StoreBuilder = ({ onBack }: StoreBuilderProps) => {
+const StoreBuilder = ({ onBack, onViewAutomation }: StoreBuilderProps) => {
   const {
     currentStep,
     isGenerating,
@@ -27,7 +28,8 @@ const StoreBuilder = ({ onBack }: StoreBuilderProps) => {
       <Header 
         onBack={onBack} 
         currentStep={currentStep} 
-        totalSteps={storeSteps.length} 
+        totalSteps={storeSteps.length}
+        onViewAutomation={onViewAutomation}
       />
 
       {/* Step Navigation Component - only show if not on step 0 */}
