@@ -90,7 +90,11 @@ async function generateRealProductsFromAliExpress(niche: string, targetAudience:
       // Fetch real product data from AliExpress
       const aliExpressData = await fetchAliExpressProduct(productIds[i]);
       if (!aliExpressData) {
-        console.log(`⚠️ Failed to fetch AliExpress product ${productIds[i]}, skipping...`);
+        console.log(`⚠️ Failed to fetch AliExpress product ${productIds[i]}, using fallback...`);
+        
+        // Create fallback product based on niche
+        const fallbackProduct = createNicheFallbackProduct(niche, targetAudience, i);
+        products.push(fallbackProduct);
         continue;
       }
       
@@ -137,10 +141,43 @@ async function generateRealProductsFromAliExpress(niche: string, targetAudience:
       await new Promise(resolve => setTimeout(resolve, 1000));
     } catch (error) {
       console.log(`❌ Error processing product ${i + 1}:`, error.message);
+      
+      // Add fallback product instead of failing
+      const fallbackProduct = createNicheFallbackProduct(niche, targetAudience, i);
+      products.push(fallbackProduct);
     }
   }
   
   return products;
+}
+
+// Create niche-specific fallback product
+function createNicheFallbackProduct(niche: string, targetAudience: string, index: number) {
+  const nicheProducts = getNicheSpecificProductTemplates();
+  const nicheKey = niche.toLowerCase();
+  const template = nicheProducts[nicheKey]?.[index % 10] || nicheProducts['tech'][0];
+  
+  return {
+    title: `${template.base} ${template.type}`,
+    description: generateDetailedDescription(`${template.base} ${template.type}`, template.desc, niche, targetAudience),
+    detailed_description: generateDetailedDescription(`${template.base} ${template.type}`, template.desc, niche, targetAudience),
+    price: template.price,
+    images: getNicheSpecificFallbackImages(`${template.base} ${template.type}`, niche, 6),
+    features: generateNicheFeatures(template, niche, targetAudience),
+    benefits: generateNicheBenefits(template, niche, targetAudience),
+    target_audience: targetAudience,
+    shipping_info: 'Fast worldwide shipping, arrives in 7-14 days',
+    return_policy: '30-day money-back guarantee',
+    variants: generateSmartVariants(template.price, niche, index),
+    handle: generateHandle(`${template.base} ${template.type}`),
+    product_type: `${niche} Products`,
+    vendor: 'Premium Store',
+    tags: `winning-product, trending, bestseller, ${niche.toLowerCase()}, hot-product, ${targetAudience.toLowerCase().replace(/\s+/g, '-')}`,
+    category: niche,
+    dalle_prompt_used: `Professional e-commerce image of ${template.base} ${template.type}`,
+    gif_urls: [],
+    video_url: ''
+  };
 }
 
 // Fetch real product data from AliExpress DataHub API
@@ -199,16 +236,16 @@ STORE STYLE: ${storeStyle}
 ${customInfo ? `ADDITIONAL INFO: ${customInfo}` : ''}
 
 Create:
-1. A catchy, premium product title (different from original)
-2. A compelling 500-800 word description with emotional appeal, benefits, and use cases
+1. A catchy, premium product title (different from original, optimized for ${targetAudience})
+2. A compelling 500-800 word description with emotional appeal, benefits, and use cases for ${targetAudience}
 3. 4-5 key features that appeal to ${targetAudience}
-4. 3-4 main benefits
-5. A DALL·E 3 prompt for realistic product images
+4. 3-4 main benefits for ${targetAudience}
+5. A DALL·E 3 prompt for realistic product images that match the description
 
 Return ONLY this JSON:
 {
   "title": "Premium product title for ${targetAudience}",
-  "description": "500-800 word compelling description...",
+  "description": "500-800 word compelling description with emotional appeal for ${targetAudience}...",
   "features": ["feature1", "feature2", "feature3", "feature4"],
   "benefits": ["benefit1", "benefit2", "benefit3"],
   "dallePrompt": "E-commerce style image of [PRODUCT] with [FEATURES] on clean white background, realistic lighting",
@@ -261,11 +298,11 @@ Return ONLY this JSON:
     
     // Fallback content
     return {
-      title: `Premium ${aliExpressData.title}`,
-      description: `Transform your ${niche.toLowerCase()} experience with this premium ${aliExpressData.title}. Designed specifically for ${targetAudience}, this innovative product delivers exceptional results. Whether you're a beginner or expert, this product provides the perfect solution. Built with premium materials and cutting-edge technology, ensuring durability and performance. Join thousands of satisfied customers who have already upgraded their routine.`,
-      features: ['Premium quality', 'Durable design', 'Easy to use', 'Professional grade'],
-      benefits: ['Enhanced performance', 'Time-saving', 'Professional results', 'Great value'],
-      dallePrompt: `E-commerce style image of ${aliExpressData.title} on clean white background, realistic lighting, professional photography`,
+      title: `Premium ${aliExpressData.title} for ${targetAudience}`,
+      description: `Transform your ${niche.toLowerCase()} experience with this premium ${aliExpressData.title}. Designed specifically for ${targetAudience}, this innovative product delivers exceptional results. Whether you're a beginner or expert, this product provides the perfect solution for ${targetAudience}. Built with premium materials and cutting-edge technology, ensuring durability and performance. Join thousands of satisfied ${targetAudience} who have already upgraded their routine. This product is perfect for ${targetAudience} who demand quality, reliability, and outstanding results in their ${niche.toLowerCase()} pursuits.`,
+      features: ['Premium quality materials', 'Designed for ' + targetAudience, 'Easy to use', 'Professional grade'],
+      benefits: ['Enhanced performance', 'Perfect for ' + targetAudience, 'Professional results', 'Great value'],
+      dallePrompt: `E-commerce style image of ${aliExpressData.title} designed for ${targetAudience} on clean white background, realistic lighting, professional photography`,
       price: Math.max(15, Math.min(80, aliExpressData.price * 2))
     };
   }
@@ -286,17 +323,17 @@ async function generateProductImages(dallePrompt: string, productTitle: string, 
     // Create variations of the prompt for different angles
     const promptVariations = [
       dallePrompt,
-      `${dallePrompt}, close-up product details`,
+      `${dallePrompt}, close-up product details, macro photography`,
       `${dallePrompt}, lifestyle setting, in-use scenario`, 
-      `${dallePrompt}, product packaging view`,
-      `${dallePrompt}, multiple angles showcase`,
-      `${dallePrompt}, professional studio lighting`
+      `${dallePrompt}, product packaging view, unboxing presentation`,
+      `${dallePrompt}, multiple angles, product showcase`,
+      `${dallePrompt}, professional studio lighting, commercial photography`
     ];
 
     // Generate images one by one (DALL·E 3 only supports 1 at a time)
     for (let i = 0; i < 6; i++) {
       try {
-        console.log(`🖼️ Generating DALL·E 3 image ${i + 1}/6`);
+        console.log(`🖼️ Generating DALL·E 3 image ${i + 1}/6 for: ${productTitle}`);
         
         const response = await fetch('https://api.openai.com/v1/images/generations', {
           method: 'POST',
@@ -435,7 +472,7 @@ function generateEnhancedFallbackProducts(niche: string, targetAudience?: string
       description: detailedDescription,
       detailed_description: detailedDescription,
       price: Math.max(15, Math.min(80, price)),
-      images: getNicheSpecificFallbackImages(title, niche, { targetAudience, storeStyle }, 6),
+      images: getNicheSpecificFallbackImages(title, niche, 6),
       gif_urls: [],
       video_url: '',
       features: generateNicheFeatures(template, niche, targetAudience),
@@ -460,7 +497,6 @@ function generateEnhancedFallbackProducts(niche: string, targetAudience?: string
   return products;
 }
 
-// Get niche-specific product templates
 function getNicheSpecificProductTemplates() {
   return {
     'tech': [
@@ -617,11 +653,11 @@ function generateNicheBenefits(template: any, niche: string, targetAudience: str
 }
 
 // Get niche-specific fallback images based on user preferences
-function getNicheSpecificFallbackImages(productTitle: string, niche: string, contextInfo: any, count: number): string[] {
+function getNicheSpecificFallbackImages(productTitle: string, niche: string, count: number): string[] {
   const title = productTitle.toLowerCase();
   const nicheKey = niche.toLowerCase();
   
-  console.log(`🔄 Getting niche-specific fallback images for ${niche} targeting ${contextInfo?.targetAudience || 'general'}`);
+  console.log(`🔄 Getting niche-specific fallback images for ${niche}`);
   
   // Niche-specific image collections
   const nicheImageMap: { [key: string]: string[] } = {
