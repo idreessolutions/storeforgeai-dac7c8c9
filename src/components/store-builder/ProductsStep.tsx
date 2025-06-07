@@ -31,8 +31,25 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
   const [error, setError] = useState("");
   const { toast } = useToast();
 
+  // Niche-specific configurations
+  const nicheConfig = {
+    'pets': { emoji: '🐾', color: '#ff6600', description: 'Loving pet care essentials' },
+    'fitness': { emoji: '💪', color: '#00cc66', description: 'Powerful fitness gear' },
+    'beauty': { emoji: '💄', color: '#e91e63', description: 'Luxurious beauty products' },
+    'tech': { emoji: '📱', color: '#3f51b5', description: 'Cutting-edge tech gadgets' },
+    'baby': { emoji: '👶', color: '#fbbf24', description: 'Safe baby care items' },
+    'home': { emoji: '🏠', color: '#4caf50', description: 'Cozy home essentials' },
+    'fashion': { emoji: '👗', color: '#d81b60', description: 'Trendy fashion pieces' },
+    'kitchen': { emoji: '🍳', color: '#ff5722', description: 'Smart kitchen gadgets' },
+    'gaming': { emoji: '🎮', color: '#9c27b0', description: 'Epic gaming accessories' },
+    'travel': { emoji: '✈️', color: '#03a9f4', description: 'Essential travel gear' },
+    'office': { emoji: '💼', color: '#607d8b', description: 'Smart office solutions' }
+  };
+
+  const currentNicheConfig = nicheConfig[formData.niche.toLowerCase()] || nicheConfig['pets'];
+
   const handleAddProducts = async () => {
-    console.log('🏆 Starting REAL winning products workflow with formData:', formData);
+    console.log(`🏆 Starting REAL winning products workflow for ${formData.niche} with formData:`, formData);
     
     if (!formData.shopifyUrl || !formData.accessToken || !formData.niche || !formData.targetAudience) {
       const missingFields = [];
@@ -59,7 +76,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
     setError("");
 
     try {
-      console.log('🏆 Starting REAL winning products + theme setup:', {
+      console.log(`🏆 Starting REAL winning products + theme setup for ${formData.niche}:`, {
         niche: formData.niche,
         targetAudience: formData.targetAudience,
         businessType: formData.businessType,
@@ -68,8 +85,8 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         customInfo: formData.customInfo
       });
       
-      // Step 1: Install Refresh theme
-      setCurrentStep("Installing Refresh theme with custom colors...");
+      // Step 1: Install Refresh theme with niche-specific colors
+      setCurrentStep(`Installing Refresh theme with ${formData.niche} customization...`);
       setProgress(15);
       
       const storeName = extractStoreName(formData.shopifyUrl);
@@ -79,24 +96,24 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
           await installAndConfigureSenseTheme({
             storeName,
             accessToken: formData.accessToken,
-            themeColor: formData.themeColor || '#1E40AF',
+            themeColor: formData.themeColor || currentNicheConfig.color,
             niche: formData.niche
           });
           
           setProgress(30);
-          setCurrentStep("✅ Refresh theme installed with custom styling");
+          setCurrentStep(`✅ Refresh theme customized for ${formData.niche}`);
           await new Promise(resolve => setTimeout(resolve, 1000));
         } catch (themeError) {
-          console.warn('⚠️ Theme installation failed, continuing with products:', themeError);
-          setCurrentStep("Theme installation skipped, proceeding with winning products...");
+          console.warn(`⚠️ Theme installation failed for ${formData.niche}, continuing with products:`, themeError);
+          setCurrentStep(`Theme installation skipped, proceeding with ${formData.niche} products...`);
         }
       }
 
-      // Step 2: Generate and upload 10 REAL winning products
-      setCurrentStep("🛒 Fetching REAL winning products from AliExpress...");
+      // Step 2: Generate and upload 10 REAL winning products for the specific niche
+      setCurrentStep(`${currentNicheConfig.emoji} Fetching REAL winning ${formData.niche} products from AliExpress...`);
       setProgress(40);
 
-      console.log('🏆 Calling addProductsToShopify with REAL winning products workflow:', {
+      console.log(`🏆 Calling addProductsToShopify for ${formData.niche} niche:`, {
         shopifyUrl: formData.shopifyUrl,
         niche: formData.niche,
         targetAudience: formData.targetAudience,
@@ -113,9 +130,9 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         (progress: number, productName: string) => {
           setProgress(40 + (progress * 0.6));
           setCurrentProduct(productName);
-          setCurrentStep("🏆 Adding REAL winning products with DALL·E 3 images...");
+          setCurrentStep(`🏆 Adding REAL winning ${formData.niche} products with DALL·E 3 images...`);
         },
-        formData.themeColor || '#1E40AF',
+        formData.themeColor || currentNicheConfig.color,
         formData.targetAudience,
         formData.businessType,
         formData.storeStyle,
@@ -126,12 +143,12 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       setCurrentStep("🎉 Complete!");
       
       toast({
-        title: "🏆 REAL Winning Products Store Complete!",
-        description: `Your ${formData.niche} store now has the Refresh theme + 10 REAL winning products from AliExpress with high ratings (4.5+) and proven sales (50+ orders) - each with DALL·E 3 generated images!`,
+        title: `🏆 REAL Winning ${formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Store Complete!`,
+        description: `Your ${formData.niche} store now has the Refresh theme + 10 REAL winning ${formData.niche} products from AliExpress with high ratings (4.5+) and proven sales (50+ orders) - each with DALL·E 3 generated images!`,
       });
 
     } catch (error) {
-      console.error('❌ Error setting up REAL winning products store:', error);
+      console.error(`❌ Error setting up REAL winning ${formData.niche} store:`, error);
       let errorMessage = "An unknown error occurred";
       
       if (error instanceof Error) {
@@ -146,7 +163,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         } else if (errorMessage.includes('401') || errorMessage.includes('403')) {
           errorMessage = "Authentication failed. Please check your Shopify access token.";
         } else if (errorMessage.includes('timeout')) {
-          errorMessage = "The operation timed out. Please try again - this sometimes happens with real product fetching.";
+          errorMessage = `The operation timed out. Please try again - this sometimes happens with real ${formData.niche} product fetching.`;
         }
       }
       
@@ -197,14 +214,16 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
           <div 
             className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"
             style={{ 
-              background: `linear-gradient(135deg, ${formData.themeColor || '#1E40AF'}, ${formData.themeColor || '#1E40AF'}aa)` 
+              background: `linear-gradient(135deg, ${formData.themeColor || currentNicheConfig.color}, ${formData.themeColor || currentNicheConfig.color}aa)` 
             }}
           >
-            <Trophy className="h-10 w-10 text-white" />
+            <span className="text-3xl">{currentNicheConfig.emoji}</span>
           </div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">🏆 Launch REAL Winning Products Store</h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">
+            🏆 Launch REAL Winning {formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Store
+          </h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Install <strong>Refresh theme</strong> + add 10 <strong>REAL winning products</strong> from AliExpress for <strong>{formData.niche}</strong> targeting <strong>{formData.targetAudience}</strong> with:
+            Install <strong>Refresh theme</strong> + add 10 <strong>REAL winning {formData.niche} products</strong> from AliExpress targeting <strong>{formData.targetAudience}</strong> with:
           </p>
           
           {/* Real Products Features */}
@@ -222,12 +241,12 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
             <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
               <ImageIcon className="h-6 w-6 text-purple-600 mx-auto mb-1" />
               <div className="text-xs font-semibold text-purple-800">DALL·E 3 Images</div>
-              <div className="text-xs text-purple-600">6 unique per product</div>
+              <div className="text-xs text-purple-600">6-8 unique per product</div>
             </div>
             <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
               <Target className="h-6 w-6 text-orange-600 mx-auto mb-1" />
               <div className="text-xs font-semibold text-orange-800">GPT-4 Content</div>
-              <div className="text-xs text-orange-600">Optimized copy</div>
+              <div className="text-xs text-orange-600">Niche-optimized copy</div>
             </div>
           </div>
         </div>
@@ -256,19 +275,19 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               <CheckCircle className="h-10 w-10 text-white" />
             </div>
             <h3 className="text-2xl font-semibold text-gray-900 mb-2 flex items-center justify-center gap-2">
-              <Trophy className="h-6 w-6 text-yellow-500" />
-              10 REAL Winning Products Added!
+              <span className="text-2xl">{currentNicheConfig.emoji}</span>
+              10 REAL Winning {formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Products Added!
               <Trophy className="h-6 w-6 text-yellow-500" />
             </h3>
             <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-              Your store now has <strong>10 REAL winning products</strong> from AliExpress with proven track records targeting <strong>{formData.targetAudience}</strong>, featuring:
+              Your {formData.niche} store now has <strong>10 REAL winning {formData.niche} products</strong> from AliExpress with proven track records targeting <strong>{formData.targetAudience}</strong>, featuring:
             </p>
             
             {/* Success Features Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
               <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                 <Star className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                <div className="text-sm font-semibold text-green-800">High-Rated Products</div>
+                <div className="text-sm font-semibold text-green-800">High-Rated {formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)}</div>
                 <div className="text-xs text-green-600">4.5+ star ratings verified</div>
               </div>
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
@@ -279,7 +298,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
                 <ImageIcon className="h-8 w-8 text-purple-600 mx-auto mb-2" />
                 <div className="text-sm font-semibold text-purple-800">DALL·E 3 Images</div>
-                <div className="text-xs text-purple-600">60 total unique images</div>
+                <div className="text-xs text-purple-600">60+ total unique images</div>
               </div>
               <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
                 <Target className="h-8 w-8 text-orange-600 mx-auto mb-2" />
@@ -289,7 +308,9 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
             </div>
 
             <div className="bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-lg border border-green-200">
-              <h4 className="font-semibold text-gray-900 mb-2">🎉 Your REAL Winning Products Store is Live!</h4>
+              <h4 className="font-semibold text-gray-900 mb-2">
+                🎉 Your REAL Winning {formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Store is Live!
+              </h4>
               <p className="text-gray-700 text-sm">
                 Visit your Shopify admin to see your 10 REAL winning {formData.niche} products with high ratings, 
                 proven sales, custom DALL·E 3 images, and GPT-4 optimized descriptions - all ready to start selling!
@@ -303,7 +324,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 <div className="flex items-center justify-center gap-3 mb-4">
                   <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
                   <span className="text-lg font-semibold text-gray-900">
-                    Setting up your REAL winning products store...
+                    Setting up your REAL winning {formData.niche} store...
                   </span>
                 </div>
                 
@@ -325,11 +346,11 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 size="lg"
                 className="text-white font-semibold py-3 px-8 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
                 style={{ 
-                  background: `linear-gradient(135deg, ${formData.themeColor || '#1E40AF'}, ${formData.themeColor || '#1E40AF'}dd)` 
+                  background: `linear-gradient(135deg, ${formData.themeColor || currentNicheConfig.color}, ${formData.themeColor || currentNicheConfig.color}dd)` 
                 }}
               >
-                <Trophy className="mr-2 h-5 w-5" />
-                Launch REAL Winning Products Store
+                <span className="mr-2 text-xl">{currentNicheConfig.emoji}</span>
+                Launch REAL Winning {formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Store
               </Button>
             )}
           </div>
