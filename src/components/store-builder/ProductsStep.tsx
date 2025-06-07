@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { CheckCircle, PackagePlus, Loader2, Sparkles, Target, ImageIcon, DollarSign, Tag, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { addProductsToShopify } from "@/services/productService";
+import { installAndConfigureSenseTheme } from "@/services/shopifyThemeService";
 
 interface ProductsStepProps {
   formData: {
@@ -72,7 +72,6 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       setCurrentStep("Installing Sense theme...");
       setProgress(10);
       
-      const { installAndConfigureSenseTheme } = await import("@/services/shopifyThemeService");
       const storeName = extractStoreName(formData.shopifyUrl);
       
       if (storeName) {
