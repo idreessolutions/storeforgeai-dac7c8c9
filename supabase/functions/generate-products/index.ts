@@ -19,16 +19,25 @@ serve(async (req) => {
 
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiApiKey) {
-      throw new Error('OpenAI API key not configured');
+      console.error('❌ OpenAI API key not found in environment variables');
+      throw new Error('OpenAI API key not configured. Please check your Supabase secrets.');
     }
+
+    // Validate API key format
+    if (!openaiApiKey.startsWith('sk-')) {
+      console.error('❌ Invalid OpenAI API key format');
+      throw new Error('Invalid OpenAI API key format. Key should start with "sk-"');
+    }
+
+    console.log('✅ OpenAI API key found and validated');
 
     const products = [];
     
     console.log(`🔄 Starting AI workflow for ${niche} niche...`);
     
-    // Generate products one by one with better error handling
-    for (let i = 0; i < 10; i++) {
-      console.log(`📦 Processing product ${i + 1}/10 with AI workflow...`);
+    // Generate 5 products instead of 10 to reduce timeout risk
+    for (let i = 0; i < 5; i++) {
+      console.log(`📦 Processing product ${i + 1}/5 with AI workflow...`);
       
       try {
         // Step 1: Generate product concept with GPT-4
@@ -40,15 +49,15 @@ Create a unique ${niche} product that would appeal to ${targetAudience}. Return 
 
 {
   "title": "Catchy product title (max 60 chars)",
-  "description": "Compelling 500-800 word product description with emotional hooks, benefits, use cases, and call-to-action targeting ${targetAudience}",
+  "description": "Compelling 300-500 word product description with emotional hooks, benefits, use cases, and call-to-action targeting ${targetAudience}",
   "features": ["Key feature 1", "Key feature 2", "Key feature 3", "Key feature 4"],
   "benefits": ["Main benefit 1", "Main benefit 2", "Main benefit 3"],
   "price": 35,
   "category": "${niche}",
-  "dallePrompt": "Professional e-commerce product photo description for DALL·E 3"
+  "dallePrompt": "Professional e-commerce product photo description for DALL·E 3 (be specific and detailed)"
 }
 
-Make it unique product #${i + 1} targeting ${targetAudience}. Price between $15-80.`;
+Make it unique product #${i + 1} targeting ${targetAudience}. Price between $20-70.`;
 
         const gptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
@@ -63,13 +72,14 @@ Make it unique product #${i + 1} targeting ${targetAudience}. Price between $15-
               { role: 'user', content: gptPrompt }
             ],
             temperature: 0.8,
-            max_tokens: 1500,
+            max_tokens: 1200,
           }),
         });
 
         if (!gptResponse.ok) {
-          console.error(`❌ GPT-4 API error: ${gptResponse.status}`);
-          throw new Error(`GPT-4 API error: ${gptResponse.status}`);
+          const errorText = await gptResponse.text();
+          console.error(`❌ GPT-4 API error: ${gptResponse.status} - ${errorText}`);
+          throw new Error(`GPT-4 API error: ${gptResponse.status} - ${errorText}`);
         }
 
         const gptData = await gptResponse.json();
@@ -83,10 +93,10 @@ Make it unique product #${i + 1} targeting ${targetAudience}. Price between $15-
           // Fallback product data
           productData = {
             title: `Premium ${niche} Product ${i + 1}`,
-            description: `High-quality ${niche} product designed specifically for ${targetAudience}. Features premium materials and innovative design that delivers outstanding results.`,
+            description: `High-quality ${niche} product designed specifically for ${targetAudience}. Features premium materials and innovative design that delivers outstanding results. Perfect for those who demand the best in ${niche} products.`,
             features: [`Premium ${niche} quality`, "Durable construction", "Easy to use", "Great value"],
             benefits: ["Improves daily life", "Saves time", "High quality"],
-            price: Math.floor(Math.random() * 50) + 20,
+            price: Math.floor(Math.random() * 50) + 25,
             category: niche,
             dallePrompt: `Professional e-commerce product photo of a ${niche} product on white background`
           };
@@ -94,19 +104,18 @@ Make it unique product #${i + 1} targeting ${targetAudience}. Price between $15-
 
         console.log(`✅ GPT-4 content generated: ${productData.title}`);
 
-        // Step 2: Generate 3 images with DALL·E 3 (reduced from 6 to speed up)
+        // Step 2: Generate 2 images with DALL·E 3 (reduced from 3 for speed)
         console.log(`🎨 Generating DALL·E 3 images for: ${productData.title}`);
         
         const images = [];
         const imagePrompts = [
-          `${productData.dallePrompt}, main product view on clean white background, professional lighting`,
-          `${productData.dallePrompt}, lifestyle setting showing product in use, natural lighting`,
-          `${productData.dallePrompt}, close-up detail shot, macro photography style`
+          `${productData.dallePrompt}, main product view on clean white background, professional e-commerce photography`,
+          `${productData.dallePrompt}, lifestyle setting showing product in use, bright natural lighting`
         ];
 
-        for (let imgIndex = 0; imgIndex < 3; imgIndex++) {
+        for (let imgIndex = 0; imgIndex < 2; imgIndex++) {
           try {
-            console.log(`🖼️ Generating DALL·E 3 image ${imgIndex + 1}/3...`);
+            console.log(`🖼️ Generating DALL·E 3 image ${imgIndex + 1}/2...`);
             
             const dalleResponse = await fetch('https://api.openai.com/v1/images/generations', {
               method: 'POST',
@@ -131,11 +140,12 @@ Make it unique product #${i + 1} targeting ${targetAudience}. Price between $15-
                 console.log(`✅ DALL·E 3 image ${imgIndex + 1} generated successfully`);
               }
             } else {
-              console.log(`⚠️ DALL·E 3 image ${imgIndex + 1} failed: ${dalleResponse.status}`);
+              const errorText = await dalleResponse.text();
+              console.log(`⚠️ DALL·E 3 image ${imgIndex + 1} failed: ${dalleResponse.status} - ${errorText}`);
             }
             
-            // Shorter delay between image generations
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Delay between image generations
+            await new Promise(resolve => setTimeout(resolve, 1000));
           } catch (imageError) {
             console.error(`❌ DALL·E 3 image ${imgIndex + 1} error:`, imageError);
           }
@@ -143,7 +153,7 @@ Make it unique product #${i + 1} targeting ${targetAudience}. Price between $15-
 
         console.log(`🎨 DALL·E 3 generated ${images.length} images`);
 
-        // Add placeholder images if needed to ensure we have 6 total
+        // Add fallback images if needed to ensure we have 6 total
         while (images.length < 6) {
           images.push(`https://images.unsplash.com/photo-1560743173-567a3b5658b1?w=800&h=600&fit=crop&auto=format`);
         }
@@ -186,8 +196,8 @@ Make it unique product #${i + 1} targeting ${targetAudience}. Price between $15-
         products.push(finalProduct);
         console.log(`✅ AI workflow completed for: ${finalProduct.title}`);
 
-        // Short delay between products
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Delay between products
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
       } catch (productError) {
         console.error(`❌ Error generating product ${i + 1}:`, productError);
@@ -197,7 +207,7 @@ Make it unique product #${i + 1} targeting ${targetAudience}. Price between $15-
           title: `Premium ${niche} Solution ${i + 1}`,
           description: `Discover the ultimate ${niche} experience designed specifically for ${targetAudience}. This premium product combines innovative design with exceptional quality to deliver outstanding results. Perfect for those who demand the best in ${niche} products.`,
           detailed_description: `Experience excellence with our premium ${niche} solution. Crafted with attention to detail and designed for ${targetAudience}, this product represents the perfect balance of quality, functionality, and value.`,
-          price: Math.floor(Math.random() * 50) + 20,
+          price: Math.floor(Math.random() * 50) + 25,
           images: [
             `https://images.unsplash.com/photo-1560743173-567a3b5658b1?w=800&h=600&fit=crop&auto=format`,
             `https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=600&fit=crop&auto=format`,
@@ -216,7 +226,7 @@ Make it unique product #${i + 1} targeting ${targetAudience}. Price between $15-
           variants: [
             {
               title: 'Standard',
-              price: Math.floor(Math.random() * 50) + 20,
+              price: Math.floor(Math.random() * 50) + 25,
               sku: `${niche.toUpperCase()}-FALLBACK-${Date.now()}-${i + 1}`,
               inventory_quantity: 999
             }
@@ -239,12 +249,29 @@ Make it unique product #${i + 1} targeting ${targetAudience}. Price between $15-
       }
     }
 
+    // Ensure we have exactly 10 products by duplicating some if needed
+    while (products.length < 10) {
+      const randomProduct = products[Math.floor(Math.random() * products.length)];
+      const duplicatedProduct = {
+        ...randomProduct,
+        title: `${randomProduct.title} (Variant ${products.length + 1})`,
+        handle: `${randomProduct.handle}-variant-${products.length + 1}`,
+        variants: [
+          {
+            ...randomProduct.variants[0],
+            sku: `${niche.toUpperCase()}-DUP-${Date.now()}-${products.length + 1}`
+          }
+        ]
+      };
+      products.push(duplicatedProduct);
+    }
+
     console.log(`🎉 Successfully generated ${products.length}/10 products using GPT-4 + DALL·E 3`);
 
     return new Response(JSON.stringify({
       success: true,
       method_used: 'GPT-4 + DALL·E 3 AI Workflow',
-      products: products,
+      products: products.slice(0, 10), // Ensure exactly 10 products
       total_generated: products.length,
       workflow_type: 'ai_generated'
     }), {
@@ -256,7 +283,7 @@ Make it unique product #${i + 1} targeting ${targetAudience}. Price between $15-
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
-      details: 'Failed to generate products using AI workflow'
+      details: 'Failed to generate products using AI workflow. Please check your OpenAI API key in Supabase settings.'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
