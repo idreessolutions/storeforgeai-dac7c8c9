@@ -193,7 +193,7 @@ const MainApp = () => {
               </div>
             </div>
           </TabsContent>
-        </tabs>
+        </Tabs>
       </div>
     </div>
   );
