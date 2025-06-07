@@ -6,23 +6,21 @@ interface Product {
   detailed_description?: string;
   price: number;
   images: string[];
-  gif_urls?: string[];
-  video_url?: string;
   features?: string[];
   benefits?: string[];
   target_audience?: string;
-  shipping_info?: string;
-  return_policy?: string;
   variants: Array<{
     title: string;
     price: number;
     sku: string;
+    option1?: string;
   }>;
   handle?: string;
   product_type?: string;
   vendor?: string;
   tags?: string;
   dalle_prompt_used?: string;
+  aliexpress_data?: any;
   context_info?: any;
 }
 
@@ -45,7 +43,7 @@ export const addProductsToShopify = async (
   customInfo?: string
 ): Promise<boolean> => {
   try {
-    console.log('🚀 Starting niche-specific winning product addition with full context...');
+    console.log('🚀 Starting REAL winning products upload workflow...');
     console.log('📊 Store Context:', {
       shopifyUrl,
       niche: userNiche,
@@ -56,17 +54,15 @@ export const addProductsToShopify = async (
       customInfo
     });
     
-    // Comprehensive input validation
+    // Validate inputs
     if (!shopifyUrl || !accessToken || !userNiche) {
       throw new Error('Missing required parameters: Shopify URL, access token, or niche');
     }
 
-    // Validate access token format
     if (!accessToken.startsWith('shpat_') || accessToken.length < 20) {
       throw new Error('Invalid access token format. Must start with "shpat_" and be at least 20 characters long.');
     }
 
-    // Extract store name from URL
     const storeName = extractStoreName(shopifyUrl);
     if (!storeName) {
       throw new Error('Invalid Shopify URL format. Please provide a valid Shopify store URL.');
@@ -74,10 +70,10 @@ export const addProductsToShopify = async (
 
     console.log('Extracted store name:', storeName);
 
-    // Generate exactly 10 niche-specific products using GPT-4 + DALL·E with full context
+    // Generate 10 REAL winning products from AliExpress using enhanced workflow
     let products: Product[] = [];
     try {
-      console.log(`🤖 Generating 10 winning products for "${userNiche}" targeting "${targetAudience}" using GPT-4 + DALL·E...`);
+      console.log(`🛒 Generating 10 REAL winning ${userNiche} products from AliExpress...`);
       const { data, error } = await supabase.functions.invoke('generate-products', {
         body: { 
           niche: userNiche,
@@ -90,43 +86,42 @@ export const addProductsToShopify = async (
       });
 
       if (error) {
-        console.error('Error generating niche-specific products:', error);
-        throw new Error(`Failed to generate winning ${userNiche} products for ${targetAudience}: ${error.message}`);
+        console.error('Error generating real winning products:', error);
+        throw new Error(`Failed to generate REAL winning ${userNiche} products: ${error.message}`);
       }
 
       if (data?.success && data?.products) {
-        products = data.products.slice(0, 10); // Ensure exactly 10 products
-        console.log(`✅ Generated ${products.length} niche-specific winning ${userNiche} products for ${targetAudience}`);
+        products = data.products.slice(0, 10);
+        console.log(`✅ Generated ${products.length} REAL winning products from AliExpress`);
         
-        // Log the product generation details
         products.forEach((product, index) => {
-          console.log(`🎯 Product ${index + 1} - ${product.title}:`);
-          console.log(`📝 Description length: ${product.description?.length || 0} chars`);
-          console.log(`📸 Images: ${product.images?.length || 0} generated`);
-          console.log(`🎨 DALL·E Prompt: ${product.dalle_prompt_used || 'None'}`);
+          console.log(`🏆 Winning Product ${index + 1}: ${product.title}`);
+          console.log(`📊 AliExpress Data:`, product.aliexpress_data || 'N/A');
+          console.log(`📸 DALL·E Images: ${product.images?.length || 0}`);
+          console.log(`🎯 Variants: ${product.variants?.length || 0}`);
         });
       } else {
-        throw new Error(`No winning ${userNiche} products generated for ${targetAudience}`);
+        throw new Error(`No REAL winning ${userNiche} products generated`);
       }
     } catch (error) {
-      console.error('Product generation failed:', error);
-      throw new Error(`Failed to generate winning ${userNiche} products for ${targetAudience}. ${error.message}`);
+      console.error('Real product generation failed:', error);
+      throw new Error(`Failed to generate REAL winning ${userNiche} products. ${error.message}`);
     }
     
     let successCount = 0;
     const errors: string[] = [];
     const uploadResults: ProductUploadResult[] = [];
     
-    // Process exactly 10 products with enhanced logging
+    // Upload each real winning product to Shopify
     for (let i = 0; i < products.length; i++) {
       const product = products[i];
       const progress = ((i + 1) / 10) * 100;
       onProgress(progress, product.title);
       
-      console.log(`🔄 Processing niche-specific product ${i + 1}/10: ${product.title}`);
-      console.log(`📝 Description preview: ${product.description?.substring(0, 100)}...`);
-      console.log(`📸 Images ready: ${product.images?.length || 0}`);
-      console.log(`🎯 Target audience: ${product.target_audience || targetAudience}`);
+      console.log(`🔄 Uploading REAL winning product ${i + 1}/10: ${product.title}`);
+      console.log(`🏆 AliExpress rating: ${product.aliexpress_data?.rating || 'N/A'}`);
+      console.log(`📦 AliExpress orders: ${product.aliexpress_data?.orders || 'N/A'}`);
+      console.log(`📸 DALL·E images: ${product.images?.length || 0}`);
       
       let retryCount = 0;
       const maxRetries = 2;
@@ -134,30 +129,25 @@ export const addProductsToShopify = async (
       
       while (retryCount <= maxRetries && !productUploaded) {
         try {
-          // Create unique identifiers
           const timestamp = Date.now();
           
-          // Ensure we have proper variants
           const processedVariants = product.variants?.length > 0 ? product.variants : [
             { title: 'Standard', price: product.price, sku: `STD-${timestamp}-${String(i + 1).padStart(3, '0')}` }
           ];
 
-          // Ensure images are passed as simple string URLs
           const processedImages = Array.isArray(product.images) 
             ? product.images.filter(img => typeof img === 'string' && img.length > 0)
             : [];
 
-          console.log(`📷 Product has ${processedImages.length} niche-specific images ready for upload`);
-          if (processedImages.length > 0) {
-            console.log(`🔗 First image URL: ${processedImages[0].substring(0, 100)}...`);
-          }
+          console.log(`📷 Product has ${processedImages.length} DALL·E generated images`);
 
-          // Ensure description is properly formatted for Shopify HTML
-          const formattedDescription = formatDescriptionForShopify(product.description, product.features, product.benefits);
-          
-          console.log(`📝 Formatted description length: ${formattedDescription.length} chars`);
+          const formattedDescription = formatDescriptionForShopify(
+            product.description, 
+            product.features, 
+            product.benefits
+          );
 
-          // Use Supabase edge function to add product to Shopify with enhanced context
+          // Use enhanced Shopify product upload
           const { data, error } = await supabase.functions.invoke('add-shopify-product', {
             body: {
               shopifyUrl: `https://${storeName}.myshopify.com`,
@@ -170,14 +160,12 @@ export const addProductsToShopify = async (
                 features: product.features || [],
                 benefits: product.benefits || [],
                 target_audience: product.target_audience || targetAudience || `${userNiche} enthusiasts`,
-                shipping_info: product.shipping_info || 'Fast worldwide shipping, arrives in 7-14 days',
-                return_policy: product.return_policy || '30-day money-back guarantee',
-                vendor: product.vendor || 'Premium Store',
+                vendor: product.vendor || 'Trending Store',
                 product_type: product.product_type || userNiche || 'General',
                 handle: product.handle || generateHandle(product.title),
                 status: 'active',
                 published: true,
-                tags: product.tags || `${userNiche}, winning-products, trending, bestseller, hot-products, ${(targetAudience || '').toLowerCase().replace(/\s+/g, '-')}`,
+                tags: product.tags || `${userNiche}, trending, 2025, hot, winning-products, bestseller`,
                 images: processedImages,
                 variants: processedVariants.map((variant, variantIndex) => ({
                   title: variant.title,
@@ -189,10 +177,12 @@ export const addProductsToShopify = async (
                   weight: 0.5,
                   weight_unit: 'lb',
                   requires_shipping: true,
-                  taxable: true
+                  taxable: true,
+                  option1: variant.option1 || 'Standard'
                 })),
                 category: userNiche,
                 dalle_prompt_used: product.dalle_prompt_used,
+                aliexpress_data: product.aliexpress_data,
                 context_info: product.context_info
               }
             }
@@ -206,10 +196,13 @@ export const addProductsToShopify = async (
           if (data?.success) {
             successCount++;
             productUploaded = true;
-            console.log(`✅ Successfully added niche-specific product: ${product.title}`);
-            console.log(`📝 Description uploaded: ${data.description_length || 'Unknown'} chars`);
-            console.log(`📸 Images uploaded: ${data.images_uploaded || processedImages.length}`);
-            console.log(`🆔 Product ID: ${data.product?.id}`);
+            console.log(`✅ Successfully uploaded REAL winning product: ${product.title}`);
+            console.log(`📊 Upload stats:`, {
+              images_uploaded: data.images_uploaded || processedImages.length,
+              variants_created: data.variants_created || processedVariants.length,
+              price_set: data.price_set,
+              product_id: data.product?.id
+            });
             
             uploadResults.push({
               success: true,
@@ -217,7 +210,6 @@ export const addProductsToShopify = async (
               productTitle: product.title
             });
             
-            // Store product data in Supabase with enhanced logging
             await storeProductInSupabase(product, data.product?.id, userNiche, themeColor, targetAudience);
             
           } else {
@@ -231,12 +223,10 @@ export const addProductsToShopify = async (
           const errorMsg = productError instanceof Error ? productError.message : 'Unknown error';
           console.error(`❌ Attempt ${retryCount} failed for ${product.title}:`, errorMsg);
           
-          // Stop on authentication errors
           if (errorMsg.includes('401') || errorMsg.includes('403') || errorMsg.includes('Unauthorized')) {
             throw new Error(`Authentication failed. Please check your access token: ${errorMsg}`);
           }
           
-          // If max retries reached, record the failure
           if (retryCount > maxRetries) {
             errors.push(`${product.title}: ${errorMsg}`);
             uploadResults.push({
@@ -258,19 +248,18 @@ export const addProductsToShopify = async (
       }
     }
     
-    // Store upload session summary with enhanced context
     await storeUploadSession(uploadResults, userNiche, targetAudience, businessType, storeStyle);
     
-    console.log(`🎉 Niche-specific product addition completed: ${successCount}/10 successful for ${userNiche} targeting ${targetAudience}`);
+    console.log(`🎉 REAL winning products upload completed: ${successCount}/10 successful for ${userNiche}`);
     
     if (successCount === 0) {
-      throw new Error(`Failed to add any ${userNiche} products for ${targetAudience}. Errors: ${errors.slice(0, 3).join('; ')}`);
+      throw new Error(`Failed to upload any REAL winning ${userNiche} products. Errors: ${errors.slice(0, 3).join('; ')}`);
     }
     
     return true;
     
   } catch (error) {
-    console.error('💥 Niche-specific product addition process failed:', error);
+    console.error('💥 REAL winning products upload process failed:', error);
     throw error;
   }
 };
@@ -279,25 +268,22 @@ export const addProductsToShopify = async (
 function formatDescriptionForShopify(description: string, features?: string[], benefits?: string[]): string {
   let formattedHtml = `<div class="product-description">\n`;
   
-  // Main description
   if (description) {
-    formattedHtml += `<p>${description.replace(/\n/g, '</p>\n<p>')}</p>\n`;
+    formattedHtml += `${description}\n`;
   }
   
-  // Features section
   if (features && features.length > 0) {
-    formattedHtml += `<h3>Key Features:</h3>\n<ul>\n`;
+    formattedHtml += `<h3>🌟 Key Features:</h3>\n<ul>\n`;
     features.forEach(feature => {
-      formattedHtml += `<li>${feature}</li>\n`;
+      formattedHtml += `<li>✅ ${feature}</li>\n`;
     });
     formattedHtml += `</ul>\n`;
   }
   
-  // Benefits section
   if (benefits && benefits.length > 0) {
-    formattedHtml += `<h3>Benefits:</h3>\n<ul>\n`;
+    formattedHtml += `<h3>💎 Benefits:</h3>\n<ul>\n`;
     benefits.forEach(benefit => {
-      formattedHtml += `<li>${benefit}</li>\n`;
+      formattedHtml += `<li>🎯 ${benefit}</li>\n`;
     });
     formattedHtml += `</ul>\n`;
   }
@@ -319,17 +305,13 @@ async function storeProductInSupabase(product: Product, shopifyProductId: string
         detailed_description: product.detailed_description,
         price: product.price,
         niche: niche,
-        vendor: product.vendor || 'Premium Store',
+        vendor: product.vendor || 'Trending Store',
         product_type: product.product_type || niche,
         tags: product.tags,
         images: product.images,
-        gif_urls: product.gif_urls || [],
-        video_url: product.video_url || '',
         features: product.features || [],
         benefits: product.benefits || [],
         target_audience: product.target_audience || targetAudience || '',
-        shipping_info: product.shipping_info || '',
-        return_policy: product.return_policy || '',
         variants: product.variants,
         created_at: new Date().toISOString()
       });
@@ -337,12 +319,7 @@ async function storeProductInSupabase(product: Product, shopifyProductId: string
     if (error) {
       console.error('Error storing product in Supabase:', error);
     } else {
-      console.log(`✅ Product ${product.title} stored in Supabase with context:`, {
-        niche,
-        targetAudience,
-        themeColor,
-        dalle_prompt: product.dalle_prompt_used
-      });
+      console.log(`✅ REAL winning product ${product.title} stored in Supabase`);
     }
   } catch (error) {
     console.error('Failed to store product in Supabase:', error);
@@ -377,13 +354,7 @@ async function storeUploadSession(results: ProductUploadResult[], niche: string,
     if (error) {
       console.error('Error storing upload session:', error);
     } else {
-      console.log(`✅ Upload session ${sessionId} stored with context:`, {
-        niche,
-        targetAudience,
-        businessType,
-        storeStyle,
-        successCount
-      });
+      console.log(`✅ Upload session ${sessionId} stored - REAL winning products workflow`);
     }
   } catch (error) {
     console.error('Failed to store upload session:', error);

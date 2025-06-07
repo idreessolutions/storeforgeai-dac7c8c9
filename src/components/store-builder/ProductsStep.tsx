@@ -1,8 +1,9 @@
+
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, PackagePlus, Loader2, Sparkles, Target, ImageIcon, DollarSign, Tag, AlertCircle } from "lucide-react";
+import { CheckCircle, PackagePlus, Loader2, Sparkles, Target, ImageIcon, DollarSign, Tag, AlertCircle, Trophy, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { addProductsToShopify } from "@/services/productService";
 import { installAndConfigureSenseTheme } from "@/services/shopifyThemeService";
@@ -31,9 +32,8 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
   const { toast } = useToast();
 
   const handleAddProducts = async () => {
-    console.log('🚀 ProductsStep handleAddProducts called with formData:', formData);
+    console.log('🏆 Starting REAL winning products workflow with formData:', formData);
     
-    // Validate required fields
     if (!formData.shopifyUrl || !formData.accessToken || !formData.niche || !formData.targetAudience) {
       const missingFields = [];
       if (!formData.shopifyUrl) missingFields.push('Shopify URL');
@@ -59,7 +59,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
     setError("");
 
     try {
-      console.log('🚀 Starting complete store setup with full context:', {
+      console.log('🏆 Starting REAL winning products + theme setup:', {
         niche: formData.niche,
         targetAudience: formData.targetAudience,
         businessType: formData.businessType,
@@ -68,9 +68,9 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         customInfo: formData.customInfo
       });
       
-      // Step 1: Install and configure Sense theme
-      setCurrentStep("Installing Sense theme...");
-      setProgress(10);
+      // Step 1: Install Refresh theme
+      setCurrentStep("Installing Refresh theme with custom colors...");
+      setProgress(15);
       
       const storeName = extractStoreName(formData.shopifyUrl);
       
@@ -84,21 +84,19 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
           });
           
           setProgress(30);
-          setCurrentStep("Theme installed successfully");
-          
-          // Small delay to show progress
+          setCurrentStep("✅ Refresh theme installed with custom styling");
           await new Promise(resolve => setTimeout(resolve, 1000));
         } catch (themeError) {
           console.warn('⚠️ Theme installation failed, continuing with products:', themeError);
-          setCurrentStep("Theme installation skipped, proceeding with products...");
+          setCurrentStep("Theme installation skipped, proceeding with winning products...");
         }
       }
 
-      // Step 2: Add 10 winning products with full context
-      setCurrentStep("Generating winning products with GPT-4 + DALL·E 3...");
+      // Step 2: Generate and upload 10 REAL winning products
+      setCurrentStep("🛒 Fetching REAL winning products from AliExpress...");
       setProgress(40);
 
-      console.log('🎯 Calling addProductsToShopify with full context:', {
+      console.log('🏆 Calling addProductsToShopify with REAL winning products workflow:', {
         shopifyUrl: formData.shopifyUrl,
         niche: formData.niche,
         targetAudience: formData.targetAudience,
@@ -113,9 +111,9 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         formData.accessToken,
         formData.niche,
         (progress: number, productName: string) => {
-          setProgress(40 + (progress * 0.6)); // 40% to 100%
+          setProgress(40 + (progress * 0.6));
           setCurrentProduct(productName);
-          setCurrentStep("Adding AI-generated products...");
+          setCurrentStep("🏆 Adding REAL winning products with DALL·E 3 images...");
         },
         formData.themeColor || '#1E40AF',
         formData.targetAudience,
@@ -125,29 +123,30 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       );
 
       handleInputChange('productsAdded', true);
-      setCurrentStep("Complete!");
+      setCurrentStep("🎉 Complete!");
       
       toast({
-        title: "🎉 Store Setup Complete!",
-        description: `Your ${formData.niche} store for ${formData.targetAudience} now has the Sense theme installed with your custom color and 10 AI-generated products ready to sell!`,
+        title: "🏆 REAL Winning Products Store Complete!",
+        description: `Your ${formData.niche} store now has the Refresh theme + 10 REAL winning products from AliExpress with high ratings (4.5+) and proven sales (50+ orders) - each with DALL·E 3 generated images!`,
       });
 
     } catch (error) {
-      console.error('❌ Error setting up store:', error);
+      console.error('❌ Error setting up REAL winning products store:', error);
       let errorMessage = "An unknown error occurred";
       
       if (error instanceof Error) {
         errorMessage = error.message;
         
-        // Handle specific API errors
         if (errorMessage.includes('OpenAI API key not configured')) {
           errorMessage = "OpenAI API key is not configured. Please check your Supabase secrets.";
+        } else if (errorMessage.includes('RapidAPI key not configured')) {
+          errorMessage = "RapidAPI key is not configured. Please add your RapidAPI key to Supabase secrets.";
         } else if (errorMessage.includes('Failed to send a request to the Edge Function')) {
           errorMessage = "Network error connecting to our AI services. Please check your internet connection and try again.";
         } else if (errorMessage.includes('401') || errorMessage.includes('403')) {
           errorMessage = "Authentication failed. Please check your Shopify access token.";
         } else if (errorMessage.includes('timeout')) {
-          errorMessage = "The operation timed out. Please try again - this sometimes happens with AI generation.";
+          errorMessage = "The operation timed out. Please try again - this sometimes happens with real product fetching.";
         }
       }
       
@@ -166,7 +165,6 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
     }
   };
 
-  // Helper function to extract store name from URL
   const extractStoreName = (url: string): string | null => {
     try {
       const cleanUrl = url.replace(/^https?:\/\//, '').toLowerCase();
@@ -202,12 +200,36 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               background: `linear-gradient(135deg, ${formData.themeColor || '#1E40AF'}, ${formData.themeColor || '#1E40AF'}aa)` 
             }}
           >
-            <PackagePlus className="h-10 w-10 text-white" />
+            <Trophy className="h-10 w-10 text-white" />
           </div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Complete Store Setup</h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">🏆 Launch REAL Winning Products Store</h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Install the <strong>Sense theme</strong> with your custom styling and add 10 trending <strong>{formData.niche}</strong> winning products for <strong>{formData.targetAudience}</strong> using GPT-4 + DALL·E 3!
+            Install <strong>Refresh theme</strong> + add 10 <strong>REAL winning products</strong> from AliExpress for <strong>{formData.niche}</strong> targeting <strong>{formData.targetAudience}</strong> with:
           </p>
+          
+          {/* Real Products Features */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6 mb-6">
+            <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+              <Star className="h-6 w-6 text-green-600 mx-auto mb-1" />
+              <div className="text-xs font-semibold text-green-800">4.5+ Rating</div>
+              <div className="text-xs text-green-600">Proven quality</div>
+            </div>
+            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+              <PackagePlus className="h-6 w-6 text-blue-600 mx-auto mb-1" />
+              <div className="text-xs font-semibold text-blue-800">50+ Orders</div>
+              <div className="text-xs text-blue-600">Validated demand</div>
+            </div>
+            <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
+              <ImageIcon className="h-6 w-6 text-purple-600 mx-auto mb-1" />
+              <div className="text-xs font-semibold text-purple-800">DALL·E 3 Images</div>
+              <div className="text-xs text-purple-600">6 unique per product</div>
+            </div>
+            <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
+              <Target className="h-6 w-6 text-orange-600 mx-auto mb-1" />
+              <div className="text-xs font-semibold text-orange-800">GPT-4 Content</div>
+              <div className="text-xs text-orange-600">Optimized copy</div>
+            </div>
+          </div>
         </div>
 
         {error && (
@@ -217,7 +239,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               <h4 className="font-semibold text-red-800">Setup Failed</h4>
               <p className="text-red-700 text-sm mt-1">{error}</p>
               <p className="text-red-600 text-xs mt-2">
-                Try again in a moment. If the issue persists, check your API keys in Supabase settings.
+                Make sure you have both OpenAI and RapidAPI keys configured in Supabase settings.
               </p>
             </div>
           </div>
@@ -234,150 +256,82 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               <CheckCircle className="h-10 w-10 text-white" />
             </div>
             <h3 className="text-2xl font-semibold text-gray-900 mb-2 flex items-center justify-center gap-2">
-              <Sparkles className="h-6 w-6 text-yellow-500" />
-              10 AI-Generated {formData.niche} Products Added!
-              <Sparkles className="h-6 w-6 text-yellow-500" />
+              <Trophy className="h-6 w-6 text-yellow-500" />
+              10 REAL Winning Products Added!
+              <Trophy className="h-6 w-6 text-yellow-500" />
             </h3>
             <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-              Your store is now fully stocked with 10 unique, AI-generated winning products specifically curated for the <strong>{formData.niche}</strong> niche targeting <strong>{formData.targetAudience}</strong>, each featuring:
+              Your store now has <strong>10 REAL winning products</strong> from AliExpress with proven track records targeting <strong>{formData.targetAudience}</strong>, featuring:
             </p>
             
             {/* Success Features Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
               <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                <Target className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                <div className="text-sm font-semibold text-green-800">GPT-4 Content</div>
-                <div className="text-xs text-green-600">AI-generated titles & descriptions</div>
+                <Star className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                <div className="text-sm font-semibold text-green-800">High-Rated Products</div>
+                <div className="text-xs text-green-600">4.5+ star ratings verified</div>
               </div>
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                <ImageIcon className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                <div className="text-sm font-semibold text-blue-800">DALL·E 3 Images</div>
-                <div className="text-xs text-blue-600">6 unique images each</div>
+                <Trophy className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                <div className="text-sm font-semibold text-blue-800">Proven Winners</div>
+                <div className="text-xs text-blue-600">50+ orders each</div>
               </div>
               <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-                <DollarSign className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                <div className="text-sm font-semibold text-purple-800">Smart Pricing</div>
-                <div className="text-xs text-purple-600">$15-80 range</div>
+                <ImageIcon className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+                <div className="text-sm font-semibold text-purple-800">DALL·E 3 Images</div>
+                <div className="text-xs text-purple-600">60 total unique images</div>
               </div>
               <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
-                <Tag className="h-8 w-8 text-orange-600 mx-auto mb-2" />
-                <div className="text-sm font-semibold text-orange-800">Themed Styling</div>
-                <div className="text-xs text-orange-600">Your color applied</div>
+                <Target className="h-8 w-8 text-orange-600 mx-auto mb-2" />
+                <div className="text-sm font-semibold text-orange-800">Smart Pricing</div>
+                <div className="text-xs text-orange-600">Optimized for {formData.niche}</div>
               </div>
             </div>
-            
-            <Button 
-              disabled 
-              className="w-full max-w-md"
-              style={{ 
-                backgroundColor: '#10B981',
-                color: 'white'
-              }}
-            >
-              <CheckCircle className="mr-2 h-4 w-4" />
-              10 AI {formData.niche} Products Successfully Added
-            </Button>
+
+            <div className="bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-lg border border-green-200">
+              <h4 className="font-semibold text-gray-900 mb-2">🎉 Your REAL Winning Products Store is Live!</h4>
+              <p className="text-gray-700 text-sm">
+                Visit your Shopify admin to see your 10 REAL winning {formData.niche} products with high ratings, 
+                proven sales, custom DALL·E 3 images, and GPT-4 optimized descriptions - all ready to start selling!
+              </p>
+            </div>
           </div>
         ) : (
-          <div>
-            {isAdding && (
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-gray-700">
-                    {currentStep || `Setting up your ${formData.niche} store for ${formData.targetAudience}...`}
-                  </p>
-                  <span 
-                    className="text-sm font-semibold"
-                    style={{ color: formData.themeColor || '#1E40AF' }}
-                  >
-                    {progress.toFixed(1)}%
+          <div className="text-center">
+            {isAdding ? (
+              <div className="space-y-6">
+                <div className="flex items-center justify-center gap-3 mb-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                  <span className="text-lg font-semibold text-gray-900">
+                    Setting up your REAL winning products store...
                   </span>
                 </div>
-                <Progress 
-                  value={progress} 
-                  className="h-3"
-                  style={{ 
-                    '--progress-background': formData.themeColor || '#1E40AF' 
-                  } as React.CSSProperties}
-                />
-                {currentProduct && (
-                  <p className="text-sm text-gray-500 mt-2 truncate">
-                    <span className="font-medium">Currently adding:</span> {currentProduct}
-                  </p>
-                )}
-              </div>
-            )}
-            
-            {/* Updated features section */}
-            <div className="mb-6 p-6 bg-gray-50 rounded-lg border-l-4" style={{ borderColor: formData.themeColor || '#1E40AF' }}>
-              <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                <Sparkles className="h-5 w-5" style={{ color: formData.themeColor || '#1E40AF' }} />
-                Complete {formData.niche} Store Setup with GPT-4 + DALL·E 3:
-              </h4>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-                <div className="space-y-2">
-                  <div className="flex items-start gap-2">
-                    <span className="text-purple-600 font-bold text-sm mt-0.5">🎨</span>
-                    <span><strong>Sense theme</strong> auto-installed & configured</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Target className="h-4 w-4 mt-0.5 text-green-600" />
-                    <span>10 AI-generated {formData.niche} products for {formData.targetAudience}</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <ImageIcon className="h-4 w-4 mt-0.5 text-blue-600" />
-                    <span>DALL·E 3 generated images (6 per product)</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-purple-600 font-bold text-sm mt-0.5">🤖</span>
-                    <span>GPT-4 generated descriptions targeting {formData.targetAudience}</span>
-                  </div>
-                </div>
+                
+                <Progress value={progress} className="w-full max-w-md mx-auto" />
                 
                 <div className="space-y-2">
-                  <div className="flex items-start gap-2">
-                    <span className="text-orange-600 font-bold text-sm mt-0.5">🎨</span>
-                    <span>Your custom color applied to theme</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Tag className="h-4 w-4 mt-0.5 text-indigo-600" />
-                    <span>SEO-optimized for {formData.niche} keywords</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <DollarSign className="h-4 w-4 mt-0.5 text-green-600" />
-                    <span>Smart pricing for {formData.targetAudience} ($15-80)</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-red-600 font-bold text-sm mt-0.5">🚀</span>
-                    <span>Ready-to-sell {formData.storeStyle} store setup</span>
-                  </div>
+                  <p className="text-sm font-medium text-gray-700">{currentStep}</p>
+                  {currentProduct && (
+                    <p className="text-sm text-gray-600">
+                      Processing: <span className="font-medium">{currentProduct}</span>
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-500">{Math.round(progress)}% complete</p>
                 </div>
               </div>
-            </div>
-            
-            <Button
-              className="w-full font-semibold py-4 text-lg"
-              onClick={handleAddProducts}
-              disabled={isAdding}
-              style={{ 
-                backgroundColor: formData.themeColor || '#1E40AF',
-                color: 'white'
-              }}
-            >
-              {isAdding ? (
-                <div className="flex items-center justify-center">
-                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                  Setting Up Your AI {formData.niche} Store...
-                </div>
-              ) : (
-                <div className="flex items-center justify-center">
-                  <Sparkles className="h-5 w-5 mr-2" />
-                  Setup Complete {formData.niche} Store with AI Now
-                  <Sparkles className="h-5 w-5 ml-2" />
-                </div>
-              )}
-            </Button>
+            ) : (
+              <Button
+                onClick={handleAddProducts}
+                size="lg"
+                className="text-white font-semibold py-3 px-8 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
+                style={{ 
+                  background: `linear-gradient(135deg, ${formData.themeColor || '#1E40AF'}, ${formData.themeColor || '#1E40AF'}dd)` 
+                }}
+              >
+                <Trophy className="mr-2 h-5 w-5" />
+                Launch REAL Winning Products Store
+              </Button>
+            )}
           </div>
         )}
       </CardContent>
