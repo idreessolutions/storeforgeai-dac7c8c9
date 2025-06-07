@@ -134,7 +134,23 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
 
     } catch (error) {
       console.error('❌ Error setting up store:', error);
-      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+      let errorMessage = "An unknown error occurred";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Handle specific API errors
+        if (errorMessage.includes('OpenAI API key not configured')) {
+          errorMessage = "OpenAI API key is not configured. Please check your Supabase secrets.";
+        } else if (errorMessage.includes('Failed to send a request to the Edge Function')) {
+          errorMessage = "Network error connecting to our AI services. Please check your internet connection and try again.";
+        } else if (errorMessage.includes('401') || errorMessage.includes('403')) {
+          errorMessage = "Authentication failed. Please check your Shopify access token.";
+        } else if (errorMessage.includes('timeout')) {
+          errorMessage = "The operation timed out. Please try again - this sometimes happens with AI generation.";
+        }
+      }
+      
       setError(errorMessage);
       
       toast({
@@ -200,6 +216,9 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
             <div>
               <h4 className="font-semibold text-red-800">Setup Failed</h4>
               <p className="text-red-700 text-sm mt-1">{error}</p>
+              <p className="text-red-600 text-xs mt-2">
+                Try again in a moment. If the issue persists, check your API keys in Supabase settings.
+              </p>
             </div>
           </div>
         )}
