@@ -17,27 +17,62 @@ serve(async (req) => {
     
     console.log(`🚀 Starting GPT-4 + DALL·E 3 workflow for:`, { niche, targetAudience });
 
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    // Try multiple OpenAI API keys
+    let openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiApiKey) {
-      console.error('❌ OpenAI API key not found in environment variables');
-      throw new Error('OpenAI API key not configured. Please check your Supabase secrets.');
+      openaiApiKey = Deno.env.get('OPENAI_API_KEY_');
+      console.log('🔄 Using fallback API key: OPENAI_API_KEY_');
+    } else {
+      console.log('✅ Using primary API key: OPENAI_API_KEY');
+    }
+    
+    if (!openaiApiKey) {
+      console.error('❌ No OpenAI API keys found in environment variables');
+      throw new Error('OpenAI API key not configured. Please check your Supabase secrets for OPENAI_API_KEY or OPENAI_API_KEY_');
     }
 
-    // Validate API key format
+    // Validate API key format more thoroughly
     if (!openaiApiKey.startsWith('sk-')) {
-      console.error('❌ Invalid OpenAI API key format');
+      console.error('❌ Invalid OpenAI API key format:', openaiApiKey.substring(0, 10) + '...');
       throw new Error('Invalid OpenAI API key format. Key should start with "sk-"');
     }
 
-    console.log('✅ OpenAI API key found and validated');
+    if (openaiApiKey.length < 50) {
+      console.error('❌ OpenAI API key appears too short:', openaiApiKey.length, 'characters');
+      throw new Error('OpenAI API key appears to be invalid (too short)');
+    }
+
+    console.log('✅ OpenAI API key found and validated:', openaiApiKey.substring(0, 10) + '... (length:', openaiApiKey.length, ')');
+
+    // Test API key with a simple request first
+    console.log('🧪 Testing API key with simple request...');
+    try {
+      const testResponse = await fetch('https://api.openai.com/v1/models', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${openaiApiKey}`,
+        },
+      });
+
+      if (!testResponse.ok) {
+        const errorText = await testResponse.text();
+        console.error(`❌ API key test failed: ${testResponse.status} - ${errorText}`);
+        throw new Error(`OpenAI API key is invalid: ${testResponse.status} - ${errorText}`);
+      }
+
+      console.log('✅ API key test successful');
+    } catch (testError) {
+      console.error('❌ API key test error:', testError);
+      throw new Error(`Failed to validate OpenAI API key: ${testError.message}`);
+    }
 
     const products = [];
     
     console.log(`🔄 Starting AI workflow for ${niche} niche...`);
     
-    // Generate 5 products instead of 10 to reduce timeout risk
-    for (let i = 0; i < 5; i++) {
-      console.log(`📦 Processing product ${i + 1}/5 with AI workflow...`);
+    // Generate 3 products initially to avoid timeouts
+    for (let i = 0; i < 3; i++) {
+      console.log(`📦 Processing product ${i + 1}/3 with AI workflow...`);
       
       try {
         // Step 1: Generate product concept with GPT-4
@@ -104,7 +139,7 @@ Make it unique product #${i + 1} targeting ${targetAudience}. Price between $20-
 
         console.log(`✅ GPT-4 content generated: ${productData.title}`);
 
-        // Step 2: Generate 2 images with DALL·E 3 (reduced from 3 for speed)
+        // Step 2: Generate 2 images with DALL·E 3
         console.log(`🎨 Generating DALL·E 3 images for: ${productData.title}`);
         
         const images = [];
@@ -153,7 +188,7 @@ Make it unique product #${i + 1} targeting ${targetAudience}. Price between $20-
 
         console.log(`🎨 DALL·E 3 generated ${images.length} images`);
 
-        // Add fallback images if needed to ensure we have 6 total
+        // Add fallback images to ensure we have 6 total
         while (images.length < 6) {
           images.push(`https://images.unsplash.com/photo-1560743173-567a3b5658b1?w=800&h=600&fit=crop&auto=format`);
         }
@@ -197,7 +232,7 @@ Make it unique product #${i + 1} targeting ${targetAudience}. Price between $20-
         console.log(`✅ AI workflow completed for: ${finalProduct.title}`);
 
         // Delay between products
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 1500));
 
       } catch (productError) {
         console.error(`❌ Error generating product ${i + 1}:`, productError);
@@ -249,13 +284,13 @@ Make it unique product #${i + 1} targeting ${targetAudience}. Price between $20-
       }
     }
 
-    // Ensure we have exactly 10 products by duplicating some if needed
+    // Duplicate products to reach exactly 10
     while (products.length < 10) {
       const randomProduct = products[Math.floor(Math.random() * products.length)];
       const duplicatedProduct = {
         ...randomProduct,
-        title: `${randomProduct.title} (Variant ${products.length + 1})`,
-        handle: `${randomProduct.handle}-variant-${products.length + 1}`,
+        title: `${randomProduct.title} (Style ${products.length + 1})`,
+        handle: `${randomProduct.handle}-style-${products.length + 1}`,
         variants: [
           {
             ...randomProduct.variants[0],
@@ -273,17 +308,28 @@ Make it unique product #${i + 1} targeting ${targetAudience}. Price between $20-
       method_used: 'GPT-4 + DALL·E 3 AI Workflow',
       products: products.slice(0, 10), // Ensure exactly 10 products
       total_generated: products.length,
-      workflow_type: 'ai_generated'
+      workflow_type: 'ai_generated',
+      api_key_used: openaiApiKey ? 'OPENAI_API_KEY' + (openaiApiKey === Deno.env.get('OPENAI_API_KEY_') ? '_' : '') : 'none'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
     console.error('❌ Generate products error:', error);
+    console.error('❌ Error stack:', error.stack);
+    
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
-      details: 'Failed to generate products using AI workflow. Please check your OpenAI API key in Supabase settings.'
+      error_type: error.name,
+      details: 'Failed to generate products using AI workflow. Please check your OpenAI API keys in Supabase settings.',
+      debug_info: {
+        timestamp: new Date().toISOString(),
+        available_keys: {
+          OPENAI_API_KEY: !!Deno.env.get('OPENAI_API_KEY'),
+          OPENAI_API_KEY_: !!Deno.env.get('OPENAI_API_KEY_')
+        }
+      }
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
