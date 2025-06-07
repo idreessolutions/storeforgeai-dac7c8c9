@@ -18,9 +18,9 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🚀 Daily Product Automation Started:', new Date().toISOString());
+    console.log('🚀 Daily GPT-4 + DALL·E 3 Product Automation Started:', new Date().toISOString());
     
-    // Get all active store sessions that need daily product updates
+    // Get all active store sessions
     const { data: activeSessions, error: sessionsError } = await supabase
       .from('store_builder_sessions')
       .select('*')
@@ -34,16 +34,16 @@ serve(async (req) => {
       throw new Error(`Failed to fetch sessions: ${sessionsError.message}`);
     }
 
-    console.log(`📊 Found ${activeSessions?.length || 0} active stores for daily product generation`);
+    console.log(`📊 Found ${activeSessions?.length || 0} active stores for GPT-4 + DALL·E 3 product generation`);
 
     let totalProcessed = 0;
     let totalSuccessful = 0;
     const results = [];
 
-    // Process each active store
+    // Process each active store with AI workflow
     for (const session of activeSessions || []) {
       try {
-        console.log(`🏪 Processing store: ${session.shopify_url} (Niche: ${session.niche})`);
+        console.log(`🏪 Processing store with AI: ${session.shopify_url} (Niche: ${session.niche})`);
         
         // Check if products were already added today
         const today = new Date().toDateString();
@@ -54,12 +54,12 @@ serve(async (req) => {
           .gte('created_at', new Date(today).toISOString());
 
         if (todayUploads && todayUploads.length > 0) {
-          console.log(`⏭️ Products already added today for ${session.niche} - skipping`);
+          console.log(`⏭️ AI products already generated today for ${session.niche} - skipping`);
           continue;
         }
 
-        // Generate and add 10 products for this store
-        const generateResult = await generateDailyProducts(session);
+        // Generate 10 AI-powered products using GPT-4 + DALL·E 3
+        const generateResult = await generateDailyAIProducts(session);
         
         results.push({
           session_id: session.session_id,
@@ -67,7 +67,8 @@ serve(async (req) => {
           shopify_url: session.shopify_url,
           success: generateResult.success,
           products_added: generateResult.productsAdded,
-          error: generateResult.error
+          error: generateResult.error,
+          ai_method: generateResult.method
         });
 
         if (generateResult.success) {
@@ -76,17 +77,18 @@ serve(async (req) => {
         totalProcessed++;
 
         // Rate limiting between stores
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 3000));
         
       } catch (storeError) {
-        console.error(`❌ Error processing store ${session.shopify_url}:`, storeError);
+        console.error(`❌ Error processing AI workflow for store ${session.shopify_url}:`, storeError);
         results.push({
           session_id: session.session_id,
           niche: session.niche,
           shopify_url: session.shopify_url,
           success: false,
           products_added: 0,
-          error: storeError.message
+          error: storeError.message,
+          ai_method: 'Failed'
         });
         totalProcessed++;
       }
@@ -95,23 +97,24 @@ serve(async (req) => {
     // Store automation results
     await storeAutomationResults(results);
 
-    console.log(`✅ Daily automation completed: ${totalSuccessful}/${totalProcessed} stores processed successfully`);
+    console.log(`✅ Daily GPT-4 + DALL·E 3 automation completed: ${totalSuccessful}/${totalProcessed} stores processed successfully`);
 
     return new Response(JSON.stringify({
       success: true,
-      message: `Daily product automation completed: ${totalSuccessful}/${totalProcessed} stores processed`,
+      message: `Daily AI product automation completed: ${totalSuccessful}/${totalProcessed} stores processed with GPT-4 + DALL·E 3`,
       stores_processed: totalProcessed,
       stores_successful: totalSuccessful,
-      results: results
+      results: results,
+      ai_workflow: 'GPT-4 + DALL·E 3 + AliExpress'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('❌ Daily automation failed:', error);
+    console.error('❌ Daily AI automation failed:', error);
     return new Response(JSON.stringify({
       success: false,
-      error: error.message || 'Daily automation failed'
+      error: error.message || 'Daily AI automation failed'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -119,11 +122,11 @@ serve(async (req) => {
   }
 });
 
-async function generateDailyProducts(session: any) {
+async function generateDailyAIProducts(session: any) {
   try {
-    console.log(`🎯 Generating 10 daily products for ${session.niche} niche...`);
+    console.log(`🤖 Generating 10 daily AI products for ${session.niche} niche using GPT-4 + DALL·E 3...`);
     
-    // Call the generate-products function
+    // Call the enhanced generate-products function with AI workflow
     const { data: generateData, error: generateError } = await supabase.functions.invoke('generate-products', {
       body: {
         niche: session.niche,
@@ -136,69 +139,80 @@ async function generateDailyProducts(session: any) {
     });
 
     if (generateError) {
-      throw new Error(`Product generation failed: ${generateError.message}`);
+      throw new Error(`AI product generation failed: ${generateError.message}`);
     }
 
     if (!generateData?.success || !generateData?.products) {
-      throw new Error('No products generated');
+      throw new Error('No AI products generated');
     }
 
-    console.log(`✅ Generated ${generateData.products.length} products for ${session.niche}`);
+    console.log(`✅ Generated ${generateData.products.length} AI products for ${session.niche} using ${generateData.method_used}`);
 
-    // Add each product to Shopify
+    // Add each AI-enhanced product to Shopify
     let productsAdded = 0;
     for (let i = 0; i < generateData.products.length; i++) {
       const product = generateData.products[i];
       
       try {
-        console.log(`📦 Adding product ${i + 1}/10: ${product.title}`);
+        console.log(`📦 Adding AI product ${i + 1}/10: ${product.title}`);
+        console.log(`🎨 Generated with ${product.images?.length || 0} DALL·E 3 images`);
+        console.log(`🤖 GPT-4 content: ${product.description?.substring(0, 100)}...`);
         
         const { data: addData, error: addError } = await supabase.functions.invoke('add-shopify-product', {
           body: {
             shopifyUrl: session.shopify_url,
             accessToken: session.access_token,
             themeColor: session.theme_color || '#1E40AF',
-            product: product
+            product: {
+              ...product,
+              // Ensure AI-generated content is preserved
+              gpt_generated: true,
+              dalle_generated_images: product.images?.length || 0,
+              generation_method: product.generation_method || 'AI Enhanced'
+            }
           }
         });
 
         if (addError) {
-          console.error(`❌ Failed to add product ${product.title}:`, addError);
+          console.error(`❌ Failed to add AI product ${product.title}:`, addError);
           continue;
         }
 
         if (addData?.success) {
           productsAdded++;
-          console.log(`✅ Successfully added product: ${product.title}`);
+          console.log(`✅ Successfully added AI product: ${product.title}`);
+          console.log(`📊 Images uploaded: ${addData.images_uploaded}, Price: $${addData.price_set}`);
         }
 
         // Rate limiting between product uploads
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        await new Promise(resolve => setTimeout(resolve, 2000));
         
       } catch (productError) {
-        console.error(`❌ Error adding product ${product.title}:`, productError);
+        console.error(`❌ Error adding AI product ${product.title}:`, productError);
       }
     }
 
     return {
       success: productsAdded > 0,
       productsAdded: productsAdded,
-      error: productsAdded === 0 ? 'No products were successfully added' : null
+      error: productsAdded === 0 ? 'No AI products were successfully added' : null,
+      method: generateData.method_used || 'GPT-4 + DALL·E 3'
     };
 
   } catch (error) {
-    console.error(`❌ Generate daily products failed for ${session.niche}:`, error);
+    console.error(`❌ Generate daily AI products failed for ${session.niche}:`, error);
     return {
       success: false,
       productsAdded: 0,
-      error: error.message
+      error: error.message,
+      method: 'Failed'
     };
   }
 }
 
 async function storeAutomationResults(results: any[]) {
   try {
-    const sessionId = `auto-${Date.now()}`;
+    const sessionId = `ai-auto-${Date.now()}`;
     
     const { error } = await supabase
       .from('automation_results')
@@ -213,11 +227,11 @@ async function storeAutomationResults(results: any[]) {
       });
 
     if (error) {
-      console.error('Failed to store automation results:', error);
+      console.error('Failed to store AI automation results:', error);
     } else {
-      console.log(`📊 Automation results stored for session: ${sessionId}`);
+      console.log(`📊 AI automation results stored for session: ${sessionId}`);
     }
   } catch (error) {
-    console.error('Error storing automation results:', error);
+    console.error('Error storing AI automation results:', error);
   }
 }
