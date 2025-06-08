@@ -28,7 +28,7 @@ export const addProductsToShopify = async (
     });
 
     // Add timeout and retry logic for the edge function call
-    let generateResponse, generateError;
+    let generateResponse: any, generateError: any;
     let retryCount = 0;
     const maxRetries = 3;
 
@@ -48,7 +48,7 @@ export const addProductsToShopify = async (
           new Promise((_, reject) => 
             setTimeout(() => reject(new Error('Request timeout')), 180000) // 3 minutes timeout
           )
-        ]);
+        ]) as { data: any; error: any };
 
         generateResponse = response.data;
         generateError = response.error;
@@ -147,12 +147,16 @@ export const addProductsToShopify = async (
     console.error(`❌ Product generation workflow failed for ${niche}:`, error);
     
     // Provide more specific error messages
-    if (error.message.includes('timeout') || error.message.includes('NetworkError')) {
-      throw new Error('Connection timeout. Please check your internet connection and try again.');
-    } else if (error.message.includes('Failed to send a request to the Edge Function')) {
-      throw new Error('Unable to connect to AI services. Please try again in a moment.');
+    if (error instanceof Error) {
+      if (error.message.includes('timeout') || error.message.includes('NetworkError')) {
+        throw new Error('Connection timeout. Please check your internet connection and try again.');
+      } else if (error.message.includes('Failed to send a request to the Edge Function')) {
+        throw new Error('Unable to connect to AI services. Please try again in a moment.');
+      } else {
+        throw error;
+      }
     } else {
-      throw error;
+      throw new Error('An unexpected error occurred');
     }
   }
 };
