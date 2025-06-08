@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { AliExpressService } from "./aliexpressService";
 
 export const addProductsToShopify = async (
   shopifyUrl: string,
@@ -12,75 +13,86 @@ export const addProductsToShopify = async (
   storeStyle: string = 'modern',
   customInfo: string = ''
 ) => {
-  console.log(`🚀 Starting AI-powered product generation for ${niche} niche`);
+  console.log(`🚀 Starting REAL product generation for ${niche} niche with AliExpress integration`);
   
   try {
-    // Step 1: Try AI generation with shorter timeout, then fallback
-    onProgress(10, 'AI is analyzing trending market data...');
+    // Step 1: Get REAL winning products from AliExpress
+    onProgress(10, `Searching for 10 winning ${niche} products on AliExpress...`);
     
-    console.log('📡 Calling generate-products edge function with:', {
-      niche,
-      targetAudience,
-      businessType,
-      storeStyle,
-      themeColor,
-      customInfo
-    });
+    const rapidApiKey = await getRapidApiKey();
+    if (!rapidApiKey) {
+      throw new Error('RapidAPI key not configured for AliExpress integration');
+    }
 
-    let products;
+    const aliExpressService = new AliExpressService(rapidApiKey);
+    const aliExpressProducts = await aliExpressService.fetchTrendingProducts(niche, 10);
     
-    try {
-      // Try AI generation with 60 second timeout
-      const response = await Promise.race([
-        supabase.functions.invoke('generate-products', {
+    if (!aliExpressProducts || aliExpressProducts.length === 0) {
+      throw new Error(`No winning ${niche} products found on AliExpress. Please try again.`);
+    }
+
+    console.log(`✅ Found ${aliExpressProducts.length} real winning ${niche} products from AliExpress`);
+    onProgress(25, `Found ${aliExpressProducts.length} winning ${niche} products! Optimizing with AI...`);
+
+    // Step 2: Generate AI-optimized content for each real product
+    const products = [];
+    
+    for (let i = 0; i < aliExpressProducts.length; i++) {
+      const aliProduct = aliExpressProducts[i];
+      const progressPercent = 25 + ((i / aliExpressProducts.length) * 45);
+      
+      onProgress(progressPercent, `AI optimizing: ${aliProduct.title.substring(0, 50)}...`);
+      console.log(`🤖 AI optimizing product ${i + 1}/${aliExpressProducts.length}: ${aliProduct.title}`);
+
+      try {
+        // Generate AI-optimized content using real product data
+        const { data: aiResponse, error: aiError } = await supabase.functions.invoke('generate-products', {
           body: {
+            realProduct: aliProduct,
             niche,
             targetAudience,
             businessType,
             storeStyle,
             themeColor,
-            customInfo
+            customInfo,
+            productIndex: i
           }
-        }) as Promise<{ data: any; error: any }>,
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('AI_TIMEOUT')), 60000) // 1 minute timeout
-        )
-      ]) as { data: any; error: any };
+        });
 
-      if (response.error) {
-        throw new Error(response.error.message || 'AI service error');
-      }
+        if (aiError || !aiResponse?.success) {
+          console.warn(`⚠️ AI optimization failed for product ${i + 1}, using enhanced fallback`);
+          const enhancedProduct = createEnhancedProduct(aliProduct, niche, targetAudience, themeColor);
+          products.push(enhancedProduct);
+        } else {
+          console.log(`✅ AI optimization successful for product ${i + 1}`);
+          products.push(aiResponse.optimizedProduct);
+        }
 
-      if (response.data && response.data.success) {
-        products = response.data.products;
-        console.log(`✅ AI generated ${products.length} products`);
-      } else {
-        throw new Error('Invalid AI response');
+        // Small delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+      } catch (error) {
+        console.error(`❌ Error optimizing product ${i + 1}:`, error);
+        const enhancedProduct = createEnhancedProduct(aliProduct, niche, targetAudience, themeColor);
+        products.push(enhancedProduct);
       }
-    } catch (aiError) {
-      console.warn('⚠️ AI generation failed, using fallback products:', aiError);
-      onProgress(20, 'Using curated product database...');
-      
-      // Fallback to local product generation
-      products = generateFallbackProducts(niche, targetAudience);
-      console.log(`✅ Generated ${products.length} fallback products for ${niche}`);
     }
 
-    if (!products || products.length === 0) {
-      throw new Error(`No ${niche} products found. Please try again.`);
+    if (products.length === 0) {
+      throw new Error(`Failed to process any ${niche} products. Please try again.`);
     }
 
-    onProgress(30, 'Products ready! Starting upload...');
+    onProgress(70, `Uploading ${products.length} optimized ${niche} products to Shopify...`);
 
-    // Step 2: Upload each product to Shopify
+    // Step 3: Upload each product to Shopify with real data
     const totalProducts = products.length;
     let uploadedCount = 0;
 
     for (let i = 0; i < totalProducts; i++) {
       const product = products[i];
-      const progressPercent = 30 + ((i / totalProducts) * 65);
+      const progressPercent = 70 + ((i / totalProducts) * 25);
       
-      onProgress(progressPercent, `Creating: ${product.title}`);
+      onProgress(progressPercent, `Uploading: ${product.title.substring(0, 40)}...`);
       console.log(`📦 Uploading product ${i + 1}/${totalProducts}: ${product.title}`);
 
       try {
@@ -105,7 +117,7 @@ export const addProductsToShopify = async (
           console.error(`❌ Upload failed for ${product.title}:`, uploadResponse?.error);
         }
 
-        // Small delay between uploads to avoid rate limiting
+        // Delay between uploads
         await new Promise(resolve => setTimeout(resolve, 1000));
 
       } catch (productError) {
@@ -122,107 +134,79 @@ export const addProductsToShopify = async (
 
     onProgress(100, 'Store setup complete!');
     
-    console.log(`🎉 Successfully uploaded ${uploadedCount}/${totalProducts} ${niche} products to Shopify`);
+    console.log(`🎉 Successfully uploaded ${uploadedCount}/${totalProducts} real ${niche} products from AliExpress to Shopify`);
     
     return {
       success: true,
       uploadedCount,
       totalProducts,
-      message: `Successfully added ${uploadedCount} trending ${niche} products to your store!`
+      message: `Successfully added ${uploadedCount} real winning ${niche} products from AliExpress to your store!`
     };
 
   } catch (error) {
-    console.error(`❌ Product generation workflow failed for ${niche}:`, error);
+    console.error(`❌ Real product generation workflow failed for ${niche}:`, error);
     throw error;
   }
 };
 
-function generateFallbackProducts(niche: string, targetAudience: string) {
-  const productDatabase = {
-    'beauty': [
-      { 
-        title: 'Hydrating Face Serum with Vitamin C', 
-        description: `Transform your skin with this powerful hydrating serum! ✨ Perfect for ${targetAudience}, this premium serum contains vitamin C, hyaluronic acid, and natural botanicals. Reduces fine lines, brightens complexion, and provides all-day moisture. Dermatologist tested and cruelty-free.`,
-        features: ['Vitamin C & Hyaluronic Acid', 'Anti-Aging Formula', 'Brightens Complexion', 'All Skin Types'],
-        benefits: ['Reduces Fine Lines', 'Deep Hydration', 'Glowing Skin'],
-        recommendedPrice: 45.99,
-        images: [{ url: 'https://via.placeholder.com/400x400/f0f0f0/999?text=Face+Serum', alt: 'Hydrating Face Serum' }],
-        category: 'Beauty'
-      },
-      { 
-        title: 'LED Beauty Face Mask - Professional Grade', 
-        description: `Experience spa-quality skincare at home! 🌟 This advanced LED face mask uses red and blue light therapy to rejuvenate skin, reduce acne, and boost collagen production. Perfect for ${targetAudience} who want professional results without the salon price.`,
-        features: ['Red & Blue Light Therapy', 'Collagen Boost', 'Acne Treatment', 'Professional Grade'],
-        benefits: ['Younger Looking Skin', 'Clearer Complexion', 'Reduced Wrinkles'],
-        recommendedPrice: 89.99,
-        images: [{ url: 'https://via.placeholder.com/400x400/f0f0f0/999?text=LED+Mask', alt: 'LED Beauty Face Mask' }],
-        category: 'Beauty'
-      },
-      { 
-        title: 'Jade Facial Roller & Gua Sha Set', 
-        description: `Ancient beauty secrets for modern skin! 🌿 This premium jade roller and gua sha set promotes lymphatic drainage, reduces puffiness, and enhances product absorption. Perfect for ${targetAudience} seeking natural anti-aging solutions.`,
-        features: ['100% Natural Jade', 'Lymphatic Drainage', 'Reduces Puffiness', 'Includes Gua Sha'],
-        benefits: ['Tighter Skin', 'Reduced Puffiness', 'Better Circulation'],
-        recommendedPrice: 29.99,
-        images: [{ url: 'https://via.placeholder.com/400x400/f0f0f0/999?text=Jade+Roller', alt: 'Jade Facial Roller' }],
-        category: 'Beauty'
-      },
-      { 
-        title: 'Professional Hair Styling Tool Set', 
-        description: `Salon-quality styling at home! 💁‍♀️ This complete hair styling set includes a ceramic hair straightener, curling wand, and heat protectant spray. Perfect for ${targetAudience} who want professional results every day.`,
-        features: ['Ceramic Technology', 'Multiple Heat Settings', 'Heat Protectant Included', 'Professional Grade'],
-        benefits: ['Salon Results', 'Hair Protection', 'Versatile Styling'],
-        recommendedPrice: 79.99,
-        images: [{ url: 'https://via.placeholder.com/400x400/f0f0f0/999?text=Hair+Tools', alt: 'Hair Styling Tools' }],
-        category: 'Beauty'
-      },
-      { 
-        title: 'Complete Skincare Travel Kit', 
-        description: `Your skincare routine, anywhere you go! ✈️ This travel-friendly kit includes cleanser, toner, serum, and moisturizer in TSA-approved sizes. Perfect for ${targetAudience} who never compromise on skincare, even while traveling.`,
-        features: ['TSA Approved Sizes', 'Complete Routine', 'Premium Ingredients', 'Travel Case Included'],
-        benefits: ['Convenient Travel', 'Consistent Results', 'Healthy Skin Anywhere'],
-        recommendedPrice: 39.99,
-        images: [{ url: 'https://via.placeholder.com/400x400/f0f0f0/999?text=Travel+Kit', alt: 'Skincare Travel Kit' }],
-        category: 'Beauty'
-      }
-    ],
-    'fitness': [
-      { 
-        title: 'Resistance Band Set - 11 Pieces', 
-        description: `Complete home gym in one set! 💪 This professional resistance band set includes 5 bands, handles, door anchor, ankle straps, and workout guide. Perfect for ${targetAudience} who want effective workouts anywhere.`,
-        features: ['11-Piece Set', 'Multiple Resistance Levels', 'Door Anchor Included', 'Workout Guide'],
-        benefits: ['Full Body Workout', 'Portable Exercise', 'Build Strength'],
-        recommendedPrice: 34.99,
-        images: [{ url: 'https://via.placeholder.com/400x400/f0f0f0/999?text=Resistance+Bands', alt: 'Resistance Band Set' }],
-        category: 'Fitness'
-      }
-    ],
-    'tech': [
-      { 
-        title: 'Fast Wireless Charging Pad with Cooling', 
-        description: `Charge faster, stay cooler! ⚡ This advanced wireless charger features built-in cooling fan and fast-charge technology. Perfect for ${targetAudience} who demand the latest tech innovations.`,
-        features: ['Fast Charging', 'Built-in Cooling', 'Universal Compatibility', 'LED Indicators'],
-        benefits: ['Faster Charging', 'Device Protection', 'Convenient Use'],
-        recommendedPrice: 34.99,
-        images: [{ url: 'https://via.placeholder.com/400x400/f0f0f0/999?text=Wireless+Charger', alt: 'Wireless Charging Pad' }],
-        category: 'Tech'
-      }
-    ]
+async function getRapidApiKey(): Promise<string | null> {
+  try {
+    // Try to get from Supabase secrets first
+    const { data, error } = await supabase.functions.invoke('get-rapidapi-key');
+    if (!error && data?.rapidApiKey) {
+      return data.rapidApiKey;
+    }
+  } catch (error) {
+    console.warn('Could not retrieve RapidAPI key from secrets:', error);
+  }
+  
+  // Fallback to environment or return null
+  return null;
+}
+
+function createEnhancedProduct(aliProduct: any, niche: string, targetAudience: string, themeColor: string) {
+  const nicheEmojis = {
+    'fitness': '💪',
+    'beauty': '💄',
+    'tech': '📱',
+    'pets': '🐾',
+    'kitchen': '🍳',
+    'home': '🏠',
+    'fashion': '👗',
+    'baby': '👶',
+    'car': '🚗',
+    'gifts': '🎁'
   };
 
-  const nicheProducts = productDatabase[niche.toLowerCase()] || productDatabase['beauty'];
+  const emoji = nicheEmojis[niche.toLowerCase()] || '⭐';
   
-  // Add variants to each product
-  return nicheProducts.map(product => ({
-    ...product,
-    variants: [
+  return {
+    title: `${emoji} ${aliProduct.title}`,
+    description: `Transform your ${niche} experience with this premium ${aliProduct.title}! ${emoji}\n\n` +
+                `✨ Perfect for ${targetAudience}\n` +
+                `🏆 Proven winner with ${aliProduct.orders}+ orders\n` +
+                `⭐ ${aliProduct.rating}/5 star rating\n` +
+                `🎯 Key features: ${aliProduct.features.slice(0, 3).join(', ')}\n\n` +
+                `This bestselling product has been trusted by thousands of customers worldwide. ` +
+                `Join the community of satisfied customers who've already discovered the benefits!`,
+    features: aliProduct.features || [`Premium ${niche} quality`, 'Durable construction', 'Easy to use', 'Great value'],
+    benefits: [`Improves your ${niche} experience`, 'Saves time and effort', 'Long-lasting quality'],
+    recommendedPrice: Math.max(15, Math.min(80, aliProduct.price * 1.5)),
+    images: aliProduct.imageUrl ? [{ url: aliProduct.imageUrl, alt: aliProduct.title }] : [],
+    variants: aliProduct.variants || [
       {
         title: 'Standard',
-        price: product.recommendedPrice,
+        price: Math.max(15, Math.min(80, aliProduct.price * 1.5)),
         inventory_quantity: 100,
         option1: 'Standard'
       }
     ],
-    source: 'curated'
-  }));
+    category: niche,
+    source: 'aliexpress_real',
+    aliExpressData: {
+      itemId: aliProduct.itemId,
+      rating: aliProduct.rating,
+      orders: aliProduct.orders
+    }
+  };
 }

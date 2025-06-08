@@ -14,15 +14,14 @@ serve(async (req) => {
   }
 
   try {
-    const { niche, targetAudience, businessType, storeStyle, themeColor, customInfo } = await req.json();
+    const { realProduct, niche, targetAudience, businessType, storeStyle, themeColor, customInfo, productIndex } = await req.json();
     
-    console.log(`🚀 Generating 10 trending ${niche} products with AI optimization...`);
-    console.log('Request context:', {
-      niche,
-      targetAudience,
-      businessType,
-      storeStyle,
-      themeColor
+    console.log(`🤖 AI optimizing REAL product: ${realProduct.title}`);
+    console.log('Real product data:', {
+      itemId: realProduct.itemId,
+      rating: realProduct.rating,
+      orders: realProduct.orders,
+      price: realProduct.price
     });
 
     // Check required environment variables
@@ -33,26 +32,35 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    console.log(`📦 Processing 10 trending ${niche} products...`);
+    console.log(`🚀 Processing real ${niche} product with AI optimization...`);
     
-    // Generate products with improved error handling
-    const products = await generateOptimizedProducts(niche, targetAudience, businessType, storeStyle, themeColor, customInfo, openaiApiKey);
+    // Generate AI-optimized content for the real product
+    const optimizedProduct = await optimizeRealProduct(
+      realProduct, 
+      niche, 
+      targetAudience, 
+      businessType, 
+      storeStyle, 
+      themeColor, 
+      customInfo,
+      openaiApiKey
+    );
     
-    if (!products || products.length === 0) {
-      throw new Error(`Failed to generate ${niche} products`);
+    if (!optimizedProduct) {
+      throw new Error(`Failed to optimize real ${niche} product`);
     }
 
-    console.log(`✅ Successfully generated ${products.length} AI-optimized ${niche} products`);
+    console.log(`✅ Successfully AI-optimized real ${niche} product: ${optimizedProduct.title}`);
 
     return new Response(JSON.stringify({
       success: true,
-      products: products
+      optimizedProduct: optimizedProduct
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('❌ Error in generate-products function:', error);
+    console.error('❌ Error in AI product optimization:', error);
     
     return new Response(JSON.stringify({
       success: false,
@@ -64,7 +72,8 @@ serve(async (req) => {
   }
 });
 
-async function generateOptimizedProducts(
+async function optimizeRealProduct(
+  realProduct: any,
   niche: string, 
   targetAudience: string, 
   businessType: string, 
@@ -73,56 +82,82 @@ async function generateOptimizedProducts(
   customInfo: string,
   openaiApiKey: string
 ) {
-  const products = [];
-  const nicheProducts = getNicheBaseProducts(niche);
-  
-  // Process only 5 products to avoid timeout issues
-  const productCount = Math.min(5, nicheProducts.length);
-  
-  for (let i = 0; i < productCount; i++) {
-    console.log(`🔄 Processing trending ${niche} product ${i + 1}/${productCount} (ID: ${nicheProducts[i].id})`);
+  console.log(`🧠 Starting AI content optimization for: ${realProduct.title}`);
+
+  try {
+    // Generate AI-optimized title and description
+    const optimizedContent = await generateAIContent(realProduct, niche, targetAudience, storeStyle, themeColor, openaiApiKey);
     
-    try {
-      const baseProduct = nicheProducts[i];
-      
-      // Generate AI-optimized content with timeout
-      const optimizedProduct = await Promise.race([
-        generateAIContent(baseProduct, niche, targetAudience, storeStyle, themeColor, openaiApiKey),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('AI content generation timeout')), 30000))
-      ]);
-      
-      // Generate fewer images to avoid timeout
-      const images = await generateProductImages(optimizedProduct, niche, openaiApiKey);
-      
-      const finalProduct = {
-        ...optimizedProduct,
-        images: images,
-        variants: generateVariants(baseProduct, optimizedProduct.recommendedPrice),
-        source: 'trending'
-      };
-      
-      products.push(finalProduct);
-      console.log(`✅ AI-optimized ${niche} product ${i + 1} generated: ${finalProduct.title}`);
-      
-      // Add small delay between products to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-    } catch (error) {
-      console.error(`Failed to process product ${i + 1}:`, error);
-      
-      // Add fallback product if AI generation fails
-      const fallbackProduct = createFallbackProduct(nicheProducts[i], niche, targetAudience);
-      products.push(fallbackProduct);
-      console.log(`✅ Added fallback ${niche} product ${i + 1}: ${fallbackProduct.title}`);
-    }
+    // Generate DALL·E 3 images
+    const images = await generateDalleImages(optimizedContent, niche, openaiApiKey);
+    
+    // Create variants based on real product data
+    const variants = generateProductVariants(realProduct, optimizedContent.recommendedPrice);
+    
+    const finalProduct = {
+      ...optimizedContent,
+      images: images,
+      variants: variants,
+      category: niche,
+      source: 'aliexpress_ai_optimized',
+      aliExpressData: {
+        itemId: realProduct.itemId,
+        rating: realProduct.rating,
+        orders: realProduct.orders,
+        originalPrice: realProduct.price
+      }
+    };
+    
+    console.log(`✅ AI optimization complete for: ${finalProduct.title}`);
+    return finalProduct;
+    
+  } catch (error) {
+    console.error('❌ AI optimization failed:', error);
+    throw error;
   }
-  
-  return products;
 }
 
-async function generateAIContent(baseProduct: any, niche: string, targetAudience: string, storeStyle: string, themeColor: string, openaiApiKey: string) {
-  const prompt = createProductPrompt(baseProduct, niche, targetAudience, storeStyle, themeColor);
+async function generateAIContent(realProduct: any, niche: string, targetAudience: string, storeStyle: string, themeColor: string, openaiApiKey: string) {
+  const nicheEmojis = {
+    'fitness': '💪',
+    'beauty': '💄',
+    'tech': '📱',
+    'pets': '🐾',
+    'kitchen': '🍳',
+    'home': '🏠',
+    'fashion': '👗',
+    'baby': '👶',
+    'car': '🚗',
+    'gifts': '🎁'
+  };
+
+  const emoji = nicheEmojis[niche.toLowerCase()] || '⭐';
   
+  const prompt = `You are an expert e-commerce copywriter specializing in ${niche} products.
+
+REAL PRODUCT DATA:
+- Title: ${realProduct.title}
+- Rating: ${realProduct.rating}/5 stars
+- Orders: ${realProduct.orders}+ sold
+- Original Price: $${realProduct.price}
+- Features: ${realProduct.features?.join(', ') || 'Premium quality'}
+
+TARGET: ${targetAudience}
+STYLE: ${storeStyle}
+THEME COLOR: ${themeColor}
+NICHE: ${niche}
+
+Create compelling content that converts browsers into buyers. Use the ${emoji} emoji and vibrant language.
+
+Return ONLY this JSON format:
+{
+  "title": "Benefit-focused title with ${emoji} emoji (max 60 chars)",
+  "description": "500-800 word compelling description with emojis, benefits, social proof, and strong CTA using theme color ${themeColor}",
+  "features": ["feature 1", "feature 2", "feature 3", "feature 4"],
+  "benefits": ["benefit 1", "benefit 2", "benefit 3"],
+  "recommendedPrice": ${Math.max(15, Math.min(80, realProduct.price * 1.8))}
+}`;
+
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -136,8 +171,8 @@ async function generateAIContent(baseProduct: any, niche: string, targetAudience
           { role: 'system', content: 'You are an expert e-commerce copywriter. Return only valid JSON.' },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.7,
-        max_tokens: 1000
+        temperature: 0.8,
+        max_tokens: 1500
       }),
     });
 
@@ -151,28 +186,33 @@ async function generateAIContent(baseProduct: any, niche: string, targetAudience
     // Parse JSON response
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+      const parsed = JSON.parse(jsonMatch[0]);
+      console.log(`✅ AI content generated for: ${parsed.title}`);
+      return parsed;
     } else {
       throw new Error('Invalid JSON response from OpenAI');
     }
     
   } catch (error) {
-    console.error('Error generating AI content:', error);
-    // Return fallback content
-    return createFallbackContent(baseProduct, niche, targetAudience);
+    console.error('❌ Error generating AI content:', error);
+    // Return enhanced fallback
+    return createEnhancedFallbackContent(realProduct, niche, targetAudience, emoji);
   }
 }
 
-async function generateProductImages(product: any, niche: string, openaiApiKey: string) {
+async function generateDalleImages(product: any, niche: string, openaiApiKey: string) {
   const images = [];
   
-  // Generate only 2 images to avoid timeout
   const imagePrompts = [
-    `Professional e-commerce photo of ${product.title} on clean white background, high quality`,
-    `${product.title} lifestyle shot in modern ${niche} setting, natural lighting`
+    `Professional e-commerce photo of ${product.title} on clean white background, high quality, product photography`,
+    `${product.title} lifestyle shot in modern ${niche} setting, natural lighting, premium quality`,
+    `Close-up detail shot of ${product.title} showing premium materials and craftsmanship`,
+    `${product.title} in use, showing benefits and functionality, professional photography`
   ];
 
-  for (let i = 0; i < 2; i++) {
+  console.log(`🎨 Generating ${imagePrompts.length} DALL·E 3 images for: ${product.title}`);
+
+  for (let i = 0; i < imagePrompts.length; i++) {
     try {
       const response = await Promise.race([
         fetch('https://api.openai.com/v1/images/generations', {
@@ -189,7 +229,7 @@ async function generateProductImages(product: any, niche: string, openaiApiKey: 
             quality: 'standard'
           }),
         }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Image generation timeout')), 20000))
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Image generation timeout')), 25000))
       ]);
 
       if (response.ok) {
@@ -197,17 +237,17 @@ async function generateProductImages(product: any, niche: string, openaiApiKey: 
         if (imageData.data && imageData.data[0]) {
           images.push({
             url: imageData.data[0].url,
-            alt: product.title
+            alt: `${product.title} - Image ${i + 1}`
           });
-          console.log(`✅ Generated DALL·E image ${i + 1}/2 for ${product.title}`);
+          console.log(`✅ Generated DALL·E image ${i + 1}/${imagePrompts.length} for ${product.title}`);
         }
       }
     } catch (error) {
-      console.error(`Failed to generate image ${i + 1}:`, error);
+      console.error(`❌ Failed to generate image ${i + 1}:`, error);
     }
     
-    // Small delay between image generations
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Delay between image generations
+    await new Promise(resolve => setTimeout(resolve, 1000));
   }
 
   // Ensure at least one image
@@ -218,123 +258,55 @@ async function generateProductImages(product: any, niche: string, openaiApiKey: 
     });
   }
 
+  console.log(`📸 Generated ${images.length} images for: ${product.title}`);
   return images;
 }
 
-function createFallbackProduct(baseProduct: any, niche: string, targetAudience: string) {
-  return {
-    title: `Premium ${niche} ${baseProduct.name}`,
-    description: `Experience the ultimate in ${niche} with this premium product. Perfect for ${targetAudience}, featuring high-quality materials and innovative design. This bestselling item has received thousands of positive reviews and is trusted by customers worldwide.`,
-    features: ['Premium Quality', 'Durable Construction', 'Easy to Use', 'Great Value'],
-    benefits: ['Saves Time', 'Improves Results', 'Long Lasting'],
-    recommendedPrice: Math.floor(Math.random() * (80 - 15) + 15),
-    images: [{
-      url: 'https://via.placeholder.com/400x400/f0f0f0/999?text=Product+Image',
-      alt: `Premium ${niche} ${baseProduct.name}`
-    }],
-    variants: generateVariants(baseProduct, Math.floor(Math.random() * (80 - 15) + 15)),
-    source: 'trending'
-  };
-}
-
-function createFallbackContent(baseProduct: any, niche: string, targetAudience: string) {
-  return {
-    title: `Premium ${niche} ${baseProduct.name}`,
-    description: `Experience the ultimate in ${niche} with this premium product. Perfect for ${targetAudience}, featuring high-quality materials and innovative design.`,
-    features: ['Premium Quality', 'Durable Construction', 'Easy to Use', 'Great Value'],
-    benefits: ['Saves Time', 'Improves Results', 'Long Lasting'],
-    recommendedPrice: Math.floor(Math.random() * (80 - 15) + 15)
-  };
-}
-
-function createProductPrompt(baseProduct: any, niche: string, targetAudience: string, storeStyle: string, themeColor: string) {
-  return `Create compelling e-commerce content for a ${niche} product targeting ${targetAudience}.
-
-Product: ${baseProduct.name}
-Base Price: $${baseProduct.price}
-Style: ${storeStyle}
-Theme Color: ${themeColor}
-
-Return ONLY this JSON format:
-{
-  "title": "60 character max benefit-focused title",
-  "description": "300-500 word compelling description with emojis",
-  "features": ["feature 1", "feature 2", "feature 3", "feature 4"],
-  "benefits": ["benefit 1", "benefit 2", "benefit 3"],
-  "recommendedPrice": ${Math.floor(Math.random() * (80 - 15) + 15)}
-}`;
-}
-
-function generateVariants(baseProduct: any, basePrice: number) {
+function generateProductVariants(realProduct: any, basePrice: number) {
   const variants = [];
-  const colors = ['Black', 'White', 'Red', 'Blue'];
-  const sizes = ['Small', 'Medium', 'Large'];
   
-  for (let i = 0; i < 3; i++) {
-    variants.push({
-      title: `${colors[i]} / ${sizes[i]}`,
-      price: basePrice + (Math.random() * 10 - 5),
-      inventory_quantity: Math.floor(Math.random() * 100) + 50,
-      option1: colors[i],
-      option2: sizes[i]
-    });
+  // Use real variants if available
+  if (realProduct.variants && realProduct.variants.length > 0) {
+    for (let i = 0; i < Math.min(4, realProduct.variants.length); i++) {
+      const variant = realProduct.variants[i];
+      variants.push({
+        title: variant.color || variant.size || `Option ${i + 1}`,
+        price: variant.price || basePrice + (Math.random() * 10 - 5),
+        inventory_quantity: 100,
+        option1: variant.color || variant.size || `Option ${i + 1}`,
+        option2: variant.size || null
+      });
+    }
+  } else {
+    // Generate standard variants
+    const colors = ['Black', 'White', 'Blue', 'Red'];
+    for (let i = 0; i < 3; i++) {
+      variants.push({
+        title: colors[i],
+        price: basePrice + (Math.random() * 10 - 5),
+        inventory_quantity: 100,
+        option1: colors[i]
+      });
+    }
   }
   
   return variants;
 }
 
-function getNicheBaseProducts(niche: string) {
-  const productDatabase = {
-    'beauty': [
-      { id: '1', name: 'Hydrating Face Serum', price: 45.99 },
-      { id: '2', name: 'LED Beauty Face Mask', price: 89.99 },
-      { id: '3', name: 'Jade Facial Roller', price: 29.99 },
-      { id: '4', name: 'Hair Styling Tool Set', price: 79.99 },
-      { id: '5', name: 'Skincare Travel Kit', price: 39.99 },
-      { id: '6', name: 'Makeup Brush Set', price: 34.99 },
-      { id: '7', name: 'Anti-Aging Eye Cream', price: 59.99 },
-      { id: '8', name: 'Hair Growth Serum', price: 49.99 },
-      { id: '9', name: 'Face Cleansing Device', price: 69.99 },
-      { id: '10', name: 'Lip Care Set', price: 24.99 }
-    ],
-    'tech': [
-      { id: '1', name: 'Fast Wireless Charging Pad', price: 34.99 },
-      { id: '2', name: 'Noise-Cancelling Bluetooth Earbuds', price: 129.99 },
-      { id: '3', name: 'RGB LED Strip Lights', price: 39.99 },
-      { id: '4', name: 'Portable Power Bank', price: 59.99 },
-      { id: '5', name: 'Fitness Tracking Smartwatch', price: 249.99 },
-      { id: '6', name: 'Portable Bluetooth Speaker', price: 79.99 },
-      { id: '7', name: 'USB-C Hub with 4K HDMI', price: 49.99 },
-      { id: '8', name: 'LED Ring Light', price: 34.99 },
-      { id: '9', name: 'Security Camera with Night Vision', price: 99.99 },
-      { id: '10', name: 'Magnetic Wireless Car Mount', price: 29.99 }
-    ],
-    'kitchen': [
-      { id: '1', name: 'Smart Kitchen Scale', price: 39.99 },
-      { id: '2', name: 'Silicone Cooking Set', price: 29.99 },
-      { id: '3', name: 'Electric Pressure Cooker', price: 89.99 },
-      { id: '4', name: 'Air Fryer Oven', price: 149.99 },
-      { id: '5', name: 'Coffee Maker', price: 199.99 },
-      { id: '6', name: 'Herb Garden Kit', price: 79.99 },
-      { id: '7', name: 'Non-Stick Cookware', price: 299.99 },
-      { id: '8', name: 'Glass Storage Set', price: 49.99 },
-      { id: '9', name: 'Spice Grinder', price: 34.99 },
-      { id: '10', name: 'Silicone Baking Mats', price: 24.99 }
-    ],
-    'pets': [
-      { id: '1', name: 'Smart Pet Feeder', price: 89.99 },
-      { id: '2', name: 'Interactive Dog Toy', price: 34.99 },
-      { id: '3', name: 'Cat Water Fountain', price: 49.99 },
-      { id: '4', name: 'GPS Pet Tracker', price: 79.99 },
-      { id: '5', name: 'Pet Grooming Brush', price: 24.99 },
-      { id: '6', name: 'Orthopedic Pet Bed', price: 69.99 },
-      { id: '7', name: 'Treat Dispensing Ball', price: 19.99 },
-      { id: '8', name: 'Pet Safety Harness', price: 39.99 },
-      { id: '9', name: 'Smart Training Collar', price: 99.99 },
-      { id: '10', name: 'Automatic Pet Door', price: 159.99 }
-    ]
+function createEnhancedFallbackContent(realProduct: any, niche: string, targetAudience: string, emoji: string) {
+  return {
+    title: `${emoji} Premium ${realProduct.title.substring(0, 40)}`,
+    description: `Transform your ${niche} experience with this premium ${realProduct.title}! ${emoji}\n\n` +
+                `✨ Perfect for ${targetAudience}\n` +
+                `🏆 Proven winner with ${realProduct.orders}+ orders\n` +
+                `⭐ ${realProduct.rating}/5 star rating\n` +
+                `🎯 Key features that make this special:\n` +
+                `${realProduct.features?.slice(0, 4).map(f => `• ${f}`).join('\n') || '• Premium quality materials\n• Durable construction\n• Easy to use\n• Great value'}\n\n` +
+                `Join thousands of satisfied customers who've already discovered the benefits! ` +
+                `This bestselling product is trusted worldwide for its quality and performance.\n\n` +
+                `🚀 Order now and experience the difference!`,
+    features: realProduct.features || [`Premium ${niche} quality`, 'Durable construction', 'Easy to use', 'Great value'],
+    benefits: [`Improves your ${niche} experience`, 'Saves time and effort', 'Long-lasting quality'],
+    recommendedPrice: Math.max(15, Math.min(80, realProduct.price * 1.8))
   };
-
-  // Use correct niche mapping and fallback to beauty if not found
-  return productDatabase[niche.toLowerCase()] || productDatabase['beauty'];
 }
