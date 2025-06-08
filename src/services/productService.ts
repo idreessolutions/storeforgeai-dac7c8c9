@@ -27,53 +27,47 @@ export const addProductsToShopify = async (
       customInfo
     });
 
-    // Add timeout and retry logic for the edge function call
+    // Increase timeout to 5 minutes and improve error handling
     let generateResponse: any, generateError: any;
-    let retryCount = 0;
-    const maxRetries = 3;
+    
+    try {
+      const response = await Promise.race([
+        supabase.functions.invoke('generate-products', {
+          body: {
+            niche,
+            targetAudience,
+            businessType,
+            storeStyle,
+            themeColor,
+            customInfo
+          }
+        }) as Promise<{ data: any; error: any }>,
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Request timeout after 5 minutes')), 300000) // 5 minutes
+        )
+      ]) as { data: any; error: any };
 
-    while (retryCount < maxRetries) {
-      try {
-        const response = await Promise.race([
-          supabase.functions.invoke('generate-products', {
-            body: {
-              niche,
-              targetAudience,
-              businessType,
-              storeStyle,
-              themeColor,
-              customInfo
-            }
-          }),
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Request timeout')), 180000) // 3 minutes timeout
-          )
-        ]) as { data: any; error: any };
-
-        generateResponse = response.data;
-        generateError = response.error;
-        break;
-      } catch (error) {
-        retryCount++;
-        console.warn(`Attempt ${retryCount} failed:`, error);
-        
-        if (retryCount < maxRetries) {
-          onProgress(10 + (retryCount * 5), `Retrying connection... (${retryCount}/${maxRetries})`);
-          await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
-        } else {
-          throw error;
-        }
+      generateResponse = response.data;
+      generateError = response.error;
+    } catch (timeoutError) {
+      console.error('❌ Timeout or connection error:', timeoutError);
+      
+      // If it's a timeout, let's try with a fallback approach
+      if (timeoutError instanceof Error && timeoutError.message.includes('timeout')) {
+        throw new Error(`The AI is taking longer than expected to generate ${niche} products. This might be due to high demand. Please try again in a moment.`);
+      } else {
+        throw new Error('Unable to connect to AI services. Please check your internet connection and try again.');
       }
     }
 
     if (generateError) {
       console.error('❌ Product generation failed:', generateError);
-      throw new Error(`AI product generation failed: ${generateError.message}`);
+      throw new Error(`AI product generation failed: ${generateError.message || 'Unknown error'}`);
     }
 
     if (!generateResponse || !generateResponse.success) {
       console.error('❌ Invalid generate response:', generateResponse);
-      throw new Error(`AI failed to generate products: ${generateResponse?.error || 'Unknown error'}`);
+      throw new Error(`AI failed to generate products: ${generateResponse?.error || 'Invalid response from AI service'}`);
     }
 
     const products = generateResponse.products;
@@ -149,14 +143,14 @@ export const addProductsToShopify = async (
     // Provide more specific error messages
     if (error instanceof Error) {
       if (error.message.includes('timeout') || error.message.includes('NetworkError')) {
-        throw new Error('Connection timeout. Please check your internet connection and try again.');
+        throw new Error('The AI service is taking longer than expected. Please try again in a moment.');
       } else if (error.message.includes('Failed to send a request to the Edge Function')) {
-        throw new Error('Unable to connect to AI services. Please try again in a moment.');
+        throw new Error('Unable to connect to AI services. Please check your internet connection and try again.');
       } else {
         throw error;
       }
     } else {
-      throw new Error('An unexpected error occurred');
+      throw new Error('An unexpected error occurred while setting up your store');
     }
   }
 };
