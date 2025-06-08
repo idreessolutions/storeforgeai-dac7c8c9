@@ -27,16 +27,44 @@ export const addProductsToShopify = async (
       customInfo
     });
 
-    const { data: generateResponse, error: generateError } = await supabase.functions.invoke('generate-products', {
-      body: {
-        niche,
-        targetAudience,
-        businessType,
-        storeStyle,
-        themeColor,
-        customInfo
+    // Add timeout and retry logic for the edge function call
+    let generateResponse, generateError;
+    let retryCount = 0;
+    const maxRetries = 3;
+
+    while (retryCount < maxRetries) {
+      try {
+        const response = await Promise.race([
+          supabase.functions.invoke('generate-products', {
+            body: {
+              niche,
+              targetAudience,
+              businessType,
+              storeStyle,
+              themeColor,
+              customInfo
+            }
+          }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Request timeout')), 180000) // 3 minutes timeout
+          )
+        ]);
+
+        generateResponse = response.data;
+        generateError = response.error;
+        break;
+      } catch (error) {
+        retryCount++;
+        console.warn(`Attempt ${retryCount} failed:`, error);
+        
+        if (retryCount < maxRetries) {
+          onProgress(10 + (retryCount * 5), `Retrying connection... (${retryCount}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
+        } else {
+          throw error;
+        }
       }
-    });
+    }
 
     if (generateError) {
       console.error('❌ Product generation failed:', generateError);
@@ -117,6 +145,14 @@ export const addProductsToShopify = async (
 
   } catch (error) {
     console.error(`❌ Product generation workflow failed for ${niche}:`, error);
-    throw error;
+    
+    // Provide more specific error messages
+    if (error.message.includes('timeout') || error.message.includes('NetworkError')) {
+      throw new Error('Connection timeout. Please check your internet connection and try again.');
+    } else if (error.message.includes('Failed to send a request to the Edge Function')) {
+      throw new Error('Unable to connect to AI services. Please try again in a moment.');
+    } else {
+      throw error;
+    }
   }
 };
