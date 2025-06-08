@@ -27,19 +27,14 @@ serve(async (req) => {
 
     // Check required environment variables
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-    const rapidApiKey = Deno.env.get('RAPIDAPI_KEY');
     
     if (!openaiApiKey) {
       throw new Error('OpenAI API key not configured');
     }
-    
-    if (!rapidApiKey) {
-      console.warn('RapidAPI key not found, using fallback product data');
-    }
 
     console.log(`📦 Processing 10 trending ${niche} products...`);
     
-    // Use direct product generation instead of external API calls for reliability
+    // Generate products using the correct niche mapping
     const products = await generateOptimizedProducts(niche, targetAudience, businessType, storeStyle, themeColor, customInfo, openaiApiKey);
     
     if (!products || products.length === 0) {
@@ -89,7 +84,7 @@ async function generateOptimizedProducts(
       // Generate AI-optimized content
       const optimizedProduct = await generateAIContent(baseProduct, niche, targetAudience, storeStyle, themeColor, openaiApiKey);
       
-      // Generate DALL·E images
+      // Generate product images
       const images = await generateProductImages(optimizedProduct, niche, openaiApiKey);
       
       const finalProduct = {
@@ -165,13 +160,10 @@ async function generateProductImages(product: any, niche: string, openaiApiKey: 
   const imagePrompts = [
     `Professional e-commerce photo of ${product.title} on clean white background, high quality`,
     `${product.title} lifestyle shot in modern ${niche} setting, natural lighting`,
-    `Close-up detail view of ${product.title} showing key features, macro photography`,
-    `${product.title} product packaging and presentation, commercial photography`,
-    `Multiple angle view of ${product.title} showcasing design, white background`,
-    `${product.title} in use demonstration, realistic setting`
+    `Close-up detail view of ${product.title} showing key features, macro photography`
   ];
 
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 3; i++) {
     try {
       const response = await fetch('https://api.openai.com/v1/images/generations', {
         method: 'POST',
@@ -195,7 +187,7 @@ async function generateProductImages(product: any, niche: string, openaiApiKey: 
             url: imageData.data[0].url,
             alt: product.title
           });
-          console.log(`✅ Generated DALL·E image ${i + 1}/6 for ${product.title}`);
+          console.log(`✅ Generated DALL·E image ${i + 1}/3 for ${product.title}`);
         }
       }
     } catch (error) {
@@ -252,6 +244,18 @@ function generateVariants(baseProduct: any, basePrice: number) {
 
 function getNicheBaseProducts(niche: string) {
   const productDatabase = {
+    'tech': [
+      { id: '1', name: 'Fast Wireless Charging Pad', price: 34.99 },
+      { id: '2', name: 'Noise-Cancelling Bluetooth Earbuds', price: 129.99 },
+      { id: '3', name: 'RGB LED Strip Lights', price: 39.99 },
+      { id: '4', name: 'Portable Power Bank', price: 59.99 },
+      { id: '5', name: 'Fitness Tracking Smartwatch', price: 249.99 },
+      { id: '6', name: 'Portable Bluetooth Speaker', price: 79.99 },
+      { id: '7', name: 'USB-C Hub with 4K HDMI', price: 49.99 },
+      { id: '8', name: 'LED Ring Light', price: 34.99 },
+      { id: '9', name: 'Security Camera with Night Vision', price: 99.99 },
+      { id: '10', name: 'Magnetic Wireless Car Mount', price: 29.99 }
+    ],
     'kitchen': [
       { id: '1', name: 'Smart Kitchen Scale', price: 39.99 },
       { id: '2', name: 'Silicone Cooking Set', price: 29.99 },
@@ -278,6 +282,6 @@ function getNicheBaseProducts(niche: string) {
     ]
   };
 
-  // Default to kitchen if niche not found
-  return productDatabase[niche.toLowerCase()] || productDatabase['kitchen'];
+  // Use correct niche mapping and fallback to tech if not found
+  return productDatabase[niche.toLowerCase()] || productDatabase['tech'];
 }
