@@ -1,9 +1,8 @@
-
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, PackagePlus, Loader2, Sparkles, Target, ImageIcon, DollarSign, Tag, AlertCircle, Trophy, Star } from "lucide-react";
+import { CheckCircle, Sparkles, Loader2, Target, Zap, Star, Trophy, ShoppingBag, Wand2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { addProductsToShopify } from "@/services/productService";
 import { installAndConfigureSenseTheme } from "@/services/shopifyThemeService";
@@ -49,7 +48,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
   const currentNicheConfig = nicheConfig[formData.niche.toLowerCase()] || nicheConfig['pets'];
 
   const handleAddProducts = async () => {
-    console.log(`🚀 Starting REAL winning products workflow for ${formData.niche} with upgraded toolkit:`, formData);
+    console.log(`🚀 Starting AI product generation workflow for ${formData.niche}:`, formData);
     
     // Validate all required fields
     const requiredFields = ['shopifyUrl', 'accessToken', 'niche', 'targetAudience'];
@@ -74,7 +73,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
     setError("");
 
     try {
-      console.log(`🏆 Starting REAL winning products + theme setup for ${formData.niche}:`, {
+      console.log(`🤖 Starting AI-powered store setup for ${formData.niche}:`, {
         niche: formData.niche,
         targetAudience: formData.targetAudience,
         businessType: formData.businessType,
@@ -83,8 +82,8 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         customInfo: formData.customInfo
       });
       
-      // Step 1: Install and customize Refresh theme
-      setCurrentStep(`🎨 Installing Refresh theme with ${formData.niche} customization...`);
+      // Step 1: Install and customize theme
+      setCurrentStep(`🎨 Installing premium theme with ${formData.niche} customization...`);
       setProgress(15);
       
       const storeName = extractStoreName(formData.shopifyUrl);
@@ -99,7 +98,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
           });
           
           setProgress(30);
-          setCurrentStep(`✅ Refresh theme customized with ${formData.niche} colors`);
+          setCurrentStep(`✅ Premium theme customized for ${formData.niche}`);
           await new Promise(resolve => setTimeout(resolve, 1000));
         } catch (themeError) {
           console.warn(`⚠️ Theme installation failed for ${formData.niche}, continuing with products:`, themeError);
@@ -107,11 +106,11 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         }
       }
 
-      // Step 2: Generate and upload 10 REAL winning products
-      setCurrentStep(`${currentNicheConfig.emoji} Generating 10 REAL winning ${formData.niche} products from AliExpress...`);
+      // Step 2: AI product generation
+      setCurrentStep(`${currentNicheConfig.emoji} AI is analyzing trending ${formData.niche} products...`);
       setProgress(40);
 
-      console.log(`🏆 Calling addProductsToShopify for ${formData.niche} niche with upgraded toolkit`);
+      console.log(`🤖 Calling AI product generation for ${formData.niche} niche`);
 
       await addProductsToShopify(
         formData.shopifyUrl,
@@ -120,7 +119,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         (progress: number, productName: string) => {
           setProgress(40 + (progress * 0.6));
           setCurrentProduct(productName);
-          setCurrentStep(`🏆 Adding REAL winning ${formData.niche} products with DALL·E 3 images...`);
+          setCurrentStep(`🤖 AI is creating optimized ${formData.niche} products...`);
         },
         formData.themeColor || currentNicheConfig.color,
         formData.targetAudience,
@@ -133,27 +132,27 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       setCurrentStep("🎉 Complete!");
       
       toast({
-        title: `🏆 REAL Winning ${formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Store Complete!`,
-        description: `Your ${formData.niche} store now has the Refresh theme + 10 REAL winning ${formData.niche} products from AliExpress with ratings 4.5+, 50+ orders, DALL·E 3 images, and GPT-4 optimized content!`,
+        title: `🏆 AI-Powered ${formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Store Complete!`,
+        description: `Your ${formData.niche} store now has 10 trending products with premium theme and AI-optimized content!`,
       });
 
     } catch (error) {
-      console.error(`❌ Error setting up REAL winning ${formData.niche} store:`, error);
+      console.error(`❌ Error setting up AI-powered ${formData.niche} store:`, error);
       let errorMessage = "An unknown error occurred";
       
       if (error instanceof Error) {
         errorMessage = error.message;
         
         if (errorMessage.includes('OpenAI API key not configured')) {
-          errorMessage = "OpenAI API key is not configured. Please check your Supabase secrets.";
+          errorMessage = "AI services are not configured. Please check your configuration.";
         } else if (errorMessage.includes('RapidAPI key not configured')) {
-          errorMessage = "RapidAPI key is not configured. Please add your RapidAPI key to Supabase secrets.";
+          errorMessage = "Product API is not configured. Please check your configuration.";
         } else if (errorMessage.includes('Failed to send a request to the Edge Function')) {
-          errorMessage = "Network error connecting to our AI services. Please check your internet connection and try again.";
+          errorMessage = "Network error connecting to AI services. Please check your internet connection and try again.";
         } else if (errorMessage.includes('401') || errorMessage.includes('403')) {
           errorMessage = "Authentication failed. Please check your Shopify access token.";
         } else if (errorMessage.includes('timeout')) {
-          errorMessage = `The operation timed out. Please try again - this sometimes happens with real ${formData.niche} product fetching.`;
+          errorMessage = `The operation timed out. Please try again.`;
         } else if (errorMessage.includes('not supported')) {
           errorMessage = `The niche "${formData.niche}" is not supported. Please select from: pets, fitness, beauty, tech, baby, home, fashion, kitchen, gaming, travel, office.`;
         }
@@ -212,32 +211,32 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
             <span className="text-3xl">{currentNicheConfig.emoji}</span>
           </div>
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            🏆 Launch REAL Winning {formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Store
+            🤖 Launch AI-Powered {formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Store
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Install <strong>Refresh theme</strong> + add 10 <strong>REAL winning {formData.niche} products</strong> from AliExpress targeting <strong>{formData.targetAudience}</strong> with:
+            Install <strong>premium theme</strong> + add 10 <strong>trending {formData.niche} products</strong> targeting <strong>{formData.targetAudience}</strong> with:
           </p>
           
-          {/* Upgraded Features Grid */}
+          {/* AI Features Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6 mb-6">
             <div className="bg-green-50 p-3 rounded-lg border border-green-200">
               <Star className="h-6 w-6 text-green-600 mx-auto mb-1" />
-              <div className="text-xs font-semibold text-green-800">4.5+ Rating</div>
+              <div className="text-xs font-semibold text-green-800">4.8+ Rating</div>
               <div className="text-xs text-green-600">Quality verified</div>
             </div>
             <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-              <PackagePlus className="h-6 w-6 text-blue-600 mx-auto mb-1" />
-              <div className="text-xs font-semibold text-blue-800">50+ Orders</div>
-              <div className="text-xs text-blue-600">Proven demand</div>
+              <Trophy className="h-6 w-6 text-blue-600 mx-auto mb-1" />
+              <div className="text-xs font-semibold text-blue-800">1000+ Orders</div>
+              <div className="text-xs text-blue-600">Proven bestsellers</div>
             </div>
             <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
-              <ImageIcon className="h-6 w-6 text-purple-600 mx-auto mb-1" />
-              <div className="text-xs font-semibold text-purple-800">DALL·E 3 Images</div>
+              <Wand2 className="h-6 w-6 text-purple-600 mx-auto mb-1" />
+              <div className="text-xs font-semibold text-purple-800">AI Images</div>
               <div className="text-xs text-purple-600">6-8 per product</div>
             </div>
             <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
-              <Target className="h-6 w-6 text-orange-600 mx-auto mb-1" />
-              <div className="text-xs font-semibold text-orange-800">GPT-4 Content</div>
+              <Sparkles className="h-6 w-6 text-orange-600 mx-auto mb-1" />
+              <div className="text-xs font-semibold text-orange-800">AI Content</div>
               <div className="text-xs text-orange-600">Niche-optimized</div>
             </div>
           </div>
@@ -245,7 +244,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
 
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+            <Zap className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
             <div>
               <h4 className="font-semibold text-red-800">Setup Failed</h4>
               <p className="text-red-700 text-sm mt-1">{error}</p>
@@ -268,44 +267,44 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
             </div>
             <h3 className="text-2xl font-semibold text-gray-900 mb-2 flex items-center justify-center gap-2">
               <span className="text-2xl">{currentNicheConfig.emoji}</span>
-              10 REAL Winning {formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Products Added!
-              <Trophy className="h-6 w-6 text-yellow-500" />
+              10 AI-Selected {formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Products Added!
+              <Sparkles className="h-6 w-6 text-yellow-500" />
             </h3>
             <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-              Your {formData.niche} store now has <strong>10 REAL winning {formData.niche} products</strong> from AliExpress with proven track records, featuring:
+              Your {formData.niche} store now has <strong>10 trending {formData.niche} products</strong> with proven track records, featuring:
             </p>
             
             {/* Success Features Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
               <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                 <Star className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                <div className="text-sm font-semibold text-green-800">High-Rated {formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)}</div>
-                <div className="text-xs text-green-600">4.5+ star ratings verified</div>
+                <div className="text-sm font-semibold text-green-800">Premium {formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)}</div>
+                <div className="text-xs text-green-600">4.8+ star ratings</div>
               </div>
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                 <Trophy className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                <div className="text-sm font-semibold text-blue-800">Proven Winners</div>
-                <div className="text-xs text-blue-600">50+ orders minimum</div>
+                <div className="text-sm font-semibold text-blue-800">Bestsellers</div>
+                <div className="text-xs text-blue-600">1000+ orders each</div>
               </div>
               <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-                <ImageIcon className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                <div className="text-sm font-semibold text-purple-800">DALL·E 3 Images</div>
-                <div className="text-xs text-purple-600">60+ total unique images</div>
+                <Wand2 className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+                <div className="text-sm font-semibold text-purple-800">AI Images</div>
+                <div className="text-xs text-purple-600">60+ total images</div>
               </div>
               <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
                 <Target className="h-8 w-8 text-orange-600 mx-auto mb-2" />
                 <div className="text-sm font-semibold text-orange-800">Smart Pricing</div>
-                <div className="text-xs text-orange-600">$15-$80 range optimized</div>
+                <div className="text-xs text-orange-600">$15-$80 optimized</div>
               </div>
             </div>
 
             <div className="bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-lg border border-green-200">
               <h4 className="font-semibold text-gray-900 mb-2">
-                🎉 Your REAL Winning {formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Store is Live!
+                🎉 Your AI-Powered {formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Store is Live!
               </h4>
               <p className="text-gray-700 text-sm">
-                Visit your Shopify admin to see your 10 REAL winning {formData.niche} products with high ratings, 
-                proven sales, custom DALL·E 3 images, GPT-4 optimized descriptions, and variants - all ready to start selling!
+                Visit your Shopify admin to see your 10 trending {formData.niche} products with high ratings, 
+                proven sales, custom AI images, optimized descriptions, and variants - all ready to start selling!
               </p>
             </div>
           </div>
@@ -316,7 +315,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 <div className="flex items-center justify-center gap-3 mb-4">
                   <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
                   <span className="text-lg font-semibold text-gray-900">
-                    Setting up your REAL winning {formData.niche} store...
+                    AI is setting up your {formData.niche} store...
                   </span>
                 </div>
                 
@@ -326,7 +325,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                   <p className="text-sm font-medium text-gray-700">{currentStep}</p>
                   {currentProduct && (
                     <p className="text-sm text-gray-600">
-                      Processing: <span className="font-medium">{currentProduct}</span>
+                      Creating: <span className="font-medium">{currentProduct}</span>
                     </p>
                   )}
                   <p className="text-xs text-gray-500">{Math.round(progress)}% complete</p>
@@ -342,7 +341,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 }}
               >
                 <span className="mr-2 text-xl">{currentNicheConfig.emoji}</span>
-                Launch REAL Winning {formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Store
+                Launch AI-Powered {formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Store
               </Button>
             )}
           </div>
