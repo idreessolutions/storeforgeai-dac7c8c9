@@ -13,42 +13,45 @@ export const addProductsToShopify = async (
   storeStyle: string = 'modern',
   customInfo: string = ''
 ) => {
-  console.log(`🚀 Starting REAL product generation for ${niche} niche with AliExpress integration`);
+  console.log(`🚀 Starting REAL ${niche} product generation workflow with full AI integration`);
   
   try {
-    // Step 1: Get REAL winning products from AliExpress
-    onProgress(10, `Searching for 10 winning ${niche} products on AliExpress...`);
+    // Step 1: Get RapidAPI key and validate
+    onProgress(5, `Connecting to AliExpress API for ${niche} products...`);
     
     const rapidApiKey = await getRapidApiKey();
     if (!rapidApiKey) {
       throw new Error('RapidAPI key not configured for AliExpress integration');
     }
 
-    const aliExpressService = new AliExpressService(rapidApiKey);
-    const aliExpressProducts = await aliExpressService.fetchTrendingProducts(niche, 10);
+    // Step 2: Fetch REAL winning products from AliExpress
+    onProgress(15, `Searching for 10 winning ${niche} products on AliExpress...`);
     
-    if (!aliExpressProducts || aliExpressProducts.length === 0) {
+    const aliExpressService = new AliExpressService(rapidApiKey);
+    const realProducts = await aliExpressService.fetchWinningProducts(niche, 10);
+    
+    if (!realProducts || realProducts.length === 0) {
       throw new Error(`No winning ${niche} products found on AliExpress. Please try again.`);
     }
 
-    console.log(`✅ Found ${aliExpressProducts.length} real winning ${niche} products from AliExpress`);
-    onProgress(25, `Found ${aliExpressProducts.length} winning ${niche} products! Optimizing with AI...`);
+    console.log(`✅ Found ${realProducts.length} REAL winning ${niche} products from AliExpress`);
+    onProgress(25, `Found ${realProducts.length} winning ${niche} products! Processing with AI...`);
 
-    // Step 2: Generate AI-optimized content for each real product
-    const products = [];
+    // Step 3: Process each product with full AI enhancement
+    const processedProducts = [];
     
-    for (let i = 0; i < aliExpressProducts.length; i++) {
-      const aliProduct = aliExpressProducts[i];
-      const progressPercent = 25 + ((i / aliExpressProducts.length) * 45);
+    for (let i = 0; i < realProducts.length; i++) {
+      const product = realProducts[i];
+      const progressPercent = 25 + ((i / realProducts.length) * 50);
       
-      onProgress(progressPercent, `AI optimizing: ${aliProduct.title.substring(0, 50)}...`);
-      console.log(`🤖 AI optimizing product ${i + 1}/${aliExpressProducts.length}: ${aliProduct.title}`);
+      onProgress(progressPercent, `AI processing: ${product.title.substring(0, 50)}...`);
+      console.log(`🤖 Processing product ${i + 1}/${realProducts.length}: ${product.title}`);
 
       try {
-        // Generate AI-optimized content using real product data
+        // Generate AI-enhanced content
         const { data: aiResponse, error: aiError } = await supabase.functions.invoke('generate-products', {
           body: {
-            realProduct: aliProduct,
+            realProduct: product,
             niche,
             targetAudience,
             businessType,
@@ -59,41 +62,44 @@ export const addProductsToShopify = async (
           }
         });
 
-        if (aiError || !aiResponse?.success) {
-          console.warn(`⚠️ AI optimization failed for product ${i + 1}, using enhanced fallback`);
-          const enhancedProduct = createEnhancedProduct(aliProduct, niche, targetAudience, themeColor);
-          products.push(enhancedProduct);
-        } else {
-          console.log(`✅ AI optimization successful for product ${i + 1}`);
-          products.push(aiResponse.optimizedProduct);
+        if (aiError) {
+          console.error(`❌ AI processing failed for product ${i + 1}:`, aiError);
+          throw new Error(`AI processing failed: ${aiError.message}`);
         }
 
-        // Small delay to avoid rate limiting
+        if (!aiResponse?.success || !aiResponse?.optimizedProduct) {
+          console.error(`❌ Invalid AI response for product ${i + 1}:`, aiResponse);
+          throw new Error('Invalid AI response received');
+        }
+
+        processedProducts.push(aiResponse.optimizedProduct);
+        console.log(`✅ AI processing complete for product ${i + 1}: ${aiResponse.optimizedProduct.title}`);
+
+        // Rate limiting between AI calls
         await new Promise(resolve => setTimeout(resolve, 500));
 
       } catch (error) {
-        console.error(`❌ Error optimizing product ${i + 1}:`, error);
-        const enhancedProduct = createEnhancedProduct(aliProduct, niche, targetAudience, themeColor);
-        products.push(enhancedProduct);
+        console.error(`❌ Error processing product ${i + 1}:`, error);
+        throw new Error(`Failed to process ${niche} product: ${product.title}`);
       }
     }
 
-    if (products.length === 0) {
-      throw new Error(`Failed to process any ${niche} products. Please try again.`);
+    if (processedProducts.length === 0) {
+      throw new Error(`Failed to process any ${niche} products with AI`);
     }
 
-    onProgress(70, `Uploading ${products.length} optimized ${niche} products to Shopify...`);
+    onProgress(75, `Uploading ${processedProducts.length} AI-enhanced ${niche} products to Shopify...`);
 
-    // Step 3: Upload each product to Shopify with real data
-    const totalProducts = products.length;
+    // Step 4: Upload all products to Shopify
     let uploadedCount = 0;
+    const uploadErrors = [];
 
-    for (let i = 0; i < totalProducts; i++) {
-      const product = products[i];
-      const progressPercent = 70 + ((i / totalProducts) * 25);
+    for (let i = 0; i < processedProducts.length; i++) {
+      const product = processedProducts[i];
+      const progressPercent = 75 + ((i / processedProducts.length) * 20);
       
       onProgress(progressPercent, `Uploading: ${product.title.substring(0, 40)}...`);
-      console.log(`📦 Uploading product ${i + 1}/${totalProducts}: ${product.title}`);
+      console.log(`📦 Uploading product ${i + 1}/${processedProducts.length}: ${product.title}`);
 
       try {
         const { data: uploadResponse, error: uploadError } = await supabase.functions.invoke('add-shopify-product', {
@@ -106,7 +112,8 @@ export const addProductsToShopify = async (
         });
 
         if (uploadError) {
-          console.error(`❌ Failed to upload product ${product.title}:`, uploadError);
+          console.error(`❌ Upload failed for product ${product.title}:`, uploadError);
+          uploadErrors.push(`${product.title}: ${uploadError.message}`);
           continue;
         }
 
@@ -115,13 +122,15 @@ export const addProductsToShopify = async (
           console.log(`✅ Successfully uploaded: ${product.title}`);
         } else {
           console.error(`❌ Upload failed for ${product.title}:`, uploadResponse?.error);
+          uploadErrors.push(`${product.title}: ${uploadResponse?.error || 'Unknown error'}`);
         }
 
-        // Delay between uploads
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Rate limiting between uploads
+        await new Promise(resolve => setTimeout(resolve, 1500));
 
       } catch (productError) {
         console.error(`❌ Error uploading product ${product.title}:`, productError);
+        uploadErrors.push(`${product.title}: ${productError.message}`);
         continue;
       }
     }
@@ -129,84 +138,40 @@ export const addProductsToShopify = async (
     onProgress(95, 'Finalizing store setup...');
 
     if (uploadedCount === 0) {
-      throw new Error(`Failed to upload any ${niche} products. Please check your Shopify credentials and try again.`);
+      throw new Error(`Failed to upload any ${niche} products. Errors: ${uploadErrors.join('; ')}`);
     }
 
     onProgress(100, 'Store setup complete!');
     
-    console.log(`🎉 Successfully uploaded ${uploadedCount}/${totalProducts} real ${niche} products from AliExpress to Shopify`);
+    console.log(`🎉 Successfully uploaded ${uploadedCount}/${processedProducts.length} real ${niche} products to Shopify`);
+    
+    if (uploadErrors.length > 0) {
+      console.warn(`⚠️ Some uploads failed:`, uploadErrors);
+    }
     
     return {
       success: true,
       uploadedCount,
-      totalProducts,
-      message: `Successfully added ${uploadedCount} real winning ${niche} products from AliExpress to your store!`
+      totalProducts: processedProducts.length,
+      errors: uploadErrors,
+      message: `Successfully added ${uploadedCount} real winning ${niche} products with AI enhancement to your store!`
     };
 
   } catch (error) {
-    console.error(`❌ Real product generation workflow failed for ${niche}:`, error);
+    console.error(`❌ Real ${niche} product generation workflow failed:`, error);
     throw error;
   }
 };
 
 async function getRapidApiKey(): Promise<string | null> {
   try {
-    // Try to get from Supabase secrets first
     const { data, error } = await supabase.functions.invoke('get-rapidapi-key');
     if (!error && data?.rapidApiKey) {
       return data.rapidApiKey;
     }
   } catch (error) {
-    console.warn('Could not retrieve RapidAPI key from secrets:', error);
+    console.warn('Could not retrieve RapidAPI key:', error);
   }
   
-  // Fallback to environment or return null
   return null;
-}
-
-function createEnhancedProduct(aliProduct: any, niche: string, targetAudience: string, themeColor: string) {
-  const nicheEmojis = {
-    'fitness': '💪',
-    'beauty': '💄',
-    'tech': '📱',
-    'pets': '🐾',
-    'kitchen': '🍳',
-    'home': '🏠',
-    'fashion': '👗',
-    'baby': '👶',
-    'car': '🚗',
-    'gifts': '🎁'
-  };
-
-  const emoji = nicheEmojis[niche.toLowerCase()] || '⭐';
-  
-  return {
-    title: `${emoji} ${aliProduct.title}`,
-    description: `Transform your ${niche} experience with this premium ${aliProduct.title}! ${emoji}\n\n` +
-                `✨ Perfect for ${targetAudience}\n` +
-                `🏆 Proven winner with ${aliProduct.orders}+ orders\n` +
-                `⭐ ${aliProduct.rating}/5 star rating\n` +
-                `🎯 Key features: ${aliProduct.features.slice(0, 3).join(', ')}\n\n` +
-                `This bestselling product has been trusted by thousands of customers worldwide. ` +
-                `Join the community of satisfied customers who've already discovered the benefits!`,
-    features: aliProduct.features || [`Premium ${niche} quality`, 'Durable construction', 'Easy to use', 'Great value'],
-    benefits: [`Improves your ${niche} experience`, 'Saves time and effort', 'Long-lasting quality'],
-    recommendedPrice: Math.max(15, Math.min(80, aliProduct.price * 1.5)),
-    images: aliProduct.imageUrl ? [{ url: aliProduct.imageUrl, alt: aliProduct.title }] : [],
-    variants: aliProduct.variants || [
-      {
-        title: 'Standard',
-        price: Math.max(15, Math.min(80, aliProduct.price * 1.5)),
-        inventory_quantity: 100,
-        option1: 'Standard'
-      }
-    ],
-    category: niche,
-    source: 'aliexpress_real',
-    aliExpressData: {
-      itemId: aliProduct.itemId,
-      rating: aliProduct.rating,
-      orders: aliProduct.orders
-    }
-  };
 }
