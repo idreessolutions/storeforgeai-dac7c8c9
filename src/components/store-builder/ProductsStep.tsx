@@ -31,12 +31,12 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
   const [error, setError] = useState("");
   const { toast } = useToast();
 
-  // Niche-specific configurations
+  // Enhanced niche configurations for ALL 11 supported niches
   const nicheConfig = {
-    'pets': { emoji: '🐾', color: '#ff6600', description: 'Loving pet care essentials' },
-    'fitness': { emoji: '💪', color: '#00cc66', description: 'Powerful fitness gear' },
+    'pets': { emoji: '🐾', color: '#ff6600', description: 'Premium pet care essentials' },
+    'fitness': { emoji: '💪', color: '#00cc66', description: 'Powerful fitness equipment' },
     'beauty': { emoji: '💄', color: '#e91e63', description: 'Luxurious beauty products' },
-    'tech': { emoji: '📱', color: '#3f51b5', description: 'Cutting-edge tech gadgets' },
+    'tech': { emoji: '📱', color: '#3f51b5', description: 'Cutting-edge technology' },
     'baby': { emoji: '👶', color: '#fbbf24', description: 'Safe baby care items' },
     'home': { emoji: '🏠', color: '#4caf50', description: 'Cozy home essentials' },
     'fashion': { emoji: '👗', color: '#d81b60', description: 'Trendy fashion pieces' },
@@ -49,15 +49,13 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
   const currentNicheConfig = nicheConfig[formData.niche.toLowerCase()] || nicheConfig['pets'];
 
   const handleAddProducts = async () => {
-    console.log(`🏆 Starting REAL winning products workflow for ${formData.niche} with formData:`, formData);
+    console.log(`🚀 Starting REAL winning products workflow for ${formData.niche} with upgraded toolkit:`, formData);
     
-    if (!formData.shopifyUrl || !formData.accessToken || !formData.niche || !formData.targetAudience) {
-      const missingFields = [];
-      if (!formData.shopifyUrl) missingFields.push('Shopify URL');
-      if (!formData.accessToken) missingFields.push('Access Token');
-      if (!formData.niche) missingFields.push('Niche');
-      if (!formData.targetAudience) missingFields.push('Target Audience');
-      
+    // Validate all required fields
+    const requiredFields = ['shopifyUrl', 'accessToken', 'niche', 'targetAudience'];
+    const missingFields = requiredFields.filter(field => !formData[field]);
+    
+    if (missingFields.length > 0) {
       const errorMsg = `Missing required fields: ${missingFields.join(', ')}`;
       console.error('❌ Validation failed:', errorMsg);
       
@@ -85,8 +83,8 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         customInfo: formData.customInfo
       });
       
-      // Step 1: Install Refresh theme with niche-specific colors
-      setCurrentStep(`Installing Refresh theme with ${formData.niche} customization...`);
+      // Step 1: Install and customize Refresh theme
+      setCurrentStep(`🎨 Installing Refresh theme with ${formData.niche} customization...`);
       setProgress(15);
       
       const storeName = extractStoreName(formData.shopifyUrl);
@@ -101,7 +99,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
           });
           
           setProgress(30);
-          setCurrentStep(`✅ Refresh theme customized for ${formData.niche}`);
+          setCurrentStep(`✅ Refresh theme customized with ${formData.niche} colors`);
           await new Promise(resolve => setTimeout(resolve, 1000));
         } catch (themeError) {
           console.warn(`⚠️ Theme installation failed for ${formData.niche}, continuing with products:`, themeError);
@@ -109,19 +107,11 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         }
       }
 
-      // Step 2: Generate and upload 10 REAL winning products for the specific niche
-      setCurrentStep(`${currentNicheConfig.emoji} Fetching REAL winning ${formData.niche} products from AliExpress...`);
+      // Step 2: Generate and upload 10 REAL winning products
+      setCurrentStep(`${currentNicheConfig.emoji} Generating 10 REAL winning ${formData.niche} products from AliExpress...`);
       setProgress(40);
 
-      console.log(`🏆 Calling addProductsToShopify for ${formData.niche} niche:`, {
-        shopifyUrl: formData.shopifyUrl,
-        niche: formData.niche,
-        targetAudience: formData.targetAudience,
-        businessType: formData.businessType,
-        storeStyle: formData.storeStyle,
-        themeColor: formData.themeColor,
-        customInfo: formData.customInfo
-      });
+      console.log(`🏆 Calling addProductsToShopify for ${formData.niche} niche with upgraded toolkit`);
 
       await addProductsToShopify(
         formData.shopifyUrl,
@@ -144,7 +134,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       
       toast({
         title: `🏆 REAL Winning ${formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Store Complete!`,
-        description: `Your ${formData.niche} store now has the Refresh theme + 10 REAL winning ${formData.niche} products from AliExpress with high ratings (4.5+) and proven sales (50+ orders) - each with DALL·E 3 generated images!`,
+        description: `Your ${formData.niche} store now has the Refresh theme + 10 REAL winning ${formData.niche} products from AliExpress with ratings 4.5+, 50+ orders, DALL·E 3 images, and GPT-4 optimized content!`,
       });
 
     } catch (error) {
@@ -164,6 +154,8 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
           errorMessage = "Authentication failed. Please check your Shopify access token.";
         } else if (errorMessage.includes('timeout')) {
           errorMessage = `The operation timed out. Please try again - this sometimes happens with real ${formData.niche} product fetching.`;
+        } else if (errorMessage.includes('not supported')) {
+          errorMessage = `The niche "${formData.niche}" is not supported. Please select from: pets, fitness, beauty, tech, baby, home, fashion, kitchen, gaming, travel, office.`;
         }
       }
       
@@ -226,27 +218,27 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
             Install <strong>Refresh theme</strong> + add 10 <strong>REAL winning {formData.niche} products</strong> from AliExpress targeting <strong>{formData.targetAudience}</strong> with:
           </p>
           
-          {/* Real Products Features */}
+          {/* Upgraded Features Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6 mb-6">
             <div className="bg-green-50 p-3 rounded-lg border border-green-200">
               <Star className="h-6 w-6 text-green-600 mx-auto mb-1" />
               <div className="text-xs font-semibold text-green-800">4.5+ Rating</div>
-              <div className="text-xs text-green-600">Proven quality</div>
+              <div className="text-xs text-green-600">Quality verified</div>
             </div>
             <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
               <PackagePlus className="h-6 w-6 text-blue-600 mx-auto mb-1" />
               <div className="text-xs font-semibold text-blue-800">50+ Orders</div>
-              <div className="text-xs text-blue-600">Validated demand</div>
+              <div className="text-xs text-blue-600">Proven demand</div>
             </div>
             <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
               <ImageIcon className="h-6 w-6 text-purple-600 mx-auto mb-1" />
               <div className="text-xs font-semibold text-purple-800">DALL·E 3 Images</div>
-              <div className="text-xs text-purple-600">6-8 unique per product</div>
+              <div className="text-xs text-purple-600">6-8 per product</div>
             </div>
             <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
               <Target className="h-6 w-6 text-orange-600 mx-auto mb-1" />
               <div className="text-xs font-semibold text-orange-800">GPT-4 Content</div>
-              <div className="text-xs text-orange-600">Niche-optimized copy</div>
+              <div className="text-xs text-orange-600">Niche-optimized</div>
             </div>
           </div>
         </div>
@@ -258,7 +250,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               <h4 className="font-semibold text-red-800">Setup Failed</h4>
               <p className="text-red-700 text-sm mt-1">{error}</p>
               <p className="text-red-600 text-xs mt-2">
-                Make sure you have both OpenAI and RapidAPI keys configured in Supabase settings.
+                Supported niches: pets, fitness, beauty, tech, baby, home, fashion, kitchen, gaming, travel, office
               </p>
             </div>
           </div>
@@ -280,7 +272,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               <Trophy className="h-6 w-6 text-yellow-500" />
             </h3>
             <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-              Your {formData.niche} store now has <strong>10 REAL winning {formData.niche} products</strong> from AliExpress with proven track records targeting <strong>{formData.targetAudience}</strong>, featuring:
+              Your {formData.niche} store now has <strong>10 REAL winning {formData.niche} products</strong> from AliExpress with proven track records, featuring:
             </p>
             
             {/* Success Features Grid */}
@@ -293,7 +285,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                 <Trophy className="h-8 w-8 text-blue-600 mx-auto mb-2" />
                 <div className="text-sm font-semibold text-blue-800">Proven Winners</div>
-                <div className="text-xs text-blue-600">50+ orders each</div>
+                <div className="text-xs text-blue-600">50+ orders minimum</div>
               </div>
               <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
                 <ImageIcon className="h-8 w-8 text-purple-600 mx-auto mb-2" />
@@ -303,7 +295,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
                 <Target className="h-8 w-8 text-orange-600 mx-auto mb-2" />
                 <div className="text-sm font-semibold text-orange-800">Smart Pricing</div>
-                <div className="text-xs text-orange-600">Optimized for {formData.niche}</div>
+                <div className="text-xs text-orange-600">$15-$80 range optimized</div>
               </div>
             </div>
 
@@ -313,7 +305,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               </h4>
               <p className="text-gray-700 text-sm">
                 Visit your Shopify admin to see your 10 REAL winning {formData.niche} products with high ratings, 
-                proven sales, custom DALL·E 3 images, and GPT-4 optimized descriptions - all ready to start selling!
+                proven sales, custom DALL·E 3 images, GPT-4 optimized descriptions, and variants - all ready to start selling!
               </p>
             </div>
           </div>
