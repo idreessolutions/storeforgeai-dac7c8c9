@@ -19,6 +19,7 @@ interface StepRendererProps {
   handleInputChange: (field: keyof FormData, value: string | boolean) => void;
   isGenerating: boolean;
   onNext: () => void;
+  validateCurrentStep?: (step: number) => { isValid: boolean; missingFields: string[] };
 }
 
 const StepRenderer = ({ 
@@ -26,7 +27,8 @@ const StepRenderer = ({
   formData, 
   handleInputChange, 
   isGenerating,
-  onNext
+  onNext,
+  validateCurrentStep
 }: StepRendererProps) => {
   switch (currentStep) {
     case 0:

@@ -42,8 +42,8 @@ export const useStoreBuilderLogic = () => {
     storeName: '',
     niche: '',
     targetAudience: '',
-    businessType: 'e-commerce',
-    storeStyle: 'modern',
+    businessType: '',
+    storeStyle: '',
     customInfo: '',
     
     // Shopify Setup  
@@ -91,23 +91,70 @@ export const useStoreBuilderLogic = () => {
     });
   };
 
+  // Enhanced validation function
+  const validateCurrentStep = (step: number): { isValid: boolean; missingFields: string[] } => {
+    const missingFields: string[] = [];
+
+    switch (step) {
+      case 1: // Store Details Step
+        if (!formData.storeName?.trim()) missingFields.push("Store Name");
+        if (!formData.niche?.trim()) missingFields.push("Store Niche");
+        if (!formData.targetAudience?.trim()) missingFields.push("Target Audience");
+        if (!formData.businessType?.trim()) missingFields.push("Business Type");
+        if (!formData.storeStyle?.trim()) missingFields.push("Store Style Preference");
+        break;
+      
+      case 3: // Shopify Setup
+        if (!formData.shopifyUrl?.trim()) missingFields.push("Shopify Store URL");
+        break;
+        
+      case 4: // API Config
+        if (!formData.accessToken?.trim()) missingFields.push("Shopify Access Token");
+        break;
+        
+      default:
+        // No validation needed for other steps
+        break;
+    }
+
+    return {
+      isValid: missingFields.length === 0,
+      missingFields
+    };
+  };
+
   const handleNextStep = async () => {
     console.log('Next step clicked, current step:', currentStep);
     console.log('Current formData:', formData);
     
     try {
-      // Validate required fields for ProductsStep (step 6)
+      // Validate current step before proceeding
+      const validation = validateCurrentStep(currentStep);
+      
+      if (!validation.isValid) {
+        toast.error(`Please fill in all required fields: ${validation.missingFields.join(', ')}`);
+        console.log('❌ Validation failed for step', currentStep, '- Missing fields:', validation.missingFields);
+        return;
+      }
+
+      // Special validation for ProductsStep (step 6) preparation
       if (currentStep === 5) { // Going TO step 6 (ProductsStep)
-        if (!formData.niche || !formData.targetAudience) {
-          toast.error('Please fill in all required fields (niche and target audience)');
+        // Double-check all store details are complete
+        const storeDetailsValidation = validateCurrentStep(1);
+        if (!storeDetailsValidation.isValid) {
+          toast.error(`Store details incomplete: ${storeDetailsValidation.missingFields.join(', ')}`);
           return;
         }
-        console.log('✅ Required fields validated for ProductsStep:', {
+        
+        console.log('✅ All required fields validated for ProductsStep:', {
+          storeName: formData.storeName,
           niche: formData.niche,
           targetAudience: formData.targetAudience,
           businessType: formData.businessType,
           storeStyle: formData.storeStyle,
-          customInfo: formData.customInfo
+          customInfo: formData.customInfo,
+          shopifyUrl: formData.shopifyUrl,
+          accessToken: formData.accessToken
         });
       }
 
@@ -129,6 +176,12 @@ export const useStoreBuilderLogic = () => {
       });
       
       setCurrentStep(currentStep + 1);
+      
+      // Show success message for completing store details
+      if (currentStep === 1) {
+        toast.success(`✅ Store details saved! AI will generate ${formData.niche} products for ${formData.targetAudience}`);
+      }
+      
     } catch (error) {
       console.error('Error in next step:', error);
       toast.error('Failed to proceed to next step');
@@ -147,6 +200,7 @@ export const useStoreBuilderLogic = () => {
     formData,
     handleInputChange,
     handleNextStep,
-    handlePrevStep
+    handlePrevStep,
+    validateCurrentStep
   };
 };

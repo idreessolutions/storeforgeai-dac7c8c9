@@ -19,7 +19,8 @@ const StoreBuilder = ({ onBack, onViewAutomation }: StoreBuilderProps) => {
     formData,
     handleInputChange,
     handleNextStep,
-    handlePrevStep
+    handlePrevStep,
+    validateCurrentStep
   } = useStoreBuilderLogic();
 
   return (
@@ -45,6 +46,7 @@ const StoreBuilder = ({ onBack, onViewAutomation }: StoreBuilderProps) => {
           handleInputChange={handleInputChange}
           isGenerating={isGenerating}
           onNext={handleNextStep}
+          validateCurrentStep={validateCurrentStep}
         />
 
         {/* Navigation Component - only show if not on step 0 */}
@@ -55,6 +57,7 @@ const StoreBuilder = ({ onBack, onViewAutomation }: StoreBuilderProps) => {
             isGenerating={isGenerating}
             onPrevious={handlePrevStep}
             onNext={handleNextStep}
+            validateCurrentStep={validateCurrentStep}
           />
         )}
       </div>
