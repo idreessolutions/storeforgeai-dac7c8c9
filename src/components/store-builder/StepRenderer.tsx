@@ -95,7 +95,8 @@ const StepRenderer = ({
             targetAudience: formData.targetAudience,
             businessType: formData.businessType,
             storeStyle: formData.storeStyle,
-            customInfo: formData.customInfo
+            customInfo: formData.customInfo,
+            storeName: formData.storeName
           }} 
           handleInputChange={handleInputChange} 
         />
