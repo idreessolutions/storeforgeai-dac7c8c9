@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ interface ProductsStepProps {
     businessType: string;
     storeStyle: string;
     customInfo: string;
+    storeName: string;
   };
   handleInputChange: (field: string, value: boolean) => void;
 }
@@ -51,7 +53,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
     console.log(`🚀 Starting AI product generation workflow for ${formData.niche}:`, formData);
     
     // Validate all required fields
-    const requiredFields = ['shopifyUrl', 'accessToken', 'niche', 'targetAudience'];
+    const requiredFields = ['shopifyUrl', 'accessToken', 'niche', 'targetAudience', 'storeName'];
     const missingFields = requiredFields.filter(field => !formData[field]);
     
     if (missingFields.length > 0) {
@@ -74,6 +76,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
 
     try {
       console.log(`🤖 Starting AI-powered store setup for ${formData.niche}:`, {
+        storeName: formData.storeName,
         niche: formData.niche,
         targetAudience: formData.targetAudience,
         businessType: formData.businessType,
@@ -91,10 +94,14 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       if (storeName) {
         try {
           await installAndConfigureSenseTheme({
-            storeName,
+            storeName: formData.storeName || storeName,
             accessToken: formData.accessToken,
             themeColor: formData.themeColor || currentNicheConfig.color,
-            niche: formData.niche
+            niche: formData.niche,
+            targetAudience: formData.targetAudience,
+            businessType: formData.businessType,
+            storeStyle: formData.storeStyle,
+            customInfo: formData.customInfo
           });
           
           setProgress(30);
