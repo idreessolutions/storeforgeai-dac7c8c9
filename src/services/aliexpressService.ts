@@ -1,10 +1,9 @@
-
 import { AliExpressProduct } from './aliexpress/types';
 import { NicheKeywordsManager } from './aliexpress/nicheKeywords';
 import { QualityValidator } from './aliexpress/qualityValidator';
 import { ProductParser } from './aliexpress/productParser';
 
-export { AliExpressProduct } from './aliexpress/types';
+export type { AliExpressProduct } from './aliexpress/types';
 
 export class AliExpressService {
   private rapidApiKey: string;
