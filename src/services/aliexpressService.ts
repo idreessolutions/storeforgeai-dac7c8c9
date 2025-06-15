@@ -1,3 +1,4 @@
+
 export interface AliExpressProduct {
   itemId: string;
   title: string;
@@ -324,32 +325,6 @@ export class AliExpressService {
     return keywordsMap[niche.toLowerCase()] || [niche];
   }
 
-  private meetsQualityStandards(product: AliExpressProduct, niche: string): boolean {
-    const checks = {
-      hasMinimumOrders: product.orders >= 50,
-      hasGoodRating: product.rating >= 4.2,
-      hasValidImage: product.imageUrl && product.imageUrl.length > 10,
-      hasValidTitle: product.title && product.title.length > 10,
-      isNicheRelevant: this.isNicheRelevant(product.title, niche),
-      hasReasonablePrice: product.price >= 5 && product.price <= 200
-    };
-
-    const passed = Object.values(checks).every(check => check === true);
-    
-    if (!passed) {
-      console.log(`⚠️ Product failed quality check: ${product.title.substring(0, 40)}...`, checks);
-    }
-
-    return passed;
-  }
-
-  private isNicheRelevant(title: string, niche: string): boolean {
-    const titleLower = title.toLowerCase();
-    const nicheKeywords = this.getNicheKeywords(niche);
-    
-    return nicheKeywords.some(keyword => titleLower.includes(keyword.toLowerCase()));
-  }
-
   private isSimilarProduct(product1: AliExpressProduct, product2: AliExpressProduct): boolean {
     const title1 = product1.title.toLowerCase().replace(/[^a-z0-9]/g, '');
     const title2 = product2.title.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -394,102 +369,6 @@ export class AliExpressService {
     }
     
     return matrix[str2.length][str1.length];
-  }
-
-  private getNicheSearchTerms(niche: string): string[] {
-    const searchTermsMap: { [key: string]: string[] } = {
-      'pets': [
-        'pet feeder automatic', 'dog puzzle toy', 'cat water fountain', 'pet GPS tracker',
-        'dog grooming brush', 'pet bed orthopedic', 'pet treat dispenser', 'pet car harness',
-        'pet training collar', 'automatic pet door'
-      ],
-      'fitness': [
-        'resistance bands set', 'foam roller muscle', 'yoga mat premium', 'dumbbells adjustable',
-        'fitness tracker watch', 'protein shaker bottle', 'exercise ball stability', 'gym gloves workout',
-        'jump rope weighted', 'ab roller wheel'
-      ],
-      'beauty': [
-        'LED face mask', 'facial cleansing brush', 'hair straightener ceramic', 'makeup brush set',
-        'eyelash curler heated', 'face roller jade', 'nail lamp UV LED', 'hair dryer ionic',
-        'makeup mirror LED', 'facial steamer'
-      ],
-      'tech': [
-        'wireless charger fast', 'bluetooth earbuds noise cancelling', 'phone mount car magnetic',
-        'portable power bank', 'USB hub type C', 'smartphone gimbal stabilizer', 'LED ring light',
-        'wireless mouse gaming', 'laptop stand adjustable', 'cable organizer desk'
-      ],
-      'kitchen': [
-        'air fryer digital', 'kitchen scale smart', 'silicone utensil set', 'coffee grinder electric',
-        'food storage containers', 'cutting board bamboo', 'kitchen knife set', 'blender portable',
-        'spice rack magnetic', 'dish drying rack'
-      ],
-      'home': [
-        'LED strip lights smart', 'essential oil diffuser', 'throw pillow covers', 'wall decor modern',
-        'organizer storage bins', 'curtains blackout', 'rug area living room', 'plant pot decorative',
-        'picture frames collage', 'candles scented soy'
-      ],
-      'baby': [
-        'baby monitor video', 'diaper bag backpack', 'baby bottle warmer', 'teething toys silicone',
-        'baby carrier ergonomic', 'high chair portable', 'baby sleep sound machine', 'baby bathtub foldable',
-        'baby food maker', 'baby gate safety'
-      ],
-      'fashion': [
-        'jewelry organizer', 'watch band leather', 'sunglasses polarized', 'scarf silk women',
-        'belt leather men', 'handbag crossbody', 'wallet RFID blocking', 'hat baseball cap',
-        'earrings stud set', 'necklace pendant'
-      ]
-    };
-
-    return searchTermsMap[niche.toLowerCase()] || searchTermsMap['tech'];
-  }
-
-  private getNicheKeywords(niche: string): string[] {
-    const keywordsMap: { [key: string]: string[] } = {
-      'pets': ['pet', 'dog', 'cat', 'animal', 'puppy', 'kitten', 'collar', 'leash', 'food', 'toy'],
-      'fitness': ['fitness', 'gym', 'workout', 'exercise', 'muscle', 'training', 'sport', 'health', 'yoga', 'running'],
-      'beauty': ['beauty', 'makeup', 'cosmetic', 'skincare', 'facial', 'hair', 'nail', 'skin', 'face', 'lip'],
-      'tech': ['tech', 'electronic', 'digital', 'smart', 'wireless', 'bluetooth', 'USB', 'phone', 'computer', 'gadget'],
-      'kitchen': ['kitchen', 'cooking', 'cook', 'food', 'chef', 'recipe', 'utensil', 'appliance', 'dining', 'meal'],
-      'home': ['home', 'house', 'decor', 'furniture', 'room', 'living', 'bedroom', 'decoration', 'interior', 'design'],
-      'baby': ['baby', 'infant', 'newborn', 'toddler', 'child', 'kid', 'parent', 'mother', 'father', 'nursery'],
-      'fashion': ['fashion', 'style', 'clothing', 'wear', 'dress', 'shirt', 'accessory', 'jewelry', 'bag', 'shoe']
-    };
-
-    return keywordsMap[niche.toLowerCase()] || keywordsMap['tech'];
-  }
-
-  private extractProductFeatures(title: string, niche: string, itemData: any): string[] {
-    const features = [];
-    const titleLower = title.toLowerCase();
-
-    // Niche-specific feature extraction
-    const nicheFeatures: { [key: string]: string[] } = {
-      'pets': ['Durable construction', 'Pet-safe materials', 'Easy to clean', 'Comfortable design'],
-      'fitness': ['Durable materials', 'Ergonomic design', 'Professional grade', 'Easy to use'],
-      'beauty': ['Skin-friendly', 'Professional quality', 'Easy application', 'Long-lasting'],
-      'tech': ['Advanced technology', 'User-friendly', 'Durable build', 'Fast performance'],
-      'kitchen': ['Food-grade materials', 'Easy to clean', 'Durable construction', 'Efficient design'],
-      'home': ['Premium materials', 'Stylish design', 'Easy installation', 'Long-lasting'],
-      'baby': ['Baby-safe materials', 'Easy to use', 'Comfortable design', 'Durable construction'],
-      'fashion': ['High-quality materials', 'Stylish design', 'Comfortable fit', 'Durable construction']
-    };
-
-    // Add niche-specific features
-    const defaultFeatures = nicheFeatures[niche.toLowerCase()] || nicheFeatures['tech'];
-    features.push(...defaultFeatures);
-
-    // Extract features from title keywords
-    if (titleLower.includes('wireless') || titleLower.includes('bluetooth')) {
-      features.push('Wireless connectivity');
-    }
-    if (titleLower.includes('waterproof') || titleLower.includes('water resistant')) {
-      features.push('Waterproof design');
-    }
-    if (titleLower.includes('portable') || titleLower.includes('compact')) {
-      features.push('Portable and lightweight');
-    }
-
-    return features.slice(0, 5); // Limit to 5 features
   }
 
   private extractProductVariants(itemData: any, basePrice: number): Array<{ color?: string; size?: string; price?: number; title: string }> {
