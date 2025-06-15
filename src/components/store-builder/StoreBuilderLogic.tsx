@@ -91,12 +91,12 @@ export const useStoreBuilderLogic = () => {
     });
   };
 
-  // Enhanced validation function
+  // Enhanced validation function that works silently
   const validateCurrentStep = (step: number): { isValid: boolean; missingFields: string[] } => {
     const missingFields: string[] = [];
 
     switch (step) {
-      case 1: // Store Details Step
+      case 1: // Store Details Step - All fields required but validation is silent
         if (!formData.storeName?.trim()) missingFields.push("Store Name");
         if (!formData.niche?.trim()) missingFields.push("Store Niche");
         if (!formData.targetAudience?.trim()) missingFields.push("Target Audience");
@@ -125,15 +125,22 @@ export const useStoreBuilderLogic = () => {
 
   const handleNextStep = async () => {
     console.log('Next step clicked, current step:', currentStep);
-    console.log('Current formData:', formData);
+    console.log('Store Details:', {
+      storeName: formData.storeName,
+      niche: formData.niche,
+      targetAudience: formData.targetAudience,
+      businessType: formData.businessType,
+      storeStyle: formData.storeStyle,
+      customInfo: formData.customInfo
+    });
     
     try {
-      // Validate current step before proceeding
+      // Validate current step before proceeding (silent validation)
       const validation = validateCurrentStep(currentStep);
       
       if (!validation.isValid) {
-        toast.error(`Please fill in all required fields: ${validation.missingFields.join(', ')}`);
         console.log('❌ Validation failed for step', currentStep, '- Missing fields:', validation.missingFields);
+        // Don't show error to user, just prevent progression
         return;
       }
 
@@ -142,11 +149,11 @@ export const useStoreBuilderLogic = () => {
         // Double-check all store details are complete
         const storeDetailsValidation = validateCurrentStep(1);
         if (!storeDetailsValidation.isValid) {
-          toast.error(`Store details incomplete: ${storeDetailsValidation.missingFields.join(', ')}`);
+          console.log('❌ Store details incomplete for ProductsStep');
           return;
         }
         
-        console.log('✅ All required fields validated for ProductsStep:', {
+        console.log('✅ All store personalization details ready for ProductsStep:', {
           storeName: formData.storeName,
           niche: formData.niche,
           targetAudience: formData.targetAudience,
@@ -154,11 +161,12 @@ export const useStoreBuilderLogic = () => {
           storeStyle: formData.storeStyle,
           customInfo: formData.customInfo,
           shopifyUrl: formData.shopifyUrl,
-          accessToken: formData.accessToken
+          accessToken: formData.accessToken,
+          themeColor: formData.selectedColor
         });
       }
 
-      // Save session data and proceed to next step
+      // Save session data with ALL store personalization details
       await saveSessionData({
         completed_steps: currentStep + 1,
         niche: formData.niche,
@@ -179,7 +187,7 @@ export const useStoreBuilderLogic = () => {
       
       // Show success message for completing store details
       if (currentStep === 1) {
-        toast.success(`✅ Store details saved! AI will generate ${formData.niche} products for ${formData.targetAudience}`);
+        toast.success(`✅ ${formData.storeName} store details saved! AI will generate ${formData.niche} products for ${formData.targetAudience} with ${formData.storeStyle} styling`);
       }
       
     } catch (error) {

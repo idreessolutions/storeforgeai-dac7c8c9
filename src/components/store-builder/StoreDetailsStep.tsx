@@ -6,8 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormData } from "./StoreBuilderLogic";
-import { Store, Target, Building, Palette, Info, AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Store, Target, Building, Palette, Info } from "lucide-react";
 
 interface StoreDetailsStepProps {
   formData: FormData;
@@ -15,29 +14,6 @@ interface StoreDetailsStepProps {
 }
 
 const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) => {
-  // Validation function to check if all required fields are filled
-  const isFormValid = () => {
-    return !!(
-      formData.storeName?.trim() &&
-      formData.niche?.trim() &&
-      formData.targetAudience?.trim() &&
-      formData.businessType &&
-      formData.storeStyle
-    );
-  };
-
-  const getMissingFields = () => {
-    const missing = [];
-    if (!formData.storeName?.trim()) missing.push("Store Name");
-    if (!formData.niche?.trim()) missing.push("Store Niche");
-    if (!formData.targetAudience?.trim()) missing.push("Target Audience");
-    if (!formData.businessType) missing.push("Business Type");
-    if (!formData.storeStyle) missing.push("Store Style");
-    return missing;
-  };
-
-  const missingFields = getMissingFields();
-
   return (
     <div className="space-y-8">
       <div className="text-center space-y-4">
@@ -48,20 +24,9 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
         </p>
       </div>
 
-      {!isFormValid() && (
-        <Alert className="max-w-4xl mx-auto border-red-200 bg-red-50">
-          <AlertCircle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-800">
-            <strong>Required fields missing:</strong> {missingFields.join(", ")}
-            <br />
-            <span className="text-sm">Please fill in all required fields to continue to the next step.</span>
-          </AlertDescription>
-        </Alert>
-      )}
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
         {/* Basic Store Information */}
-        <Card className={!formData.storeName?.trim() ? "border-red-200" : ""}>
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Store className="h-5 w-5" />
@@ -71,34 +36,30 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
           <CardContent className="space-y-4">
             <div>
               <Label htmlFor="storeName" className="text-sm font-medium">
-                Store Name <span className="text-red-500">*</span>
+                Store Name
               </Label>
               <Input
                 id="storeName"
-                placeholder="e.g., Premium Pet Paradise, FitLife Pro, TechGenius Store"
+                placeholder="e.g., Batwood Store, Premium Pet Paradise, FitLife Pro"
                 value={formData.storeName}
                 onChange={(e) => onInputChange('storeName', e.target.value)}
-                required
-                className={!formData.storeName?.trim() ? "border-red-300 focus:border-red-500" : ""}
               />
               <p className="text-xs text-gray-500 mt-1">
-                This will be used to personalize your store theme and branding
+                This will be your Shopify store name and branding
               </p>
             </div>
             
             <div>
               <Label htmlFor="niche" className="text-sm font-medium">
-                Store Niche <span className="text-red-500">*</span>
+                Store Niche
               </Label>
               <Input
                 id="niche"
-                placeholder="e.g., Pet Products, Fitness Equipment, Beauty & Skincare, Tech Gadgets, Kitchen Tools"
+                placeholder="e.g., Pet Products, Fitness Equipment, Beauty & Skincare, Tech Gadgets"
                 value={formData.niche}
                 onChange={(e) => onInputChange('niche', e.target.value)}
-                required
-                className={!formData.niche?.trim() ? "border-red-300 focus:border-red-500" : ""}
               />
-              <p className="text-xs text-red-600 mt-1 font-medium">
+              <p className="text-xs text-blue-600 mt-1 font-medium">
                 This determines the 10 winning products we generate - be specific!
               </p>
             </div>
@@ -106,7 +67,7 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
         </Card>
 
         {/* Target Audience */}
-        <Card className={!formData.targetAudience?.trim() ? "border-red-200" : ""}>
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Target className="h-5 w-5" />
@@ -116,30 +77,28 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
           <CardContent className="space-y-4">
             <div>
               <Label htmlFor="targetAudience" className="text-sm font-medium">
-                Who are you selling to? <span className="text-red-500">*</span>
+                Who are you selling to?
               </Label>
               <Input
                 id="targetAudience"
-                placeholder="e.g., Dog owners aged 25-45, Fitness enthusiasts, Busy working moms, Tech-savvy millennials"
+                placeholder="e.g., Dog owners aged 25-45, Fitness enthusiasts, Busy working moms"
                 value={formData.targetAudience}
                 onChange={(e) => onInputChange('targetAudience', e.target.value)}
-                required
-                className={!formData.targetAudience?.trim() ? "border-red-300 focus:border-red-500" : ""}
               />
-              <p className="text-xs text-red-600 mt-1 font-medium">
-                Products, images, and descriptions will be tailored for this specific audience
+              <p className="text-xs text-blue-600 mt-1 font-medium">
+                Products, images, and descriptions will be tailored for this audience
               </p>
             </div>
 
             <div>
               <Label htmlFor="businessType" className="text-sm font-medium">
-                Business Type <span className="text-red-500">*</span>
+                Business Type
               </Label>
               <Select 
                 value={formData.businessType} 
                 onValueChange={(value) => onInputChange('businessType', value)}
               >
-                <SelectTrigger className={!formData.businessType ? "border-red-300" : ""}>
+                <SelectTrigger>
                   <SelectValue placeholder="Select your business model" />
                 </SelectTrigger>
                 <SelectContent>
@@ -159,7 +118,7 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
         </Card>
 
         {/* Store Style & Design */}
-        <Card className={!formData.storeStyle ? "border-red-200" : ""}>
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Palette className="h-5 w-5" />
@@ -169,13 +128,13 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
           <CardContent className="space-y-4">
             <div>
               <Label htmlFor="storeStyle" className="text-sm font-medium">
-                Store Style Preference <span className="text-red-500">*</span>
+                Store Style Preference
               </Label>
               <Select 
                 value={formData.storeStyle} 
                 onValueChange={(value) => onInputChange('storeStyle', value)}
               >
-                <SelectTrigger className={!formData.storeStyle ? "border-red-300" : ""}>
+                <SelectTrigger>
                   <SelectValue placeholder="Choose your store's aesthetic" />
                 </SelectTrigger>
                 <SelectContent>
@@ -187,7 +146,7 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
                   <SelectItem value="trendy">Trendy & Hip</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-red-600 mt-1 font-medium">
+              <p className="text-xs text-blue-600 mt-1 font-medium">
                 This affects product images, descriptions, and overall store design theme
               </p>
             </div>
@@ -255,26 +214,11 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
             </div>
           </div>
           
-          {isFormValid() ? (
-            <div className="mt-4 p-3 bg-green-100 rounded-lg border border-green-200">
-              <p className="text-sm text-green-800">
-                <span className="font-medium">✅ Ready for AI Generation:</span> AI will create 10 winning {formData.niche?.toLowerCase()} products 
-                specifically designed for {formData.targetAudience?.toLowerCase()} with {formData.storeStyle?.toLowerCase()} styling for your {formData.businessType} business.
-              </p>
-              {formData.customInfo && (
-                <p className="text-xs text-green-700 mt-1">
-                  Custom requirements will be incorporated into product selection and design.
-                </p>
-              )}
-            </div>
-          ) : (
-            <div className="mt-4 p-3 bg-red-100 rounded-lg border border-red-200">
-              <p className="text-sm text-red-800">
-                <span className="font-medium">⚠️ Incomplete Configuration:</span> Please fill in all required fields 
-                to enable AI product generation for your store.
-              </p>
-            </div>
-          )}
+          <div className="mt-4 p-3 bg-green-100 rounded-lg border border-green-200">
+            <p className="text-sm text-green-800">
+              <span className="font-medium">✅ Configuration Ready:</span> AI will create your personalized store with these details.
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

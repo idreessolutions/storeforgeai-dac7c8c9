@@ -20,7 +20,7 @@ const Navigation = ({
   onNext,
   validateCurrentStep 
 }: NavigationProps) => {
-  // Check if current step is valid
+  // Check if current step is valid (but don't show errors to user)
   const validation = validateCurrentStep ? validateCurrentStep(currentStep) : { isValid: true, missingFields: [] };
   const canProceed = validation.isValid;
 
@@ -41,13 +41,7 @@ const Navigation = ({
         Previous
       </Button>
 
-      <div className="flex items-center gap-4">
-        {!canProceed && validation.missingFields.length > 0 && (
-          <p className="text-sm text-red-600 font-medium">
-            Required: {validation.missingFields.join(", ")}
-          </p>
-        )}
-        
+      <div className="flex items-center gap-4">        
         <Button
           onClick={onNext}
           disabled={isGenerating || !canProceed}
