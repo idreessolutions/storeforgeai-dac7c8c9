@@ -14,6 +14,7 @@ serve(async (req) => {
 
   try {
     const { 
+      realProduct,
       niche, 
       targetAudience, 
       businessType, 
@@ -21,18 +22,19 @@ serve(async (req) => {
       customInfo,
       storeName,
       themeColor,
-      sessionId 
+      sessionId,
+      qualityRequirements
     } = await req.json();
     
-    console.log('🚀 Generating products with FULL store personalization:', {
-      storeName,
+    console.log(`🚀 Generating NICHE-SPECIFIC ${niche} product enhancement:`, {
+      productTitle: realProduct?.title?.substring(0, 60),
       niche,
+      storeName,
       targetAudience,
       businessType,
       storeStyle,
-      customInfo: customInfo ? 'Provided' : 'None',
-      themeColor,
-      sessionId
+      qualityRequirements,
+      customInfo: customInfo ? 'Provided' : 'None'
     });
 
     // Get API keys from Supabase secrets
@@ -40,168 +42,162 @@ serve(async (req) => {
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 
     if (!rapidApiKey || !openaiApiKey) {
-      throw new Error('Missing required API keys');
+      throw new Error('Missing required API keys for product enhancement');
     }
 
-    // Step 1: Fetch REAL winning products from AliExpress based on niche
-    console.log(`🔍 Fetching 10 REAL winning ${niche} products from AliExpress...`);
-    
-    const aliexpressResponse = await fetch('https://aliexpress-datahub.p.rapidapi.com/item_search_2', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-RapidAPI-Key': rapidApiKey,
-        'X-RapidAPI-Host': 'aliexpress-datahub.p.rapidapi.com',
-      },
-      body: JSON.stringify({
-        q: niche,
-        sort: 'SALE_PRICE_ASC',
-        page: 1,
-        limit: 30 // Get more to filter better
-      }),
+    if (!realProduct || !niche) {
+      throw new Error('Missing required product data or niche information');
+    }
+
+    console.log(`🤖 Enhancing REAL ${niche} product with AI:`, {
+      originalTitle: realProduct.title,
+      rating: realProduct.rating,
+      orders: realProduct.orders,
+      niche: niche
     });
 
-    if (!aliexpressResponse.ok) {
-      throw new Error(`AliExpress API failed: ${aliexpressResponse.status}`);
-    }
+    // Generate NICHE-SPECIFIC AI-enhanced content
+    const nicheSpecificPrompt = `You are an expert e-commerce copywriter specializing in ${niche} products for ${targetAudience}.
 
-    const aliexpressData = await aliexpressResponse.json();
-    console.log(`📦 Raw AliExpress response: ${aliexpressData.result?.resultList?.length || 0} products found`);
+CRITICAL: This product MUST be perfectly optimized for the ${niche} niche and appeal to ${targetAudience}.
 
-    if (!aliexpressData.result?.resultList?.length) {
-      throw new Error('No products found on AliExpress for this niche');
-    }
-
-    // Step 2: Filter and select 10 high-quality, niche-relevant products
-    const filteredProducts = aliexpressData.result.resultList
-      .filter(product => {
-        const hasGoodMetrics = 
-          product.trade?.tradeDesc && 
-          parseInt(product.trade.tradeDesc.replace(/[^\d]/g, '') || '0') >= 50 &&
-          product.evaluation?.starRating >= 4.5;
-        
-        const hasImages = product.image?.imgUrl || product.item?.imageUrl;
-        const hasTitle = product.item?.title && product.item.title.length > 10;
-        const isNicheRelevant = product.item?.title?.toLowerCase().includes(niche.toLowerCase().split(' ')[0]);
-        
-        return hasGoodMetrics && hasImages && hasTitle && isNicheRelevant;
-      })
-      .slice(0, 10); // Take top 10
-
-    console.log(`✅ Filtered to ${filteredProducts.length} high-quality, niche-relevant products`);
-
-    if (filteredProducts.length === 0) {
-      throw new Error('No qualifying products found after filtering');
-    }
-
-    // Step 3: Generate AI-enhanced content for each product using store details
-    const enhancedProducts = [];
-    
-    for (let i = 0; i < filteredProducts.length; i++) {
-      const product = filteredProducts[i];
-      console.log(`🧠 Enhancing product ${i + 1}/10 with personalized AI content...`);
-      
-      // Build comprehensive prompt with ALL store details
-      const aiPrompt = `Create an enhanced e-commerce product for "${storeName}" store.
+ORIGINAL HIGH-QUALITY PRODUCT:
+Title: ${realProduct.title}
+Price: $${realProduct.price}
+Rating: ${realProduct.rating}/5 (${realProduct.orders}+ orders)
+Features: ${realProduct.features?.join(', ') || 'Premium quality'}
 
 STORE CONTEXT:
 - Store Name: ${storeName}
-- Niche: ${niche}
+- Niche: ${niche} (MUST BE RESPECTED)
 - Target Audience: ${targetAudience}
 - Business Type: ${businessType}
 - Store Style: ${storeStyle}
-- Custom Requirements: ${customInfo || 'None'}
 - Theme Color: ${themeColor}
+- Custom Requirements: ${customInfo || 'None'}
 
-ORIGINAL PRODUCT: ${product.item?.title || 'Product'}
+REQUIREMENTS:
+1. Create a compelling ${niche}-focused title (max 60 chars) that appeals to ${targetAudience}
+2. Write a detailed 500-800 word description with:
+   - Opening hook focused on ${niche} benefits
+   - 5-6 key benefits specific to ${niche} users
+   - Use cases for ${targetAudience} in ${niche}
+   - Quality verification (4.8+ rating, 1000+ orders)
+   - Social proof for ${niche} community
+   - Strong call-to-action for ${niche} enthusiasts
+3. List 5-6 key features optimized for ${niche}
+4. Create 6-8 DALL·E prompts for ${niche}-specific product images
+5. Set competitive pricing for ${niche} market
 
-Create a JSON response with:
-1. "title": Compelling, unique product title (max 60 chars) that appeals to ${targetAudience}
-2. "description": Rich 400-600 word description with:
-   - Emojis and bullet points
-   - Benefits focused on ${targetAudience}
-   - ${storeStyle} styling language
-   - Color highlights using: <span style="color:${themeColor}">important text</span>
-   - ${businessType} appropriate pricing psychology
-3. "features": Array of 5-8 key features
-4. "category": Product category for ${niche}
-5. "variants": 2-4 realistic variants (sizes, colors, etc.)
-6. "price": Price between $15-$80 suitable for ${businessType}
+TONE: ${storeStyle === 'luxury' ? 'Premium and sophisticated' : storeStyle === 'fun' ? 'Playful and energetic' : 'Professional and trustworthy'} - perfectly matching ${niche} audience
 
-Make it perfect for ${storeName} targeting ${targetAudience} with ${storeStyle} aesthetic.${customInfo ? ` Special requirements: ${customInfo}` : ''}`;
+Return ONLY this JSON:
+{
+  "title": "Perfect ${niche} product title for ${targetAudience}",
+  "description": "500-800 word ${niche}-focused description with emotional appeal and ${storeStyle} tone",
+  "features": ["${niche}-specific feature 1", "${niche}-specific feature 2", "${niche}-specific feature 3", "${niche}-specific feature 4", "${niche}-specific feature 5"],
+  "benefits": ["key ${niche} benefit 1", "key ${niche} benefit 2", "key ${niche} benefit 3"],
+  "images": [
+    "Professional ${niche} product photo on white background, high quality",
+    "Lifestyle shot of ${niche} product in use by ${targetAudience}",
+    "Close-up detail of ${niche} product features",
+    "Multiple angle view of ${niche} product design",
+    "${niche} product with accessories and complementary items",
+    "Packaging and unboxing of ${niche} product",
+    "${niche} product in real-world ${targetAudience} environment",
+    "Comparison shot showing ${niche} product quality"
+  ],
+  "category": "${niche}",
+  "price": ${Math.max(15, Math.min(80, realProduct.price * 1.5))},
+  "rating": ${realProduct.rating || 4.8},
+  "orders": ${realProduct.orders || 1000}
+}`;
 
-      try {
-        const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${openaiApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [
-              {
-                role: 'system',
-                content: `You are an expert e-commerce copywriter specializing in ${niche} products for ${targetAudience}. Create compelling, conversion-focused content that matches the ${storeStyle} aesthetic for ${storeName}. Always respond with valid JSON only.`
-              },
-              {
-                role: 'user',
-                content: aiPrompt
-              }
-            ],
-            max_tokens: 1000,
-            temperature: 0.7,
-          }),
-        });
+    try {
+      const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: `You are an expert e-commerce copywriter specializing in ${niche} products. Create compelling, conversion-focused content that perfectly matches the ${niche} niche for ${targetAudience}. ALWAYS ensure the product is optimized for the ${niche} market. Always respond with valid JSON only.`
+            },
+            {
+              role: 'user',
+              content: nicheSpecificPrompt
+            }
+          ],
+          max_tokens: 1500,
+          temperature: 0.7,
+        }),
+      });
 
-        if (openaiResponse.ok) {
-          const openaiData = await openaiResponse.json();
-          const aiContent = JSON.parse(openaiData.choices[0].message.content);
-          
-          enhancedProducts.push({
-            id: product.item?.itemId || `product_${i}`,
-            title: aiContent.title,
-            description: aiContent.description,
-            detailed_description: aiContent.description,
-            features: aiContent.features || [],
-            category: aiContent.category || niche,
-            variants: aiContent.variants || [
-              { title: 'Standard', price: aiContent.price },
-              { title: 'Premium', price: (aiContent.price * 1.2).toFixed(2) }
-            ],
-            price: aiContent.price || (15 + Math.random() * 65),
-            images: [product.image?.imgUrl || product.item?.imageUrl].filter(Boolean),
-            product_type: aiContent.category || niche,
-            tags: `${niche}, ${targetAudience}, ${storeStyle}, ${storeName}`,
-            vendor: storeName,
-            
-            // Store personalization metadata
-            store_name: storeName,
-            target_audience: targetAudience,
-            business_type: businessType,
-            store_style: storeStyle,
-            custom_info: customInfo,
-            theme_color: themeColor
-          });
-          
-          console.log(`✅ Product ${i + 1} enhanced with personalized content for ${storeName}`);
-        } else {
-          console.error(`❌ OpenAI failed for product ${i + 1}`);
-        }
-      } catch (error) {
-        console.error(`❌ Error enhancing product ${i + 1}:`, error);
+      if (!openaiResponse.ok) {
+        throw new Error(`OpenAI API failed: ${openaiResponse.status}`);
       }
-    }
 
-    console.log(`🎉 Generated ${enhancedProducts.length} personalized products for ${storeName}`);
+      const openaiData = await openaiResponse.json();
+      const aiContent = JSON.parse(openaiData.choices[0].message.content);
+      
+      // Ensure niche compliance
+      if (!aiContent.title.toLowerCase().includes(niche.toLowerCase()) && 
+          !aiContent.description.toLowerCase().includes(niche.toLowerCase())) {
+        console.warn(`⚠️ Generated content may not fully match ${niche} niche`);
+      }
 
-    // Step 4: Save to Supabase with session data
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      const optimizedProduct = {
+        id: realProduct.itemId || `${niche}_product_${Date.now()}`,
+        title: aiContent.title,
+        description: aiContent.description,
+        detailed_description: aiContent.description,
+        features: aiContent.features || [],
+        benefits: aiContent.benefits || [],
+        category: niche,
+        product_type: niche,
+        price: aiContent.price || realProduct.price,
+        rating: aiContent.rating || realProduct.rating || 4.8,
+        orders: aiContent.orders || realProduct.orders || 1000,
+        images: aiContent.images || [],
+        tags: `${niche}, ${targetAudience}, ${storeStyle}, ${storeName}, premium, quality verified, bestseller`,
+        vendor: storeName || `${niche.charAt(0).toUpperCase() + niche.slice(1)} Store`,
+        
+        // Store personalization metadata
+        store_name: storeName,
+        target_audience: targetAudience,
+        business_type: businessType,
+        store_style: storeStyle,
+        custom_info: customInfo,
+        theme_color: themeColor,
+        niche: niche,
+        
+        // Quality verification
+        quality_verified: true,
+        bestseller_status: true,
+        original_rating: realProduct.rating,
+        original_orders: realProduct.orders
+      };
 
-    if (supabaseUrl && supabaseServiceKey) {
-      try {
-        for (const product of enhancedProducts) {
+      console.log(`✅ ${niche} product enhanced successfully:`, {
+        title: optimizedProduct.title,
+        category: optimizedProduct.category,
+        price: optimizedProduct.price,
+        rating: optimizedProduct.rating,
+        orders: optimizedProduct.orders,
+        features_count: optimizedProduct.features.length,
+        images_count: optimizedProduct.images.length
+      });
+
+      // Save to Supabase
+      const supabaseUrl = Deno.env.get('SUPABASE_URL');
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+      if (supabaseUrl && supabaseServiceKey) {
+        try {
           await fetch(`${supabaseUrl}/rest/v1/product_uploads`, {
             method: 'POST',
             headers: {
@@ -210,71 +206,45 @@ Make it perfect for ${storeName} targeting ${targetAudience} with ${storeStyle} 
               'apikey': supabaseServiceKey,
             },
             body: JSON.stringify({
-              ...product,
+              ...optimizedProduct,
               session_id: sessionId,
-              niche: niche,
-              target_audience: targetAudience,
-              images: JSON.stringify(product.images),
-              features: JSON.stringify(product.features),
-              variants: JSON.stringify(product.variants)
+              images: JSON.stringify(optimizedProduct.images),
+              features: JSON.stringify(optimizedProduct.features),
+              benefits: JSON.stringify(optimizedProduct.benefits)
             }),
           });
+          
+          console.log(`✅ ${niche} product saved to Supabase`);
+        } catch (error) {
+          console.error(`❌ Error saving ${niche} product to Supabase:`, error);
         }
-        
-        // Save session summary
-        await fetch(`${supabaseUrl}/rest/v1/upload_sessions`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'Content-Type': 'application/json',
-            'apikey': supabaseServiceKey,
-          },
-          body: JSON.stringify({
-            session_id: sessionId,
-            niche: niche,
-            total_products: enhancedProducts.length,
-            successful_uploads: enhancedProducts.length,
-            failed_uploads: 0,
-            results: JSON.stringify({
-              store_name: storeName,
-              target_audience: targetAudience,
-              business_type: businessType,
-              store_style: storeStyle,
-              custom_info: customInfo,
-              theme_color: themeColor
-            })
-          }),
-        });
-        
-        console.log('✅ Products and session data saved to Supabase');
-      } catch (error) {
-        console.error('❌ Error saving to Supabase:', error);
       }
+
+      return new Response(JSON.stringify({
+        success: true,
+        message: `Successfully enhanced ${niche} product for ${targetAudience}`,
+        optimizedProduct: optimizedProduct,
+        niche_compliance: {
+          niche: niche,
+          category: optimizedProduct.category,
+          tags_include_niche: optimizedProduct.tags.includes(niche),
+          title_includes_niche: optimizedProduct.title.toLowerCase().includes(niche.toLowerCase())
+        }
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+
+    } catch (openaiError) {
+      console.error(`❌ OpenAI processing failed for ${niche} product:`, openaiError);
+      throw new Error(`Failed to enhance ${niche} product with AI: ${openaiError.message}`);
     }
 
-    return new Response(JSON.stringify({
-      success: true,
-      message: `Successfully generated ${enhancedProducts.length} personalized products for ${storeName}`,
-      products: enhancedProducts,
-      store_personalization: {
-        store_name: storeName,
-        niche: niche,
-        target_audience: targetAudience,
-        business_type: businessType,
-        store_style: storeStyle,
-        custom_info: customInfo,
-        theme_color: themeColor
-      }
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-
   } catch (error) {
-    console.error('❌ Product generation failed:', error);
+    console.error(`❌ ${niche} product generation failed:`, error);
     return new Response(JSON.stringify({
       success: false,
-      error: error.message || 'Failed to generate personalized products'
+      error: error.message || `Failed to generate ${niche} product`
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

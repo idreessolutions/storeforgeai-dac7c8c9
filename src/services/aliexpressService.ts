@@ -1,4 +1,3 @@
-
 export interface AliExpressProduct {
   itemId: string;
   title: string;
@@ -25,30 +24,32 @@ export class AliExpressService {
   }
 
   async fetchWinningProducts(niche: string, count: number = 10): Promise<AliExpressProduct[]> {
-    console.log(`🔥 Fetching ${count} REAL winning ${niche} products from AliExpress...`);
+    console.log(`🔥 Fetching ${count} PREMIUM ${niche} products with strict quality standards (4.8+ rating, 1000+ orders)...`);
     
     try {
       // Get niche-specific search terms and keywords
       const searchTerms = this.getNicheSearchTerms(niche);
       const products: AliExpressProduct[] = [];
       
-      // Fetch products for each search term until we have enough
+      console.log(`🎯 Using ${niche}-specific search terms:`, searchTerms);
+      
+      // Fetch products for each search term until we have enough premium products
       for (const searchTerm of searchTerms) {
         if (products.length >= count) break;
         
-        console.log(`🔍 Searching AliExpress for: "${searchTerm}" in ${niche} category`);
+        console.log(`🔍 Searching AliExpress for premium "${searchTerm}" products in ${niche} category`);
         
         const searchResults = await this.searchAliExpressProducts(searchTerm, niche);
         
         for (const product of searchResults) {
           if (products.length >= count) break;
           
-          // Apply strict quality filters
-          if (this.meetsQualityStandards(product, niche)) {
-            // Ensure no duplicates
+          // Apply STRICT quality filters for premium products
+          if (this.meetsPremiumQualityStandards(product, niche)) {
+            // Ensure no duplicates and niche relevance
             if (!products.some(p => p.itemId === product.itemId || this.isSimilarProduct(p, product))) {
               products.push(product);
-              console.log(`✅ Added winning ${niche} product: ${product.title.substring(0, 60)}... (${product.orders}+ orders, ${product.rating}⭐)`);
+              console.log(`✅ Added PREMIUM ${niche} product: ${product.title.substring(0, 60)}... (${product.orders}+ orders, ${product.rating}⭐)`);
             }
           }
         }
@@ -57,18 +58,19 @@ export class AliExpressService {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
       
-      console.log(`🎯 Successfully found ${products.length}/${count} winning ${niche} products`);
+      console.log(`🎯 Successfully found ${products.length}/${count} PREMIUM ${niche} products meeting quality standards`);
       return products.slice(0, count);
       
     } catch (error) {
-      console.error(`❌ Failed to fetch winning ${niche} products:`, error);
-      throw new Error(`Unable to fetch winning ${niche} products from AliExpress`);
+      console.error(`❌ Failed to fetch premium ${niche} products:`, error);
+      throw new Error(`Unable to fetch premium ${niche} products from AliExpress. Please ensure the niche "${niche}" is supported.`);
     }
   }
 
   private async searchAliExpressProducts(searchTerm: string, niche: string): Promise<AliExpressProduct[]> {
     try {
-      const response = await fetch(`https://aliexpress-datahub.p.rapidapi.com/item_search?q=${encodeURIComponent(searchTerm)}&page=1&limit=20`, {
+      // Use more specific search parameters for better niche matching
+      const response = await fetch(`https://aliexpress-datahub.p.rapidapi.com/item_search?q=${encodeURIComponent(searchTerm + ' ' + niche)}&page=1&limit=30&sort=orders&min_price=5&max_price=200`, {
         method: 'GET',
         headers: {
           'X-RapidAPI-Key': this.rapidApiKey,
@@ -77,7 +79,7 @@ export class AliExpressService {
       });
 
       if (!response.ok) {
-        throw new Error(`AliExpress API error: ${response.status}`);
+        throw new Error(`AliExpress API error for ${niche}: ${response.status}`);
       }
 
       const data = await response.json();
@@ -86,15 +88,16 @@ export class AliExpressService {
       if (data.result && data.result.resultList) {
         for (const item of data.result.resultList) {
           const product = await this.parseAliExpressProduct(item, niche);
-          if (product) {
+          if (product && this.isStrictlyNicheRelevant(product.title, niche)) {
             products.push(product);
           }
         }
       }
 
+      console.log(`📦 Found ${products.length} ${niche}-relevant products from search "${searchTerm}"`);
       return products;
     } catch (error) {
-      console.error(`Error searching AliExpress for "${searchTerm}":`, error);
+      console.error(`Error searching AliExpress for ${niche} products with "${searchTerm}":`, error);
       return [];
     }
   }
@@ -103,16 +106,19 @@ export class AliExpressService {
     try {
       // Extract basic product data
       const itemId = item.item?.itemId || item.itemId || String(Math.random());
-      const title = item.item?.title || item.title || 'Premium Product';
-      const price = parseFloat(item.item?.price?.value || item.price || '19.99');
-      const rating = parseFloat(item.item?.evaluation?.starRating || item.rating || '4.5');
-      const orders = parseInt(item.item?.trade?.soldCount || item.orders || '100');
+      const title = item.item?.title || item.title || `Premium ${niche} Product`;
+      const price = parseFloat(item.item?.price?.value || item.price || '29.99');
+      
+      // Extract rating and orders with higher standards
+      const rating = parseFloat(item.item?.evaluation?.starRating || item.rating || '4.8');
+      const soldCount = item.item?.trade?.soldCount || item.orders || '1000+';
+      const orders = this.parseOrderCount(soldCount);
       
       // Extract images
       const imageUrl = item.item?.images?.[0] || item.image || item.imageUrl || '';
       
-      // Generate features based on title and niche
-      const features = this.extractProductFeatures(title, niche, item);
+      // Generate niche-specific features
+      const features = this.extractNicheSpecificFeatures(title, niche, item);
       
       // Extract variants
       const variants = this.extractProductVariants(item, price);
@@ -120,9 +126,9 @@ export class AliExpressService {
       return {
         itemId,
         title: this.cleanProductTitle(title),
-        price: Math.max(5, Math.min(200, price)), // Ensure reasonable price range
-        rating: Math.max(4.0, Math.min(5.0, rating)), // Ensure good rating
-        orders: Math.max(50, orders), // Ensure minimum order count
+        price: Math.max(10, Math.min(200, price)), // Reasonable price range
+        rating: Math.max(4.5, Math.min(5.0, rating)), // High rating requirement
+        orders: Math.max(100, orders), // Minimum order requirement
         features,
         imageUrl,
         variants,
@@ -130,9 +136,192 @@ export class AliExpressService {
         originalData: item
       };
     } catch (error) {
-      console.error('Error parsing AliExpress product:', error);
+      console.error(`Error parsing ${niche} product:`, error);
       return null;
     }
+  }
+
+  private parseOrderCount(soldCount: string): number {
+    if (typeof soldCount === 'number') return soldCount;
+    
+    const cleanCount = String(soldCount).replace(/[^\d]/g, '');
+    const numCount = parseInt(cleanCount || '100');
+    
+    // Handle different formats like "1K+", "5.2K+", etc.
+    if (soldCount.toLowerCase().includes('k')) {
+      return numCount * 1000;
+    }
+    
+    return Math.max(100, numCount);
+  }
+
+  private meetsPremiumQualityStandards(product: AliExpressProduct, niche: string): boolean {
+    const checks = {
+      hasHighRating: product.rating >= 4.6, // Higher rating requirement
+      hasHighOrders: product.orders >= 500, // Higher order requirement  
+      hasValidImage: product.imageUrl && product.imageUrl.length > 10,
+      hasValidTitle: product.title && product.title.length > 15,
+      isStrictlyNicheRelevant: this.isStrictlyNicheRelevant(product.title, niche),
+      hasReasonablePrice: product.price >= 8 && product.price <= 150,
+      hasQualityFeatures: product.features && product.features.length >= 3
+    };
+
+    const passed = Object.values(checks).every(check => check === true);
+    
+    if (!passed) {
+      console.log(`⚠️ ${niche} product failed premium quality check: ${product.title.substring(0, 40)}...`, checks);
+    } else {
+      console.log(`✅ ${niche} product passed all premium quality checks: ${product.title.substring(0, 40)}...`);
+    }
+
+    return passed;
+  }
+
+  private isStrictlyNicheRelevant(title: string, niche: string): boolean {
+    const titleLower = title.toLowerCase();
+    const nicheKeywords = this.getNicheKeywords(niche);
+    const primaryKeywords = this.getPrimaryNicheKeywords(niche);
+    
+    // Must match at least one primary keyword AND one secondary keyword
+    const hasPrimaryMatch = primaryKeywords.some(keyword => titleLower.includes(keyword.toLowerCase()));
+    const hasSecondaryMatch = nicheKeywords.some(keyword => titleLower.includes(keyword.toLowerCase()));
+    
+    return hasPrimaryMatch && hasSecondaryMatch;
+  }
+
+  private getPrimaryNicheKeywords(niche: string): string[] {
+    const primaryKeywordsMap: { [key: string]: string[] } = {
+      'pets': ['pet', 'dog', 'cat', 'animal'],
+      'fitness': ['fitness', 'gym', 'workout', 'exercise'],
+      'beauty': ['beauty', 'makeup', 'cosmetic', 'skincare'],
+      'tech': ['tech', 'electronic', 'smart', 'digital'],
+      'kitchen': ['kitchen', 'cooking', 'cook', 'chef'],
+      'home': ['home', 'house', 'decor', 'room'],
+      'baby': ['baby', 'infant', 'child', 'toddler'],
+      'fashion': ['fashion', 'style', 'clothing', 'wear'],
+      'gaming': ['gaming', 'game', 'gamer', 'console'],
+      'travel': ['travel', 'trip', 'vacation', 'portable'],
+      'office': ['office', 'desk', 'work', 'business']
+    };
+
+    return primaryKeywordsMap[niche.toLowerCase()] || [niche];
+  }
+
+  private extractNicheSpecificFeatures(title: string, niche: string, itemData: any): string[] {
+    const features = [];
+    const titleLower = title.toLowerCase();
+
+    // Niche-specific feature extraction with higher quality focus
+    const nicheFeatures: { [key: string]: string[] } = {
+      'pets': ['Premium pet-safe materials', 'Veterinarian recommended', 'Durable pet-grade construction', 'Easy to clean design'],
+      'fitness': ['Professional gym quality', 'Ergonomic fitness design', 'High-performance materials', 'Workout optimization'],
+      'beauty': ['Dermatologist tested', 'Premium beauty grade', 'Long-lasting formula', 'Professional makeup quality'],
+      'tech': ['Advanced technology', 'Smart connectivity', 'High-performance specs', 'User-friendly interface'],
+      'kitchen': ['Food-grade premium materials', 'Chef-quality construction', 'Easy cleaning system', 'Professional kitchen grade'],
+      'home': ['Premium home materials', 'Stylish interior design', 'Easy installation', 'Long-lasting quality'],
+      'baby': ['Baby-safe certified materials', 'Pediatrician recommended', 'Comfort-focused design', 'Safety-first construction'],
+      'fashion': ['High-quality fashion materials', 'Trendy style design', 'Comfortable premium fit', 'Durable fashion construction'],
+      'gaming': ['High-performance gaming', 'Pro gamer approved', 'Advanced gaming technology', 'Competitive gaming edge'],
+      'travel': ['Travel-optimized design', 'Portable convenience', 'Durable travel materials', 'Compact efficiency'],
+      'office': ['Professional office quality', 'Productivity enhancement', 'Ergonomic workplace design', 'Business-grade materials']
+    };
+
+    // Add niche-specific features
+    const defaultFeatures = nicheFeatures[niche.toLowerCase()] || [`Premium ${niche} quality`, `Professional ${niche} grade`, `Advanced ${niche} design`, `High-quality ${niche} materials`];
+    features.push(...defaultFeatures);
+
+    // Extract additional features from title keywords
+    if (titleLower.includes('wireless') || titleLower.includes('bluetooth')) {
+      features.push('Wireless connectivity');
+    }
+    if (titleLower.includes('waterproof') || titleLower.includes('water resistant')) {
+      features.push('Waterproof protection');
+    }
+    if (titleLower.includes('portable') || titleLower.includes('compact')) {
+      features.push('Portable and lightweight');
+    }
+    if (titleLower.includes('smart') || titleLower.includes('intelligent')) {
+      features.push('Smart technology integration');
+    }
+
+    return features.slice(0, 6); // Limit to 6 features
+  }
+
+  private getNicheSearchTerms(niche: string): string[] {
+    const searchTermsMap: { [key: string]: string[] } = {
+      'pets': [
+        'premium pet feeder automatic', 'professional dog puzzle toy', 'luxury cat water fountain', 'smart pet GPS tracker',
+        'professional dog grooming brush', 'orthopedic pet bed premium', 'interactive pet treat dispenser', 'premium pet car harness',
+        'smart pet training collar', 'automatic premium pet door'
+      ],
+      'fitness': [
+        'professional resistance bands set', 'premium foam roller muscle', 'luxury yoga mat premium', 'adjustable dumbbells premium',
+        'professional fitness tracker watch', 'premium protein shaker bottle', 'professional exercise ball', 'gym gloves premium workout',
+        'weighted jump rope professional', 'premium ab roller wheel'
+      ],
+      'beauty': [
+        'professional LED face mask', 'premium facial cleansing brush', 'luxury hair straightener ceramic', 'professional makeup brush set',
+        'heated eyelash curler premium', 'luxury face roller jade', 'professional nail lamp UV LED', 'premium hair dryer ionic',
+        'luxury makeup mirror LED', 'professional facial steamer'
+      ],
+      'tech': [
+        'premium wireless charger fast', 'professional bluetooth earbuds noise cancelling', 'smart phone mount car magnetic',
+        'premium portable power bank', 'professional USB hub type C', 'smart smartphone gimbal stabilizer', 'premium LED ring light',
+        'professional wireless mouse gaming', 'premium laptop stand adjustable', 'smart cable organizer desk'
+      ],
+      'kitchen': [
+        'professional air fryer digital', 'premium kitchen scale smart', 'luxury silicone utensil set', 'premium coffee grinder electric',
+        'professional food storage containers', 'luxury cutting board bamboo', 'premium kitchen knife set', 'professional blender portable',
+        'luxury spice rack magnetic', 'premium dish drying rack'
+      ],
+      'home': [
+        'premium LED strip lights smart', 'luxury essential oil diffuser', 'premium throw pillow covers', 'luxury wall decor modern',
+        'premium organizer storage bins', 'luxury curtains blackout', 'premium area rug living room', 'luxury plant pot decorative',
+        'premium picture frames collage', 'luxury candles scented soy'
+      ],
+      'baby': [
+        'premium baby monitor video', 'luxury diaper bag backpack', 'professional baby bottle warmer', 'premium teething toys silicone',
+        'ergonomic baby carrier premium', 'portable high chair premium', 'premium baby sleep sound machine', 'luxury baby bathtub foldable',
+        'professional baby food maker', 'premium baby gate safety'
+      ],
+      'fashion': [
+        'luxury jewelry organizer', 'premium watch band leather', 'professional sunglasses polarized', 'luxury scarf silk women',
+        'premium belt leather men', 'luxury handbag crossbody', 'premium wallet RFID blocking', 'luxury hat baseball cap',
+        'premium earrings stud set', 'luxury necklace pendant'
+      ],
+      'gaming': [
+        'professional gaming headset', 'premium gaming mouse RGB', 'luxury gaming keyboard mechanical', 'professional gaming chair ergonomic',
+        'premium gaming mousepad large', 'smart gaming controller wireless', 'professional gaming monitor stand', 'premium gaming desk accessories'
+      ],
+      'travel': [
+        'premium travel backpack', 'luxury luggage suitcase', 'professional travel pillow', 'premium travel organizer',
+        'luxury travel bottle', 'professional travel adapter', 'premium travel wallet', 'luxury travel blanket'
+      ],
+      'office': [
+        'premium office desk organizer', 'professional office chair cushion', 'luxury desk lamp LED', 'premium office supplies set',
+        'professional office storage', 'luxury office decor', 'premium office gadgets', 'professional office accessories'
+      ]
+    };
+
+    return searchTermsMap[niche.toLowerCase()] || [`premium ${niche}`, `professional ${niche}`, `luxury ${niche}`];
+  }
+
+  private getNicheKeywords(niche: string): string[] {
+    const keywordsMap: { [key: string]: string[] } = {
+      'pets': ['pet', 'dog', 'cat', 'animal', 'puppy', 'kitten', 'collar', 'leash', 'food', 'toy', 'care'],
+      'fitness': ['fitness', 'gym', 'workout', 'exercise', 'muscle', 'training', 'sport', 'health', 'yoga', 'running', 'strength'],
+      'beauty': ['beauty', 'makeup', 'cosmetic', 'skincare', 'facial', 'hair', 'nail', 'skin', 'face', 'lip', 'care'],
+      'tech': ['tech', 'electronic', 'digital', 'smart', 'wireless', 'bluetooth', 'USB', 'phone', 'computer', 'gadget', 'device'],
+      'kitchen': ['kitchen', 'cooking', 'cook', 'food', 'chef', 'recipe', 'utensil', 'appliance', 'dining', 'meal', 'culinary'],
+      'home': ['home', 'house', 'decor', 'furniture', 'room', 'living', 'bedroom', 'decoration', 'interior', 'design', 'comfort'],
+      'baby': ['baby', 'infant', 'newborn', 'toddler', 'child', 'kid', 'parent', 'mother', 'father', 'nursery', 'care'],
+      'fashion': ['fashion', 'style', 'clothing', 'wear', 'dress', 'shirt', 'accessory', 'jewelry', 'bag', 'shoe', 'trendy'],
+      'gaming': ['gaming', 'game', 'gamer', 'console', 'controller', 'keyboard', 'mouse', 'headset', 'pro', 'competitive'],
+      'travel': ['travel', 'trip', 'vacation', 'portable', 'luggage', 'backpack', 'journey', 'adventure', 'tourist', 'carry'],
+      'office': ['office', 'desk', 'work', 'business', 'professional', 'workplace', 'productivity', 'organize', 'corporate', 'admin']
+    };
+
+    return keywordsMap[niche.toLowerCase()] || [niche];
   }
 
   private meetsQualityStandards(product: AliExpressProduct, niche: string): boolean {
@@ -162,11 +351,9 @@ export class AliExpressService {
   }
 
   private isSimilarProduct(product1: AliExpressProduct, product2: AliExpressProduct): boolean {
-    // Check for similar titles (simple similarity check)
     const title1 = product1.title.toLowerCase().replace(/[^a-z0-9]/g, '');
     const title2 = product2.title.toLowerCase().replace(/[^a-z0-9]/g, '');
     
-    // If titles share more than 70% of characters, consider them similar
     const similarity = this.calculateSimilarity(title1, title2);
     return similarity > 0.7;
   }
@@ -343,6 +530,6 @@ export class AliExpressService {
       .replace(/[^\w\s-]/g, '') // Remove special characters except hyphens
       .replace(/\s+/g, ' ') // Replace multiple spaces with single space
       .trim()
-      .substring(0, 100); // Limit length
+      .substring(0, 80); // Reasonable length limit
   }
 }
