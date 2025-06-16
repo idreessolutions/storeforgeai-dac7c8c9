@@ -26,7 +26,7 @@ serve(async (req) => {
       qualityRequirements
     } = await req.json();
     
-    console.log(`🚀 Generating NICHE-SPECIFIC ${niche} product enhancement:`, {
+    console.log(`🚀 GPT-4 enhancing REAL AliExpress ${niche} product:`, {
       productTitle: realProduct?.title?.substring(0, 60),
       niche,
       storeName,
@@ -34,38 +34,39 @@ serve(async (req) => {
       businessType,
       storeStyle,
       qualityRequirements,
-      customInfo: customInfo ? 'Provided' : 'None'
+      source: 'AliExpress Drop Shipping API'
     });
 
     // Get API keys from Supabase secrets
-    const rapidApiKey = Deno.env.get('RAPIDAPI_KEY');
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 
-    if (!rapidApiKey || !openaiApiKey) {
-      throw new Error('Missing required API keys for product enhancement');
+    if (!openaiApiKey) {
+      throw new Error('Missing OpenAI API key for GPT-4 product enhancement');
     }
 
     if (!realProduct || !niche) {
       throw new Error('Missing required product data or niche information');
     }
 
-    console.log(`🤖 Enhancing REAL ${niche} product with AI:`, {
+    console.log(`🤖 Enhancing REAL AliExpress ${niche} product with GPT-4:`, {
       originalTitle: realProduct.title,
       rating: realProduct.rating,
       orders: realProduct.orders,
-      niche: niche
+      niche: niche,
+      source: 'AliExpress Drop Shipping API'
     });
 
-    // Generate NICHE-SPECIFIC AI-enhanced content
-    const nicheSpecificPrompt = `You are an expert e-commerce copywriter specializing in ${niche} products for ${targetAudience}.
+    // Enhanced GPT-4 prompt for AliExpress products
+    const gpt4EnhancementPrompt = `You are an expert e-commerce copywriter specializing in ${niche} products for ${targetAudience}. You're working with a REAL winning product from the AliExpress Drop Shipping API.
 
 CRITICAL: This product MUST be perfectly optimized for the ${niche} niche and appeal to ${targetAudience}.
 
-ORIGINAL HIGH-QUALITY PRODUCT:
+REAL ALIEXPRESS WINNING PRODUCT:
 Title: ${realProduct.title}
 Price: $${realProduct.price}
-Rating: ${realProduct.rating}/5 (${realProduct.orders}+ orders)
+Rating: ${realProduct.rating}/5 (${realProduct.orders}+ verified orders)
 Features: ${realProduct.features?.join(', ') || 'Premium quality'}
+Source: AliExpress Drop Shipping API (VERIFIED WINNING PRODUCT)
 
 STORE CONTEXT:
 - Store Name: ${storeName}
@@ -76,39 +77,39 @@ STORE CONTEXT:
 - Theme Color: ${themeColor}
 - Custom Requirements: ${customInfo || 'None'}
 
-REQUIREMENTS:
+GPT-4 ENHANCEMENT REQUIREMENTS:
 1. Create a compelling ${niche}-focused title (max 60 chars) that appeals to ${targetAudience}
 2. Write a detailed 500-800 word description with:
-   - Opening hook focused on ${niche} benefits
+   - Emotional opening hook focused on ${niche} pain points
    - 5-6 key benefits specific to ${niche} users
-   - Use cases for ${targetAudience} in ${niche}
-   - Quality verification (4.8+ rating, 1000+ orders)
-   - Social proof for ${niche} community
+   - Multiple use cases for ${targetAudience} in ${niche}
+   - Social proof (${realProduct.orders}+ orders, ${realProduct.rating}+ rating)
    - Strong call-to-action for ${niche} enthusiasts
+   - Strategic emoji placement
 3. List 5-6 key features optimized for ${niche}
-4. Create 6-8 DALL·E prompts for ${niche}-specific product images
-5. Set competitive pricing for ${niche} market
+4. Create 6-8 DALL·E 3 prompts for ${niche}-specific product images
+5. Smart pricing between $15-$70 based on ${niche} market
 
 TONE: ${storeStyle === 'luxury' ? 'Premium and sophisticated' : storeStyle === 'fun' ? 'Playful and energetic' : 'Professional and trustworthy'} - perfectly matching ${niche} audience
 
 Return ONLY this JSON:
 {
   "title": "Perfect ${niche} product title for ${targetAudience}",
-  "description": "500-800 word ${niche}-focused description with emotional appeal and ${storeStyle} tone",
+  "description": "500-800 word ${niche}-focused description with emotional appeal, pain points, benefits, use cases, social proof, and ${storeStyle} tone",
   "features": ["${niche}-specific feature 1", "${niche}-specific feature 2", "${niche}-specific feature 3", "${niche}-specific feature 4", "${niche}-specific feature 5"],
   "benefits": ["key ${niche} benefit 1", "key ${niche} benefit 2", "key ${niche} benefit 3"],
   "images": [
-    "Professional ${niche} product photo on white background, high quality",
-    "Lifestyle shot of ${niche} product in use by ${targetAudience}",
-    "Close-up detail of ${niche} product features",
-    "Multiple angle view of ${niche} product design",
+    "Professional ${niche} product photo on white background, high quality, detailed",
+    "Lifestyle shot of ${niche} product being used by ${targetAudience}",
+    "Close-up detail shot highlighting ${niche} product features",
+    "Multiple angle view showing ${niche} product design and quality",
     "${niche} product with accessories and complementary items",
-    "Packaging and unboxing of ${niche} product",
+    "Packaging and unboxing experience of ${niche} product",
     "${niche} product in real-world ${targetAudience} environment",
-    "Comparison shot showing ${niche} product quality"
+    "Before and after comparison showing ${niche} product benefits"
   ],
   "category": "${niche}",
-  "price": ${Math.max(15, Math.min(80, realProduct.price * 1.5))},
+  "price": ${Math.max(15, Math.min(70, realProduct.price * 1.8))},
   "rating": ${realProduct.rating || 4.8},
   "orders": ${realProduct.orders || 1000}
 }`;
@@ -121,24 +122,24 @@ Return ONLY this JSON:
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4o',
           messages: [
             {
               role: 'system',
-              content: `You are an expert e-commerce copywriter specializing in ${niche} products. Create compelling, conversion-focused content that perfectly matches the ${niche} niche for ${targetAudience}. ALWAYS ensure the product is optimized for the ${niche} market. Always respond with valid JSON only.`
+              content: `You are an expert e-commerce copywriter specializing in ${niche} products. Create compelling, conversion-focused content that perfectly matches the ${niche} niche for ${targetAudience}. You work with REAL winning products from AliExpress Drop Shipping API. ALWAYS ensure the product is optimized for the ${niche} market. Always respond with valid JSON only.`
             },
             {
               role: 'user',
-              content: nicheSpecificPrompt
+              content: gpt4EnhancementPrompt
             }
           ],
-          max_tokens: 1500,
+          max_tokens: 2000,
           temperature: 0.7,
         }),
       });
 
       if (!openaiResponse.ok) {
-        throw new Error(`OpenAI API failed: ${openaiResponse.status}`);
+        throw new Error(`GPT-4 API failed: ${openaiResponse.status}`);
       }
 
       const openaiData = await openaiResponse.json();
@@ -151,7 +152,7 @@ Return ONLY this JSON:
       }
 
       const optimizedProduct = {
-        id: realProduct.itemId || `${niche}_product_${Date.now()}`,
+        id: realProduct.itemId || `${niche}_aliexpress_${Date.now()}`,
         title: aiContent.title,
         description: aiContent.description,
         detailed_description: aiContent.description,
@@ -163,7 +164,7 @@ Return ONLY this JSON:
         rating: aiContent.rating || realProduct.rating || 4.8,
         orders: aiContent.orders || realProduct.orders || 1000,
         images: aiContent.images || [],
-        tags: `${niche}, ${targetAudience}, ${storeStyle}, ${storeName}, premium, quality verified, bestseller`,
+        tags: `${niche}, ${targetAudience}, ${storeStyle}, ${storeName}, winning-product, best-seller, AliExpress-verified, 1000-orders, premium-quality`,
         vendor: storeName || `${niche.charAt(0).toUpperCase() + niche.slice(1)} Store`,
         
         // Store personalization metadata
@@ -175,60 +176,36 @@ Return ONLY this JSON:
         theme_color: themeColor,
         niche: niche,
         
-        // Quality verification
-        quality_verified: true,
-        bestseller_status: true,
+        // AliExpress verification
+        source: 'AliExpress Drop Shipping API',
+        aliexpress_verified: true,
+        winning_product_status: true,
         original_rating: realProduct.rating,
-        original_orders: realProduct.orders
+        original_orders: realProduct.orders,
+        original_title: realProduct.title
       };
 
-      console.log(`✅ ${niche} product enhanced successfully:`, {
+      console.log(`✅ GPT-4 enhanced ${niche} product successfully:`, {
         title: optimizedProduct.title,
         category: optimizedProduct.category,
         price: optimizedProduct.price,
         rating: optimizedProduct.rating,
         orders: optimizedProduct.orders,
         features_count: optimizedProduct.features.length,
-        images_count: optimizedProduct.images.length
+        images_count: optimizedProduct.images.length,
+        source: 'AliExpress Drop Shipping API'
       });
-
-      // Save to Supabase
-      const supabaseUrl = Deno.env.get('SUPABASE_URL');
-      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-      if (supabaseUrl && supabaseServiceKey) {
-        try {
-          await fetch(`${supabaseUrl}/rest/v1/product_uploads`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${supabaseServiceKey}`,
-              'Content-Type': 'application/json',
-              'apikey': supabaseServiceKey,
-            },
-            body: JSON.stringify({
-              ...optimizedProduct,
-              session_id: sessionId,
-              images: JSON.stringify(optimizedProduct.images),
-              features: JSON.stringify(optimizedProduct.features),
-              benefits: JSON.stringify(optimizedProduct.benefits)
-            }),
-          });
-          
-          console.log(`✅ ${niche} product saved to Supabase`);
-        } catch (error) {
-          console.error(`❌ Error saving ${niche} product to Supabase:`, error);
-        }
-      }
 
       return new Response(JSON.stringify({
         success: true,
-        message: `Successfully enhanced ${niche} product for ${targetAudience}`,
+        message: `Successfully enhanced ${niche} product from AliExpress Drop Shipping API with GPT-4`,
         optimizedProduct: optimizedProduct,
         niche_compliance: {
           niche: niche,
           category: optimizedProduct.category,
           tags_include_niche: optimizedProduct.tags.includes(niche),
-          title_includes_niche: optimizedProduct.title.toLowerCase().includes(niche.toLowerCase())
+          title_includes_niche: optimizedProduct.title.toLowerCase().includes(niche.toLowerCase()),
+          source: 'AliExpress Drop Shipping API'
         }
       }), {
         status: 200,
@@ -236,15 +213,15 @@ Return ONLY this JSON:
       });
 
     } catch (openaiError) {
-      console.error(`❌ OpenAI processing failed for ${niche} product:`, openaiError);
-      throw new Error(`Failed to enhance ${niche} product with AI: ${openaiError.message}`);
+      console.error(`❌ GPT-4 processing failed for ${niche} product:`, openaiError);
+      throw new Error(`Failed to enhance ${niche} product with GPT-4: ${openaiError.message}`);
     }
 
   } catch (error) {
-    console.error(`❌ ${niche} product generation failed:`, error);
+    console.error(`❌ GPT-4 ${niche} product enhancement failed:`, error);
     return new Response(JSON.stringify({
       success: false,
-      error: error.message || `Failed to generate ${niche} product`
+      error: error.message || `Failed to enhance ${niche} product with GPT-4`
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
