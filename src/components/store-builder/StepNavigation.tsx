@@ -5,7 +5,7 @@ import { CheckCircle, Circle, Crown, Sparkles, Star, Zap } from "lucide-react";
 interface Step {
   title: string;
   description: string;
-  icon: React.ReactNode;
+  icon: React.ElementType;
 }
 
 interface StepNavigationProps {
@@ -29,6 +29,7 @@ const StepNavigation = ({ steps, currentStep }: StepNavigationProps) => {
             const isActive = index === currentStep;
             const isCompleted = index < currentStep;
             const isUpcoming = index > currentStep;
+            const IconComponent = step.icon;
             
             return (
               <div key={index} className="relative z-20 flex flex-col items-center">
@@ -42,7 +43,7 @@ const StepNavigation = ({ steps, currentStep }: StepNavigationProps) => {
                     <CheckCircle className="h-8 w-8 text-white" />
                   ) : isActive ? (
                     <div className="relative">
-                      {step.icon}
+                      <IconComponent className="h-8 w-8 text-white" />
                       <Crown className="absolute -top-2 -right-2 h-4 w-4 text-yellow-300 animate-bounce" />
                     </div>
                   ) : (

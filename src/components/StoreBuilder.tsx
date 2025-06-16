@@ -23,6 +23,12 @@ const StoreBuilder = ({ onBack, onViewAutomation }: StoreBuilderProps) => {
     validateCurrentStep
   } = useStoreBuilderLogic();
 
+  // Create a wrapper function that matches the expected signature
+  const validateStep = () => {
+    const validation = validateCurrentStep(currentStep);
+    return validation.isValid;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Header Component */}
@@ -57,7 +63,7 @@ const StoreBuilder = ({ onBack, onViewAutomation }: StoreBuilderProps) => {
             isGenerating={isGenerating}
             onPrevious={handlePrevStep}
             onNext={handleNextStep}
-            validateCurrentStep={validateCurrentStep}
+            validateCurrentStep={validateStep}
           />
         )}
       </div>
