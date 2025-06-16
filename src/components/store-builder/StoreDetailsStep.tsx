@@ -39,7 +39,7 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
               </Label>
               <Input
                 id="storeName"
-                placeholder="Batwood Store, Pet Paradise, FitLife Pro"
+                placeholder=""
                 value={formData.storeName}
                 onChange={(e) => onInputChange('storeName', e.target.value)}
                 className="focus:ring-blue-500"
@@ -52,7 +52,7 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
               </Label>
               <Input
                 id="niche"
-                placeholder="Pet Products, Fitness, Beauty, Tech Gadgets"
+                placeholder=""
                 value={formData.niche}
                 onChange={(e) => onInputChange('niche', e.target.value)}
                 className="focus:ring-blue-500"
@@ -76,7 +76,7 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
               </Label>
               <Input
                 id="targetAudience"
-                placeholder="Dog owners 25-45, Fitness lovers, Busy moms"
+                placeholder=""
                 value={formData.targetAudience}
                 onChange={(e) => onInputChange('targetAudience', e.target.value)}
                 className="focus:ring-purple-500"
@@ -155,7 +155,7 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
               </Label>
               <Textarea
                 id="customInfo"
-                placeholder="Tell us your dreams..."
+                placeholder=""
                 value={formData.customInfo}
                 onChange={(e) => onInputChange('customInfo', e.target.value)}
                 rows={4}
