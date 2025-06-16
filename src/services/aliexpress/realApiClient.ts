@@ -51,15 +51,30 @@ export class AliExpressRealApiClient {
   }): Promise<AliExpressApiResponse> {
     const timestamp = Math.floor(Date.now() / 1000).toString();
     
-    const apiParams = {
+    // Create apiParams with proper typing for dynamic property assignment
+    const apiParams: Record<string, string> = {
       app_key: this.credentials.appKey,
       method: 'aliexpress.ds.product.get',
       timestamp,
       format: 'json',
       v: '2.0',
       sign_method: 'md5',
-      ...params
+      keywords: params.keywords
     };
+
+    // Add optional parameters, converting numbers to strings
+    if (params.category_id) {
+      apiParams.category_id = params.category_id;
+    }
+    if (params.page_no) {
+      apiParams.page_no = params.page_no.toString();
+    }
+    if (params.page_size) {
+      apiParams.page_size = params.page_size.toString();
+    }
+    if (params.sort) {
+      apiParams.sort = params.sort;
+    }
 
     if (this.credentials.accessToken) {
       apiParams.access_token = this.credentials.accessToken;

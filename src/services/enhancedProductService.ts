@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { AliExpressService } from "./aliexpressService";
 import { NicheValidationService } from "./nicheValidationService";
@@ -44,7 +43,8 @@ export const generateWinningProducts = async (
 
     // Step 3: Elite product sourcing with multi-stage quality filtering
     onProgress(20, `🎯 Sourcing ELITE ${niche} products (4.7+ stars, 2000+ orders, market-validated)...`);
-    const aliExpressService = new AliExpressService(rapidApiKey);
+    // Fix: Call AliExpressService constructor without arguments
+    const aliExpressService = new AliExpressService();
     
     // Fetch larger candidate pool for superior selection
     const candidateProducts = await aliExpressService.fetchWinningProducts(niche, 50);
