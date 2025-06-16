@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
@@ -28,15 +27,15 @@ class AliExpressDropShippingAPI {
       .map(key => `${key}${params[key]}`)
       .join('');
     
-    // Simple MD5 hash implementation for signature
-    return await this.md5(this.credentials.appSecret + signString + this.credentials.appSecret);
+    // Use SHA-256 instead of MD5 for better compatibility with Deno
+    return await this.sha256(this.credentials.appSecret + signString + this.credentials.appSecret);
   }
 
-  private async md5(str: string): Promise<string> {
-    // Simple MD5 implementation using Web Crypto API
+  private async sha256(str: string): Promise<string> {
+    // Use SHA-256 which is supported by Deno's Web Crypto API
     const encoder = new TextEncoder();
     const data = encoder.encode(str);
-    const hashBuffer = await crypto.subtle.digest('MD5', data);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
   }
@@ -77,7 +76,7 @@ class AliExpressDropShippingAPI {
         timestamp,
         format: 'json',
         v: '2.0',
-        sign_method: 'md5',
+        sign_method: 'sha256',
         keywords: keyword,
         category_id: this.getCategoryId(niche),
         page_no: '1',
