@@ -92,7 +92,8 @@ GPT-4 ENHANCEMENT REQUIREMENTS:
 
 TONE: ${storeStyle === 'luxury' ? 'Premium and sophisticated' : storeStyle === 'fun' ? 'Playful and energetic' : 'Professional and trustworthy'} - perfectly matching ${niche} audience
 
-Return ONLY this JSON:
+IMPORTANT: Return ONLY valid JSON without any markdown formatting or code blocks. Do not wrap the response in ```json or any other markdown.
+
 {
   "title": "Perfect ${niche} product title for ${targetAudience}",
   "description": "500-800 word ${niche}-focused description with emotional appeal, pain points, benefits, use cases, social proof, and ${storeStyle} tone",
@@ -126,7 +127,7 @@ Return ONLY this JSON:
           messages: [
             {
               role: 'system',
-              content: `You are an expert e-commerce copywriter specializing in ${niche} products. Create compelling, conversion-focused content that perfectly matches the ${niche} niche for ${targetAudience}. You work with REAL winning products from AliExpress Drop Shipping API. ALWAYS ensure the product is optimized for the ${niche} market. Always respond with valid JSON only.`
+              content: `You are an expert e-commerce copywriter specializing in ${niche} products. Create compelling, conversion-focused content that perfectly matches the ${niche} niche for ${targetAudience}. You work with REAL winning products from AliExpress Drop Shipping API. ALWAYS ensure the product is optimized for the ${niche} market. CRITICAL: Always respond with valid JSON only, never use markdown code blocks or any other formatting.`
             },
             {
               role: 'user',
@@ -143,7 +144,55 @@ Return ONLY this JSON:
       }
 
       const openaiData = await openaiResponse.json();
-      const aiContent = JSON.parse(openaiData.choices[0].message.content);
+      let aiContentText = openaiData.choices[0].message.content;
+      
+      // Clean up the response - remove markdown code blocks if present
+      aiContentText = aiContentText.trim();
+      if (aiContentText.startsWith('```json')) {
+        aiContentText = aiContentText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (aiContentText.startsWith('```')) {
+        aiContentText = aiContentText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+      
+      console.log('🔍 Cleaned AI response:', aiContentText.substring(0, 200));
+      
+      let aiContent;
+      try {
+        aiContent = JSON.parse(aiContentText);
+      } catch (parseError) {
+        console.error('❌ JSON parse failed, attempting fallback:', parseError);
+        // Fallback: generate a basic product structure
+        aiContent = {
+          title: `Premium ${niche.charAt(0).toUpperCase() + niche.slice(1)} Equipment - Bestseller`,
+          description: `Transform your ${niche} journey with this premium quality product. Designed specifically for ${targetAudience}, this exceptional item delivers outstanding performance and reliability. With over ${realProduct.orders || 1000}+ verified orders and a ${realProduct.rating || 4.8}+ star rating, customers love the quality and results. Perfect for anyone serious about ${niche}. Order now and experience the difference!`,
+          features: [
+            `Premium ${niche} quality`,
+            `Perfect for ${targetAudience}`,
+            "Durable and reliable",
+            "Easy to use",
+            "Customer favorite"
+          ],
+          benefits: [
+            `Enhanced ${niche} performance`,
+            "Long-lasting durability",
+            "Excellent value"
+          ],
+          images: [
+            `Professional ${niche} product photo on white background`,
+            `Lifestyle shot of ${niche} product in use`,
+            `Close-up detail shot of product features`,
+            `Multiple angle view of product design`,
+            `${niche} product with accessories`,
+            `Product packaging and unboxing`,
+            `Real-world usage environment`,
+            `Before and after comparison`
+          ],
+          category: niche,
+          price: Math.max(15, Math.min(70, (realProduct.price || 25) * 1.8)),
+          rating: realProduct.rating || 4.8,
+          orders: realProduct.orders || 1000
+        };
+      }
       
       // Ensure niche compliance
       if (!aiContent.title.toLowerCase().includes(niche.toLowerCase()) && 
