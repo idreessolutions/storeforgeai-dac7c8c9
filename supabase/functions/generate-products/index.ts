@@ -56,7 +56,7 @@ serve(async (req) => {
       source: 'AliExpress Drop Shipping API'
     });
 
-    // Enhanced GPT-4 prompt for AliExpress products
+    // Enhanced GPT-4 prompt for AliExpress products - Fixed template literal syntax
     const gpt4EnhancementPrompt = `You are an expert e-commerce copywriter specializing in ${niche} products for ${targetAudience}. You're working with a REAL winning product from the AliExpress Drop Shipping API.
 
 CRITICAL: This product MUST be perfectly optimized for the ${niche} niche and appeal to ${targetAudience}.
@@ -92,7 +92,7 @@ GPT-4 ENHANCEMENT REQUIREMENTS:
 
 TONE: ${storeStyle === 'luxury' ? 'Premium and sophisticated' : storeStyle === 'fun' ? 'Playful and energetic' : 'Professional and trustworthy'} - perfectly matching ${niche} audience
 
-IMPORTANT: Return ONLY valid JSON without any markdown formatting or code blocks. Do not wrap the response in ```json or any other markdown.
+IMPORTANT: Return ONLY valid JSON without any markdown formatting or code blocks. Do not wrap the response in \`\`\`json or any other markdown.
 
 {
   "title": "Perfect ${niche} product title for ${targetAudience}",
