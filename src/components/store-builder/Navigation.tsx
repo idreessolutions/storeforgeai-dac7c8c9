@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, CheckCircle, Sparkles, Zap } from "lucide-react";
 
 interface NavigationProps {
   currentStep: number;
@@ -9,7 +9,7 @@ interface NavigationProps {
   isGenerating: boolean;
   onPrevious: () => void;
   onNext: () => void;
-  validateCurrentStep?: (step: number) => { isValid: boolean; missingFields: string[] };
+  validateCurrentStep: () => boolean;
 }
 
 const Navigation = ({ 
@@ -17,42 +17,69 @@ const Navigation = ({
   totalSteps, 
   isGenerating, 
   onPrevious, 
-  onNext,
+  onNext, 
   validateCurrentStep 
 }: NavigationProps) => {
-  // Check if current step is valid (but don't show errors to user)
-  const validation = validateCurrentStep ? validateCurrentStep(currentStep) : { isValid: true, missingFields: [] };
-  const canProceed = validation.isValid;
-
-  // Skip navigation on certain steps
-  if (currentStep === 0 || currentStep >= totalSteps - 1) {
-    return null;
-  }
+  const isLastStep = currentStep === totalSteps - 1;
+  const canProceed = validateCurrentStep();
 
   return (
-    <div className="flex justify-between items-center pt-8 border-t border-gray-200">
+    <div className="flex justify-between items-center mt-12 pt-8 border-t border-gradient-to-r from-blue-200 to-purple-200">
       <Button
         variant="outline"
         onClick={onPrevious}
-        disabled={isGenerating}
-        className="flex items-center gap-2"
+        disabled={currentStep === 0 || isGenerating}
+        className="flex items-center gap-3 px-8 py-4 text-lg font-semibold border-2 border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <ChevronLeft className="h-4 w-4" />
+        <ArrowLeft className="h-5 w-5" />
         Previous
       </Button>
 
-      <div className="flex items-center gap-4">        
+      <div className="flex items-center gap-4">
+        {/* Step indicator with enhanced styling */}
+        <div className="hidden md:flex items-center gap-3 bg-gradient-to-r from-blue-50 to-purple-50 px-6 py-3 rounded-xl border border-blue-200 shadow-md">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-purple-500 animate-pulse" />
+            <span className="text-gray-700 font-medium">
+              Step {currentStep + 1} of {totalSteps}
+            </span>
+          </div>
+          <div className="w-32 bg-gray-200 rounded-full h-3 shadow-inner">
+            <div 
+              className="bg-gradient-to-r from-blue-500 to-purple-600 h-3 rounded-full transition-all duration-700 shadow-sm"
+              style={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }}
+            ></div>
+          </div>
+        </div>
+
         <Button
           onClick={onNext}
-          disabled={isGenerating || !canProceed}
-          className={`flex items-center gap-2 ${!canProceed ? 'opacity-50 cursor-not-allowed' : ''}`}
+          disabled={!canProceed || isGenerating}
+          className={`
+            flex items-center gap-3 px-8 py-4 text-lg font-semibold shadow-lg transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed
+            ${isLastStep 
+              ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white' 
+              : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'
+            }
+          `}
         >
           {isGenerating ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <>
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Processing...
+            </>
+          ) : isLastStep ? (
+            <>
+              <CheckCircle className="h-5 w-5" />
+              Complete Setup
+              <Zap className="h-4 w-4 text-yellow-300 animate-pulse" />
+            </>
           ) : (
-            <ChevronRight className="h-4 w-4" />
+            <>
+              Next
+              <ArrowRight className="h-5 w-5" />
+            </>
           )}
-          {isGenerating ? 'Processing...' : 'Next'}
         </Button>
       </div>
     </div>
