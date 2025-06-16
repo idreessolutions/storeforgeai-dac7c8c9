@@ -168,7 +168,7 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
               </Label>
               <Textarea
                 id="customInfo"
-                placeholder="Any specific requirements, preferences, or additional context about your store, products, target market, pricing preferences, or special features you want included..."
+                placeholder="Any specific requirements or preferences..."
                 value={formData.customInfo}
                 onChange={(e) => onInputChange('customInfo', e.target.value)}
                 rows={4}
@@ -180,47 +180,6 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
           </CardContent>
         </Card>
       </div>
-
-      {/* Enhanced Summary Preview */}
-      <Card className="max-w-4xl mx-auto bg-blue-50 border-blue-200">
-        <CardHeader>
-          <CardTitle className="text-blue-900">AI Store Configuration Preview</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="font-medium text-blue-900">Store Name:</span>
-              <span className="ml-2 text-blue-700">{formData.storeName || 'Not specified'}</span>
-            </div>
-            <div>
-              <span className="font-medium text-blue-900">Niche:</span>
-              <span className="ml-2 text-blue-700">{formData.niche || 'Not specified'}</span>
-            </div>
-            <div>
-              <span className="font-medium text-blue-900">Target Audience:</span>
-              <span className="ml-2 text-blue-700">{formData.targetAudience || 'Not specified'}</span>
-            </div>
-            <div>
-              <span className="font-medium text-blue-900">Business Type:</span>
-              <span className="ml-2 text-blue-700">{formData.businessType || 'Not specified'}</span>
-            </div>
-            <div>
-              <span className="font-medium text-blue-900">Store Style:</span>
-              <span className="ml-2 text-blue-700">{formData.storeStyle || 'Not specified'}</span>
-            </div>
-            <div>
-              <span className="font-medium text-blue-900">Custom Info:</span>
-              <span className="ml-2 text-blue-700">{formData.customInfo ? 'Provided' : 'None'}</span>
-            </div>
-          </div>
-          
-          <div className="mt-4 p-3 bg-green-100 rounded-lg border border-green-200">
-            <p className="text-sm text-green-800">
-              <span className="font-medium">✅ Configuration Ready:</span> AI will create your personalized store with these details.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };
