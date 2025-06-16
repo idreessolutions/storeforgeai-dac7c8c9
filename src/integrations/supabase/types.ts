@@ -9,6 +9,42 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      aliexpress_tokens: {
+        Row: {
+          access_token: string
+          created_at: string
+          expires_at: string
+          id: string
+          refresh_token: string | null
+          scope: string | null
+          session_id: string
+          token_type: string
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          refresh_token?: string | null
+          scope?: string | null
+          session_id: string
+          token_type?: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          refresh_token?: string | null
+          scope?: string | null
+          session_id?: string
+          token_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       automation_results: {
         Row: {
           created_at: string
