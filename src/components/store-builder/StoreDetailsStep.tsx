@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormData } from "./StoreBuilderLogic";
-import { Store, Target, Building, Palette, Info } from "lucide-react";
 
 interface StoreDetailsStepProps {
   formData: FormData;
@@ -45,9 +44,6 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
                 onChange={(e) => onInputChange('storeName', e.target.value)}
                 className="focus:ring-blue-500"
               />
-              <p className="text-xs text-blue-600 mt-1 font-medium">
-                ✨ Your amazing brand name!
-              </p>
             </div>
             
             <div>
@@ -61,9 +57,6 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
                 onChange={(e) => onInputChange('niche', e.target.value)}
                 className="focus:ring-blue-500"
               />
-              <p className="text-xs text-pink-600 mt-1 font-medium">
-                🚀 We'll find 10 winning products for you!
-              </p>
             </div>
           </CardContent>
         </Card>
@@ -88,9 +81,6 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
                 onChange={(e) => onInputChange('targetAudience', e.target.value)}
                 className="focus:ring-purple-500"
               />
-              <p className="text-xs text-purple-600 mt-1 font-medium">
-                🎨 Perfect customization just for them!
-              </p>
             </div>
 
             <div>
@@ -113,9 +103,6 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
                   <SelectItem value="marketplace">🏛️ Marketplace Seller</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-gray-500 mt-1">
-                💡 Smart pricing & presentation!
-              </p>
             </div>
           </CardContent>
         </Card>
@@ -149,9 +136,6 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
                   <SelectItem value="trendy">🚀 Trendy & Hip</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-green-600 mt-1 font-medium">
-                🎭 Perfect theme just for you!
-              </p>
             </div>
           </CardContent>
         </Card>
@@ -177,9 +161,6 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
                 rows={4}
                 className="focus:ring-orange-500"
               />
-              <p className="text-xs text-orange-600 mt-1 font-medium">
-                🪄 We'll make it happen!
-              </p>
             </div>
           </CardContent>
         </Card>
