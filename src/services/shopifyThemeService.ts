@@ -24,7 +24,10 @@ export const installAndConfigureSenseTheme = async (config: ThemeConfiguration):
       themeColor: config.themeColor
     });
 
-    // Use Supabase edge function to install and configure theme with full personalization
+    // Step 1: Update store name in Shopify admin settings
+    await updateShopifyStoreName(config.storeName, config.accessToken);
+
+    // Step 2: Use Supabase edge function to install and configure theme with full personalization
     const { data, error } = await supabase.functions.invoke('install-shopify-theme', {
       body: {
         shopifyUrl: `https://${config.storeName}.myshopify.com`,
@@ -62,6 +65,39 @@ export const installAndConfigureSenseTheme = async (config: ThemeConfiguration):
   } catch (error) {
     console.error('💥 Theme installation process failed:', error);
     throw error;
+  }
+};
+
+const updateShopifyStoreName = async (storeName: string, accessToken: string): Promise<boolean> => {
+  try {
+    console.log(`🏪 Updating Shopify store name to: ${storeName}`);
+
+    // Extract store domain from access token context or construct it
+    // We'll use the supabase edge function to handle this
+    const { data, error } = await supabase.functions.invoke('update-shopify-store-name', {
+      body: {
+        storeName: storeName,
+        accessToken: accessToken
+      }
+    });
+
+    if (error) {
+      console.error('❌ Store name update failed:', error);
+      throw new Error(error.message || 'Failed to update store name');
+    }
+
+    if (data?.success) {
+      console.log(`✅ Store name updated successfully to: ${storeName}`);
+      return true;
+    } else {
+      console.warn('⚠️ Store name update returned no success confirmation');
+      return false;
+    }
+
+  } catch (error) {
+    console.error('💥 Store name update failed:', error);
+    // Don't throw error here as this shouldn't block theme installation
+    return false;
   }
 };
 

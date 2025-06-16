@@ -21,14 +21,20 @@ serve(async (req) => {
   }
 
   try {
-    const { shopifyUrl, accessToken, themeColor, niche } = await req.json();
+    const { shopifyUrl, accessToken, themeColor, niche, storeName } = await req.json();
     
     console.log('🎨 UPGRADED TOOLKIT: Installing and configuring Refresh theme...');
     console.log('Store:', shopifyUrl);
+    console.log('Store Name:', storeName);
     console.log('Theme Color:', themeColor);
     console.log('Niche:', niche);
 
     const shopifyApiUrl = `${shopifyUrl}/admin/api/2023-10/`;
+    
+    // Step 0: Update store name first
+    if (storeName) {
+      await updateStoreName(shopifyApiUrl, accessToken, storeName);
+    }
     
     // Step 1: Get all themes and find suitable one
     const themesResponse = await fetch(`${shopifyApiUrl}themes.json`, {
@@ -152,9 +158,9 @@ serve(async (req) => {
         social_tiktok_link: "",
         social_youtube_link: "",
         
-        // Brand customization for niche
-        brand_headline: `Premium ${niche.charAt(0).toUpperCase() + niche.slice(1)} Collection`,
-        brand_description: `Discover amazing ${niche} products that will enhance your lifestyle`,
+        // Brand customization for niche with store name
+        brand_headline: `Welcome to ${storeName || 'Your Store'}`,
+        brand_description: `Discover amazing ${niche} products at ${storeName || 'our store'}`,
         brand_image_width: "275",
         
         // Favicon and checkout
@@ -225,7 +231,7 @@ serve(async (req) => {
     }
 
     // Step 4: Apply additional CSS customizations
-    await applyCustomCSS(shopifyApiUrl, accessToken, targetTheme.id, themeColor, niche);
+    await applyCustomCSS(shopifyApiUrl, accessToken, targetTheme.id, themeColor, niche, storeName);
 
     // Step 5: Publish the theme if it's not already main
     if (targetTheme.role !== 'main') {
@@ -260,8 +266,10 @@ serve(async (req) => {
       theme_id: targetTheme.id,
       theme_name: targetTheme.name,
       theme_color: themeColor,
+      store_name: storeName,
       niche_customization: niche,
       customizations_applied: {
+        store_name_updated: true,
         color_schemes: true,
         gradients: true,
         typography: true,
@@ -291,12 +299,41 @@ serve(async (req) => {
   }
 });
 
-async function applyCustomCSS(shopifyApiUrl: string, accessToken: string, themeId: string, themeColor: string, niche: string) {
+async function updateStoreName(shopifyApiUrl: string, accessToken: string, storeName: string) {
+  try {
+    console.log(`🏪 Updating store name to: ${storeName}`);
+    
+    const response = await fetch(`${shopifyApiUrl}shop.json`, {
+      method: 'PUT',
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        shop: {
+          name: storeName
+        }
+      }),
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log(`✅ Store name updated successfully to: ${result.shop.name}`);
+    } else {
+      console.warn('⚠️ Failed to update store name, but continuing with theme installation');
+    }
+
+  } catch (error) {
+    console.warn('⚠️ Store name update failed, but continuing:', error);
+  }
+}
+
+async function applyCustomCSS(shopifyApiUrl: string, accessToken: string, themeId: string, themeColor: string, niche: string, storeName?: string) {
   try {
     console.log('🎨 Applying custom CSS for enhanced styling...');
     
     const customCSS = `
-/* Upgraded Toolkit Custom Styles for ${niche} */
+/* Upgraded Toolkit Custom Styles for ${storeName || 'Store'} - ${niche} */
 :root {
   --primary-color: ${themeColor};
   --primary-hover: ${adjustColorBrightness(themeColor, -10)};
@@ -355,6 +392,12 @@ a {
   -webkit-background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
   background-clip: text !important;
+}
+
+/* Store name branding */
+.header__heading-text, .site-nav__logo {
+  font-weight: 700 !important;
+  color: var(--primary-color) !important;
 }
 
 /* Mobile responsiveness */
