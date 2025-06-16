@@ -22,24 +22,23 @@ class AliExpressDropShippingAPI {
     this.credentials = credentials;
   }
 
-  private generateSign(params: Record<string, any>): string {
+  private async generateSign(params: Record<string, any>): Promise<string> {
     const sortedKeys = Object.keys(params).sort();
     const signString = sortedKeys
       .map(key => `${key}${params[key]}`)
       .join('');
     
     // Simple MD5 hash implementation for signature
-    return this.md5(this.credentials.appSecret + signString + this.credentials.appSecret).toUpperCase();
+    return await this.md5(this.credentials.appSecret + signString + this.credentials.appSecret);
   }
 
-  private md5(str: string): string {
-    // Simple MD5 implementation - in production use proper crypto library
-    const crypto = await import('https://deno.land/std@0.177.0/crypto/mod.ts');
+  private async md5(str: string): Promise<string> {
+    // Simple MD5 implementation using Web Crypto API
     const encoder = new TextEncoder();
     const data = encoder.encode(str);
-    const hashBuffer = await crypto.crypto.subtle.digest('MD5', data);
+    const hashBuffer = await crypto.subtle.digest('MD5', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
   }
 
   async searchWinningProducts(niche: string, sessionId: string): Promise<any[]> {
@@ -72,7 +71,7 @@ class AliExpressDropShippingAPI {
       
       const timestamp = Math.floor(Date.now() / 1000).toString();
       
-      const apiParams = {
+      const apiParams: Record<string, string> = {
         app_key: this.credentials.appKey,
         method: 'aliexpress.ds.product.get',
         timestamp,
@@ -91,7 +90,7 @@ class AliExpressDropShippingAPI {
       }
 
       // Generate signature
-      apiParams.sign = this.generateSign(apiParams);
+      apiParams.sign = await this.generateSign(apiParams);
 
       try {
         const response = await fetch(this.baseUrl, {
