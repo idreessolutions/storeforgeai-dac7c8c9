@@ -236,7 +236,7 @@ function selectDiverseProducts(products: any[], maxCount: number): any[] {
   if (products.length <= maxCount) return products;
   
   const selected = [];
-  const used = new Set();
+  const used = new Set<string>();
   
   // Sort by quality score (rating * orders)
   const sorted = products.sort((a, b) => (b.rating * b.orders) - (a.rating * a.orders));
@@ -245,10 +245,10 @@ function selectDiverseProducts(products: any[], maxCount: number): any[] {
     if (selected.length >= maxCount) break;
     
     // Check for title similarity to avoid duplicates
-    const titleWords = product.title.toLowerCase().split(' ').filter(w => w.length > 3);
-    const isSimilar = Array.from(used).some(usedTitle => {
+    const titleWords = product.title.toLowerCase().split(' ').filter((w: string) => w.length > 3);
+    const isSimilar = Array.from(used).some((usedTitle: string) => {
       const usedWords = usedTitle.split(' ');
-      const commonWords = titleWords.filter(word => usedWords.includes(word));
+      const commonWords = titleWords.filter((word: string) => usedWords.includes(word));
       return commonWords.length > 2; // Similarity threshold
     });
     
