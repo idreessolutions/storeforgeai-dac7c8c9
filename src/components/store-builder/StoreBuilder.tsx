@@ -37,10 +37,8 @@ const StoreBuilder = ({ onBack }: StoreBuilderProps) => {
         totalSteps={storeSteps.length} 
       />
 
-      {/* Step Navigation Component - HIDE on step 0 (Get Started) */}
-      {currentStep > 0 && (
-        <StepNavigation steps={storeSteps} currentStep={currentStep} />
-      )}
+      {/* Step Navigation Component - Always visible */}
+      <StepNavigation steps={storeSteps} currentStep={currentStep} />
 
       {/* Main Content - Fixed height with scroll */}
       <div className="h-[calc(100vh-200px)] overflow-y-auto">
