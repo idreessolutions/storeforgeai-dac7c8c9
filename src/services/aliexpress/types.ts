@@ -7,13 +7,27 @@ export interface AliExpressProduct {
   orders: number;
   features: string[];
   imageUrl: string;
-  images: string[]; // Added this property to fix the TypeScript error
-  variants?: Array<{
+  images: string[];
+  variants: Array<{
+    title: string;
+    price: number;
     color?: string;
     size?: string;
-    price?: number;
-    title: string;
   }>;
   category: string;
   originalData?: any;
+}
+
+export interface ProductValidationResult {
+  isValid: boolean;
+  score: number;
+  reasons: string[];
+}
+
+export interface EnhancedProductData extends AliExpressProduct {
+  enhancedTitle: string;
+  enhancedDescription: string;
+  enhancedFeatures: string[];
+  qualityScore: number;
+  imageQuality: number;
 }
