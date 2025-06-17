@@ -14,20 +14,23 @@ interface StepNavigationProps {
 }
 
 const StepNavigation = ({ steps, currentStep }: StepNavigationProps) => {
-  // Hide navigation for step 0 (Get Started)
+  // CRITICAL FIX: Hide navigation for step 0 (Get Started)
   if (currentStep === 0) {
     return null;
   }
   
-  // Convert currentStep to display steps 1-8 (excluding Get Started)
-  const displayStep = currentStep;
-  const totalSteps = steps.length - 1; // Exclude Get Started step
-  const stepsToShow = steps.slice(1); // Remove Get Started from display
+  // CRITICAL FIX: Enforce proper step display (1-8, excluding Get Started)
+  const maxAllowedStep = 8;
+  const displayStep = Math.min(currentStep, maxAllowedStep);
+  const totalSteps = 8; // FIXED: Always show 8 steps maximum
+  const stepsToShow = steps.slice(1, 9); // Show steps 1-8 only (exclude Get Started)
+  
+  console.log(`🛠️ STEP NAV FIX: Displaying step ${displayStep} of ${totalSteps} (current: ${currentStep})`);
   
   return (
     <nav className="bg-gradient-to-r from-white via-blue-50 to-indigo-50 py-8 px-6 shadow-lg border-b border-blue-100">
       <div className="max-w-6xl mx-auto">
-        {/* Progress Header */}
+        {/* FIXED Progress Header */}
         <div className="text-center mb-6">
           <h2 className="text-xl font-bold text-gray-800">
             Step {displayStep} of {totalSteps}

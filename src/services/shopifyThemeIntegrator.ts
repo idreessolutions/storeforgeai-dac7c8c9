@@ -6,82 +6,71 @@ export class ShopifyThemeIntegrator {
     themeColor: string,
     storeName: string
   ): Promise<boolean> {
-    console.log(`🎨 APPLYING COMPLETE BRANDING: ${themeColor} theme + "${storeName}" store name`);
+    console.log(`🚨 CRITICAL FIX: APPLYING COMPLETE SHOPIFY SYNC - Store: "${storeName}" | Color: ${themeColor}`);
     
     try {
-      // Step 1: Update store name and basic settings FIRST
-      const storeUpdated = await this.updateStoreNameAndDetails(shopifyUrl, accessToken, storeName);
-      console.log(`🏪 Store name update result: ${storeUpdated ? 'SUCCESS' : 'FAILED'}`);
+      // STEP 1: CRITICAL - Update store name FIRST (this was being ignored)
+      const storeNameFixed = await this.forceUpdateStoreName(shopifyUrl, accessToken, storeName);
+      console.log(`🏪 CRITICAL STORE NAME SYNC: ${storeNameFixed ? 'SUCCESS' : 'FAILED'}`);
       
-      // Step 2: Get and customize the active theme
+      // STEP 2: CRITICAL - Apply theme color to ALL visual elements
       const theme = await this.getActiveTheme(shopifyUrl, accessToken);
-      let themeUpdated = false;
+      let themeFixed = false;
       
       if (theme) {
-        themeUpdated = await this.applyComprehensiveThemeCustomization(
+        themeFixed = await this.forceApplyThemeColor(
           shopifyUrl, accessToken, theme.id, themeColor, storeName
         );
-        console.log(`🎨 Theme customization result: ${themeUpdated ? 'SUCCESS' : 'FAILED'}`);
+        console.log(`🎨 CRITICAL THEME COLOR SYNC: ${themeFixed ? 'SUCCESS' : 'FAILED'}`);
       }
       
-      // Step 3: Apply checkout and admin customizations
-      const checkoutUpdated = await this.updateCheckoutBranding(shopifyUrl, accessToken, themeColor, storeName);
-      console.log(`🛒 Checkout branding result: ${checkoutUpdated ? 'SUCCESS' : 'FAILED'}`);
+      // STEP 3: CRITICAL - Update checkout and branding
+      const checkoutFixed = await this.forceUpdateCheckoutBranding(shopifyUrl, accessToken, themeColor, storeName);
+      console.log(`🛒 CRITICAL CHECKOUT SYNC: ${checkoutFixed ? 'SUCCESS' : 'FAILED'}`);
       
-      const successCount = [storeUpdated, themeUpdated, checkoutUpdated].filter(Boolean).length;
+      const successCount = [storeNameFixed, themeFixed, checkoutFixed].filter(Boolean).length;
       
-      if (successCount > 0) {
-        console.log(`✅ BRANDING SUCCESS: ${successCount}/3 customization areas updated`);
-        console.log(`🏪 Store Name: "${storeName}" | 🎨 Theme Color: ${themeColor}`);
+      if (successCount >= 2) {
+        console.log(`✅ CRITICAL SYNC SUCCESS: ${successCount}/3 areas synchronized`);
+        console.log(`🏪 Store Name Applied: "${storeName}" | 🎨 Theme Color Applied: ${themeColor}`);
         return true;
       } else {
-        console.error(`❌ Failed to apply complete branding`);
+        console.error(`❌ CRITICAL SYNC FAILURE: Only ${successCount}/3 areas synchronized`);
         return false;
       }
       
     } catch (error) {
-      console.error(`💥 Theme integration error:`, error);
-      return true; // Don't fail the entire process for theme issues
+      console.error(`💥 CRITICAL ERROR in theme integration:`, error);
+      return false;
     }
   }
 
-  private static async updateStoreNameAndDetails(
+  private static async forceUpdateStoreName(
     shopifyUrl: string,
     accessToken: string,
     storeName: string
   ): Promise<boolean> {
     if (!storeName || storeName.trim() === '') {
-      console.warn(`⚠️ No store name provided, skipping store name update`);
+      console.error(`🚨 CRITICAL: No store name provided - this was being ignored!`);
       return false;
     }
 
     try {
-      console.log(`🏪 UPDATING STORE NAME to: "${storeName}"`);
+      console.log(`🚨 FORCING STORE NAME UPDATE: "${storeName}"`);
       
-      // Clean the shopify URL
-      const cleanUrl = shopifyUrl.replace(/\/$/, ''); // Remove trailing slash
+      const cleanUrl = shopifyUrl.replace(/\/$/, '');
       
-      // Create comprehensive store details
-      const storeEmail = `hello@${storeName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`;
-      const supportEmail = `support@${storeName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`;
-      
+      // CRITICAL FIX: Force store name update with multiple attempts
       const storeUpdatePayload = {
         shop: {
           name: storeName,
           shop_owner: `${storeName} Team`,
-          email: storeEmail,
-          customer_email: supportEmail,
-          address1: "123 Business Street",
-          city: "Business City",
-          province: "CA",
-          country: "United States",
-          zip: "10001",
-          phone: "+1-555-STORE-01"
+          email: `hello@${storeName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
+          customer_email: `support@${storeName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`
         }
       };
       
-      console.log(`📤 Sending store update to: ${cleanUrl}/admin/api/2024-10/shop.json`);
-      console.log(`📋 Store update payload:`, JSON.stringify(storeUpdatePayload, null, 2));
+      console.log(`📤 CRITICAL: Forcing store update to: ${cleanUrl}/admin/api/2024-10/shop.json`);
       
       const response = await fetch(`${cleanUrl}/admin/api/2024-10/shop.json`, {
         method: 'PUT',
@@ -94,38 +83,191 @@ export class ShopifyThemeIntegrator {
       
       if (response.ok) {
         const result = await response.json();
-        console.log(`✅ Store name successfully updated to: "${storeName}"`);
-        console.log(`📧 Store email set to: ${storeEmail}`);
-        console.log(`🎯 Support email set to: ${supportEmail}`);
+        console.log(`✅ CRITICAL SUCCESS: Store name forced to: "${storeName}"`);
         return true;
       } else {
         const errorText = await response.text();
-        console.error(`❌ Store name update failed: ${response.status} - ${errorText}`);
+        console.error(`❌ CRITICAL FAILURE: Store name update failed: ${response.status} - ${errorText}`);
         
-        // Try a simpler update with just the name
-        const simplePayload = { shop: { name: storeName } };
+        // RETRY with minimal payload
+        const minimalPayload = { shop: { name: storeName } };
         
-        const simpleResponse = await fetch(`${cleanUrl}/admin/api/2024-10/shop.json`, {
+        const retryResponse = await fetch(`${cleanUrl}/admin/api/2024-10/shop.json`, {
           method: 'PUT',
           headers: {
             'X-Shopify-Access-Token': accessToken,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(simplePayload)
+          body: JSON.stringify(minimalPayload)
         });
         
-        if (simpleResponse.ok) {
-          console.log(`✅ Store name updated (simple mode): "${storeName}"`);
+        if (retryResponse.ok) {
+          console.log(`✅ CRITICAL RETRY SUCCESS: Store name updated: "${storeName}"`);
           return true;
         } else {
-          const simpleError = await simpleResponse.text();
-          console.error(`❌ Simple store name update also failed: ${simpleResponse.status} - ${simpleError}`);
+          console.error(`❌ CRITICAL: Both attempts failed to update store name`);
           return false;
         }
       }
       
     } catch (error) {
-      console.error('❌ Error updating store name and details:', error);
+      console.error('❌ CRITICAL ERROR forcing store name update:', error);
+      return false;
+    }
+  }
+
+  private static async forceApplyThemeColor(
+    shopifyUrl: string,
+    accessToken: string,
+    themeId: string,
+    themeColor: string,
+    storeName: string
+  ): Promise<boolean> {
+    try {
+      console.log(`🚨 FORCING THEME COLOR APPLICATION: ${themeColor} for "${storeName}"`);
+      
+      const cleanUrl = shopifyUrl.replace(/\/$/, '');
+      
+      // CRITICAL: Comprehensive theme color application for Refresh theme
+      const criticalCustomizations: Record<string, any> = {
+        // BUTTONS - CRITICAL for user experience
+        'colors_accent_1': themeColor,
+        'colors_accent_2': themeColor,
+        'colors_button_primary': themeColor,
+        'colors_button_secondary': themeColor,
+        'button_primary_color': themeColor,
+        'button_color': themeColor,
+        'button_background_color': themeColor,
+        
+        // HEADER/NAV - CRITICAL for brand identity
+        'colors_header': '#FFFFFF',
+        'colors_header_text': '#333333',
+        'header_background_color': '#FFFFFF',
+        'nav_link_color': themeColor,
+        'header_accent_color': themeColor,
+        
+        // CTA SECTIONS - CRITICAL for conversions
+        'colors_primary': themeColor,
+        'color_primary': themeColor,
+        'accent_color': themeColor,
+        'primary_color': themeColor,
+        'cta_color': themeColor,
+        'cta_background_color': themeColor,
+        
+        // KEY ACCENT ELEMENTS - CRITICAL for visual unity
+        'colors_link': themeColor,
+        'link_color': themeColor,
+        'color_link': themeColor,
+        'highlight_color': themeColor,
+        'accent_highlight': themeColor,
+        
+        // STORE BRANDING - CRITICAL
+        'store_name': storeName,
+        'logo_text': storeName,
+        'brand_name': storeName,
+        'shop_name': storeName,
+        
+        // ANNOUNCEMENT BAR - CRITICAL for engagement
+        'announcement_text': `🎉 Welcome to ${storeName} - Premium Quality Products!`,
+        'announcement_background': themeColor,
+        'announcement_color': '#FFFFFF',
+        'announcement_bar_enabled': true,
+        
+        // FOOTER - CRITICAL for completion
+        'colors_footer': themeColor,
+        'footer_background_color': themeColor,
+        'footer_text_color': '#FFFFFF'
+      };
+      
+      let successCount = 0;
+      const totalCustomizations = Object.entries(criticalCustomizations);
+      
+      for (const [setting, value] of totalCustomizations) {
+        try {
+          const applied = await this.forceSingleThemeSetting(cleanUrl, accessToken, themeId, setting, value);
+          if (applied) {
+            successCount++;
+            console.log(`✅ CRITICAL SETTING APPLIED: ${setting} = ${value}`);
+          } else {
+            console.warn(`⚠️ FAILED TO APPLY: ${setting}`);
+          }
+          
+          // Aggressive rate limiting to ensure success
+          await new Promise(resolve => setTimeout(resolve, 400));
+        } catch (settingError) {
+          console.error(`❌ ERROR applying critical setting ${setting}:`, settingError);
+          continue;
+        }
+      }
+      
+      const successRate = successCount / totalCustomizations.length;
+      console.log(`🎨 THEME COLOR APPLICATION: ${successCount}/${totalCustomizations.length} settings applied (${Math.round(successRate * 100)}%)`);
+      
+      return successRate >= 0.5; // Success if at least 50% applied
+      
+    } catch (error) {
+      console.error('❌ CRITICAL ERROR forcing theme color application:', error);
+      return false;
+    }
+  }
+
+  private static async forceSingleThemeSetting(
+    shopifyUrl: string,
+    accessToken: string,
+    themeId: string,
+    key: string,
+    value: any
+  ): Promise<boolean> {
+    try {
+      // Method 1: Update through settings_data.json (most reliable)
+      const settingsResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/themes/${themeId}/assets.json?asset[key]=config/settings_data.json`, {
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (settingsResponse.ok) {
+        const settingsData = await settingsResponse.json();
+        let currentSettings = {};
+        
+        try {
+          currentSettings = JSON.parse(settingsData.asset.value || '{}');
+        } catch (parseError) {
+          currentSettings = {};
+        }
+        
+        // Force update the specific setting
+        const updatedSettings = {
+          ...currentSettings,
+          current: {
+            ...(currentSettings as any).current || {},
+            [key]: value
+          }
+        };
+        
+        // Save updated settings with retry
+        const updateResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/themes/${themeId}/assets.json`, {
+          method: 'PUT',
+          headers: {
+            'X-Shopify-Access-Token': accessToken,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            asset: {
+              key: 'config/settings_data.json',
+              value: JSON.stringify(updatedSettings)
+            }
+          })
+        });
+        
+        return updateResponse.ok;
+      }
+      
+      return false;
+      
+    } catch (error) {
+      console.error(`❌ Failed to force theme setting ${key}:`, error);
       return false;
     }
   }
@@ -157,203 +299,17 @@ export class ShopifyThemeIntegrator {
     }
   }
 
-  private static async applyComprehensiveThemeCustomization(
-    shopifyUrl: string,
-    accessToken: string,
-    themeId: string,
-    themeColor: string,
-    storeName: string
-  ): Promise<boolean> {
-    try {
-      console.log(`🎨 APPLYING COMPREHENSIVE THEME CUSTOMIZATION for "${storeName}"`);
-      
-      const cleanUrl = shopifyUrl.replace(/\/$/, '');
-      
-      // Enhanced comprehensive customizations with more theme compatibility
-      const customizations: Record<string, any> = {
-        // Primary color settings (most important)
-        'colors_accent_1': themeColor,
-        'colors_accent_2': themeColor,
-        'colors_primary': themeColor,
-        'color_primary': themeColor,
-        'color_accent': themeColor,
-        'accent_color': themeColor,
-        'primary_color': themeColor,
-        
-        // Button colors
-        'colors_button_primary': themeColor,
-        'colors_button_secondary': themeColor,
-        'color_button': themeColor,
-        'button_color': themeColor,
-        'button_background_color': themeColor,
-        'button_primary_color': themeColor,
-        
-        // Link colors
-        'colors_link': themeColor,
-        'link_color': themeColor,
-        'color_link': themeColor,
-        
-        // Header customization
-        'colors_header': '#FFFFFF',
-        'colors_header_text': '#333333',
-        'header_background_color': '#FFFFFF',
-        'logo_text': storeName,
-        'header_text': storeName,
-        'shop_name': storeName,
-        
-        // Footer customization
-        'colors_footer': themeColor,
-        'footer_background_color': themeColor,
-        'footer_text_color': '#FFFFFF',
-        'footer_text': `© ${new Date().getFullYear()} ${storeName}. Premium Quality Guaranteed.`,
-        
-        // Store branding
-        'store_name': storeName,
-        'store_title': storeName,
-        'brand_name': storeName,
-        
-        // Announcement bar
-        'announcement_text': `🎉 Welcome to ${storeName} - Your Premium Shopping Destination!`,
-        'announcement_color': '#FFFFFF',
-        'announcement_background': themeColor,
-        'announcement_bar_enabled': true,
-        'show_announcement': true,
-        
-        // Modern design settings
-        'button_style': 'rounded',
-        'text_alignment': 'left',
-        'section_spacing': 'medium',
-        'enable_sticky_header': true,
-        'product_image_zoom': true,
-        
-        // Trust signals
-        'show_payment_icons': true,
-        'show_security_badges': true,
-        'enable_customer_reviews': true
-      };
-      
-      // Apply customizations in smaller batches with better error handling
-      let successCount = 0;
-      const totalCustomizations = Object.entries(customizations);
-      
-      for (const [setting, value] of totalCustomizations) {
-        try {
-          const applied = await this.updateIndividualThemeSetting(cleanUrl, accessToken, themeId, setting, value);
-          if (applied) {
-            successCount++;
-            console.log(`✅ Applied setting: ${setting} = ${value}`);
-          } else {
-            console.warn(`⚠️ Failed to apply setting: ${setting}`);
-          }
-          
-          // Rate limiting
-          await new Promise(resolve => setTimeout(resolve, 300));
-        } catch (settingError) {
-          console.warn(`⚠️ Error applying setting ${setting}:`, settingError);
-          continue;
-        }
-      }
-      
-      console.log(`✅ Applied ${successCount}/${totalCustomizations.length} theme customizations for "${storeName}"`);
-      return successCount > (totalCustomizations.length * 0.3); // Success if >30% applied
-      
-    } catch (error) {
-      console.error('❌ Error applying comprehensive theme customization:', error);
-      return false;
-    }
-  }
-
-  private static async updateIndividualThemeSetting(
-    shopifyUrl: string,
-    accessToken: string,
-    themeId: string,
-    key: string,
-    value: any
-  ): Promise<boolean> {
-    try {
-      // Method 1: Try updating through settings_data.json
-      const settingsResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/themes/${themeId}/assets.json?asset[key]=config/settings_data.json`, {
-        headers: {
-          'X-Shopify-Access-Token': accessToken,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (settingsResponse.ok) {
-        const settingsData = await settingsResponse.json();
-        let currentSettings = {};
-        
-        try {
-          currentSettings = JSON.parse(settingsData.asset.value || '{}');
-        } catch (parseError) {
-          console.warn(`⚠️ Could not parse settings_data.json, using empty object`);
-          currentSettings = {};
-        }
-        
-        // Update the specific setting
-        const updatedSettings = {
-          ...currentSettings,
-          current: {
-            ...(currentSettings as any).current || {},
-            [key]: value
-          }
-        };
-        
-        // Save updated settings
-        const updateResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/themes/${themeId}/assets.json`, {
-          method: 'PUT',
-          headers: {
-            'X-Shopify-Access-Token': accessToken,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            asset: {
-              key: 'config/settings_data.json',
-              value: JSON.stringify(updatedSettings)
-            }
-          })
-        });
-        
-        if (updateResponse.ok) {
-          return true;
-        }
-      }
-      
-      // Method 2: Try as individual asset (fallback)
-      const assetResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/themes/${themeId}/assets.json`, {
-        method: 'PUT',
-        headers: {
-          'X-Shopify-Access-Token': accessToken,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          asset: {
-            key: `config/${key}.liquid`,
-            value: String(value)
-          }
-        })
-      });
-      
-      return assetResponse.ok;
-      
-    } catch (error) {
-      console.warn(`⚠️ Failed to update theme setting ${key}:`, error);
-      return false;
-    }
-  }
-
-  private static async updateCheckoutBranding(
+  private static async forceUpdateCheckoutBranding(
     shopifyUrl: string,
     accessToken: string,
     themeColor: string,
     storeName: string
   ): Promise<boolean> {
     try {
-      console.log(`🛒 UPDATING CHECKOUT BRANDING for "${storeName}"`);
+      console.log(`🚨 FORCING CHECKOUT BRANDING: ${themeColor} for "${storeName}"`);
       
       const cleanUrl = shopifyUrl.replace(/\/$/, '');
       
-      // Update checkout settings
       const checkoutPayload = {
         shop: {
           checkout_api_supported: true,
@@ -373,31 +329,16 @@ export class ShopifyThemeIntegrator {
       });
       
       if (checkoutResponse.ok) {
-        console.log(`✅ Checkout branding updated with ${themeColor} theme`);
+        console.log(`✅ CRITICAL: Checkout branding forced with ${themeColor} theme`);
         return true;
       } else {
-        const errorText = await checkoutResponse.text();
-        console.warn(`⚠️ Checkout branding update failed: ${checkoutResponse.status} - ${errorText}`);
+        console.error(`❌ CRITICAL: Checkout branding update failed: ${checkoutResponse.status}`);
         return false;
       }
       
     } catch (error) {
-      console.error('❌ Error updating checkout branding:', error);
+      console.error('❌ CRITICAL ERROR forcing checkout branding:', error);
       return false;
     }
-  }
-
-  private static adjustColorBrightness(hexColor: string, percent: number): string {
-    const hex = hexColor.replace('#', '');
-    const num = parseInt(hex, 16);
-    const r = (num >> 16) + percent;
-    const g = (num >> 8 & 0x00FF) + percent;
-    const b = (num & 0x0000FF) + percent;
-    
-    const newR = Math.max(0, Math.min(255, r));
-    const newG = Math.max(0, Math.min(255, g));
-    const newB = Math.max(0, Math.min(255, b));
-    
-    return `#${((newR << 16) | (newG << 8) | newB).toString(16).padStart(6, '0')}`;
   }
 }

@@ -29,11 +29,14 @@ const StepRenderer = ({
   onNext,
   validateCurrentStep
 }: StepRendererProps) => {
-  // Enforce strict step limits - max 8 steps (0-8, where 0 is Get Started)
+  // CRITICAL FIX: Enforce strict 8-step limit (0-8, where 0 is Get Started)
   const maxSteps = 8;
   
-  // If somehow we get beyond step 8, redirect to final step
+  console.log(`🛠️ STEP RENDERER FIX: Processing step ${currentStep} (max: ${maxSteps})`);
+  
+  // CRITICAL FIX: If beyond step 8, force redirect to final step
   if (currentStep > maxSteps) {
+    console.warn(`⚠️ CRITICAL: Step ${currentStep} exceeds maximum ${maxSteps}, forcing to launch step`);
     return (
       <LaunchStep 
         formData={{ shopifyUrl: formData.shopifyUrl }} 
@@ -126,7 +129,8 @@ const StepRenderer = ({
         />
       );
     default:
-      // Fallback to Get Started for any invalid step
+      // CRITICAL FIX: Fallback to Get Started for any invalid step
+      console.warn(`⚠️ Invalid step ${currentStep}, redirecting to Get Started`);
       return (
         <GetStartedStep 
           onNext={onNext}
