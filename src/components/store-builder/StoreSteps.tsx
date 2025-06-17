@@ -17,13 +17,13 @@ export const storeSteps = [
     icon: Store
   },
   {
-    title: "Choose Color",
+    title: "Choose Color", 
     description: "Select theme colors",
     icon: Palette
   },
   {
     title: "Create Store",
-    description: "Setup Shopify store",
+    description: "Setup Shopify store", 
     icon: ShoppingBag
   },
   {
@@ -43,7 +43,7 @@ export const storeSteps = [
   },
   {
     title: "Mentorship",
-    description: "Get 1-on-1 support",
+    description: "Get 1-on-1 support", 
     icon: Users
   },
   {
