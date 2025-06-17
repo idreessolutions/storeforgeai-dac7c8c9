@@ -13,6 +13,7 @@ export class ProductParser {
       const orders = this.parseOrderCount(soldCount);
       
       const imageUrl = item.item?.images?.[0] || item.image || item.imageUrl || '';
+      const images = item.item?.images || item.images || [imageUrl];
       const features = this.extractNicheSpecificFeatures(title, niche, item);
       const variants = this.extractProductVariants(item, price);
       
@@ -24,6 +25,7 @@ export class ProductParser {
         orders: Math.max(100, orders),
         features,
         imageUrl,
+        images,
         variants,
         category: niche,
         originalData: item
