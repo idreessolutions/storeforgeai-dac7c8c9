@@ -78,7 +78,7 @@ export class ShopifyThemeIntegrator {
   ): Promise<boolean> {
     try {
       // Enhanced color customizations for modern Shopify themes
-      const colorCustomizations = {
+      const colorCustomizations: Record<string, string> = {
         'colors_accent_1': themeColor,
         'colors_accent_2': themeColor,
         'colors_primary': themeColor,
@@ -127,7 +127,7 @@ export class ShopifyThemeIntegrator {
     themeColor: string
   ): Promise<boolean> {
     try {
-      const brandingSettings = {
+      const brandingSettings: Record<string, string> = {
         'shop_name': storeName,
         'logo_text': storeName,
         'header_text': storeName,
@@ -176,15 +176,15 @@ export class ShopifyThemeIntegrator {
     themeColor: string
   ): Promise<boolean> {
     try {
-      const layoutSettings = {
-        // Product page settings - convert all numbers to strings
+      const layoutSettings: Record<string, string> = {
+        // Product page settings - all values as strings
         'product_show_vendor': 'true',
         'product_show_sku': 'false',
         'product_show_rating': 'true',
         'product_show_quantity_selector': 'true',
         'product_show_pickup_availability': 'true',
         
-        // Collection page settings - convert numbers to strings
+        // Collection page settings - all values as strings
         'collection_products_per_page': '24',
         'collection_show_sort': 'true',
         'collection_show_filter': 'true',

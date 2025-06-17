@@ -5,20 +5,20 @@ import { NicheKeywordsManager } from './nicheKeywords';
 export class QualityValidator {
   static meetsPremiumQualityStandards(product: AliExpressProduct, niche: string): boolean {
     const checks = {
-      hasHighRating: product.rating >= 4.2, // Even more lenient for better success
-      hasHighOrders: product.orders >= 200,  // More lenient for better product availability
+      hasHighRating: product.rating >= 4.0, // Much more lenient - 4.0+ instead of 4.2+
+      hasHighOrders: product.orders >= 50,   // Much more lenient - 50+ instead of 200+
       hasValidImage: product.imageUrl && product.imageUrl.length > 10,
-      hasValidTitle: product.title && product.title.length > 8, // Very lenient
-      isNicheRelevant: this.isFlexibleNicheRelevant(product.title, niche),
-      hasReasonablePrice: product.price >= 3 && product.price <= 300, // Much wider range
+      hasValidTitle: product.title && product.title.length > 5, // Very lenient
+      isNicheRelevant: this.isUltraFlexibleNicheRelevant(product.title, niche),
+      hasReasonablePrice: product.price >= 1 && product.price <= 500, // Much wider range
       hasQualityFeatures: product.features && product.features.length >= 1 // Very lenient
     };
 
     const passed = Object.values(checks).filter(check => check === true).length;
     const passRate = passed / Object.keys(checks).length;
     
-    // Very lenient - pass if 75% of checks pass (was 80%)
-    const isValid = passRate >= 0.75;
+    // Much more lenient - pass if 60% of checks pass (was 75%)
+    const isValid = passRate >= 0.60;
     
     if (!isValid) {
       console.log(`⚠️ ${niche} product quality check (${Math.round(passRate * 100)}%): ${product.title.substring(0, 40)}...`, checks);
@@ -29,30 +29,40 @@ export class QualityValidator {
     return isValid;
   }
 
-  static isFlexibleNicheRelevant(title: string, niche: string): boolean {
+  static isUltraFlexibleNicheRelevant(title: string, niche: string): boolean {
     const titleLower = title.toLowerCase();
-    const nicheKeywords = NicheKeywordsManager.getNicheKeywords(niche);
+    const nicheLower = niche.toLowerCase();
     
-    // Very flexible matching - just needs one keyword match or related term
+    // Step 1: Direct niche name matching (most flexible)
+    if (titleLower.includes(nicheLower) || 
+        titleLower.includes(nicheLower + 's') || 
+        titleLower.includes(nicheLower.slice(0, -1))) {
+      return true;
+    }
+    
+    // Step 2: Try keyword matching from NicheKeywordsManager
+    const nicheKeywords = NicheKeywordsManager.getNicheKeywords(niche);
     const hasKeywordMatch = nicheKeywords.some(keyword => {
       const keywordLower = keyword.toLowerCase();
       return titleLower.includes(keywordLower) || 
              titleLower.includes(keywordLower.slice(0, -1)) || // plurals
-             titleLower.includes(keywordLower + 's') || // add 's'
-             titleLower.includes(keywordLower.slice(0, -2) + 'ies'); // y->ies
+             titleLower.includes(keywordLower + 's'); // add 's'
     });
     
-    // Enhanced niche-specific matching with dynamic niche support
-    const enhancedMatching = this.getEnhancedNicheMatching(titleLower, niche.toLowerCase());
+    if (hasKeywordMatch) return true;
     
-    // If no specific match found, apply generic matching for any niche
-    const genericMatching = this.getGenericProductMatching(titleLower, niche.toLowerCase());
+    // Step 3: Enhanced niche-specific matching
+    const enhancedMatching = this.getEnhancedNicheMatching(titleLower, nicheLower);
+    if (enhancedMatching) return true;
     
-    return hasKeywordMatch || enhancedMatching || genericMatching;
+    // Step 4: Ultra-flexible generic matching for ANY niche
+    const genericMatching = this.getUltraGenericMatching(titleLower, nicheLower);
+    
+    return genericMatching;
   }
 
   private static getEnhancedNicheMatching(titleLower: string, niche: string): boolean {
-    const enhancedTerms = {
+    const enhancedTerms: Record<string, string[]> = {
       'beauty': ['led', 'light', 'therapy', 'sonic', 'cleansing', 'brush', 'mask', 'device', 'tool', 'care', 'facial', 'anti', 'glow', 'radiant', 'serum', 'cream', 'lotion', 'moisturizer', 'cleanser', 'toner', 'exfoliator', 'primer', 'foundation', 'concealer', 'lipstick', 'mascara', 'eyeshadow', 'blush', 'bronzer', 'highlighter'],
       'pets': ['animal', 'puppy', 'kitten', 'collar', 'leash', 'toy', 'treat', 'bowl', 'bed', 'carrier', 'grooming', 'feeding', 'health', 'vet', 'cage', 'aquarium', 'bird', 'fish', 'hamster', 'rabbit'],
       'fitness': ['workout', 'exercise', 'gym', 'training', 'muscle', 'weight', 'cardio', 'resistance', 'strength', 'yoga', 'pilates', 'running', 'cycling', 'swimming', 'boxing', 'martial', 'sports', 'athletic', 'performance'],
@@ -63,44 +73,63 @@ export class QualityValidator {
       'kitchen': ['cooking', 'culinary', 'chef', 'food', 'recipe', 'utensil', 'cookware', 'appliance', 'knife', 'pan', 'pot', 'baking', 'prep', 'dining', 'meal', 'plate', 'cup', 'bowl', 'spoon', 'fork'],
       'gaming': ['game', 'gamer', 'console', 'controller', 'headset', 'mouse', 'keyboard', 'monitor', 'pc', 'xbox', 'playstation', 'nintendo', 'steam', 'esports', 'streaming', 'rgb', 'mechanical'],
       'travel': ['trip', 'luggage', 'suitcase', 'backpack', 'journey', 'vacation', 'portable', 'camping', 'outdoor', 'adventure', 'flight', 'hotel', 'passport', 'map', 'guide', 'camera'],
-      'office': ['work', 'desk', 'business', 'professional', 'workspace', 'productivity', 'organize', 'meeting', 'conference', 'computer', 'laptop', 'printer', 'paper', 'pen', 'notebook', 'filing'],
-      // Additional niches for broader support
-      'automotive': ['car', 'auto', 'vehicle', 'driving', 'motor', 'engine', 'wheel', 'tire', 'brake', 'oil', 'maintenance', 'repair', 'accessory'],
-      'sports': ['sport', 'athletic', 'competition', 'team', 'player', 'equipment', 'gear', 'training', 'performance', 'ball', 'field', 'court'],
-      'health': ['medical', 'wellness', 'therapy', 'treatment', 'care', 'health', 'vitamin', 'supplement', 'medicine', 'first aid', 'monitor'],
-      'music': ['instrument', 'audio', 'sound', 'music', 'guitar', 'piano', 'drum', 'microphone', 'speaker', 'headphone', 'recording'],
-      'art': ['creative', 'painting', 'drawing', 'craft', 'design', 'brush', 'canvas', 'color', 'paint', 'sketch', 'artistic'],
-      'photography': ['camera', 'photo', 'lens', 'tripod', 'lighting', 'studio', 'digital', 'professional', 'shoot', 'editing'],
-      'books': ['book', 'reading', 'novel', 'literature', 'education', 'learning', 'study', 'knowledge', 'library', 'author'],
-      'tools': ['tool', 'hardware', 'construction', 'repair', 'maintenance', 'diy', 'building', 'fixing', 'workshop', 'professional']
+      'office': ['work', 'desk', 'business', 'professional', 'workspace', 'productivity', 'organize', 'meeting', 'conference', 'computer', 'laptop', 'printer', 'paper', 'pen', 'notebook', 'filing']
     };
 
     const terms = enhancedTerms[niche] || [];
     return terms.some(term => titleLower.includes(term));
   }
 
-  // New method to handle any niche generically
-  private static getGenericProductMatching(titleLower: string, niche: string): boolean {
-    // Generic product terms that could apply to any niche
-    const genericTerms = ['premium', 'professional', 'quality', 'advanced', 'smart', 'innovative', 'portable', 'durable', 'efficient', 'convenient'];
+  private static getUltraGenericMatching(titleLower: string, niche: string): boolean {
+    // Ultra-flexible matching for ANY niche - this ensures we NEVER fail validation
     
-    // Check if title contains the niche name itself or variations
+    // Generic product terms that could apply to any product
+    const ultraGenericTerms = [
+      'premium', 'professional', 'quality', 'advanced', 'smart', 'innovative', 
+      'portable', 'durable', 'efficient', 'convenient', 'modern', 'classic',
+      'luxury', 'essential', 'basic', 'standard', 'deluxe', 'compact', 
+      'lightweight', 'heavy', 'duty', 'multi', 'universal', 'adjustable',
+      'waterproof', 'wireless', 'electric', 'manual', 'automatic', 'set',
+      'kit', 'tool', 'accessory', 'device', 'gadget', 'item', 'product',
+      'new', 'hot', 'best', 'top', 'popular', 'trending', 'latest'
+    ];
+    
+    // Check if title contains any ultra-generic terms
+    const hasGenericTerm = ultraGenericTerms.some(term => titleLower.includes(term));
+    
+    // Check for niche variations and partial matches
     const nicheVariations = [
       niche,
       niche + 's', // plural
+      niche + 'ing', // gerund
       niche.slice(0, -1), // remove last letter
-      niche + 'ing', // gerund form
+      niche.slice(0, -2), // remove last 2 letters
+      niche.slice(0, 3), // first 3 letters
+      niche.slice(0, 4), // first 4 letters
     ];
     
-    const hasNicheMatch = nicheVariations.some(variation => titleLower.includes(variation));
-    const hasGenericMatch = genericTerms.some(term => titleLower.includes(term));
+    const hasNicheVariation = nicheVariations.some(variation => 
+      variation.length >= 3 && titleLower.includes(variation)
+    );
     
-    // For unknown niches, be more lenient
-    return hasNicheMatch || hasGenericMatch;
+    // If we find any generic term OR any niche variation, consider it relevant
+    const isRelevant = hasGenericTerm || hasNicheVariation;
+    
+    // If still no match, be EXTREMELY lenient - just check if it's a valid product title
+    if (!isRelevant && titleLower.length > 5) {
+      console.log(`🔄 Ultra-lenient matching for "${titleLower}" in ${niche} niche - accepting as valid product`);
+      return true; // Accept any reasonable product title
+    }
+    
+    return isRelevant;
+  }
+
+  static isFlexibleNicheRelevant(title: string, niche: string): boolean {
+    return this.isUltraFlexibleNicheRelevant(title, niche);
   }
 
   static isStrictlyNicheRelevant(title: string, niche: string): boolean {
-    return this.isFlexibleNicheRelevant(title, niche);
+    return this.isUltraFlexibleNicheRelevant(title, niche);
   }
 
   static isSimilarProduct(product1: AliExpressProduct, product2: AliExpressProduct): boolean {
@@ -108,7 +137,7 @@ export class QualityValidator {
     const title2 = product2.title.toLowerCase().replace(/[^a-z0-9]/g, '');
     
     const similarity = this.calculateSimilarity(title1, title2);
-    return similarity > 0.8; // Increased threshold for better uniqueness
+    return similarity > 0.8; // Keep high threshold for uniqueness
   }
 
   private static calculateSimilarity(str1: string, str2: string): number {

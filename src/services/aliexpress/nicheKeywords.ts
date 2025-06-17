@@ -87,7 +87,19 @@ export class NicheKeywordsManager {
       'electronics': [
         'electronic', 'electronics', 'circuit', 'component', 'wire', 'cable', 'adapter',
         'connector', 'power', 'battery', 'voltage'
-      ]
+      ],
+      // NEW: Support for ANY niche with dynamic keyword generation
+      'food': ['food', 'snack', 'meal', 'ingredient', 'recipe', 'cooking', 'baking', 'nutrition'],
+      'garden': ['garden', 'plant', 'flower', 'seed', 'soil', 'watering', 'outdoor', 'landscaping'],
+      'clothing': ['clothing', 'wear', 'garment', 'fabric', 'textile', 'fashion', 'style', 'apparel'],
+      'shoes': ['shoe', 'footwear', 'boot', 'sneaker', 'sandal', 'heel', 'sole', 'lace'],
+      'bags': ['bag', 'backpack', 'handbag', 'purse', 'wallet', 'luggage', 'case', 'pouch'],
+      'watches': ['watch', 'timepiece', 'clock', 'timer', 'smartwatch', 'band', 'strap', 'dial'],
+      'toys': ['toy', 'game', 'play', 'fun', 'educational', 'creative', 'building', 'puzzle'],
+      'books': ['book', 'reading', 'literature', 'novel', 'guide', 'manual', 'education', 'knowledge'],
+      'sports': ['sport', 'athletic', 'exercise', 'training', 'competition', 'team', 'outdoor', 'recreation'],
+      'medical': ['medical', 'health', 'healthcare', 'therapy', 'treatment', 'wellness', 'recovery', 'care'],
+      'industrial': ['industrial', 'manufacturing', 'equipment', 'machinery', 'commercial', 'heavy', 'duty', 'professional']
     };
     
     // If niche not found in predefined list, generate dynamic keywords
@@ -97,30 +109,72 @@ export class NicheKeywordsManager {
       return nicheKeywords;
     }
     
-    // Dynamic keyword generation for any niche
-    return this.generateDynamicKeywords(niche);
+    // ENHANCED: Dynamic keyword generation for ANY niche
+    return this.generateAdvancedDynamicKeywords(niche);
   }
 
-  // Generate keywords dynamically for any niche
-  private static generateDynamicKeywords(niche: string): string[] {
+  // ENHANCED: Much more sophisticated dynamic keyword generation
+  private static generateAdvancedDynamicKeywords(niche: string): string[] {
     const baseKeywords = [niche.toLowerCase()];
     
-    // Add variations
-    baseKeywords.push(niche.toLowerCase() + 's'); // plural
-    baseKeywords.push(niche.toLowerCase() + 'ing'); // gerund
+    // Add comprehensive variations
+    const nicheLower = niche.toLowerCase();
+    baseKeywords.push(nicheLower + 's'); // plural
+    baseKeywords.push(nicheLower + 'ing'); // gerund
+    if (nicheLower.endsWith('y')) {
+      baseKeywords.push(nicheLower.slice(0, -1) + 'ies'); // beauty -> beauties
+    }
+    if (nicheLower.length > 4) {
+      baseKeywords.push(nicheLower.slice(0, -1)); // remove last letter
+      baseKeywords.push(nicheLower.slice(0, -2)); // remove last 2 letters
+    }
     
-    // Add common product terms that could work with any niche
-    const genericTerms = [
-      'premium', 'professional', 'quality', 'advanced', 'smart', 'portable',
-      'durable', 'efficient', 'innovative', 'modern', 'classic', 'luxury',
-      'essential', 'basic', 'standard', 'deluxe', 'compact', 'lightweight'
+    // Add common product terms that work with any niche
+    const productTerms = [
+      'product', 'item', 'accessory', 'tool', 'device', 'gadget', 'equipment', 'gear',
+      'supplies', 'kit', 'set', 'collection', 'bundle', 'pack', 'system', 'solution'
     ];
     
-    // Combine niche with generic terms
-    genericTerms.forEach(term => {
-      baseKeywords.push(`${term} ${niche.toLowerCase()}`);
-      baseKeywords.push(`${niche.toLowerCase()} ${term}`);
+    productTerms.forEach(term => {
+      baseKeywords.push(`${nicheLower} ${term}`);
+      baseKeywords.push(`${term} ${nicheLower}`);
     });
+    
+    // Add quality and style descriptors
+    const qualityTerms = [
+      'premium', 'professional', 'quality', 'advanced', 'smart', 'portable',
+      'durable', 'efficient', 'innovative', 'modern', 'classic', 'luxury',
+      'essential', 'basic', 'standard', 'deluxe', 'compact', 'lightweight',
+      'heavy', 'duty', 'multi', 'universal', 'adjustable', 'waterproof',
+      'wireless', 'electric', 'manual', 'automatic', 'digital', 'analog'
+    ];
+    
+    // Combine niche with quality terms
+    qualityTerms.slice(0, 10).forEach(term => { // Limit to first 10 to avoid too many keywords
+      baseKeywords.push(`${term} ${nicheLower}`);
+    });
+    
+    // Add action words that commonly appear with products
+    const actionWords = [
+      'buy', 'shop', 'get', 'use', 'wear', 'apply', 'install', 'setup',
+      'operate', 'maintain', 'clean', 'organize', 'store', 'carry'
+    ];
+    
+    actionWords.slice(0, 5).forEach(action => {
+      baseKeywords.push(`${action} ${nicheLower}`);
+    });
+    
+    // Add related category terms
+    const categoryTerms = [
+      'category', 'type', 'style', 'model', 'brand', 'version', 'edition',
+      'design', 'color', 'size', 'material', 'fabric', 'metal', 'plastic'
+    ];
+    
+    categoryTerms.slice(0, 8).forEach(category => {
+      baseKeywords.push(`${nicheLower} ${category}`);
+    });
+    
+    console.log(`🔧 Generated ${baseKeywords.length} dynamic keywords for "${niche}" niche:`, baseKeywords.slice(0, 10));
     
     return baseKeywords;
   }
