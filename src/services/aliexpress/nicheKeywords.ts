@@ -1,4 +1,3 @@
-
 export class NicheKeywordsManager {
   static getNicheKeywords(niche: string): string[] {
     const keywords = {
@@ -96,8 +95,6 @@ export class NicheKeywordsManager {
       'bags': ['bag', 'backpack', 'handbag', 'purse', 'wallet', 'luggage', 'case', 'pouch'],
       'watches': ['watch', 'timepiece', 'clock', 'timer', 'smartwatch', 'band', 'strap', 'dial'],
       'toys': ['toy', 'game', 'play', 'fun', 'educational', 'creative', 'building', 'puzzle'],
-      'books': ['book', 'reading', 'literature', 'novel', 'guide', 'manual', 'education', 'knowledge'],
-      'sports': ['sport', 'athletic', 'exercise', 'training', 'competition', 'team', 'outdoor', 'recreation'],
       'medical': ['medical', 'health', 'healthcare', 'therapy', 'treatment', 'wellness', 'recovery', 'care'],
       'industrial': ['industrial', 'manufacturing', 'equipment', 'machinery', 'commercial', 'heavy', 'duty', 'professional']
     };
