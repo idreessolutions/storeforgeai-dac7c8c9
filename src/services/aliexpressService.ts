@@ -2,13 +2,13 @@
 import { ProductGenerator } from './aliexpress/productGenerator';
 import { ProductImageManager } from './aliexpress/productImageManager';
 import { QualityValidator } from './aliexpress/qualityValidator';
-import { EnhancedApiClient } from './aliexpress/enhancedApiClient';
+import { EnhancedAliExpressApiClient } from './aliexpress/enhancedApiClient';
 
 export class AliExpressService {
-  private apiClient: EnhancedApiClient;
+  private apiClient: EnhancedAliExpressApiClient;
 
   constructor() {
-    this.apiClient = new EnhancedApiClient();
+    this.apiClient = new EnhancedAliExpressApiClient();
   }
 
   async fetchWinningProducts(niche: string, count: number = 10, sessionId?: string): Promise<any[]> {
@@ -16,14 +16,14 @@ export class AliExpressService {
     
     try {
       // Try API first for real data
-      const apiProducts = await this.apiClient.searchWinningProducts(niche, sessionId || 'default');
+      const apiProducts = await this.apiClient.fetchWinningProducts(niche, count);
       
       if (apiProducts && apiProducts.length > 0) {
         console.log(`✅ CRITICAL: Got ${apiProducts.length} products from AliExpress API`);
         
         // Validate and enhance with real images
         const enhancedProducts = await this.enhanceProductsWithRealImages(apiProducts, niche);
-        const validatedProducts = QualityValidator.validateProducts(enhancedProducts, niche);
+        const validatedProducts = this.validateProductsQuality(enhancedProducts, niche);
         
         if (validatedProducts.length >= count) {
           return validatedProducts.slice(0, count);
@@ -78,8 +78,10 @@ export class AliExpressService {
     });
   }
 
-  async validateProductQuality(products: any[], niche: string): Promise<any[]> {
-    return QualityValidator.validateProducts(products, niche);
+  private validateProductsQuality(products: any[], niche: string): any[] {
+    return products.filter(product => 
+      QualityValidator.meetsPremiumQualityStandards(product, niche)
+    );
   }
 
   // Helper method for emergency product generation

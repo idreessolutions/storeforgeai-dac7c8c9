@@ -1,5 +1,4 @@
-
-import { AliExpressProduct } from './aliexpressService';
+import { AliExpressProduct } from './aliexpress/types';
 
 interface QualityMetrics {
   ratingScore: number;

@@ -1,5 +1,4 @@
-
-import { AliExpressProduct } from './aliexpressService';
+import { AliExpressProduct } from './aliexpress/types';
 
 export class NicheValidationService {
   // Enhanced strict niche validation with machine learning-like scoring
