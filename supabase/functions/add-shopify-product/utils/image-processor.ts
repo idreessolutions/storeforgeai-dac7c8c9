@@ -1,4 +1,3 @@
-
 export class ImageProcessor {
   private shopifyClient: any;
 
@@ -37,16 +36,14 @@ export class ImageProcessor {
           continue;
         }
 
-        const imagePayload = {
-          image: {
-            product_id: productId,
-            src: imageUrl,
-            alt: `${productTitle} - Premium Quality Image ${i + 1}`,
-            position: i + 1
-          }
+        const imageData = {
+          src: imageUrl,
+          alt: `${productTitle} - Premium Quality Image ${i + 1}`,
+          position: i + 1
         };
 
-        const imageResponse = await this.shopifyClient.uploadProductImage(imagePayload);
+        // FIX: Use the correct method name from ShopifyAPIClient
+        const imageResponse = await this.shopifyClient.uploadImage(productId, imageData);
         
         if (imageResponse && imageResponse.image && imageResponse.image.id) {
           uploadedImageIds.push(imageResponse.image.id);
@@ -99,17 +96,12 @@ export class ImageProcessor {
         const imageId = imageIds[i];
         
         if (variant && variant.id && imageId) {
-          // Update variant with image assignment
-          const variantUpdate = {
-            variant: {
-              id: variant.id,
-              image_id: imageId
-            }
-          };
-          
-          await this.shopifyClient.updateProductVariant(variant.id, variantUpdate);
-          assignmentCount++;
-          console.log(`✅ Image ${imageId} assigned to variant ${variant.id}`);
+          // FIX: Use the correct method for image-to-variant assignment
+          const success = await this.shopifyClient.assignImageToVariant(imageId, variant.id);
+          if (success) {
+            assignmentCount++;
+            console.log(`✅ Image ${imageId} assigned to variant ${variant.id}`);
+          }
         }
         
         // Rate limiting
