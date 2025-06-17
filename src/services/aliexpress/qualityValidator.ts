@@ -2,85 +2,124 @@
 import { AliExpressProduct } from './types';
 
 export class QualityValidator {
-  
   static meetsPremiumQualityStandards(product: AliExpressProduct, niche: string): boolean {
-    console.log(`🔍 ULTRA-LENIENT VALIDATION for "${product.title.substring(0, 40)}..."`);
+    console.log(`🔍 Validating product quality: "${product.title}"`);
     
-    // ULTRA-LENIENT standards for universal niche support
-    const criteria = {
-      rating: product.rating >= 3.8,        // Very lenient: 3.8+ rating
-      orders: product.orders >= 50,         // Very lenient: 50+ orders
-      price: product.price >= 2 && product.price <= 500, // Wide price range
-      hasImages: product.images && product.images.length >= 1, // Just need 1 image
-      hasTitle: product.title && product.title.length > 3,     // Basic title check
-      hasFeatures: product.features && product.features.length >= 1 // At least 1 feature
+    const qualityChecks = {
+      hasValidTitle: product.title && product.title.length > 15 && product.title.length <= 80,
+      hasGoodRating: product.rating >= 4.0,
+      hasOrders: product.orders >= 100,
+      hasReasonablePrice: product.price >= 5 && product.price <= 200,
+      hasImages: product.images && product.images.length >= 4,
+      hasFeatures: product.features && product.features.length >= 3,
+      matchesNiche: this.validateNicheMatch(product, niche)
     };
+
+    const passedChecks = Object.values(qualityChecks).filter(check => check).length;
+    const totalChecks = Object.keys(qualityChecks).length;
+    const qualityScore = passedChecks / totalChecks;
     
-    const passedCriteria = Object.values(criteria).filter(Boolean).length;
-    const totalCriteria = Object.keys(criteria).length;
-    const passRate = passedCriteria / totalCriteria;
+    const meetsStandards = qualityScore >= 0.85; // 85% quality threshold
     
-    // ULTRA-LENIENT: Only need 50% criteria to pass (was 80%+)
-    const isValid = passRate >= 0.5;
+    if (!meetsStandards) {
+      console.log(`❌ Product failed quality check: ${Math.round(qualityScore * 100)}% (${passedChecks}/${totalChecks})`, qualityChecks);
+    } else {
+      console.log(`✅ Product meets premium standards: ${Math.round(qualityScore * 100)}%`);
+    }
     
-    console.log(`📊 Product validation: ${passedCriteria}/${totalCriteria} criteria (${Math.round(passRate * 100)}%) - ${isValid ? 'PASS ✅' : 'FAIL ❌'}`);
-    console.log(`  💰 Price: $${product.price} (${criteria.price ? '✅' : '❌'})`);
-    console.log(`  ⭐ Rating: ${product.rating} (${criteria.rating ? '✅' : '❌'})`);
-    console.log(`  📦 Orders: ${product.orders} (${criteria.orders ? '✅' : '❌'})`);
-    console.log(`  📸 Images: ${product.images?.length || 0} (${criteria.hasImages ? '✅' : '❌'})`);
-    
-    return isValid;
+    return meetsStandards;
   }
 
-  static calculateQualityScore(product: AliExpressProduct): number {
+  private static validateNicheMatch(product: AliExpressProduct, expectedNiche: string): boolean {
+    const productText = `${product.title} ${product.features?.join(' ') || ''}`.toLowerCase();
+    const niche = expectedNiche.toLowerCase();
+    
+    const nicheKeywords: Record<string, string[]> = {
+      'pets': ['pet', 'dog', 'cat', 'animal', 'puppy', 'kitten'],
+      'beauty': ['beauty', 'makeup', 'skin', 'cosmetic', 'facial', 'hair'],
+      'fitness': ['fitness', 'workout', 'exercise', 'gym', 'training', 'sport'],
+      'kitchen': ['kitchen', 'cooking', 'cook', 'food', 'chef', 'utensil'],
+      'home': ['home', 'house', 'decor', 'furniture', 'living', 'room'],
+      'tech': ['tech', 'electronic', 'digital', 'smart', 'device', 'gadget'],
+      'fashion': ['fashion', 'clothing', 'wear', 'style', 'dress', 'shirt'],
+      'jewelry': ['jewelry', 'ring', 'necklace', 'bracelet', 'earring', 'watch'],
+      'automotive': ['car', 'auto', 'vehicle', 'automotive', 'driving', 'motor'],
+      'baby': ['baby', 'infant', 'child', 'kids', 'toddler', 'newborn']
+    };
+
+    const keywords = nicheKeywords[niche] || [niche];
+    const hasMatch = keywords.some(keyword => productText.includes(keyword));
+    
+    if (!hasMatch) {
+      console.log(`⚠️ Niche mismatch: "${product.title}" doesn't match "${expectedNiche}"`);
+    }
+    
+    return hasMatch;
+  }
+
+  static scoreProduct(product: AliExpressProduct, niche: string): number {
     let score = 0;
     
-    // Rating contribution (0-40 points)
-    if (product.rating >= 4.8) score += 40;
-    else if (product.rating >= 4.5) score += 35;
-    else if (product.rating >= 4.0) score += 25;
-    else if (product.rating >= 3.5) score += 15;
-    else score += 5;
+    // Rating score (25%)
+    score += (product.rating / 5) * 25;
     
-    // Orders contribution (0-30 points)
-    if (product.orders >= 5000) score += 30;
-    else if (product.orders >= 1000) score += 25;
-    else if (product.orders >= 500) score += 20;
-    else if (product.orders >= 100) score += 15;
-    else if (product.orders >= 50) score += 10;
-    else score += 5;
+    // Orders score (25%) 
+    score += Math.min(product.orders / 1000, 1) * 25;
     
-    // Image quality (0-20 points)
-    const imageCount = product.images?.length || 0;
-    if (imageCount >= 6) score += 20;
-    else if (imageCount >= 4) score += 15;
-    else if (imageCount >= 2) score += 10;
-    else if (imageCount >= 1) score += 5;
+    // Price optimization (20%)
+    const optimalPrice = this.getOptimalPriceRange(niche);
+    if (product.price >= optimalPrice.min && product.price <= optimalPrice.max) {
+      score += 20;
+    } else {
+      score += Math.max(0, 20 - Math.abs(product.price - optimalPrice.optimal) * 2);
+    }
     
-    // Features quality (0-10 points)
-    const featureCount = product.features?.length || 0;
-    if (featureCount >= 5) score += 10;
-    else if (featureCount >= 3) score += 7;
-    else if (featureCount >= 1) score += 5;
+    // Content quality (20%)
+    score += this.calculateContentScore(product) * 20;
     
-    return Math.min(100, score);
+    // Niche match (10%)
+    if (this.validateNicheMatch(product, niche)) {
+      score += 10;
+    }
+    
+    return Math.round(score);
   }
 
-  static hasValidImages(product: AliExpressProduct): boolean {
-    if (!product.images || product.images.length === 0) return false;
+  private static getOptimalPriceRange(niche: string): { min: number; max: number; optimal: number } {
+    const ranges: Record<string, { min: number; max: number; optimal: number }> = {
+      'pets': { min: 15, max: 65, optimal: 35 },
+      'beauty': { min: 12, max: 70, optimal: 30 },
+      'fitness': { min: 18, max: 75, optimal: 40 },
+      'kitchen': { min: 10, max: 55, optimal: 25 },
+      'home': { min: 15, max: 68, optimal: 35 },
+      'tech': { min: 20, max: 80, optimal: 45 },
+      'fashion': { min: 12, max: 60, optimal: 30 },
+      'jewelry': { min: 8, max: 45, optimal: 20 },
+      'automotive': { min: 25, max: 80, optimal: 50 },
+      'baby': { min: 15, max: 50, optimal: 30 }
+    };
     
-    return product.images.some(imageUrl => {
-      if (!imageUrl || typeof imageUrl !== 'string') return false;
-      
-      // Check for valid image URL patterns
-      const validPatterns = [
-        /^https?:\/\/.*\.(jpg|jpeg|png|webp|gif)(\?.*)?$/i,
-        /^https?:\/\/ae\d+\.alicdn\.com\//i,
-        /^https?:\/\/.*aliexpress\./i,
-        /^https?:\/\/.*\.aliimg\.com\//i
-      ];
-      
-      return validPatterns.some(pattern => pattern.test(imageUrl));
-    });
+    return ranges[niche.toLowerCase()] || { min: 15, max: 60, optimal: 30 };
+  }
+
+  private static calculateContentScore(product: AliExpressProduct): number {
+    let score = 0;
+    
+    // Title quality
+    if (product.title && product.title.length > 20 && product.title.length <= 70) {
+      score += 0.3;
+    }
+    
+    // Features
+    if (product.features && product.features.length >= 4) {
+      score += 0.4;
+    }
+    
+    // Images
+    if (product.images && product.images.length >= 6) {
+      score += 0.3;
+    }
+    
+    return Math.min(score, 1);
   }
 }

@@ -8,26 +8,38 @@ export interface AliExpressProduct {
   features: string[];
   imageUrl: string;
   images: string[];
-  variants: Array<{
+  variants?: Array<{
     title: string;
     price: number;
     color?: string;
     size?: string;
   }>;
   category: string;
-  originalData?: any;
+  originalData?: {
+    verified?: boolean;
+    winning_product?: boolean;
+    real_images?: boolean;
+    niche?: string;
+    quality_score?: number;
+    guaranteed_generation?: boolean;
+    emergency_generation?: boolean;
+  };
 }
 
-export interface ProductValidationResult {
-  isValid: boolean;
-  score: number;
-  reasons: string[];
+export interface AliExpressApiResponse {
+  success: boolean;
+  products: AliExpressProduct[];
+  total_results: number;
+  message?: string;
 }
 
-export interface EnhancedProductData extends AliExpressProduct {
-  enhancedTitle: string;
-  enhancedDescription: string;
-  enhancedFeatures: string[];
-  qualityScore: number;
-  imageQuality: number;
+export interface ProductSearchParams {
+  keywords: string;
+  category?: string;
+  min_price?: number;
+  max_price?: number;
+  min_orders?: number;
+  min_rating?: number;
+  sort?: 'orders' | 'rating' | 'price';
+  page_size?: number;
 }

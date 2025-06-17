@@ -1,33 +1,29 @@
 
-export class VariantManager {
-  private shopifyClient: any;
+import { ShopifyAPIClient } from './shopify-api.ts';
 
-  constructor(shopifyClient: any) {
-    this.shopifyClient = shopifyClient;
-  }
+export class VariantManager {
+  constructor(private shopifyClient: ShopifyAPIClient) {}
 
   async updateDefaultVariant(variant: any, price: string): Promise<boolean> {
+    console.log(`🔄 Updating default variant ${variant.id} with price $${price}`);
+    
     try {
-      console.log(`💰 Updating default variant pricing to $${price}`);
-      
       const success = await this.shopifyClient.updateVariant(variant.id, {
         price: price,
-        inventory_management: null,
-        inventory_policy: 'deny',
         inventory_quantity: 100,
-        requires_shipping: true,
-        taxable: true
+        inventory_management: null,
+        inventory_policy: 'deny'
       });
-
+      
       if (success) {
         console.log(`✅ Default variant updated successfully with price $${price}`);
       } else {
-        console.error(`❌ Failed to update default variant pricing`);
+        console.error(`❌ Failed to update default variant ${variant.id}`);
       }
-
+      
       return success;
     } catch (error) {
-      console.error('❌ Error updating default variant:', error);
+      console.error(`❌ Error updating default variant:`, error);
       return false;
     }
   }
@@ -36,31 +32,26 @@ export class VariantManager {
     productId: string,
     title: string,
     price: string,
-    color?: string,
-    size?: string
+    color?: string
   ): Promise<any> {
+    console.log(`🆕 Creating variant "${title}" for product ${productId} at $${price}`);
+    
     try {
-      console.log(`🎨 Creating product variant: ${title} (${color || 'N/A'}) - $${price}`);
-      
       const variantData = {
         product_id: productId,
         title: title,
         price: price,
-        sku: `${productId}-${title.toLowerCase().replace(/\s+/g, '-')}`,
+        inventory_quantity: 100,
         inventory_management: null,
         inventory_policy: 'deny',
-        inventory_quantity: 100,
         requires_shipping: true,
-        taxable: true,
-        option1: color || title,
-        option2: size || null,
-        option3: null
+        taxable: true
       };
 
       const newVariant = await this.shopifyClient.createVariant(productId, variantData);
       
       if (newVariant) {
-        console.log(`✅ Created variant "${title}" with ID: ${newVariant.id}`);
+        console.log(`✅ Variant "${title}" created successfully: ${newVariant.id}`);
         return newVariant;
       } else {
         console.error(`❌ Failed to create variant "${title}"`);
@@ -72,85 +63,59 @@ export class VariantManager {
     }
   }
 
-  async processProductVariants(
-    productId: string,
-    variations: Array<{ title: string; price: number; color?: string; size?: string }>,
-    basePrice: string
-  ): Promise<number> {
+  async assignImageToVariant(imageId: string, variantId: string): Promise<boolean> {
+    console.log(`🖼️ Assigning image ${imageId} to variant ${variantId}`);
+    
     try {
-      console.log(`🎯 Processing ${variations.length} product variations...`);
-      
-      let createdCount = 0;
-      
-      // Skip first variation as it's usually the default
-      for (let i = 1; i < Math.min(variations.length, 4); i++) {
-        const variation = variations[i];
-        const variantPrice = variation.price?.toFixed(2) || basePrice;
-        
-        const newVariant = await this.createProductVariant(
-          productId,
-          variation.title,
-          variantPrice,
-          variation.color,
-          variation.size
-        );
-        
-        if (newVariant) {
-          createdCount++;
-        }
-        
-        // Rate limiting
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-      
-      console.log(`✅ Created ${createdCount} additional product variants`);
-      return createdCount;
-      
-    } catch (error) {
-      console.error('❌ Error processing product variants:', error);
-      return 0;
-    }
-  }
-
-  async setupProductOptions(productId: string, hasColorVariants: boolean, hasSizeVariants: boolean): Promise<boolean> {
-    try {
-      const options = [];
-      
-      if (hasColorVariants) {
-        options.push({
-          name: 'Color',
-          position: 1,
-          values: ['Black', 'White', 'Blue', 'Red']
-        });
-      }
-      
-      if (hasSizeVariants) {
-        options.push({
-          name: 'Size',
-          position: hasColorVariants ? 2 : 1,
-          values: ['Small', 'Medium', 'Large']
-        });
-      }
-      
-      if (options.length === 0) {
-        options.push({
-          name: 'Style',
-          position: 1,
-          values: ['Standard', 'Premium', 'Deluxe']
-        });
-      }
-      
-      const success = await this.shopifyClient.updateProductOptions(productId, options);
+      const success = await this.shopifyClient.assignImageToVariant(imageId, variantId);
       
       if (success) {
-        console.log(`✅ Product options configured successfully`);
+        console.log(`✅ Image ${imageId} assigned to variant ${variantId}`);
       } else {
-        console.warn(`⚠️ Failed to configure product options`);
+        console.error(`❌ Failed to assign image ${imageId} to variant ${variantId}`);
       }
       
       return success;
     } catch (error) {
-      console.error('❌ Error setting up product options:', error);
+      console.error(`❌ Error assigning image to variant:`, error);
+      return false;
+    }
+  }
+
+  async createProductOptions(productId: string, options: any[]): Promise<boolean> {
+    console.log(`⚙️ Creating product options for ${productId}:`, options);
+    
+    try {
+      const success = await this.shopifyClient.updateProductOptions(productId, options);
+      
+      if (success) {
+        console.log(`✅ Product options created successfully`);
+      } else {
+        console.error(`❌ Failed to create product options`);
+      }
+      
+      return success;
+    } catch (error) {
+      console.error(`❌ Error creating product options:`, error);
+      return false;
+    }
+  }
+
+  async deleteVariant(variantId: string): Promise<boolean> {
+    console.log(`🗑️ Deleting variant ${variantId}`);
+    
+    try {
+      const success = await this.shopifyClient.deleteVariant(variantId);
+      
+      if (success) {
+        console.log(`✅ Variant ${variantId} deleted successfully`);
+      } else {
+        console.error(`❌ Failed to delete variant ${variantId}`);
+      }
+      
+      return success;
+    } catch (error) {
+      console.error(`❌ Error deleting variant:`, error);
       return false;
     }
   }

@@ -193,7 +193,11 @@ export const addProductsToShopify = async (
               real_aliexpress_images_verified: true,
               critical_image_upload: true,
               force_image_success: true
-            }
+            },
+            storeName,
+            targetAudience,
+            storeStyle,
+            productIndex: i
           }
         });
 
@@ -226,11 +230,6 @@ export const addProductsToShopify = async (
     onProgress(100, `🎉 CRITICAL SUCCESS: "${storeName}" store launched with ${uploadedCount} winning ${niche} products!`);
 
     console.log(`🎉 CRITICAL FIX COMPLETE: "${storeName}" store successfully created with ${uploadedCount} PERFECT products`);
-    console.log(`✅ Store Name Synced: "${storeName}"`);
-    console.log(`✅ Theme Color Applied: ${themeColor}`);
-    console.log(`✅ Real AliExpress Images: ${uploadedCount * 6}-${uploadedCount * 8} images uploaded`);
-    console.log(`✅ Unique Content: ${uploadedCount} products with niche-specific content`);
-    console.log(`✅ Smart Pricing: All products priced between $15-$80`);
 
     return {
       success: true,
@@ -263,41 +262,43 @@ function calculateCriticalPricing(originalPrice: number, niche: string, rating: 
   else if (orders >= 1000) multiplier += 0.2;
   
   if (rating >= 4.8) multiplier += 0.2;
-  else if (rating >= 4.6) multiplier += 0.1;
+  else if (rating >= 4.5) multiplier += 0.1;
   
-  let finalPrice = originalPrice * multiplier;
-  finalPrice = Math.max(15, Math.min(80, finalPrice)); // Enforce $15-$80 range
+  let smartPrice = originalPrice * multiplier;
+  
+  // Ensure within $15-$80 range
+  smartPrice = Math.max(15, Math.min(80, smartPrice));
   
   // Psychological pricing
-  if (finalPrice < 25) return Math.floor(finalPrice) + 0.99;
-  else if (finalPrice < 50) return Math.floor(finalPrice) + 0.95;
-  else return Math.floor(finalPrice) + 0.99;
+  if (smartPrice < 25) return Math.floor(smartPrice) + 0.99;
+  else if (smartPrice < 50) return Math.floor(smartPrice) + 0.95;
+  else return Math.floor(smartPrice) + 0.99;
 }
 
 function generateCriticalFallbackProducts(niche: string, count: number): any[] {
-  console.log(`🚨 GENERATING ${count} CRITICAL FALLBACK PRODUCTS for ${niche}`);
+  console.log(`🚨 GENERATING CRITICAL FALLBACK: ${count} emergency ${niche} products`);
   
   const products = [];
   
   for (let i = 0; i < count; i++) {
     const realImages = generateRealAliExpressImages(niche, i);
-    const price = calculateCriticalPricing(15 + (Math.random() * 20), niche, 4.5, 500);
+    const price = 15 + (Math.random() * 50); // $15-$65 range
     
     products.push({
-      itemId: `critical_${niche}_${Date.now()}_${i}`,
+      itemId: `emergency_${niche}_${Date.now()}_${i}`,
       title: `Premium ${niche.charAt(0).toUpperCase() + niche.slice(1)} Essential ${i + 1}`,
-      price: price,
+      price: Math.round(price * 100) / 100,
       rating: 4.0 + (Math.random() * 1.0),
       orders: 100 + (i * 50) + Math.floor(Math.random() * 400),
-      features: [`✅ Premium ${niche} quality`, `🏆 Professional grade`, `💪 Durable construction`, `⭐ Customer favorite`],
+      features: [`Premium ${niche} quality`, 'Professional grade', 'Satisfaction guaranteed'],
       imageUrl: realImages[0],
       images: realImages,
-      variants: [
-        { title: 'Standard', price: price, color: 'Black' },
-        { title: 'Premium', price: price * 1.2, color: 'Blue' }
-      ],
       category: niche,
-      originalData: { critical_fallback: true, real_images: true }
+      originalData: {
+        emergency_generation: true,
+        real_images: true,
+        niche: niche
+      }
     });
   }
   
@@ -305,7 +306,7 @@ function generateCriticalFallbackProducts(niche: string, count: number): any[] {
 }
 
 function generateRealAliExpressImages(niche: string, index: number): string[] {
-  const realAliExpressImages = [
+  const baseImages = [
     'https://ae01.alicdn.com/kf/H4f8c5a5b0d4a4c8e9f5a6b7c8d9e0f1g.jpg',
     'https://ae01.alicdn.com/kf/H3e7b4a5c9d8f6e2a3b4c5d6e7f8g9h0.jpg',
     'https://ae01.alicdn.com/kf/H2d6c3b4a8c7e5d1a2b3c4d5e6f7g8h9.jpg',
@@ -315,13 +316,13 @@ function generateRealAliExpressImages(niche: string, index: number): string[] {
     'https://ae01.alicdn.com/kf/H8c2b9a0d4c3e1c7a8b9c0d1e2f3g4h5.jpg',
     'https://ae01.alicdn.com/kf/H7b1a8c9d3c2e0c6a7b8c9d0e1f2g3h4.jpg'
   ];
-  
-  const startIndex = (index * 6) % realAliExpressImages.length;
+
+  const startIndex = (index * 6) % baseImages.length;
   const images = [];
   
   for (let i = 0; i < 8; i++) {
-    const imageIndex = (startIndex + i) % realAliExpressImages.length;
-    images.push(realAliExpressImages[imageIndex]);
+    const imageIndex = (startIndex + i) % baseImages.length;
+    images.push(baseImages[imageIndex]);
   }
   
   return images;

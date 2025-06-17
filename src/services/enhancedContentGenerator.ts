@@ -1,296 +1,163 @@
 
+import { AliExpressProduct } from './aliexpress/types';
+
 export class EnhancedContentGenerator {
-  
-  static generateUniqueProductContent(product: any, niche: string, storeName: string, targetAudience: string, storeStyle: string, productIndex: number = 0) {
-    console.log(`🎨 GENERATING UNIQUE CONTENT for ${niche} product ${productIndex + 1}: ${product.title?.substring(0, 60)}`);
+  static generateUniqueProductContent(
+    product: AliExpressProduct,
+    niche: string,
+    storeName: string,
+    targetAudience: string,
+    storeStyle: string,
+    productIndex: number
+  ): any {
+    console.log(`🚨 CRITICAL: Generating UNIQUE content for product ${productIndex + 1}: ${product.title}`);
     
-    const contentVariation = this.getContentVariation(productIndex);
-    const emotionalHook = this.getEmotionalHook(niche, productIndex);
-    const urgencyPhrase = this.getUrgencyPhrase(productIndex);
-    const socialProof = this.getSocialProof(product, productIndex);
+    const basePrice = product.price || 29.99;
+    const enhancedPrice = this.calculateSmartPrice(basePrice, niche, productIndex);
+    
+    const uniqueContent = this.createUniqueContent(product, niche, storeName, targetAudience, storeStyle, productIndex);
+    const smartVariations = this.generateSmartVariations(niche, enhancedPrice, productIndex);
     
     return {
-      title: this.generateUniqueTitle(product.title, niche, contentVariation, urgencyPhrase),
-      description: this.generateRichDescription(product, niche, targetAudience, storeName, emotionalHook, socialProof, contentVariation, storeStyle),
-      features: this.generateEnhancedFeatures(product.features || [], niche, productIndex),
-      benefits: this.generateEmotionalBenefits(niche, targetAudience, productIndex),
-      variations: this.generateProductVariations(product, niche, productIndex)
+      title: uniqueContent.title,
+      description: uniqueContent.description,
+      features: uniqueContent.features,
+      benefits: uniqueContent.benefits,
+      variations: smartVariations,
+      price: enhancedPrice
     };
   }
 
-  private static getContentVariation(productIndex: number): string {
-    const variations = [
-      'premium', 'revolutionary', 'professional', 'innovative', 'exclusive', 
-      'ultimate', 'advanced', 'elite', 'luxury', 'cutting-edge'
-    ];
-    return variations[productIndex % variations.length];
-  }
-
-  private static getEmotionalHook(niche: string, productIndex: number): string {
-    const hooks = {
-      'beauty': [
-        '✨ Transform your skin with professional-grade results that celebrities swear by',
-        '🌟 Unlock the secret to radiant, youthful skin that stops people in their tracks',
-        '💎 Experience luxury spa treatments from the comfort of your home',
-        '👑 Join thousands who\'ve discovered the fountain of youth'
-      ],
-      'pets': [
-        '🐾 Give your beloved pet the care they truly deserve with this game-changing solution',
-        '❤️ Watch your furry friend\'s happiness soar with this veterinarian-recommended essential',
-        '🏆 Treat your pet like royalty with this award-winning product',
-        '😍 Fall in love with your pet all over again as they experience pure joy'
-      ],
-      'fitness': [
-        '💪 Achieve the body transformation you\'ve always dreamed of in record time',
-        '🔥 Unlock your hidden athletic potential with professional-grade equipment',
-        '🏆 Join the ranks of elite athletes who trust this performance enhancer',
-        '⚡ Experience breakthrough results that will shock your friends and family'
-      ],
-      'tech': [
-        '🚀 Step into the future with technology that will revolutionize your daily routine',
-        '⚡ Experience lightning-fast performance that leaves competitors in the dust',
-        '🧠 Unleash the power of artificial intelligence in your everyday life',
-        '💻 Transform how you work, play, and connect with cutting-edge innovation'
-      ],
-      'kitchen': [
-        '👨‍🍳 Create restaurant-quality meals that will impress even the toughest food critics',
-        '🍳 Turn your kitchen into a culinary paradise with this chef-approved essential',
-        '✨ Make cooking so effortless, you\'ll wonder how you lived without it',
-        '🏆 Join master chefs worldwide who swear by this game-changing tool'
-      ]
+  private static calculateSmartPrice(originalPrice: number, niche: string, index: number): number {
+    const nicheMultipliers: Record<string, number> = {
+      'pets': 2.2, 'baby': 2.4, 'beauty': 2.6, 'fitness': 2.0,
+      'tech': 1.8, 'kitchen': 1.9, 'home': 1.7, 'fashion': 2.1,
+      'jewelry': 3.0, 'automotive': 1.6
     };
     
-    const nicheHooks = hooks[niche.toLowerCase() as keyof typeof hooks] || hooks['tech'];
-    return nicheHooks[productIndex % nicheHooks.length];
-  }
-
-  private static getUrgencyPhrase(productIndex: number): string {
-    const urgencyPhrases = [
-      '🔥 TRENDING NOW', '⚡ LIMITED TIME', '🏆 BESTSELLER', '🎯 EXCLUSIVE DEAL',
-      '🌟 TOP RATED', '💎 PREMIUM CHOICE', '🚀 FLYING OFF SHELVES', '⭐ CUSTOMER FAVORITE'
-    ];
-    return urgencyPhrases[productIndex % urgencyPhrases.length];
-  }
-
-  private static getSocialProof(product: any, productIndex: number): string {
-    const proofTemplates = [
-      `🏆 Over ${(product.orders || 1000).toLocaleString()}+ satisfied customers worldwide`,
-      `⭐ ${product.rating || 4.8}/5 stars from verified buyers who love their results`,
-      `💎 Featured in top ${product.category || 'product'} lists by industry experts`,
-      `🎯 Recommended by professionals in over 50 countries`,
-      `✅ Trusted by ${(product.orders || 1000).toLocaleString()}+ happy customers who rave about quality`
-    ];
-    return proofTemplates[productIndex % proofTemplates.length];
-  }
-
-  private static generateUniqueTitle(originalTitle: string, niche: string, variation: string, urgency: string): string {
-    const cleanTitle = this.cleanTitle(originalTitle);
-    const emoji = this.getNicheEmoji(niche);
+    const multiplier = nicheMultipliers[niche.toLowerCase()] || 2.0;
+    const variation = 1 + (index * 0.08); // 8% variation per product
     
-    const titleTemplates = [
-      `${emoji} ${urgency} - ${variation.charAt(0).toUpperCase() + variation.slice(1)} ${cleanTitle}`,
-      `${emoji} ${cleanTitle} - ${urgency} ${variation.charAt(0).toUpperCase() + variation.slice(1)} Quality`,
-      `${urgency} ${emoji} ${variation.charAt(0).toUpperCase() + variation.slice(1)} ${cleanTitle} Experience`,
-      `${emoji} ${variation.charAt(0).toUpperCase() + variation.slice(1)} ${cleanTitle} - ${urgency}`
-    ];
+    let smartPrice = originalPrice * multiplier * variation;
     
-    return titleTemplates[Math.floor(Math.random() * titleTemplates.length)].substring(0, 75);
+    // Ensure within $15-$80 range
+    smartPrice = Math.max(15, Math.min(80, smartPrice));
+    
+    // Psychological pricing
+    if (smartPrice < 25) return Math.floor(smartPrice) + 0.99;
+    else if (smartPrice < 50) return Math.floor(smartPrice) + 0.95;
+    else return Math.floor(smartPrice) + 0.99;
   }
 
-  private static generateRichDescription(
-    product: any, 
-    niche: string, 
-    targetAudience: string, 
+  private static createUniqueContent(
+    product: AliExpressProduct,
+    niche: string,
     storeName: string,
-    emotionalHook: string,
-    socialProof: string,
-    variation: string,
-    storeStyle: string
-  ): string {
-    const price = product.price || 29.99;
-    const rating = product.rating || 4.8;
-    const orders = product.orders || 1000;
+    targetAudience: string,
+    storeStyle: string,
+    index: number
+  ): any {
+    const powerWords = ['Ultimate', 'Premium', 'Professional', 'Revolutionary', 'Advanced', 'Elite', 'Supreme', 'Exclusive'];
+    const emotionalHooks = [
+      '✨ Transform your life with this game-changing innovation',
+      '🚀 Discover what professionals don\'t want you to know',
+      '💎 Experience premium quality that exceeds expectations', 
+      '🏆 Join thousands who\'ve revolutionized their routine',
+      '⚡ Unlock the secret to effortless success'
+    ];
     
-    const styleAdjustment = storeStyle === 'luxury' ? '💎 Luxury' : storeStyle === 'fun' ? '🎉 Fun' : '⭐ Professional';
+    const powerWord = powerWords[index % powerWords.length];
+    const hook = emotionalHooks[index % emotionalHooks.length];
+    const nicheWord = this.getNicheSpecificWord(niche, index);
     
-    return `${emotionalHook}
+    const title = `🏆 ${powerWord} ${nicheWord} - ${this.getUrgencyWord(index)} Edition`;
+    
+    const description = `${hook}
 
-🎯 **Perfect for ${targetAudience}** who demand nothing but the best!
+🎯 **Perfect for ${targetAudience}** who demand excellence!
 
-🏆 **Why This ${variation.charAt(0).toUpperCase() + variation.slice(1)} ${niche.charAt(0).toUpperCase() + niche.slice(1)} Product?**
-• ✅ **Premium Quality**: Engineered with the finest materials for lasting performance
-• 🚀 **Instant Results**: See remarkable improvements from day one
-• 💯 **Safety First**: Rigorously tested and certified for your peace of mind
-• 🎁 **Complete Package**: Everything you need included - no hidden extras
+🏆 **Why Choose This ${powerWord} ${niche.charAt(0).toUpperCase() + niche.slice(1)} Solution?**
+• ✅ **Premium Quality**: Engineered with superior materials
+• 🚀 **Instant Results**: Experience improvements from day one  
+• 💯 **Safety First**: Rigorously tested and certified
+• 🎁 **Complete Package**: Everything included - no extras needed
 • 🛡️ **Satisfaction Guaranteed**: 30-day money-back promise
 
 💎 **Exclusive ${storeName} Features:**
-🔹 ${styleAdjustment} design that complements any lifestyle
-🔹 User-friendly operation - perfect for beginners and experts
-🔹 Durable construction built to last for years
-🔹 Compact and portable for ultimate convenience
+🔹 ${storeStyle === 'luxury' ? 'Luxury' : storeStyle === 'fun' ? 'Innovative' : 'Professional'} design
+🔹 User-friendly operation - perfect for everyone
+🔹 Durable construction built to last
+🔹 Compact and convenient storage
 
-${socialProof}
+🏆 **Social Proof**: Over ${(product.orders || 1000).toLocaleString()}+ satisfied customers | ${product.rating || 4.8}⭐ average rating
 
-⚡ **Limited-Time Special**: 
-🎯 Original Value: $${(price * 1.5).toFixed(2)}
-💰 **Your Price: $${price.toFixed(2)}** *(Save $${(price * 0.5).toFixed(2)}!)*
+⚡ **Limited-Time Offer Available**
+🛒 **Order Now** and join the ${storeName} family!`;
 
-🔥 **BONUS**: Order now and get FREE premium accessories worth $29.99!
-
-🏆 **What Our Customers Say:**
-"This completely transformed my ${niche} routine! Best purchase I've made this year!" - Sarah M. ⭐⭐⭐⭐⭐
-
-"Professional quality at an affordable price. Highly recommend!" - Mike T. ⭐⭐⭐⭐⭐
-
-⏰ **Don't Wait - Limited Stock Available!**
-Join ${orders.toLocaleString()}+ satisfied customers who've already upgraded their ${niche} game.
-
-🛒 **Order Now** and experience the ${storeName} difference!
-
-*${storeName} - Your trusted partner for premium ${niche} solutions.*`;
-  }
-
-  private static generateEnhancedFeatures(originalFeatures: string[], niche: string, productIndex: number): string[] {
-    const enhancementWords = ['Premium', 'Advanced', 'Professional', 'Elite', 'Superior', 'Innovative'];
-    const enhancement = enhancementWords[productIndex % enhancementWords.length];
-    
-    const enhancedFeatures = originalFeatures.slice(0, 4).map((feature, index) => {
-      const emoji = this.getFeatureEmoji(niche, index);
-      return `${emoji} ${enhancement} ${feature.toLowerCase()}`;
-    });
-
-    // Add 2 unique features based on niche and product index
-    const uniqueFeatures = this.getUniqueFeatures(niche, productIndex);
-    return [...enhancedFeatures, ...uniqueFeatures].slice(0, 6);
-  }
-
-  private static generateEmotionalBenefits(niche: string, targetAudience: string, productIndex: number): string[] {
-    const benefitSets = {
-      'beauty': [
-        '✨ Boost your confidence with radiant, glowing skin',
-        '🌟 Turn heads everywhere you go with your youthful appearance',
-        '💎 Save thousands on expensive spa treatments',
-        '👑 Feel like royalty with professional-grade results'
-      ],
-      'pets': [
-        '❤️ Strengthen the bond with your beloved companion',
-        '😊 Watch your pet\'s happiness and energy soar',
-        '🏆 Give your furry friend the best life possible',
-        '🛡️ Ensure your pet\'s safety and well-being'
-      ],
-      'fitness': [
-        '💪 Achieve the body transformation you\'ve always wanted',
-        '🔥 Boost your energy and confidence dramatically',
-        '🏆 Outperform your fitness goals faster than ever',
-        '⚡ Feel stronger and more capable every single day'
-      ],
-      'tech': [
-        '🚀 Stay ahead of the curve with cutting-edge technology',
-        '⚡ Save hours of time with lightning-fast performance',
-        '💻 Impress colleagues and friends with your tech-savvy setup',
-        '🧠 Simplify your life with intelligent automation'
-      ]
-    };
-    
-    const nicheBenefits = benefitSets[niche.toLowerCase() as keyof typeof benefitSets] || benefitSets['tech'];
-    return nicheBenefits;
-  }
-
-  private static generateProductVariations(product: any, niche: string, productIndex: number): Array<{ title: string; price: number; color?: string; size?: string }> {
-    const basePrice = product.price || 29.99;
-    const variations = [];
-    
-    // Generate 2-4 variations based on niche
-    const variationTypes = {
-      'beauty': [
-        { title: 'Classic', price: basePrice, color: 'Rose Gold' },
-        { title: 'Premium', price: basePrice * 1.2, color: 'Platinum' },
-        { title: 'Deluxe', price: basePrice * 1.4, color: 'Gold' }
-      ],
-      'pets': [
-        { title: 'Small', price: basePrice * 0.9, size: 'S', color: 'Blue' },
-        { title: 'Medium', price: basePrice, size: 'M', color: 'Red' },
-        { title: 'Large', price: basePrice * 1.1, size: 'L', color: 'Black' }
-      ],
-      'fitness': [
-        { title: 'Beginner', price: basePrice * 0.85, color: 'Blue' },
-        { title: 'Pro', price: basePrice, color: 'Black' },
-        { title: 'Elite', price: basePrice * 1.3, color: 'Red' }
-      ]
-    };
-    
-    const nicheVariations = variationTypes[niche.toLowerCase() as keyof typeof variationTypes] || [
-      { title: 'Standard', price: basePrice, color: 'Black' },
-      { title: 'Premium', price: basePrice * 1.2, color: 'White' }
+    const features = [
+      `🏆 Premium ${niche} quality`,
+      `⚡ ${powerWord} technology`, 
+      `💎 Professional-grade materials`,
+      `🚀 ${storeStyle === 'luxury' ? 'Luxury' : 'High-performance'} design`,
+      `✅ Satisfaction guaranteed`
     ];
+
+    const benefits = [
+      `Save time with instant ${niche} solutions`,
+      `Professional results without the professional cost`,
+      `Durable quality that lasts for years`,
+      `Easy to use - no experience required`,
+      `Backed by our satisfaction guarantee`
+    ];
+
+    return { title, description, features, benefits };
+  }
+
+  private static generateSmartVariations(niche: string, basePrice: number, index: number): Array<any> {
+    const nicheVariations: Record<string, string[][]> = {
+      'pets': [['Small', 'Medium', 'Large'], ['Black', 'Brown', 'White']],
+      'beauty': [['Natural', 'Medium', 'Dark'], ['Regular', 'Sensitive', 'Deluxe']],
+      'fitness': [['Light', 'Medium', 'Heavy'], ['Standard', 'Pro', 'Elite']],
+      'kitchen': [['Small', 'Large', 'XL'], ['Basic', 'Premium', 'Professional']],
+      'fashion': [['S', 'M', 'L', 'XL'], ['Black', 'White', 'Blue', 'Red']],
+      'tech': [['Basic', 'Advanced', 'Pro'], ['Black', 'White', 'Silver']],
+      'home': [['Small', 'Medium', 'Large'], ['White', 'Black', 'Wood']],
+      'jewelry': [['Silver', 'Gold', 'Rose Gold'], ['Small', 'Medium', 'Large']],
+      'automotive': [['Standard', 'Premium', 'Deluxe'], ['Black', 'Silver', 'Chrome']],
+      'baby': [['Newborn', '0-6M', '6-12M'], ['Blue', 'Pink', 'White']]
+    };
+
+    const variations = nicheVariations[niche.toLowerCase()] || [['Standard', 'Premium', 'Deluxe']];
+    const selectedVariation = variations[index % variations.length];
     
-    return nicheVariations.map(v => ({
-      ...v,
-      price: Math.round(v.price * 100) / 100
+    return selectedVariation.slice(0, 3).map((option, i) => ({
+      title: option,
+      price: Math.round((basePrice * (1 + i * 0.15)) * 100) / 100,
+      color: variations[1] ? option : undefined,
+      size: variations[0] ? option : undefined
     }));
   }
 
-  private static getNicheEmoji(niche: string): string {
-    const emojiMap: Record<string, string> = {
-      'beauty': '✨',
-      'pets': '🐾',
-      'fitness': '💪',
-      'tech': '🚀',
-      'kitchen': '🍳',
-      'home': '🏠',
-      'baby': '👶',
-      'fashion': '👗'
-    };
-    return emojiMap[niche.toLowerCase()] || '⭐';
-  }
-
-  private static getFeatureEmoji(niche: string, index: number): string {
-    const emojiSets = {
-      'beauty': ['✨', '💄', '🌟', '💎', '🌸', '👑'],
-      'pets': ['🐕', '🐱', '❤️', '🏆', '🎾', '🦴'],
-      'fitness': ['💪', '🏋️', '🔥', '⚡', '🎯', '🏆'],
-      'tech': ['⚡', '📱', '🚀', '💻', '🔋', '📡']
-    };
-    
-    const emojis = emojiSets[niche.toLowerCase() as keyof typeof emojiSets] || emojiSets['tech'];
-    return emojis[index % emojis.length];
-  }
-
-  private static getUniqueFeatures(niche: string, productIndex: number): string[] {
-    const uniqueFeatureSets = {
-      'beauty': [
-        ['🌟 Dermatologist-tested formula', '💎 Clinical-grade technology'],
-        ['✨ Anti-aging breakthrough', '🌸 Gentle on sensitive skin'],
-        ['👑 Luxury spa experience', '💄 Professional makeup artist quality']
-      ],
-      'pets': [
-        ['❤️ Veterinarian recommended', '🏆 Pet safety certified'],
-        ['🎾 Interactive play design', '🦴 Promotes healthy habits'],
-        ['🐕 Stress-reducing technology', '🐱 Comfort-focused engineering']
-      ],
-      'fitness': [
-        ['🔥 Fat-burning optimization', '⚡ Energy-boosting design'],
-        ['🎯 Precision targeting', '🏆 Athletic performance enhancement'],
-        ['💪 Muscle-building support', '🏋️ Professional gym quality']
-      ],
-      'tech': [
-        ['🚀 Next-generation technology', '💻 Smart connectivity'],
-        ['📱 Universal compatibility', '🔋 Long-lasting battery'],
-        ['⚡ Lightning-fast performance', '📡 Advanced wireless technology']
-      ]
+  private static getNicheSpecificWord(niche: string, index: number): string {
+    const nicheWords: Record<string, string[]> = {
+      'pets': ['Pet Care Essential', 'Pet Comfort Solution', 'Pet Training Tool', 'Pet Health Kit'],
+      'beauty': ['Beauty Essential', 'Skincare Solution', 'Beauty Tool', 'Cosmetic Must-Have'],
+      'fitness': ['Fitness Gear', 'Workout Essential', 'Training Equipment', 'Exercise Tool'],
+      'kitchen': ['Kitchen Essential', 'Cooking Solution', 'Chef Tool', 'Culinary Aid'],
+      'home': ['Home Essential', 'Living Solution', 'Decor Piece', 'Home Upgrade'],
+      'tech': ['Tech Innovation', 'Smart Solution', 'Digital Tool', 'Tech Essential'],
+      'fashion': ['Style Essential', 'Fashion Statement', 'Wardrobe Must-Have', 'Style Solution'],
+      'jewelry': ['Elegant Accessory', 'Fashion Piece', 'Jewelry Essential', 'Style Statement'],
+      'automotive': ['Car Essential', 'Auto Upgrade', 'Vehicle Solution', 'Driving Aid'],
+      'baby': ['Baby Essential', 'Child Safety Tool', 'Parenting Aid', 'Baby Comfort Solution']
     };
 
-    const nicheFeatures = uniqueFeatureSets[niche.toLowerCase() as keyof typeof uniqueFeatureSets] || uniqueFeatureSets['tech'];
-    return nicheFeatures[productIndex % nicheFeatures.length];
+    const words = nicheWords[niche.toLowerCase()] || ['Essential', 'Solution', 'Tool', 'Kit'];
+    return words[index % words.length];
   }
 
-  private static cleanTitle(title: string): string {
-    return title
-      .replace(/^(Hot|New|Best|Top|Premium|Professional)\s+/i, '')
-      .replace(/[^\w\s-]/g, '')
-      .replace(/\s+/g, ' ')
-      .trim()
-      .substring(0, 50);
+  private static getUrgencyWord(index: number): string {
+    const urgencyWords = ['Bestseller', 'Limited Edition', 'Top Rated', 'Must-Have', 'Premium', 'Exclusive'];
+    return urgencyWords[index % urgencyWords.length];
   }
 }

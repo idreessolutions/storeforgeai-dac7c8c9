@@ -18,12 +18,17 @@ serve(async (req) => {
     console.log('🏪 Updating Shopify store name to:', storeName);
     console.log('🔗 Shopify URL:', shopifyUrl);
 
+    // Validate required parameters
+    if (!storeName || !accessToken || !shopifyUrl) {
+      throw new Error('Missing required parameters: storeName, accessToken, or shopifyUrl');
+    }
+
     // Extract shop domain from URL
     let shopDomain = shopifyUrl;
-    if (shopifyUrl.includes('://')) {
+    if (shopifyUrl.includes && shopifyUrl.includes('://')) {
       shopDomain = shopifyUrl.split('://')[1];
     }
-    if (shopDomain.endsWith('/')) {
+    if (shopDomain.endsWith && shopDomain.endsWith('/')) {
       shopDomain = shopDomain.slice(0, -1);
     }
 
