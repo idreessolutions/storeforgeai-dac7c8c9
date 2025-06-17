@@ -29,8 +29,8 @@ const StepRenderer = ({
   onNext,
   validateCurrentStep
 }: StepRendererProps) => {
-  // Limit to maximum of 8 steps (0-7, where 0 is Get Started)
-  const maxSteps = storeSteps.length;
+  // Strict step limits - max 8 steps (0-7, where 0 is Get Started)
+  const maxSteps = storeSteps.length; // This should be 8
   
   // If somehow we get beyond the valid steps, show the last step
   if (currentStep > maxSteps) {
@@ -126,7 +126,7 @@ const StepRenderer = ({
         />
       );
     default:
-      // Should never reach here, but fallback to Get Started
+      // Fallback to Get Started for any invalid step
       return (
         <GetStartedStep 
           onNext={onNext}

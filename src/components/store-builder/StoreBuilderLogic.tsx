@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { addProductsToShopify } from "@/services/productService";
 import { installAndConfigureSenseTheme } from "@/services/shopifyThemeService";
@@ -135,6 +136,13 @@ export const useStoreBuilderLogic = () => {
     });
     
     try {
+      // STRICT STEP LIMIT: Don't allow beyond step 8
+      if (currentStep >= 8) {
+        console.log('❌ Cannot proceed beyond final step (8)');
+        toast.error('You have reached the final step!');
+        return;
+      }
+
       // Validate current step before proceeding (silent validation)
       const validation = validateCurrentStep(currentStep);
       
@@ -168,7 +176,7 @@ export const useStoreBuilderLogic = () => {
 
       // Save session data with ALL store personalization details
       await saveSessionData({
-        completed_steps: currentStep + 1,
+        completed_steps: Math.min(currentStep + 1, 8), // Cap at 8
         niche: formData.niche,
         target_audience: formData.targetAudience,
         business_type: formData.businessType,
@@ -183,7 +191,8 @@ export const useStoreBuilderLogic = () => {
         created_via_affiliate: formData.createdViaAffiliate
       });
       
-      setCurrentStep(currentStep + 1);
+      // STRICT: Don't exceed step 8
+      setCurrentStep(Math.min(currentStep + 1, 8));
       
       // Show success message for completing store details
       if (currentStep === 1) {

@@ -29,25 +29,29 @@ const StoreBuilder = ({ onBack, onViewAutomation }: StoreBuilderProps) => {
     return validation.isValid;
   };
 
+  // Strict step limit to prevent UI bugs
+  const maxSteps = storeSteps.length; // Should be 8
+  const displayCurrentStep = Math.min(currentStep, maxSteps);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Header Component */}
       <Header 
         onBack={onBack} 
-        currentStep={currentStep} 
-        totalSteps={storeSteps.length}
+        currentStep={displayCurrentStep} 
+        totalSteps={maxSteps}
         onViewAutomation={onViewAutomation}
       />
 
-      {/* Step Navigation Component - only show if not on step 0 */}
-      {currentStep > 0 && (
-        <StepNavigation steps={storeSteps} currentStep={currentStep} />
+      {/* Step Navigation Component - only show if not on step 0 and within limits */}
+      {displayCurrentStep > 0 && displayCurrentStep <= maxSteps && (
+        <StepNavigation steps={storeSteps} currentStep={displayCurrentStep} />
       )}
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-6 py-12 lg:px-8">
         <StepRenderer
-          currentStep={currentStep}
+          currentStep={displayCurrentStep}
           formData={formData}
           handleInputChange={handleInputChange}
           isGenerating={isGenerating}
@@ -55,11 +59,11 @@ const StoreBuilder = ({ onBack, onViewAutomation }: StoreBuilderProps) => {
           validateCurrentStep={validateCurrentStep}
         />
 
-        {/* Navigation Component - only show if not on step 0 */}
-        {currentStep > 0 && (
+        {/* Navigation Component - only show if not on step 0 and within limits */}
+        {displayCurrentStep > 0 && displayCurrentStep <= maxSteps && (
           <Navigation 
-            currentStep={currentStep} 
-            totalSteps={storeSteps.length} 
+            currentStep={displayCurrentStep} 
+            totalSteps={maxSteps} 
             isGenerating={isGenerating}
             onPrevious={handlePrevStep}
             onNext={handleNextStep}

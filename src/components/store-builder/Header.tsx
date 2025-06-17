@@ -11,10 +11,10 @@ interface HeaderProps {
 }
 
 const Header = ({ onBack, currentStep, totalSteps, onViewAutomation }: HeaderProps) => {
-  // Don't show progress bar on the initial Get Started page (step 0)
-  const showProgress = currentStep > 0;
-  const actualStep = currentStep; // Don't add 1 since we're 0-indexed and step 0 is Get Started
-  const progressPercentage = showProgress ? ((actualStep - 1) / (totalSteps - 1)) * 100 : 0;
+  // Only show progress bar after Get Started page (step 0) and limit to max steps
+  const showProgress = currentStep > 0 && currentStep <= totalSteps;
+  const displayStep = Math.min(currentStep, totalSteps);
+  const progressPercentage = showProgress ? ((displayStep - 1) / (totalSteps - 1)) * 100 : 0;
   
   return (
     <header className="bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-700 text-white shadow-xl">
@@ -59,7 +59,7 @@ const Header = ({ onBack, currentStep, totalSteps, onViewAutomation }: HeaderPro
                 <Star className="h-5 w-5 text-yellow-400" />
                 <div className="text-right">
                   <div className="text-sm font-semibold">
-                    Step {actualStep} of {totalSteps}
+                    Step {displayStep} of {totalSteps}
                   </div>
                   <div className="w-32 bg-white/20 rounded-full h-2 mt-1">
                     <div 
