@@ -6,127 +6,129 @@ export class ImageProcessor {
     this.shopifyClient = shopifyClient;
   }
 
-  async uploadRealAliExpressImages(productId: string, productTitle: string, realImages: string[], themeColor: string) {
-    console.log(`📸 Starting REAL AliExpress image upload for "${productTitle}"`);
-    console.log(`🖼️ Real images to upload: ${realImages.length}`);
+  async uploadRealAliExpressImages(
+    productId: string,
+    productTitle: string,
+    realImages: string[],
+    themeColor: string
+  ): Promise<{ uploadedCount: number; imageIds: string[] }> {
+    console.log(`📸 PRIORITY: Uploading REAL AliExpress images for "${productTitle}"`);
+    console.log(`🎯 Available real images: ${realImages.length}`);
     
     if (!realImages || realImages.length === 0) {
-      console.log(`⚠️ No real images provided for "${productTitle}" - this is a critical issue!`);
+      console.warn(`⚠️ No real images provided for ${productTitle}`);
       return { uploadedCount: 0, imageIds: [] };
     }
+
+    const uploadedImageIds: string[] = [];
+    const validImages = realImages.filter(img => img && img.length > 10);
     
-    let uploadedCount = 0;
-    const imageIds: string[] = [];
+    console.log(`✅ Valid real images to upload: ${validImages.length}`);
 
-    // Upload each real AliExpress image
-    for (let i = 0; i < realImages.length && i < 8; i++) {
-      const imageUrl = realImages[i];
+    for (let i = 0; i < Math.min(validImages.length, 6); i++) {
+      const imageUrl = validImages[i];
       
-      if (!imageUrl || (!imageUrl.startsWith('http') && !imageUrl.startsWith('https'))) {
-        console.log(`⚠️ Skipping invalid image URL: ${imageUrl}`);
-        continue;
-      }
-
       try {
-        console.log(`⬆️ Uploading real image ${i + 1}/${realImages.length} for "${productTitle}" to Shopify...`);
+        console.log(`🔄 Uploading real AliExpress image ${i + 1}/${validImages.length} for "${productTitle}"`);
         
-        // Upload the real AliExpress image directly to Shopify
-        const imageData = {
-          src: imageUrl,
-          alt: `${productTitle} - Image ${i + 1}`,
-          position: i + 1
-        };
-
-        console.log('🖼️ Real image data:', {
-          src: imageUrl.substring(0, 100) + '...',
-          alt: imageData.alt,
-          position: imageData.position
-        });
-
-        const response = await this.shopifyClient.uploadImage(productId, imageData);
-        
-        if (response && response.image && response.image.id) {
-          imageIds.push(response.image.id);
-          uploadedCount++;
-          console.log(`✅ Successfully uploaded real image ${i + 1} for "${productTitle}" (ID: ${response.image.id})`);
-          console.log(`🔗 Uploaded image URL: ${response.image.src?.substring(0, 100)}...`);
-          console.log(`🎨 Real AliExpress image uploaded for: ${productTitle}`);
-        } else {
-          console.error(`❌ Failed to upload real image ${i + 1} for "${productTitle}":`, response);
+        // Enhanced image validation
+        if (!this.isValidImageUrl(imageUrl)) {
+          console.warn(`⚠️ Invalid image URL skipped: ${imageUrl}`);
+          continue;
         }
 
-        // Rate limiting between uploads
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        const imagePayload = {
+          image: {
+            product_id: productId,
+            src: imageUrl,
+            alt: `${productTitle} - Premium Quality Image ${i + 1}`,
+            position: i + 1
+          }
+        };
 
+        const imageResponse = await this.shopifyClient.uploadProductImage(imagePayload);
+        
+        if (imageResponse && imageResponse.image && imageResponse.image.id) {
+          uploadedImageIds.push(imageResponse.image.id);
+          console.log(`✅ Real AliExpress image ${i + 1} uploaded successfully for "${productTitle}": ${imageResponse.image.id}`);
+        } else {
+          console.warn(`⚠️ Image upload failed for "${productTitle}" image ${i + 1}`);
+        }
+
+        // Rate limiting for quality uploads
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
       } catch (error) {
         console.error(`❌ Error uploading real image ${i + 1} for "${productTitle}":`, error);
+        continue;
       }
     }
 
-    console.log(`📸 Real image upload completed for "${productTitle}": ${uploadedCount}/${realImages.length} images successfully uploaded`);
-
-    if (uploadedCount === 0) {
-      console.error(`🚨 CRITICAL: No images were uploaded for "${productTitle}" - this will impact product quality!`);
-    }
-
+    console.log(`🎉 REAL IMAGE UPLOAD COMPLETE for "${productTitle}": ${uploadedImageIds.length}/${validImages.length} images uploaded successfully`);
+    
     return {
-      uploadedCount,
-      imageIds
+      uploadedCount: uploadedImageIds.length,
+      imageIds: uploadedImageIds
     };
+  }
+
+  private isValidImageUrl(url: string): boolean {
+    if (!url || typeof url !== 'string' || url.length < 10) {
+      return false;
+    }
+    
+    // Enhanced validation for real AliExpress images
+    const validPatterns = [
+      /^https?:\/\/.*\.(jpg|jpeg|png|webp|gif)(\?.*)?$/i,
+      /^https?:\/\/ae\d+\.alicdn\.com\//i,
+      /^https?:\/\/.*aliexpress\./i,
+      /^https?:\/\/.*\.aliimg\.com\//i
+    ];
+    
+    return validPatterns.some(pattern => pattern.test(url));
   }
 
   async assignImagesToVariants(imageIds: string[], variants: any[]): Promise<number> {
-    console.log(`🔗 Assigning ${imageIds.length} real images to ${variants.length} variants...`);
+    console.log(`🎯 Assigning ${imageIds.length} real images to ${variants.length} variants...`);
     
     let assignmentCount = 0;
-
-    for (let i = 0; i < variants.length && i < imageIds.length; i++) {
-      const variant = variants[i];
-      const imageId = imageIds[i];
-
+    
+    for (let i = 0; i < Math.min(variants.length, imageIds.length); i++) {
       try {
-        console.log(`🏷️ Assigning image ${imageId} to variant ${variant.id}...`);
+        const variant = variants[i];
+        const imageId = imageIds[i];
         
-        const success = await this.assignImageToVariant(imageId, variant.id);
-        if (success) {
+        if (variant && variant.id && imageId) {
+          // Update variant with image assignment
+          const variantUpdate = {
+            variant: {
+              id: variant.id,
+              image_id: imageId
+            }
+          };
+          
+          await this.shopifyClient.updateProductVariant(variant.id, variantUpdate);
           assignmentCount++;
-          console.log(`✅ Successfully assigned image ${imageId} to variant ${variant.id}`);
+          console.log(`✅ Image ${imageId} assigned to variant ${variant.id}`);
         }
+        
+        // Rate limiting
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
       } catch (error) {
-        console.error(`❌ Failed to assign image ${imageId} to variant ${variant.id}:`, error);
+        console.error(`❌ Error assigning image ${i + 1} to variant:`, error);
+        continue;
       }
     }
-
-    console.log(`🎯 Image-to-variant assignment completed: ${assignmentCount} successful assignments`);
+    
+    console.log(`🎉 Image assignment complete: ${assignmentCount} assignments successful`);
     return assignmentCount;
   }
 
-  private async assignImageToVariant(imageId: string, variantId: string): Promise<boolean> {
-    try {
-      console.log(`🔗 Assigning image ${imageId} to variant ${variantId}...`);
-      
-      const response = await this.shopifyClient.assignImageToVariant(variantId, imageId);
-      
-      if (response && response.variant) {
-        return true;
-      } else {
-        console.error(`❌ Image-to-variant assignment failed: ${response?.status || 'Unknown error'}`);
-        return false;
-      }
-    } catch (error) {
-      console.error(`❌ Failed to assign image ${imageId} to variant ${variantId}`);
-      return false;
-    }
-  }
-
-  // Legacy method for backward compatibility - now uses real images only
-  async uploadProductImages(productId: string, productTitle: string, features: string[], category: string, themeColor: string) {
-    console.log(`🚨 DEPRECATED: uploadProductImages called - redirecting to real image upload`);
-    console.log(`⚠️ DALL-E image generation is disabled - use uploadRealAliExpressImages instead`);
-    
-    return {
-      uploadedCount: 0,
-      imageIds: []
-    };
+  async enhanceImageWithThemeColor(imageUrl: string, themeColor: string): Promise<string> {
+    // For now, return the original image URL as theme color enhancement
+    // would require image processing capabilities
+    console.log(`🎨 Theme color ${themeColor} noted for image: ${imageUrl}`);
+    return imageUrl;
   }
 }

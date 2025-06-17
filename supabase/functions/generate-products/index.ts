@@ -22,10 +22,11 @@ serve(async (req) => {
       customInfo,
       storeName,
       themeColor,
-      sessionId
+      sessionId,
+      premiumEnhancement = true
     } = await req.json();
     
-    console.log(`🚀 GPT-4 enhancing REAL AliExpress ${niche} product with SMART PRICING:`, {
+    console.log(`🎨 GPT-4 PREMIUM enhancement for WINNING ${niche} product with PREMIUM STYLING:`, {
       productTitle: realProduct?.title?.substring(0, 60),
       niche,
       storeName,
@@ -34,80 +35,93 @@ serve(async (req) => {
       storeStyle,
       themeColor,
       realImages: realProduct?.images?.length || 0,
-      source: 'AliExpress Drop Shipping API'
+      rating: realProduct?.rating,
+      orders: realProduct?.orders,
+      source: 'AliExpress Drop Shipping API',
+      enhancement: 'PREMIUM GPT-4'
     });
 
     // Get API keys from Supabase secrets
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 
     if (!openaiApiKey) {
-      throw new Error('Missing OpenAI API key for GPT-4 product enhancement');
+      throw new Error('Missing OpenAI API key for GPT-4 premium enhancement');
     }
 
     if (!realProduct || !niche) {
       throw new Error('Missing required product data or niche information');
     }
 
-    console.log(`🤖 Enhancing REAL AliExpress ${niche} product with GPT-4 for HUMAN-FRIENDLY content:`, {
+    console.log(`🚀 PREMIUM GPT-4 enhancement for WINNING ${niche} product:`, {
       originalTitle: realProduct.title,
       rating: realProduct.rating,
       orders: realProduct.orders,
       niche: niche,
       realImages: realProduct.images?.length || 0,
-      source: 'AliExpress Drop Shipping API'
+      enhancement: 'PREMIUM QUALITY CONTENT'
     });
 
-    // Enhanced GPT-4 prompt for human-like, engaging descriptions with smart pricing
-    const gpt4EnhancementPrompt = `You are an expert e-commerce copywriter specializing in ${niche} products for ${targetAudience}. You're working with a REAL winning product from the AliExpress Drop Shipping API.
+    // PREMIUM GPT-4 prompt for exceptional, human-like, engaging descriptions
+    const premiumGpt4Prompt = `You are an EXPERT e-commerce copywriter creating PREMIUM ${niche} product content for ${targetAudience}. This is a WINNING product from AliExpress Drop Shipping API with VERIFIED success metrics.
 
-CRITICAL: This product MUST be perfectly optimized for the ${niche} niche and appeal to ${targetAudience}.
-
-REAL ALIEXPRESS WINNING PRODUCT:
+🏆 VERIFIED WINNING ALIEXPRESS PRODUCT:
 Title: ${realProduct.title}
 Price: $${realProduct.price}
-Rating: ${realProduct.rating}/5 (${realProduct.orders}+ verified orders)
+Rating: ${realProduct.rating}/5 ⭐ (${realProduct.orders}+ verified orders)
 Features: ${realProduct.features?.join(', ') || 'Premium quality'}
 Source: AliExpress Drop Shipping API (VERIFIED WINNING PRODUCT)
 
-STORE CONTEXT:
+🎯 STORE PERSONALIZATION:
 - Store Name: ${storeName}
-- Niche: ${niche} (MUST BE RESPECTED)
+- Niche: ${niche} (MUST BE PERFECTLY TARGETED)
 - Target Audience: ${targetAudience}
 - Business Type: ${businessType}
 - Store Style: ${storeStyle}
 - Theme Color: ${themeColor}
-- Custom Requirements: ${customInfo || 'None'}
+- Custom Requirements: ${customInfo || 'Create premium experience'}
 
-GPT-4 ENHANCEMENT REQUIREMENTS:
-1. Create a compelling ${niche}-focused title (max 60 chars) with power words and emojis that appeals to ${targetAudience}
-2. Write a detailed 400-600 word description that is HUMAN, EMOTIONAL, and ENGAGING with:
-   - 🔥 Emotional opening hook focused on ${niche} pain points
-   - ✨ 5-6 key benefits specific to ${niche} users with emojis
-   - 💫 Multiple use cases for ${targetAudience} in ${niche}
-   - 🏆 Social proof (${realProduct.orders}+ orders, ${realProduct.rating}+ rating)
-   - 🎯 Strong call-to-action for ${niche} enthusiasts
-   - 📝 Clear headings and bullet points
-   - 😊 Personal, excited tone (NOT robotic or corporate)
-   - 🎨 Theme color reference: ${themeColor}
-3. List 5-6 key features optimized for ${niche}
-4. SMART PRICING: Price between $15-$80 MAXIMUM based on:
-   - Product complexity and ${niche} market
-   - Original price: $${realProduct.price}
-   - High orders (${realProduct.orders}+) = $30-$50
-   - Premium feel = $40-$60
+🚀 PREMIUM GPT-4 ENHANCEMENT REQUIREMENTS:
+
+1. 🏆 WINNING TITLE (max 70 chars):
+   - Include power words and relevant emojis
+   - Target ${targetAudience} specifically
+   - Highlight ${niche} benefits
+   - Create urgency and desire
+
+2. 📝 PREMIUM DESCRIPTION (500-700 words):
+   - 🔥 EMOTIONAL opening hook addressing ${niche} pain points
+   - ✨ 6-8 key benefits with emojis (not just features)
+   - 💫 Multiple compelling use cases for ${targetAudience}
+   - 🏆 Social proof integration (${realProduct.orders}+ orders, ${realProduct.rating}⭐)
+   - 📋 Clear headings and bullet points
+   - 🎯 STRONG call-to-action for ${niche} enthusiasts
+   - 😊 Exciting, personal tone (NO corporate speak)
+   - 🎨 Reference theme color: ${themeColor}
+   - 💎 Premium quality emphasis throughout
+
+3. 🎯 NICHE-SPECIFIC FEATURES (5-6 features):
+   - Each feature must appeal to ${targetAudience}
+   - Include relevant emojis
+   - Focus on benefits, not just specifications
+
+4. 💰 SMART PREMIUM PRICING ($15-$80 MAX):
+   - Original: $${realProduct.price}
+   - High orders (${realProduct.orders}+) = $35-$55 range
+   - Premium feel = $45-$65 range
+   - Rating ${realProduct.rating}+ = quality bonus
    - NEVER exceed $80
 
-TONE: ${storeStyle === 'luxury' ? 'Premium and sophisticated' : storeStyle === 'fun' ? 'Playful and energetic' : 'Professional and trustworthy'} - perfectly matching ${niche} audience
+TONE: ${storeStyle === 'luxury' ? '💎 Luxury and sophisticated with premium language' : storeStyle === 'fun' ? '🎉 Playful, energetic, and exciting' : '⭐ Professional, trustworthy, and compelling'} - PERFECTLY matching ${niche} audience expectations
 
-IMPORTANT: Return ONLY valid JSON without any markdown formatting or code blocks. Do not wrap the response in backticks or any other markdown.
+🚨 CRITICAL: Return ONLY valid JSON without markdown formatting or code blocks.
 
 {
-  "title": "Catchy ${niche} product title with emojis for ${targetAudience}",
-  "description": "400-600 word ${niche}-focused description with emojis, headings, benefits, use cases, social proof, and ${storeStyle} tone",
-  "features": ["${niche}-specific feature 1", "${niche}-specific feature 2", "${niche}-specific feature 3", "${niche}-specific feature 4", "${niche}-specific feature 5"],
-  "benefits": ["key ${niche} benefit 1", "key ${niche} benefit 2", "key ${niche} benefit 3"],
+  "title": "🏆 Compelling ${niche} product title with power words and emojis for ${targetAudience}",
+  "description": "500-700 word ${niche}-focused description with emotional hooks, emojis, headings, benefits, use cases, social proof (${realProduct.orders}+ orders, ${realProduct.rating}⭐), and ${storeStyle} tone that creates DESIRE and URGENCY",
+  "features": ["🎯 ${niche}-specific feature with emoji 1", "⭐ ${niche}-specific feature with emoji 2", "💪 ${niche}-specific feature with emoji 3", "🏆 ${niche}-specific feature with emoji 4", "✨ ${niche}-specific feature with emoji 5"],
+  "benefits": ["🚀 key ${niche} benefit for ${targetAudience} 1", "💎 key ${niche} benefit for ${targetAudience} 2", "⚡ key ${niche} benefit for ${targetAudience} 3"],
   "category": "${niche}",
-  "price": 35.99,
+  "price": 45.99,
   "rating": ${realProduct.rating || 4.8},
   "orders": ${realProduct.orders || 1000}
 }`;
@@ -124,15 +138,15 @@ IMPORTANT: Return ONLY valid JSON without any markdown formatting or code blocks
           messages: [
             {
               role: 'system',
-              content: `You are an expert e-commerce copywriter specializing in ${niche} products. Create compelling, human-friendly, emotional content that perfectly matches the ${niche} niche for ${targetAudience}. You work with REAL winning products from AliExpress Drop Shipping API. ALWAYS ensure prices are between $15-$80. CRITICAL: Always respond with valid JSON only, never use markdown code blocks or any other formatting.`
+              content: `You are a PREMIUM e-commerce copywriter specializing in ${niche} products. Create EXCEPTIONAL, human-friendly, emotional content that perfectly matches the ${niche} niche for ${targetAudience}. You work with WINNING products from AliExpress Drop Shipping API. ALWAYS ensure prices are $15-$80. CRITICAL: Always respond with valid JSON only, never use markdown code blocks.`
             },
             {
               role: 'user',
-              content: gpt4EnhancementPrompt
+              content: premiumGpt4Prompt
             }
           ],
-          max_tokens: 2000,
-          temperature: 0.7,
+          max_tokens: 2500,
+          temperature: 0.8,
         }),
       });
 
@@ -151,60 +165,62 @@ IMPORTANT: Return ONLY valid JSON without any markdown formatting or code blocks
         aiContentText = aiContentText.replace(/^```\s*/, '').replace(/\s*```$/, '');
       }
       
-      console.log('🔍 Cleaned AI response:', aiContentText.substring(0, 200));
+      console.log('🎨 Premium AI content generated:', aiContentText.substring(0, 200));
       
       let aiContent;
       try {
         aiContent = JSON.parse(aiContentText);
       } catch (parseError) {
-        console.error('❌ JSON parse failed, attempting fallback:', parseError);
-        // Fallback: generate a basic product structure with emojis and smart pricing
+        console.error('❌ JSON parse failed, creating premium fallback:', parseError);
+        // Premium fallback with enhanced content
         aiContent = {
           title: `🏆 Premium ${niche.charAt(0).toUpperCase() + niche.slice(1)} Essential - Bestseller ⭐`,
-          description: `🚀 Transform your ${niche} experience with this premium quality product! 
+          description: `🚀 Transform your ${niche} experience with this PREMIUM quality product! 
 
-🎯 **Perfect for ${targetAudience}** who demand the best in ${niche}. 
+🎯 **Perfect for ${targetAudience}** who demand excellence in ${niche}. 
 
-✨ **Why Choose This Product?**
+✨ **Why Choose This WINNING Product?**
 • ⭐ ${realProduct.rating || 4.8}+ star rating from ${realProduct.orders || 1000}+ verified customers
-• 🏆 Proven bestseller in the ${niche} category
+• 🏆 Proven bestseller in the ${niche} category  
 • 💪 Premium quality materials for lasting performance
 • 🎯 Designed specifically for ${targetAudience}
-• 🚀 Easy to use and reliable
+• 🚀 Easy to use and incredibly reliable
+• 💎 Professional-grade quality at an amazing price
 
-🔥 **Key Benefits:**
-✅ Enhanced ${niche} performance
-✅ Superior durability and quality
-✅ Perfect for daily use
-✅ Excellent value for money
-✅ Customer satisfaction guaranteed
+🔥 **Key Benefits for ${targetAudience}:**
+✅ Enhanced ${niche} performance beyond expectations
+✅ Superior durability and premium construction  
+✅ Perfect for daily use and special occasions
+✅ Excellent value for money - unbeatable quality
+✅ Customer satisfaction guaranteed with fast shipping
 
-💯 **Join thousands of satisfied customers** who have already upgraded their ${niche} experience!
+💯 **Join thousands of satisfied customers** who have already upgraded their ${niche} experience with this amazing product!
 
-🛒 **Order now** and experience the difference quality makes!
+🛒 **Order now** and experience the difference premium quality makes in your ${niche} journey!
 
-*Featuring our signature ${themeColor} design elements for a premium look.*`,
+*Featuring beautiful ${themeColor} design elements for a stunning, professional look that matches your style perfectly.*`,
           features: [
-            `Premium ${niche} quality`,
-            `Perfect for ${targetAudience}`,
-            "Durable and reliable construction",
-            "Easy to use design",
-            "Customer favorite with proven results"
+            `🏆 Premium ${niche} quality construction`,
+            `🎯 Perfect for ${targetAudience}`,
+            "💪 Durable and reliable premium materials",
+            "✨ Easy to use professional design",
+            "⭐ Customer favorite with proven results",
+            "🚀 Fast shipping and quality guarantee"
           ],
           benefits: [
-            `Enhanced ${niche} performance`,
-            "Long-lasting durability",
-            "Excellent value for money"
+            `🚀 Enhanced ${niche} performance`,
+            "💎 Long-lasting premium durability",
+            "💰 Excellent value for money"
           ],
           category: niche,
-          price: this.calculateSmartPrice(realProduct.price || 25, niche, 5),
+          price: calculateSmartPremiumPrice(realProduct.price || 25, niche, 6, realProduct.orders || 1000, realProduct.rating || 4.8),
           rating: realProduct.rating || 4.8,
           orders: realProduct.orders || 1000
         };
       }
       
-      // Enforce smart pricing between $15-$80
-      const smartPrice = this.calculateSmartPrice(
+      // Enforce premium smart pricing between $15-$80
+      const smartPrice = calculateSmartPremiumPrice(
         aiContent.price || realProduct.price || 25, 
         niche, 
         aiContent.features?.length || 5,
@@ -212,9 +228,9 @@ IMPORTANT: Return ONLY valid JSON without any markdown formatting or code blocks
         realProduct.rating || 4.8
       );
       
-      // Build optimized product with REAL AliExpress images
-      const optimizedProduct = {
-        id: realProduct.itemId || `${niche}_aliexpress_${Date.now()}`,
+      // Build PREMIUM optimized product with REAL AliExpress images
+      const premiumProduct = {
+        id: realProduct.itemId || `${niche}_premium_${Date.now()}`,
         title: aiContent.title,
         description: aiContent.description,
         detailed_description: aiContent.description,
@@ -226,12 +242,12 @@ IMPORTANT: Return ONLY valid JSON without any markdown formatting or code blocks
         rating: aiContent.rating || realProduct.rating || 4.8,
         orders: aiContent.orders || realProduct.orders || 1000,
         
-        // Use REAL AliExpress images - NO DALL-E
+        // Use REAL AliExpress images - PREMIUM QUALITY
         imageUrl: realProduct.imageUrl || '',
         images: realProduct.images || [realProduct.imageUrl].filter(Boolean),
         
-        tags: `${niche}, ${targetAudience}, ${storeStyle}, ${storeName}, winning-product, best-seller, AliExpress-verified, ${realProduct.orders || 1000}-orders, premium-quality`,
-        vendor: storeName || `${niche.charAt(0).toUpperCase() + niche.slice(1)} Store`,
+        tags: `${niche}, ${targetAudience}, ${storeStyle}, ${storeName}, winning-product, best-seller, AliExpress-verified, ${realProduct.orders || 1000}-orders, premium-quality, ai-enhanced, real-images`,
+        vendor: storeName || `${niche.charAt(0).toUpperCase() + niche.slice(1)} Premium Store`,
         
         // Store personalization metadata
         store_name: storeName,
@@ -242,43 +258,48 @@ IMPORTANT: Return ONLY valid JSON without any markdown formatting or code blocks
         theme_color: themeColor,
         niche: niche,
         
-        // AliExpress verification
+        // Premium AliExpress verification
         source: 'AliExpress Drop Shipping API',
         aliexpress_verified: true,
         winning_product_status: true,
+        premium_enhanced: true,
         original_rating: realProduct.rating,
         original_orders: realProduct.orders,
         original_title: realProduct.title,
         real_images_used: true,
-        dalle_images_used: false
+        dalle_images_used: false,
+        gpt4_enhanced: true
       };
 
-      console.log(`✅ GPT-4 enhanced ${niche} product successfully with SMART PRICING:`, {
-        title: optimizedProduct.title,
-        category: optimizedProduct.category,
-        price: optimizedProduct.price,
-        rating: optimizedProduct.rating,
-        orders: optimizedProduct.orders,
-        features_count: optimizedProduct.features.length,
-        real_images_count: optimizedProduct.images.length,
+      console.log(`✨ GPT-4 PREMIUM enhancement completed for ${niche} product:`, {
+        title: premiumProduct.title,
+        category: premiumProduct.category,
+        price: premiumProduct.price,
+        rating: premiumProduct.rating,
+        orders: premiumProduct.orders,
+        features_count: premiumProduct.features.length,
+        real_images_count: premiumProduct.images.length,
         theme_color: themeColor,
+        enhancement: 'PREMIUM GPT-4',
         source: 'AliExpress Drop Shipping API'
       });
 
       return new Response(JSON.stringify({
         success: true,
-        message: `Successfully enhanced ${niche} product from AliExpress Drop Shipping API with GPT-4`,
-        optimizedProduct: optimizedProduct,
-        niche_compliance: {
+        message: `✨ Successfully enhanced ${niche} product from AliExpress Drop Shipping API with PREMIUM GPT-4`,
+        optimizedProduct: premiumProduct,
+        premium_enhancement: {
           niche: niche,
-          category: optimizedProduct.category,
-          tags_include_niche: optimizedProduct.tags.includes(niche),
-          title_includes_niche: optimizedProduct.title.toLowerCase().includes(niche.toLowerCase()),
+          category: premiumProduct.category,
+          tags_include_niche: premiumProduct.tags.includes(niche),
+          title_includes_niche: premiumProduct.title.toLowerCase().includes(niche.toLowerCase()),
           source: 'AliExpress Drop Shipping API',
           real_images_used: true,
           theme_color_applied: themeColor,
           smart_pricing_applied: true,
-          price_range: '$15-$80'
+          price_range: '$15-$80',
+          gpt4_enhanced: true,
+          premium_quality: true
         }
       }), {
         status: 200,
@@ -302,8 +323,8 @@ IMPORTANT: Return ONLY valid JSON without any markdown formatting or code blocks
   }
 });
 
-// Smart pricing algorithm with strict $15-$80 enforcement
-function calculateSmartPrice(
+// Premium smart pricing algorithm with strict $15-$80 enforcement
+function calculateSmartPremiumPrice(
   originalPrice: number, 
   niche: string, 
   featureCount: number,
@@ -312,41 +333,43 @@ function calculateSmartPrice(
 ): number {
   const basePrice = originalPrice || 25;
   
-  // Niche-specific multipliers (more conservative)
-  const nicheMultipliers = {
-    'pets': 1.8,
-    'fitness': 1.6,
-    'beauty': 1.9,
-    'tech': 1.5,
-    'baby': 1.8,
-    'home': 1.4,
-    'fashion': 1.7,
-    'kitchen': 1.4,
-    'gaming': 1.6,
-    'travel': 1.5,
-    'office': 1.3
+  // Premium niche-specific multipliers
+  const premiumNicheMultipliers = {
+    'pets': 2.2,      // High emotional value
+    'fitness': 1.9,   // Health investment value
+    'beauty': 2.4,    // Premium positioning
+    'tech': 1.8,      // Innovation premium
+    'baby': 2.3,      // Safety premium
+    'home': 1.7,      // Utility focus
+    'fashion': 2.1,   // Style premium
+    'kitchen': 1.8,   // Utility + quality
+    'gaming': 1.9,    // Performance premium
+    'travel': 1.8,    // Convenience premium
+    'office': 1.6     // Professional utility
   };
   
-  const multiplier = nicheMultipliers[niche.toLowerCase() as keyof typeof nicheMultipliers] || 1.5;
+  const multiplier = premiumNicheMultipliers[niche.toLowerCase() as keyof typeof premiumNicheMultipliers] || 1.8;
   
-  // Calculate base with modifiers
+  // Calculate base with premium modifiers
   let finalPrice = basePrice * multiplier;
   
-  // Order volume bonus (small)
-  if (orders >= 2000) finalPrice += 5;
-  else if (orders >= 1500) finalPrice += 3;
+  // Premium quality bonuses
+  if (orders >= 2000) finalPrice += 8;
+  else if (orders >= 1500) finalPrice += 5;
+  else if (orders >= 1000) finalPrice += 3;
   
-  // Rating bonus (small)
-  if (rating >= 4.8) finalPrice += 3;
-  else if (rating >= 4.7) finalPrice += 2;
+  // Rating premium bonuses
+  if (rating >= 4.8) finalPrice += 5;
+  else if (rating >= 4.7) finalPrice += 3;
+  else if (rating >= 4.6) finalPrice += 2;
   
-  // Feature bonus (small)
-  finalPrice += Math.min(featureCount * 1, 5);
+  // Feature bonus (premium)
+  finalPrice += Math.min(featureCount * 1.5, 8);
   
-  // STRICT enforcement: $15-$80 range
+  // STRICT enforcement: $15-$80 range (premium quality maintained)
   finalPrice = Math.max(15, Math.min(80, finalPrice));
   
-  // Apply psychological pricing
+  // Apply premium psychological pricing
   if (finalPrice < 25) {
     return Math.floor(finalPrice) + 0.99;
   } else if (finalPrice < 50) {
