@@ -8,80 +8,84 @@ export class QualityValidator {
       hasValidTitle: product.title && product.title.length > 3, // Very lenient - just needs a title
       hasValidImage: product.imageUrl && product.imageUrl.length > 5, // Very lenient
       hasValidPrice: product.price >= 0.5 && product.price <= 1000, // Extremely wide range
-      hasReasonableRating: product.rating >= 3.5, // Much lower requirement
-      hasMinimumOrders: product.orders >= 10, // Much lower requirement
+      hasReasonableRating: product.rating >= 3.0, // ULTRA LOW requirement - 3.0+
+      hasMinimumOrders: product.orders >= 5, // ULTRA LOW requirement - just 5 orders
       isNicheRelevant: this.isUniversalNicheRelevant(product.title, niche)
     };
 
     const passed = Object.values(checks).filter(check => check === true).length;
     const passRate = passed / Object.keys(checks).length;
     
-    // Extremely lenient - pass if 50% of checks pass
-    const isValid = passRate >= 0.50;
+    // EXTREMELY lenient - pass if 33% of checks pass (2 out of 6)
+    const isValid = passRate >= 0.33;
     
     if (!isValid) {
       console.log(`⚠️ ${niche} product quality check (${Math.round(passRate * 100)}%): ${product.title.substring(0, 40)}...`, checks);
     } else {
-      console.log(`✅ ${niche} product passed quality checks (${Math.round(passRate * 100)}%): ${product.title.substring(0, 40)}...`);
+      console.log(`✅ ${niche} product passed ULTRA-LENIENT quality checks (${Math.round(passRate * 100)}%): ${product.title.substring(0, 40)}...`);
     }
 
     return isValid;
   }
 
   static isUniversalNicheRelevant(title: string, niche: string): boolean {
-    // UNIVERSAL NICHE SUPPORT - This method ALWAYS returns true for any reasonable product title
+    // ULTIMATE UNIVERSAL NICHE SUPPORT - This method is EXTREMELY lenient for any niche
     const titleLower = title.toLowerCase();
     const nicheLower = niche.toLowerCase();
     
     // If title is too short, it's probably not a real product
-    if (titleLower.length < 3) {
+    if (titleLower.length < 2) {
       return false;
     }
     
-    // Step 1: Direct niche matching (most flexible)
+    // Step 1: ULTRA-FLEXIBLE niche matching
     if (titleLower.includes(nicheLower) || 
         titleLower.includes(nicheLower + 's') || 
-        titleLower.includes(nicheLower.slice(0, -1))) {
-      console.log(`✅ Direct niche match: "${titleLower}" contains "${nicheLower}"`);
+        titleLower.includes(nicheLower.slice(0, -1)) ||
+        titleLower.includes(nicheLower.substring(0, 3))) { // Even partial matches
+      console.log(`✅ FLEXIBLE niche match: "${titleLower}" contains "${nicheLower}"`);
       return true;
     }
     
-    // Step 2: Try keyword matching
+    // Step 2: Try keyword matching with ultra-flexible approach
     try {
       const nicheKeywords = NicheKeywordsManager.getNicheKeywords(niche);
       const hasKeywordMatch = nicheKeywords.some(keyword => {
         const keywordLower = keyword.toLowerCase();
         return titleLower.includes(keywordLower) || 
                titleLower.includes(keywordLower.slice(0, -1)) || 
-               titleLower.includes(keywordLower + 's');
+               titleLower.includes(keywordLower + 's') ||
+               titleLower.includes(keywordLower.substring(0, 3)); // Even partial keyword matches
       });
       
       if (hasKeywordMatch) {
-        console.log(`✅ Keyword match found for "${titleLower}" in ${niche} niche`);
+        console.log(`✅ FLEXIBLE keyword match found for "${titleLower}" in ${niche} niche`);
         return true;
       }
     } catch (error) {
-      console.log(`⚠️ Keyword matching failed, using fallback for ${niche}`);
+      console.log(`⚠️ Keyword matching failed, using ultra-flexible fallback for ${niche}`);
     }
     
-    // Step 3: Ultra-flexible generic matching for ANY niche
-    const universalProductTerms = [
+    // Step 3: ULTIMATE universal matching for ANY niche - accept almost everything
+    const ultraUniversalTerms = [
       'premium', 'professional', 'quality', 'smart', 'portable', 'durable',
       'innovative', 'modern', 'luxury', 'essential', 'advanced', 'deluxe',
       'set', 'kit', 'tool', 'accessory', 'device', 'gadget', 'product',
-      'new', 'best', 'top', 'popular', 'trending', 'latest', 'ultimate'
+      'new', 'best', 'top', 'popular', 'trending', 'latest', 'ultimate',
+      'high', 'super', 'mega', 'pro', 'max', 'plus', 'special', 'unique',
+      'amazing', 'perfect', 'great', 'excellent', 'good', 'nice', 'fine'
     ];
     
-    const hasUniversalTerm = universalProductTerms.some(term => titleLower.includes(term));
+    const hasUniversalTerm = ultraUniversalTerms.some(term => titleLower.includes(term));
     
     if (hasUniversalTerm) {
-      console.log(`✅ Universal product term match: "${titleLower}" - accepting for ${niche} niche`);
+      console.log(`✅ UNIVERSAL term match: "${titleLower}" - accepting for ${niche} niche`);
       return true;
     }
     
-    // Step 4: If we reach here, be EXTREMELY lenient - accept any reasonable product title
-    if (titleLower.length >= 10 && titleLower.split(' ').length >= 2) {
-      console.log(`✅ ULTRA-LENIENT: Accepting "${titleLower}" as valid product for ${niche} niche`);
+    // Step 4: ULTIMATE FALLBACK - accept ANY product with reasonable length
+    if (titleLower.length >= 5 && titleLower.split(' ').length >= 1) {
+      console.log(`✅ ULTIMATE FALLBACK: Accepting "${titleLower}" as valid product for ${niche} niche (ultra-lenient mode)`);
       return true;
     }
     
@@ -102,7 +106,7 @@ export class QualityValidator {
     const title2 = product2.title.toLowerCase().replace(/[^a-z0-9]/g, '');
     
     const similarity = this.calculateSimilarity(title1, title2);
-    return similarity > 0.8; // Keep high threshold for uniqueness
+    return similarity > 0.9; // Very high threshold for uniqueness
   }
 
   private static calculateSimilarity(str1: string, str2: string): number {
