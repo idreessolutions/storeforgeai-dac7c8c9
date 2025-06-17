@@ -177,21 +177,21 @@ export class ShopifyThemeIntegrator {
   ): Promise<boolean> {
     try {
       const layoutSettings = {
-        // Product page settings
-        'product_show_vendor': true,
-        'product_show_sku': false,
-        'product_show_rating': true,
-        'product_show_quantity_selector': true,
-        'product_show_pickup_availability': true,
+        // Product page settings - convert all numbers to strings
+        'product_show_vendor': 'true',
+        'product_show_sku': 'false',
+        'product_show_rating': 'true',
+        'product_show_quantity_selector': 'true',
+        'product_show_pickup_availability': 'true',
         
-        // Collection page settings
-        'collection_products_per_page': 24,
-        'collection_show_sort': true,
-        'collection_show_filter': true,
+        // Collection page settings - convert numbers to strings
+        'collection_products_per_page': '24',
+        'collection_show_sort': 'true',
+        'collection_show_filter': 'true',
         
         // Cart settings
         'cart_type': 'drawer',
-        'cart_show_notes': true,
+        'cart_show_notes': 'true',
         
         // Header settings
         'header_style': 'minimal',
@@ -199,8 +199,8 @@ export class ShopifyThemeIntegrator {
         'menu_style': 'horizontal',
         
         // Footer settings
-        'footer_show_social': true,
-        'footer_show_newsletter': true,
+        'footer_show_social': 'true',
+        'footer_show_newsletter': 'true',
         
         // General styling
         'button_style': 'rounded',
