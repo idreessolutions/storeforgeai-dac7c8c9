@@ -1,244 +1,267 @@
 
 export class UniqueContentGenerator {
   
-  static generateUniqueProductContent(product: any, niche: string, index: number): {
-    title: string;
-    description: string;
-    features: string[];
-    benefits: string[];
-  } {
-    console.log(`🎨 Generating UNIQUE content for ${niche} product ${index + 1}: ${product.title}`);
-    
-    const uniqueTitle = this.generateUniqueTitle(product.title, niche, index);
-    const uniqueDescription = this.generateUniqueDescription(product, niche, index);
-    const enhancedFeatures = this.generateUniqueFeatures(product.features || [], niche, index);
-    const uniqueBenefits = this.generateUniqueBenefits(product, niche, index);
-    
-    console.log(`✅ Generated UNIQUE content for "${uniqueTitle}"`);
+  static generateUniqueProductContent(product: any, niche: string, productIndex: number) {
+    const contentTemplates = this.getContentTemplates(niche, productIndex);
+    const uniqueElements = this.generateUniqueElements(product, niche, productIndex);
     
     return {
-      title: uniqueTitle,
-      description: uniqueDescription,
-      features: enhancedFeatures,
-      benefits: uniqueBenefits
+      title: this.generateUniqueTitle(product.title, niche, productIndex, uniqueElements),
+      description: this.generateUniqueDescription(product, niche, productIndex, contentTemplates),
+      features: this.generateUniqueFeatures(product.features || [], niche, productIndex),
+      benefits: this.generateUniqueBenefits(niche, productIndex, uniqueElements)
     };
   }
 
-  private static generateUniqueTitle(baseTitle: string, niche: string, index: number): string {
-    const nicheEmojis = {
-      'pets': ['🐕', '🐱', '🐾', '🦴'],
-      'fitness': ['💪', '🏋️', '🏃', '🔥'],
-      'beauty': ['✨', '💄', '👑', '💎'],
-      'tech': ['⚡', '📱', '🚀', '🔧'],
-      'baby': ['👶', '🍼', '💤', '🧸'],
-      'home': ['🏠', '✨', '🛋️', '🌟'],
-      'kitchen': ['👨‍🍳', '🍳', '🔪', '⭐']
-    };
-    
-    const powerWords = ['Ultimate', 'Premium', 'Professional', 'Advanced', 'Smart', 'Elite', 'Pro'];
-    const urgencyWords = ['Bestseller', 'Hot Deal', 'Trending', 'Limited', 'Exclusive', 'Popular'];
-    
-    const emojiSet = nicheEmojis[niche.toLowerCase() as keyof typeof nicheEmojis] || ['⭐'];
-    const emoji = emojiSet[index % emojiSet.length];
-    const powerWord = powerWords[index % powerWords.length];
-    const urgency = urgencyWords[index % urgencyWords.length];
-    
-    const cleanTitle = baseTitle.replace(/[🐕🐱🐾💪🏋️✨💄👶🍼🏠⚡📱👨‍🍳🍳⭐🔥💎👑🚀🔧💤🧸🛋️🌟🔪]/g, '').trim();
-    
-    const titleTemplates = [
-      `${emoji} ${powerWord} ${cleanTitle} - ${urgency}`,
-      `${emoji} ${cleanTitle} ${powerWord} Edition - ${urgency}`,
-      `${emoji} ${urgency}: ${powerWord} ${cleanTitle}`,
-      `${emoji} ${powerWord} ${cleanTitle} | ${urgency} Item`
-    ];
-    
-    return titleTemplates[index % titleTemplates.length].substring(0, 70);
-  }
-
-  private static generateUniqueDescription(product: any, niche: string, index: number): string {
-    const nicheIntros = {
+  private static getContentTemplates(niche: string, productIndex: number) {
+    const templates = {
+      'beauty': [
+        {
+          hook: "Transform your skincare routine with professional-grade technology",
+          style: "luxury spa experience",
+          audience: "beauty enthusiasts seeking professional results"
+        },
+        {
+          hook: "Discover the secret to radiant, youthful skin",
+          style: "clinical-grade treatment",
+          audience: "those who want salon-quality results at home"
+        },
+        {
+          hook: "Unlock your skin's natural glow with advanced beauty technology",
+          style: "innovative beauty solution",
+          audience: "modern beauty lovers"
+        }
+      ],
       'pets': [
-        '🐕 Transform your furry friend\'s life with this incredible product!',
-        '🐾 Every pet parent dreams of finding the perfect solution...',
-        '🐱 Your beloved companion deserves nothing but the best!',
-        '🦴 Discover why thousands of pet owners are raving about this amazing find!'
+        {
+          hook: "Give your beloved pet the care they deserve",
+          style: "pet wellness solution",
+          audience: "devoted pet parents"
+        },
+        {
+          hook: "Enhance your pet's happiness and health",
+          style: "premium pet care",
+          audience: "pet lovers who want the best"
+        },
+        {
+          hook: "Create a better life for your furry family member",
+          style: "innovative pet product",
+          audience: "caring pet owners"
+        }
       ],
       'fitness': [
-        '💪 Ready to transform your fitness journey? This is your game-changer!',
-        '🔥 Thousands of fitness enthusiasts can\'t be wrong about this incredible tool!',
-        '🏋️ Take your workouts to the next level with this premium equipment!',
-        '🏃 Whether you\'re a beginner or pro, this will revolutionize your training!'
-      ],
-      'beauty': [
-        '✨ Unlock your skin\'s true potential with this revolutionary beauty essential!',
-        '💄 Beauty experts worldwide are calling this the must-have product of the year!',
-        '👑 Treat yourself like royalty with this luxurious beauty solution!',
-        '💎 Discover the secret that top beauty influencers don\'t want you to know!'
+        {
+          hook: "Achieve your fitness goals faster than ever",
+          style: "performance enhancement",
+          audience: "fitness enthusiasts and athletes"
+        },
+        {
+          hook: "Transform your body with professional-grade equipment",
+          style: "gym-quality workout",
+          audience: "serious fitness practitioners"
+        }
       ],
       'tech': [
-        '⚡ Experience the future of technology with this cutting-edge innovation!',
-        '📱 This smart device will completely change how you think about convenience!',
-        '🚀 Join thousands of tech enthusiasts who\'ve already upgraded their life!',
-        '🔧 Professional-grade technology now available for everyday users!'
-      ],
-      'baby': [
-        '👶 Every parent\'s dream solution for peaceful nights and happy days!',
-        '🍼 Trusted by pediatricians and loved by thousands of parents worldwide!',
-        '💤 Transform your parenting experience with this incredible innovation!',
-        '🧸 Safety meets convenience in this must-have baby essential!'
-      ],
-      'home': [
-        '🏠 Transform your living space into the sanctuary you\'ve always dreamed of!',
-        '✨ Create the perfect ambiance that guests will never forget!',
-        '🛋️ Elevate your home\'s style with this stunning addition!',
-        '🌟 Turn your house into a home with this incredible upgrade!'
-      ],
-      'kitchen': [
-        '👨‍🍳 Unleash your inner chef with this professional-grade kitchen essential!',
-        '🍳 Transform your cooking experience from ordinary to extraordinary!',
-        '⭐ Master chefs worldwide recommend this incredible kitchen tool!',
-        '🔪 Elevate every meal with this must-have culinary innovation!'
+        {
+          hook: "Experience the future of technology today",
+          style: "cutting-edge innovation",
+          audience: "tech enthusiasts and early adopters"
+        }
       ]
     };
-    
-    const nicheIntroSet = nicheIntros[niche.toLowerCase() as keyof typeof nicheIntros] || nicheIntros['tech'];
-    const intro = nicheIntroSet[index % nicheIntroSet.length];
-    
-    const rating = product.rating || (4.6 + Math.random() * 0.3);
-    const orders = product.orders || (1000 + index * 200);
-    
-    const descriptionTemplates = [
-      `${intro}
 
-🎯 **Why This Product is Taking ${niche.charAt(0).toUpperCase() + niche.slice(1)} Enthusiasts by Storm:**
+    const nicheTemplates = templates[niche.toLowerCase() as keyof typeof templates] || templates['tech'];
+    return nicheTemplates[productIndex % nicheTemplates.length];
+  }
 
-With an incredible **${rating.toFixed(1)}⭐ rating** from over **${orders.toLocaleString()}+ verified customers**, this isn't just another product - it's a complete game-changer that's transforming lives every single day!
-
-✨ **What Makes This So Special:**
-${(product.features || []).map((f: string, i: number) => `${['🚀', '💎', '⭐', '🔥', '💪', '✨'][i % 6]} ${f}`).join('\n')}
-
-🏆 **Real Results from Real Customers:**
-"This completely exceeded my expectations! I wish I had found this sooner." - Sarah M. ⭐⭐⭐⭐⭐
-
-"Best purchase I've made all year. The quality is outstanding!" - Mike R. ⭐⭐⭐⭐⭐
-
-💯 **Why Choose This Over Competitors:**
-✅ Premium quality materials that last for years
-✅ Designed by industry professionals
-✅ Backed by thousands of 5-star reviews
-✅ Fast shipping and excellent customer service
-✅ 30-day satisfaction guarantee
-
-🎉 **Limited Time Special:**
-Join the thousands of satisfied customers who've already upgraded their ${niche} experience! Don't miss out on this incredible opportunity.
-
-⚡ **Order now** and discover why this is becoming the #1 choice for ${niche} enthusiasts worldwide!
-
-*Free shipping • 30-day returns • Premium quality guaranteed*`,
-
-      `${intro}
-
-🌟 **The ${niche.charAt(0).toUpperCase() + niche.slice(1)} Revolution Starts Here!**
-
-Over **${orders.toLocaleString()}+ happy customers** and a stunning **${rating.toFixed(1)}⭐ average rating** prove this isn't just hype - it's the real deal that's changing lives!
-
-🎯 **Premium Features That Set This Apart:**
-${(product.features || []).map((f: string, i: number) => `${['💎', '🚀', '⚡', '🏆', '✨', '🔥'][i % 6]} ${f}`).join('\n')}
-
-💫 **Customer Success Stories:**
-"I can't believe the difference this has made! Absolutely life-changing." - Jennifer K. ⭐⭐⭐⭐⭐
-
-"Professional quality at an amazing price. Highly recommend!" - David L. ⭐⭐⭐⭐⭐
-
-🏅 **Why Thousands Choose This Daily:**
-✅ Scientifically designed for maximum effectiveness
-✅ Premium materials built to last
-✅ Easy to use - works right out of the box
-✅ Professional-grade quality at home prices
-✅ Comprehensive satisfaction guarantee
-
-🚀 **Transform Your ${niche.charAt(0).toUpperCase() + niche.slice(1)} Experience:**
-This isn't just a purchase - it's an investment in your quality of life. Join the community of satisfied customers who've discovered the difference premium quality makes!
-
-💥 **Order Today** and experience why this is rated the #1 ${niche} product by customers worldwide!
-
-*Premium quality • Fast delivery • Risk-free guarantee*`
+  private static generateUniqueElements(product: any, niche: string, productIndex: number) {
+    const emotionalTriggers = [
+      'confidence', 'convenience', 'luxury', 'innovation', 'results', 'comfort', 'efficiency', 'style'
     ];
     
-    return descriptionTemplates[index % descriptionTemplates.length];
-  }
+    const valuePropositions = [
+      'Save time and money', 'Professional results at home', 'Trusted by thousands', 
+      'Easy to use', 'Durable and reliable', 'Innovative design', 'Premium quality'
+    ];
 
-  private static generateUniqueFeatures(baseFeatures: string[], niche: string, index: number): string[] {
-    const nicheFeaturePrefixes = {
-      'pets': ['🐕 Pet-Safe', '🐾 Veterinarian', '🦴 Durable', '🐱 Comfort'],
-      'fitness': ['💪 Professional', '🔥 High-Performance', '🏋️ Gym-Quality', '🏃 Athletic'],
-      'beauty': ['✨ Dermatologist', '💄 Professional', '👑 Luxury', '💎 Premium'],
-      'tech': ['⚡ Smart', '📱 Advanced', '🚀 Cutting-Edge', '🔧 Professional'],
-      'baby': ['👶 Baby-Safe', '🍼 Pediatrician', '💤 Sleep-Friendly', '🧸 Gentle'],
-      'home': ['🏠 Home-Perfect', '✨ Stylish', '🛋️ Comfort', '🌟 Premium'],
-      'kitchen': ['👨‍🍳 Chef-Quality', '🍳 Professional', '⭐ Restaurant-Grade', '🔪 Precision']
+    return {
+      emotionalTrigger: emotionalTriggers[productIndex % emotionalTriggers.length],
+      valueProposition: valuePropositions[productIndex % valuePropositions.length],
+      uniqueAngle: this.getUniqueAngle(niche, productIndex),
+      socialProof: this.generateSocialProof(product, productIndex)
     };
-    
-    const prefixSet = nicheFeaturePrefixes[niche.toLowerCase() as keyof typeof nicheFeaturePrefixes] || nicheFeaturePrefixes['tech'];
-    
-    const enhancedFeatures = [];
-    for (let i = 0; i < Math.max(5, baseFeatures.length); i++) {
-      const baseFeature = baseFeatures[i] || `Quality ${niche} feature`;
-      const prefix = prefixSet[i % prefixSet.length];
-      const cleanFeature = baseFeature.replace(/[🐕🐱🐾💪🏋️✨💄👶🍼🏠⚡📱👨‍🍳🍳⭐🔥💎👑🚀🔧💤🧸🛋️🌟🔪]/g, '').trim();
-      enhancedFeatures.push(`${prefix} ${cleanFeature}`);
-    }
-    
-    return enhancedFeatures;
   }
 
-  private static generateUniqueBenefits(product: any, niche: string, index: number): string[] {
-    const nicheBenefits = {
+  private static getUniqueAngle(niche: string, productIndex: number): string {
+    const angles = {
+      'beauty': ['Anti-aging breakthrough', 'Professional spa treatment', 'Dermatologist recommended', 'Clinical results'],
+      'pets': ['Veterinarian approved', 'Pet happiness guaranteed', 'Safety first design', 'Loved by pets worldwide'],
+      'fitness': ['Athletic performance', 'Professional training', 'Results guaranteed', 'Used by trainers'],
+      'tech': ['Future technology', 'Smart innovation', 'User-friendly design', 'Advanced features']
+    };
+
+    const nicheAngles = angles[niche.toLowerCase() as keyof typeof angles] || angles['tech'];
+    return nicheAngles[productIndex % nicheAngles.length];
+  }
+
+  private static generateSocialProof(product: any, productIndex: number): string {
+    const proofTypes = [
+      `Over ${(product.orders || 1000).toLocaleString()}+ satisfied customers`,
+      `${product.rating || 4.8}⭐ average rating from verified buyers`,
+      `Featured in top ${product.category || 'product'} lists`,
+      `Recommended by professionals worldwide`,
+      `Trusted by thousands of happy customers`
+    ];
+
+    return proofTypes[productIndex % proofTypes.length];
+  }
+
+  private static generateUniqueTitle(originalTitle: string, niche: string, productIndex: number, elements: any): string {
+    const titleVariations = [
+      `✨ ${elements.uniqueAngle} ${originalTitle}`,
+      `🏆 Premium ${originalTitle} - ${elements.emotionalTrigger}`,
+      `⭐ ${originalTitle} - ${elements.valueProposition}`,
+      `🚀 Advanced ${originalTitle} Experience`,
+      `💎 Professional ${originalTitle} Solution`
+    ];
+
+    return titleVariations[productIndex % titleVariations.length].substring(0, 75);
+  }
+
+  private static generateUniqueDescription(product: any, niche: string, productIndex: number, template: any): string {
+    const descriptionStructures = [
+      // Structure 1: Problem-Solution-Benefits
+      `${template.hook} ✨
+
+🎯 **The Problem:** Many people struggle with finding the right ${niche} solution that delivers real results.
+
+💡 **The Solution:** Our ${template.style} is designed specifically for ${template.audience} who demand excellence.
+
+🏆 **Why Choose This?**
+• Premium quality materials and construction
+• Proven results from thousands of satisfied customers
+• Easy to use with professional-grade performance
+• Backed by our satisfaction guarantee
+
+⭐ **Customer Success:** "${product.rating || 4.8}/5 stars from ${(product.orders || 1000).toLocaleString()}+ verified customers"
+
+✅ **Perfect For:** ${template.audience} who want professional results without the professional price tag.
+
+🛒 **Order Now** and experience the difference quality makes!`,
+
+      // Structure 2: Benefits-Features-Social Proof
+      `Discover why thousands choose this premium ${niche} solution! 🌟
+
+✨ **Transform Your Experience:**
+Transform your daily routine with our innovative design that delivers exceptional results every time.
+
+🏆 **Professional Quality:**
+• Engineered for durability and performance
+• Used by professionals worldwide
+• Premium materials for long-lasting value
+
+📊 **Proven Results:**
+Join ${(product.orders || 1000).toLocaleString()}+ satisfied customers who've experienced the difference.
+
+💯 **Satisfaction Guaranteed:**
+We're so confident you'll love it, we offer a full satisfaction guarantee.
+
+🎁 **Special Features:**
+Each unit comes with everything you need to get started immediately.`,
+
+      // Structure 3: Story-Driven
+      `The ${niche} solution that's changing everything! 🚀
+
+When we set out to create the perfect ${niche} product, we had one goal: deliver professional results that anyone can achieve at home.
+
+🎯 **What Makes It Special:**
+Our unique approach combines innovative design with user-friendly features, creating an experience that exceeds expectations.
+
+⭐ **Real Customer Results:**
+"This completely transformed my ${niche} routine!" - Verified Customer
+
+🏆 **Quality You Can Trust:**
+With ${product.rating || 4.8}⭐ rating and ${(product.orders || 1000).toLocaleString()}+ orders, you're choosing a proven winner.
+
+✅ **Get Yours Today** and discover why this is becoming the #1 choice for ${niche} enthusiasts everywhere!`
+    ];
+
+    return descriptionStructures[productIndex % descriptionStructures.length];
+  }
+
+  private static generateUniqueFeatures(originalFeatures: string[], niche: string, productIndex: number): string[] {
+    const featureEnhancers = [
+      'Premium', 'Professional', 'Advanced', 'Enhanced', 'Superior', 'Innovative', 'Smart', 'Elite'
+    ];
+
+    const enhancer = featureEnhancers[productIndex % featureEnhancers.length];
+    
+    const enhancedFeatures = originalFeatures.map((feature, index) => {
+      const emoji = this.getFeatureEmoji(niche, index);
+      return `${emoji} ${enhancer} ${feature.toLowerCase()}`;
+    });
+
+    // Add unique features based on product index
+    const uniqueFeatures = this.getUniqueFeatures(niche, productIndex);
+    return [...enhancedFeatures, ...uniqueFeatures].slice(0, 6);
+  }
+
+  private static getFeatureEmoji(niche: string, index: number): string {
+    const emojiSets = {
+      'beauty': ['✨', '💄', '🌟', '💎', '🌸', '👑'],
+      'pets': ['🐕', '🐱', '❤️', '🏆', '🎾', '🦴'],
+      'fitness': ['💪', '🏋️', '🔥', '⚡', '🎯', '🏆'],
+      'tech': ['⚡', '📱', '🚀', '💻', '🔋', '📡']
+    };
+
+    const emojis = emojiSets[niche.toLowerCase() as keyof typeof emojiSets] || emojiSets['tech'];
+    return emojis[index % emojis.length];
+  }
+
+  private static getUniqueFeatures(niche: string, productIndex: number): string[] {
+    const uniqueFeatureSets = {
+      'beauty': [
+        ['🌟 Dermatologist tested formula', '💎 Clinical-grade technology'],
+        ['✨ Anti-aging breakthrough', '🌸 Gentle on sensitive skin'],
+        ['👑 Luxury spa experience', '💄 Professional makeup artist quality']
+      ],
       'pets': [
-        '🐕 Enhances your pet\'s happiness and well-being',
-        '🐾 Strengthens the bond between you and your furry friend',
-        '🦴 Promotes healthy habits and natural behaviors',
-        '🐱 Reduces stress and anxiety for both pet and owner'
+        ['❤️ Veterinarian recommended', '🏆 Pet safety certified'],
+        ['🎾 Interactive play design', '🦴 Promotes healthy habits'],
+        ['🐕 Stress-reducing technology', '🐱 Comfort-focused engineering']
       ],
       'fitness': [
-        '💪 Accelerates your fitness transformation',
-        '🔥 Burns calories more efficiently than traditional methods',
-        '🏋️ Builds strength and endurance simultaneously',
-        '🏃 Fits seamlessly into any workout routine'
-      ],
-      'beauty': [
-        '✨ Reveals your skin\'s natural radiance and glow',
-        '💄 Professional salon results in the comfort of home',
-        '👑 Boosts confidence with visible improvements',
-        '💎 Anti-aging benefits that turn back the clock'
+        ['🔥 Fat-burning optimization', '⚡ Energy-boosting design'],
+        ['🎯 Precision targeting', '🏆 Athletic performance enhancement'],
+        ['💪 Muscle-building support', '🏋️ Professional gym quality']
       ],
       'tech': [
-        '⚡ Streamlines your daily routine for maximum efficiency',
-        '📱 Future-proofs your tech setup with cutting-edge features',
-        '🚀 Saves time and effort with smart automation',
-        '🔧 Professional-grade performance for everyday use'
-      ],
-      'baby': [
-        '👶 Promotes better sleep for the whole family',
-        '🍼 Reduces parenting stress with foolproof solutions',
-        '💤 Creates a safer, more comfortable environment',
-        '🧸 Supports healthy development and growth'
-      ],
-      'home': [
-        '🏠 Transforms your space into a stylish sanctuary',
-        '✨ Creates the perfect ambiance for any occasion',
-        '🛋️ Maximizes comfort and functionality',
-        '🌟 Impresses guests and elevates your lifestyle'
-      ],
-      'kitchen': [
-        '👨‍🍳 Elevates your cooking to professional chef level',
-        '🍳 Saves time while improving food quality',
-        '⭐ Makes meal preparation enjoyable and efficient',
-        '🔪 Delivers consistent, restaurant-quality results'
+        ['🚀 Next-generation technology', '💻 Smart connectivity'],
+        ['📱 Universal compatibility', '🔋 Long-lasting battery'],
+        ['⚡ Lightning-fast performance', '📡 Advanced wireless technology']
       ]
     };
-    
-    const benefitSet = nicheBenefits[niche.toLowerCase() as keyof typeof nicheBenefits] || nicheBenefits['tech'];
-    return benefitSet.slice(0, 4);
+
+    const nicheFeatures = uniqueFeatureSets[niche.toLowerCase() as keyof typeof uniqueFeatureSets] || uniqueFeatureSets['tech'];
+    return nicheFeatures[productIndex % nicheFeatures.length];
+  }
+
+  private static generateUniqueBenefits(niche: string, productIndex: number, elements: any): string[] {
+    const benefitTemplates = [
+      `🚀 Experience ${elements.emotionalTrigger} like never before`,
+      `💎 ${elements.valueProposition} with premium quality`,
+      `🏆 Join thousands who've discovered the difference`,
+      `⭐ Professional results in the comfort of your home`,
+      `✨ Transform your ${niche} routine today`
+    ];
+
+    // Rotate benefits based on product index for uniqueness
+    const startIndex = productIndex % benefitTemplates.length;
+    const rotatedBenefits = [
+      ...benefitTemplates.slice(startIndex),
+      ...benefitTemplates.slice(0, startIndex)
+    ];
+
+    return rotatedBenefits.slice(0, 4);
   }
 }

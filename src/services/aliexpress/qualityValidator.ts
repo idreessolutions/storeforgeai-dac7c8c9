@@ -1,35 +1,38 @@
-
 import { AliExpressProduct } from './types';
 import { NicheKeywordsManager } from './nicheKeywords';
 
 export class QualityValidator {
   static meetsPremiumQualityStandards(product: AliExpressProduct, niche: string): boolean {
     const checks = {
-      hasHighRating: product.rating >= 4.5,
-      hasHighOrders: product.orders >= 500,
+      hasHighRating: product.rating >= 4.3, // Lowered threshold for more products
+      hasHighOrders: product.orders >= 300,  // Lowered threshold for more products
       hasValidImage: product.imageUrl && product.imageUrl.length > 10,
-      hasValidTitle: product.title && product.title.length > 15,
+      hasValidTitle: product.title && product.title.length > 10, // More lenient
       isNicheRelevant: this.isFlexibleNicheRelevant(product.title, niche),
-      hasReasonablePrice: product.price >= 8 && product.price <= 150,
-      hasQualityFeatures: product.features && product.features.length >= 3
+      hasReasonablePrice: product.price >= 5 && product.price <= 200, // Wider range
+      hasQualityFeatures: product.features && product.features.length >= 2 // More lenient
     };
 
-    const passed = Object.values(checks).every(check => check === true);
+    const passed = Object.values(checks).filter(check => check === true).length;
+    const passRate = passed / Object.keys(checks).length;
     
-    if (!passed) {
-      console.log(`⚠️ ${niche} product quality check details: ${product.title.substring(0, 40)}...`, checks);
+    // More lenient - pass if 80% of checks pass
+    const isValid = passRate >= 0.8;
+    
+    if (!isValid) {
+      console.log(`⚠️ ${niche} product quality check (${Math.round(passRate * 100)}%): ${product.title.substring(0, 40)}...`, checks);
     } else {
-      console.log(`✅ ${niche} product passed all quality checks: ${product.title.substring(0, 40)}...`);
+      console.log(`✅ ${niche} product passed quality checks (${Math.round(passRate * 100)}%): ${product.title.substring(0, 40)}...`);
     }
 
-    return passed;
+    return isValid;
   }
 
   static isFlexibleNicheRelevant(title: string, niche: string): boolean {
     const titleLower = title.toLowerCase();
     const nicheKeywords = NicheKeywordsManager.getNicheKeywords(niche);
     
-    // More flexible matching - just needs one good keyword match
+    // Very flexible matching - just needs one keyword match or related term
     const hasKeywordMatch = nicheKeywords.some(keyword => {
       const keywordLower = keyword.toLowerCase();
       return titleLower.includes(keywordLower) || 
@@ -38,18 +41,29 @@ export class QualityValidator {
              titleLower.includes(keywordLower.slice(0, -2) + 'ies'); // y->ies
     });
     
-    // Special case for beauty niche - be more inclusive
-    if (niche.toLowerCase() === 'beauty') {
-      const beautyTerms = ['led', 'light', 'therapy', 'sonic', 'cleansing', 'brush', 'mask', 'device', 'tool'];
-      const hasBeautyTerm = beautyTerms.some(term => titleLower.includes(term));
-      return hasKeywordMatch || hasBeautyTerm;
-    }
+    // Enhanced niche-specific matching
+    const enhancedMatching = this.getEnhancedNicheMatching(titleLower, niche.toLowerCase());
     
-    return hasKeywordMatch;
+    return hasKeywordMatch || enhancedMatching;
+  }
+
+  private static getEnhancedNicheMatching(titleLower: string, niche: string): boolean {
+    const enhancedTerms = {
+      'beauty': ['led', 'light', 'therapy', 'sonic', 'cleansing', 'brush', 'mask', 'device', 'tool', 'care', 'facial', 'anti', 'glow', 'radiant'],
+      'pets': ['animal', 'puppy', 'kitten', 'collar', 'leash', 'toy', 'treat', 'bowl', 'bed', 'carrier', 'grooming'],
+      'fitness': ['workout', 'exercise', 'gym', 'training', 'muscle', 'weight', 'cardio', 'resistance', 'strength', 'yoga'],
+      'tech': ['electronic', 'digital', 'smart', 'wireless', 'bluetooth', 'usb', 'charger', 'phone', 'computer', 'device'],
+      'baby': ['infant', 'toddler', 'child', 'newborn', 'nursery', 'feeding', 'diaper', 'stroller', 'crib', 'safety'],
+      'home': ['house', 'decor', 'decoration', 'furniture', 'lighting', 'storage', 'organization', 'kitchen', 'bedroom'],
+      'fashion': ['clothing', 'apparel', 'style', 'outfit', 'dress', 'shirt', 'pants', 'accessory', 'jewelry', 'bag'],
+      'kitchen': ['cooking', 'culinary', 'chef', 'food', 'recipe', 'utensil', 'cookware', 'appliance', 'knife', 'pan']
+    };
+
+    const terms = enhancedTerms[niche] || [];
+    return terms.some(term => titleLower.includes(term));
   }
 
   static isStrictlyNicheRelevant(title: string, niche: string): boolean {
-    // Use the more flexible method
     return this.isFlexibleNicheRelevant(title, niche);
   }
 
@@ -58,7 +72,7 @@ export class QualityValidator {
     const title2 = product2.title.toLowerCase().replace(/[^a-z0-9]/g, '');
     
     const similarity = this.calculateSimilarity(title1, title2);
-    return similarity > 0.7;
+    return similarity > 0.8; // Increased threshold for better uniqueness
   }
 
   private static calculateSimilarity(str1: string, str2: string): number {
