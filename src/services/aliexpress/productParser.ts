@@ -183,7 +183,7 @@ export class ProductParser {
     return features.slice(0, 6);
   }
 
-  private static extractProductVariants(itemData: any, basePrice: number): Array<{ color?: string; size?: string; price?: number; title: string }> {
+  private static extractProductVariants(itemData: any, basePrice: number): Array<{ color?: string; size?: string; price: number; title: string }> {
     const variants = [];
 
     if (itemData.item && itemData.item.skuModule && itemData.item.skuModule.skuPriceList) {
@@ -193,7 +193,7 @@ export class ProductParser {
         const sku = skuList[i];
         variants.push({
           title: sku.skuAttr || `Option ${i + 1}`,
-          price: parseFloat(sku.skuVal?.skuAmount?.value || basePrice),
+          price: parseFloat(sku.skuVal?.skuAmount?.value || basePrice), // Ensure price is always a number
           color: sku.skuAttr?.includes('Color') ? sku.skuAttr : undefined,
           size: sku.skuAttr?.includes('Size') ? sku.skuAttr : undefined
         });
@@ -205,7 +205,7 @@ export class ProductParser {
       for (let i = 0; i < 3; i++) {
         variants.push({
           title: colors[i],
-          price: basePrice + (Math.random() * 10 - 5),
+          price: Math.round((basePrice + (Math.random() * 10 - 5)) * 100) / 100, // Ensure price is always a number
           color: colors[i]
         });
       }
