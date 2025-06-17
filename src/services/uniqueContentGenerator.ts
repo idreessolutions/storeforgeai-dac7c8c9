@@ -1,4 +1,3 @@
-
 export class UniqueContentGenerator {
   
   static generateUniqueProductContent(product: any, niche: string, productIndex: number) {
@@ -17,53 +16,58 @@ export class UniqueContentGenerator {
     const templates = {
       'beauty': [
         {
-          hook: "Transform your skincare routine with professional-grade technology",
+          hook: "✨ Transform your skincare routine with professional-grade technology",
           style: "luxury spa experience",
           audience: "beauty enthusiasts seeking professional results"
         },
         {
-          hook: "Discover the secret to radiant, youthful skin",
+          hook: "🌟 Discover the secret to radiant, youthful skin",
           style: "clinical-grade treatment",
           audience: "those who want salon-quality results at home"
         },
         {
-          hook: "Unlock your skin's natural glow with advanced beauty technology",
+          hook: "💎 Unlock your skin's natural glow with advanced beauty technology",
           style: "innovative beauty solution",
           audience: "modern beauty lovers"
+        },
+        {
+          hook: "👑 Experience the luxury of professional beauty treatments",
+          style: "premium beauty care",
+          audience: "discerning beauty enthusiasts"
         }
       ],
       'pets': [
         {
-          hook: "Give your beloved pet the care they deserve",
+          hook: "🐾 Give your beloved pet the care they deserve",
           style: "pet wellness solution",
           audience: "devoted pet parents"
         },
         {
-          hook: "Enhance your pet's happiness and health",
+          hook: "❤️ Enhance your pet's happiness and health",
           style: "premium pet care",
           audience: "pet lovers who want the best"
         },
         {
-          hook: "Create a better life for your furry family member",
+          hook: "🏆 Create a better life for your furry family member",
           style: "innovative pet product",
           audience: "caring pet owners"
         }
       ],
       'fitness': [
         {
-          hook: "Achieve your fitness goals faster than ever",
+          hook: "💪 Achieve your fitness goals faster than ever",
           style: "performance enhancement",
           audience: "fitness enthusiasts and athletes"
         },
         {
-          hook: "Transform your body with professional-grade equipment",
+          hook: "🔥 Transform your body with professional-grade equipment",
           style: "gym-quality workout",
           audience: "serious fitness practitioners"
         }
       ],
       'tech': [
         {
-          hook: "Experience the future of technology today",
+          hook: "⚡ Experience the future of technology today",
           style: "cutting-edge innovation",
           audience: "tech enthusiasts and early adopters"
         }
@@ -118,14 +122,23 @@ export class UniqueContentGenerator {
 
   private static generateUniqueTitle(originalTitle: string, niche: string, productIndex: number, elements: any): string {
     const titleVariations = [
-      `✨ ${elements.uniqueAngle} ${originalTitle}`,
-      `🏆 Premium ${originalTitle} - ${elements.emotionalTrigger}`,
-      `⭐ ${originalTitle} - ${elements.valueProposition}`,
-      `🚀 Advanced ${originalTitle} Experience`,
-      `💎 Professional ${originalTitle} Solution`
+      `✨ ${elements.uniqueAngle} ${this.cleanTitle(originalTitle)}`,
+      `🏆 Premium ${this.cleanTitle(originalTitle)} - ${elements.emotionalTrigger}`,
+      `⭐ ${this.cleanTitle(originalTitle)} - ${elements.valueProposition}`,
+      `🚀 Advanced ${this.cleanTitle(originalTitle)} Experience`,
+      `💎 Professional ${this.cleanTitle(originalTitle)} Solution`,
+      `🌟 Ultimate ${this.cleanTitle(originalTitle)} Collection`
     ];
 
     return titleVariations[productIndex % titleVariations.length].substring(0, 75);
+  }
+
+  private static cleanTitle(title: string): string {
+    // Remove common AliExpress title prefixes and clean up
+    return title
+      .replace(/^(Hot|New|Best|Top|Premium|Professional)\s+/i, '')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   private static generateUniqueDescription(product: any, niche: string, productIndex: number, template: any): string {
