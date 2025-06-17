@@ -14,28 +14,46 @@ interface StepNavigationProps {
 }
 
 const StepNavigation = ({ steps, currentStep }: StepNavigationProps) => {
-  // For step navigation display, we want currentStep 1 to show as step 1 (index 0)
-  const navigationStep = currentStep - 1;
+  // Hide navigation for step 0 (Get Started)
+  if (currentStep === 0) {
+    return null;
+  }
+  
+  // Convert currentStep to display steps 1-8 (excluding Get Started)
+  const displayStep = currentStep;
+  const totalSteps = steps.length - 1; // Exclude Get Started step
+  const stepsToShow = steps.slice(1); // Remove Get Started from display
   
   return (
     <nav className="bg-gradient-to-r from-white via-blue-50 to-indigo-50 py-8 px-6 shadow-lg border-b border-blue-100">
       <div className="max-w-6xl mx-auto">
+        {/* Progress Header */}
+        <div className="text-center mb-6">
+          <h2 className="text-xl font-bold text-gray-800">
+            Step {displayStep} of {totalSteps}
+          </h2>
+          <p className="text-sm text-gray-600 mt-1">
+            Building Your Dream Store
+          </p>
+        </div>
+        
         <div className="flex items-center justify-between relative">
           {/* Progress line */}
           <div className="absolute top-1/2 left-0 right-0 h-1 bg-gradient-to-r from-gray-200 via-blue-200 to-purple-200 rounded-full -translate-y-1/2 z-0"></div>
           <div 
             className="absolute top-1/2 left-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full -translate-y-1/2 z-10 transition-all duration-700"
-            style={{ width: `${Math.max(0, (navigationStep / (steps.length - 1)) * 100)}%` }}
+            style={{ width: `${Math.max(0, ((displayStep - 1) / (totalSteps - 1)) * 100)}%` }}
           ></div>
           
-          {steps.map((step, index) => {
-            const isActive = index === navigationStep;
-            const isCompleted = index < navigationStep;
-            const isUpcoming = index > navigationStep;
+          {stepsToShow.map((step, index) => {
+            const stepNumber = index + 1; // Steps 1-8
+            const isActive = stepNumber === displayStep;
+            const isCompleted = stepNumber < displayStep;
+            const isUpcoming = stepNumber > displayStep;
             const IconComponent = step.icon;
             
             return (
-              <div key={index} className="relative z-20 flex flex-col items-center">
+              <div key={stepNumber} className="relative z-20 flex flex-col items-center">
                 <div className={`
                   w-16 h-16 rounded-full flex items-center justify-center shadow-lg transition-all duration-500 transform
                   ${isActive ? 'bg-gradient-to-br from-blue-500 to-purple-600 scale-125 shadow-2xl' :

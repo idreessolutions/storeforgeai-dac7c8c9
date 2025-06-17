@@ -1,4 +1,3 @@
-
 export class ShopifyThemeIntegrator {
   
   static async applyThemeColorToStore(
@@ -10,8 +9,9 @@ export class ShopifyThemeIntegrator {
     console.log(`🎨 APPLYING COMPLETE BRANDING: ${themeColor} theme + "${storeName}" store name`);
     
     try {
-      // Step 1: Update store name and basic settings
-      const storeUpdated = await this.updateStoreDetails(shopifyUrl, accessToken, storeName);
+      // Step 1: Update store name and basic settings FIRST
+      const storeUpdated = await this.updateStoreNameAndDetails(shopifyUrl, accessToken, storeName);
+      console.log(`🏪 Store name update result: ${storeUpdated ? 'SUCCESS' : 'FAILED'}`);
       
       // Step 2: Get and customize the active theme
       const theme = await this.getActiveTheme(shopifyUrl, accessToken);
@@ -21,10 +21,12 @@ export class ShopifyThemeIntegrator {
         themeUpdated = await this.applyComprehensiveThemeCustomization(
           shopifyUrl, accessToken, theme.id, themeColor, storeName
         );
+        console.log(`🎨 Theme customization result: ${themeUpdated ? 'SUCCESS' : 'FAILED'}`);
       }
       
       // Step 3: Apply checkout and admin customizations
       const checkoutUpdated = await this.updateCheckoutBranding(shopifyUrl, accessToken, themeColor, storeName);
+      console.log(`🛒 Checkout branding result: ${checkoutUpdated ? 'SUCCESS' : 'FAILED'}`);
       
       const successCount = [storeUpdated, themeUpdated, checkoutUpdated].filter(Boolean).length;
       
@@ -43,48 +45,95 @@ export class ShopifyThemeIntegrator {
     }
   }
 
-  private static async updateStoreDetails(
+  private static async updateStoreNameAndDetails(
     shopifyUrl: string,
     accessToken: string,
     storeName: string
   ): Promise<boolean> {
+    if (!storeName || storeName.trim() === '') {
+      console.warn(`⚠️ No store name provided, skipping store name update`);
+      return false;
+    }
+
     try {
       console.log(`🏪 UPDATING STORE NAME to: "${storeName}"`);
       
-      const response = await fetch(`${shopifyUrl}/admin/api/2024-10/shop.json`, {
+      // Clean the shopify URL
+      const cleanUrl = shopifyUrl.replace(/\/$/, ''); // Remove trailing slash
+      
+      // Create comprehensive store details
+      const storeEmail = `hello@${storeName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`;
+      const supportEmail = `support@${storeName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`;
+      
+      const storeUpdatePayload = {
+        shop: {
+          name: storeName,
+          shop_owner: `${storeName} Team`,
+          email: storeEmail,
+          customer_email: supportEmail,
+          address1: "123 Business Street",
+          city: "Business City",
+          province: "CA",
+          country: "United States",
+          zip: "10001",
+          phone: "+1-555-STORE-01"
+        }
+      };
+      
+      console.log(`📤 Sending store update to: ${cleanUrl}/admin/api/2024-10/shop.json`);
+      console.log(`📋 Store update payload:`, JSON.stringify(storeUpdatePayload, null, 2));
+      
+      const response = await fetch(`${cleanUrl}/admin/api/2024-10/shop.json`, {
         method: 'PUT',
         headers: {
           'X-Shopify-Access-Token': accessToken,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          shop: {
-            name: storeName,
-            shop_owner: `${storeName} Team`,
-            email: `hello@${storeName.toLowerCase().replace(/\s+/g, '')}.com`,
-            customer_email: `support@${storeName.toLowerCase().replace(/\s+/g, '')}.com`
-          }
-        })
+        body: JSON.stringify(storeUpdatePayload)
       });
       
       if (response.ok) {
+        const result = await response.json();
         console.log(`✅ Store name successfully updated to: "${storeName}"`);
+        console.log(`📧 Store email set to: ${storeEmail}`);
+        console.log(`🎯 Support email set to: ${supportEmail}`);
         return true;
       } else {
-        const error = await response.text();
-        console.warn(`⚠️ Store name update failed: ${response.status} - ${error}`);
-        return false;
+        const errorText = await response.text();
+        console.error(`❌ Store name update failed: ${response.status} - ${errorText}`);
+        
+        // Try a simpler update with just the name
+        const simplePayload = { shop: { name: storeName } };
+        
+        const simpleResponse = await fetch(`${cleanUrl}/admin/api/2024-10/shop.json`, {
+          method: 'PUT',
+          headers: {
+            'X-Shopify-Access-Token': accessToken,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(simplePayload)
+        });
+        
+        if (simpleResponse.ok) {
+          console.log(`✅ Store name updated (simple mode): "${storeName}"`);
+          return true;
+        } else {
+          const simpleError = await simpleResponse.text();
+          console.error(`❌ Simple store name update also failed: ${simpleResponse.status} - ${simpleError}`);
+          return false;
+        }
       }
       
     } catch (error) {
-      console.error('❌ Error updating store details:', error);
+      console.error('❌ Error updating store name and details:', error);
       return false;
     }
   }
 
   private static async getActiveTheme(shopifyUrl: string, accessToken: string): Promise<any> {
     try {
-      const response = await fetch(`${shopifyUrl}/admin/api/2024-10/themes.json`, {
+      const cleanUrl = shopifyUrl.replace(/\/$/, '');
+      const response = await fetch(`${cleanUrl}/admin/api/2024-10/themes.json`, {
         headers: {
           'X-Shopify-Access-Token': accessToken,
           'Content-Type': 'application/json'
@@ -118,10 +167,9 @@ export class ShopifyThemeIntegrator {
     try {
       console.log(`🎨 APPLYING COMPREHENSIVE THEME CUSTOMIZATION for "${storeName}"`);
       
-      // Get current theme settings
-      const currentSettings = await this.getCurrentThemeSettings(shopifyUrl, accessToken, themeId);
+      const cleanUrl = shopifyUrl.replace(/\/$/, '');
       
-      // Enhanced comprehensive customizations
+      // Enhanced comprehensive customizations with more theme compatibility
       const customizations: Record<string, any> = {
         // Primary color settings (most important)
         'colors_accent_1': themeColor,
@@ -130,6 +178,7 @@ export class ShopifyThemeIntegrator {
         'color_primary': themeColor,
         'color_accent': themeColor,
         'accent_color': themeColor,
+        'primary_color': themeColor,
         
         // Button colors
         'colors_button_primary': themeColor,
@@ -137,6 +186,7 @@ export class ShopifyThemeIntegrator {
         'color_button': themeColor,
         'button_color': themeColor,
         'button_background_color': themeColor,
+        'button_primary_color': themeColor,
         
         // Link colors
         'colors_link': themeColor,
@@ -149,6 +199,7 @@ export class ShopifyThemeIntegrator {
         'header_background_color': '#FFFFFF',
         'logo_text': storeName,
         'header_text': storeName,
+        'shop_name': storeName,
         
         // Footer customization
         'colors_footer': themeColor,
@@ -157,7 +208,6 @@ export class ShopifyThemeIntegrator {
         'footer_text': `© ${new Date().getFullYear()} ${storeName}. Premium Quality Guaranteed.`,
         
         // Store branding
-        'shop_name': storeName,
         'store_name': storeName,
         'store_title': storeName,
         'brand_name': storeName,
@@ -167,22 +217,7 @@ export class ShopifyThemeIntegrator {
         'announcement_color': '#FFFFFF',
         'announcement_background': themeColor,
         'announcement_bar_enabled': true,
-        
-        // Product page enhancements
-        'product_show_vendor': true,
-        'product_show_rating': true,
-        'product_show_quantity_selector': true,
-        'product_show_pickup_availability': true,
-        
-        // Collection page settings
-        'collection_products_per_page': 24,
-        'collection_show_sort': true,
-        'collection_show_filter': true,
-        
-        // Cart settings
-        'cart_type': 'drawer',
-        'cart_show_notes': true,
-        'cart_color': themeColor,
+        'show_announcement': true,
         
         // Modern design settings
         'button_style': 'rounded',
@@ -197,28 +232,30 @@ export class ShopifyThemeIntegrator {
         'enable_customer_reviews': true
       };
       
-      // Update theme settings in batches
+      // Apply customizations in smaller batches with better error handling
       let successCount = 0;
-      const batchSize = 5;
-      const entries = Object.entries(customizations);
+      const totalCustomizations = Object.entries(customizations);
       
-      for (let i = 0; i < entries.length; i += batchSize) {
-        const batch = entries.slice(i, i + batchSize);
-        
-        for (const [setting, value] of batch) {
-          const applied = await this.updateThemeSetting(shopifyUrl, accessToken, themeId, setting, value);
-          if (applied) successCount++;
+      for (const [setting, value] of totalCustomizations) {
+        try {
+          const applied = await this.updateIndividualThemeSetting(cleanUrl, accessToken, themeId, setting, value);
+          if (applied) {
+            successCount++;
+            console.log(`✅ Applied setting: ${setting} = ${value}`);
+          } else {
+            console.warn(`⚠️ Failed to apply setting: ${setting}`);
+          }
           
           // Rate limiting
-          await new Promise(resolve => setTimeout(resolve, 200));
+          await new Promise(resolve => setTimeout(resolve, 300));
+        } catch (settingError) {
+          console.warn(`⚠️ Error applying setting ${setting}:`, settingError);
+          continue;
         }
-        
-        // Longer pause between batches
-        await new Promise(resolve => setTimeout(resolve, 1000));
       }
       
-      console.log(`✅ Applied ${successCount}/${entries.length} theme customizations for "${storeName}"`);
-      return successCount > (entries.length * 0.3); // Success if >30% applied
+      console.log(`✅ Applied ${successCount}/${totalCustomizations.length} theme customizations for "${storeName}"`);
+      return successCount > (totalCustomizations.length * 0.3); // Success if >30% applied
       
     } catch (error) {
       console.error('❌ Error applying comprehensive theme customization:', error);
@@ -226,33 +263,7 @@ export class ShopifyThemeIntegrator {
     }
   }
 
-  private static async getCurrentThemeSettings(
-    shopifyUrl: string,
-    accessToken: string,
-    themeId: string
-  ): Promise<any> {
-    try {
-      const response = await fetch(`${shopifyUrl}/admin/api/2024-10/themes/${themeId}/assets.json?asset[key]=config/settings_data.json`, {
-        headers: {
-          'X-Shopify-Access-Token': accessToken,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        const settingsData = JSON.parse(data.asset.value || '{}');
-        return settingsData.current || {};
-      }
-      
-      return {};
-    } catch (error) {
-      console.warn('⚠️ Could not fetch current theme settings:', error);
-      return {};
-    }
-  }
-
-  private static async updateThemeSetting(
+  private static async updateIndividualThemeSetting(
     shopifyUrl: string,
     accessToken: string,
     themeId: string,
@@ -260,38 +271,36 @@ export class ShopifyThemeIntegrator {
     value: any
   ): Promise<boolean> {
     try {
-      // Get current settings first
-      const currentSettings = await this.getCurrentThemeSettings(shopifyUrl, accessToken, themeId);
-      
-      // Update with new setting
-      const updatedSettings = {
-        ...currentSettings,
-        [key]: value
-      };
-      
-      // Save updated settings
-      const response = await fetch(`${shopifyUrl}/admin/api/2024-10/themes/${themeId}/assets.json`, {
-        method: 'PUT',
+      // Method 1: Try updating through settings_data.json
+      const settingsResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/themes/${themeId}/assets.json?asset[key]=config/settings_data.json`, {
         headers: {
           'X-Shopify-Access-Token': accessToken,
           'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          asset: {
-            key: 'config/settings_data.json',
-            value: JSON.stringify({
-              current: updatedSettings
-            })
-          }
-        })
+        }
       });
       
-      return response.ok;
-      
-    } catch (error) {
-      // Fallback: try individual asset update
-      try {
-        const response = await fetch(`${shopifyUrl}/admin/api/2024-10/themes/${themeId}/assets.json`, {
+      if (settingsResponse.ok) {
+        const settingsData = await settingsResponse.json();
+        let currentSettings = {};
+        
+        try {
+          currentSettings = JSON.parse(settingsData.asset.value || '{}');
+        } catch (parseError) {
+          console.warn(`⚠️ Could not parse settings_data.json, using empty object`);
+          currentSettings = {};
+        }
+        
+        // Update the specific setting
+        const updatedSettings = {
+          ...currentSettings,
+          current: {
+            ...(currentSettings as any).current || {},
+            [key]: value
+          }
+        };
+        
+        // Save updated settings
+        const updateResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/themes/${themeId}/assets.json`, {
           method: 'PUT',
           headers: {
             'X-Shopify-Access-Token': accessToken,
@@ -299,16 +308,37 @@ export class ShopifyThemeIntegrator {
           },
           body: JSON.stringify({
             asset: {
-              key: `config/${key}.liquid`,
-              value: String(value)
+              key: 'config/settings_data.json',
+              value: JSON.stringify(updatedSettings)
             }
           })
         });
         
-        return response.ok;
-      } catch (fallbackError) {
-        return false;
+        if (updateResponse.ok) {
+          return true;
+        }
       }
+      
+      // Method 2: Try as individual asset (fallback)
+      const assetResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/themes/${themeId}/assets.json`, {
+        method: 'PUT',
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          asset: {
+            key: `config/${key}.liquid`,
+            value: String(value)
+          }
+        })
+      });
+      
+      return assetResponse.ok;
+      
+    } catch (error) {
+      console.warn(`⚠️ Failed to update theme setting ${key}:`, error);
+      return false;
     }
   }
 
@@ -321,29 +351,35 @@ export class ShopifyThemeIntegrator {
     try {
       console.log(`🛒 UPDATING CHECKOUT BRANDING for "${storeName}"`);
       
+      const cleanUrl = shopifyUrl.replace(/\/$/, '');
+      
       // Update checkout settings
-      const checkoutResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/shop.json`, {
+      const checkoutPayload = {
+        shop: {
+          checkout_api_supported: true,
+          primary_color: themeColor,
+          accent_color: themeColor,
+          name: storeName
+        }
+      };
+      
+      const checkoutResponse = await fetch(`${cleanUrl}/admin/api/2024-10/shop.json`, {
         method: 'PUT',
         headers: {
           'X-Shopify-Access-Token': accessToken,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          shop: {
-            checkout_api_supported: true,
-            checkout_logo_url: '',
-            primary_color: themeColor,
-            accent_color: themeColor
-          }
-        })
+        body: JSON.stringify(checkoutPayload)
       });
       
       if (checkoutResponse.ok) {
         console.log(`✅ Checkout branding updated with ${themeColor} theme`);
         return true;
+      } else {
+        const errorText = await checkoutResponse.text();
+        console.warn(`⚠️ Checkout branding update failed: ${checkoutResponse.status} - ${errorText}`);
+        return false;
       }
-      
-      return false;
       
     } catch (error) {
       console.error('❌ Error updating checkout branding:', error);
