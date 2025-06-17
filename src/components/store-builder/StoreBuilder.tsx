@@ -37,7 +37,7 @@ const StoreBuilder = ({ onBack }: StoreBuilderProps) => {
         totalSteps={storeSteps.length} 
       />
 
-      {/* Step Navigation Component - only show if not on step 0 */}
+      {/* Step Navigation Component - HIDE on step 0 (Get Started) */}
       {currentStep > 0 && (
         <StepNavigation steps={storeSteps} currentStep={currentStep} />
       )}
@@ -53,7 +53,7 @@ const StoreBuilder = ({ onBack }: StoreBuilderProps) => {
             onNext={handleNextStep}
           />
 
-          {/* Navigation Component - only show if not on step 0 */}
+          {/* Navigation Component - HIDE on step 0 (Get Started) */}
           {currentStep > 0 && (
             <div className="mt-6">
               <Navigation 
