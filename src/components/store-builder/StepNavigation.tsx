@@ -14,6 +14,9 @@ interface StepNavigationProps {
 }
 
 const StepNavigation = ({ steps, currentStep }: StepNavigationProps) => {
+  // Adjust for Get Started step (step 0) - navigation should show step 1 as index 0
+  const navigationStep = currentStep - 1;
+  
   return (
     <nav className="bg-gradient-to-r from-white via-blue-50 to-indigo-50 py-8 px-6 shadow-lg border-b border-blue-100">
       <div className="max-w-6xl mx-auto">
@@ -22,13 +25,13 @@ const StepNavigation = ({ steps, currentStep }: StepNavigationProps) => {
           <div className="absolute top-1/2 left-0 right-0 h-1 bg-gradient-to-r from-gray-200 via-blue-200 to-purple-200 rounded-full -translate-y-1/2 z-0"></div>
           <div 
             className="absolute top-1/2 left-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full -translate-y-1/2 z-10 transition-all duration-700"
-            style={{ width: `${(currentStep / (steps.length - 1)) * 100}%` }}
+            style={{ width: `${(navigationStep / (steps.length - 1)) * 100}%` }}
           ></div>
           
           {steps.map((step, index) => {
-            const isActive = index === currentStep;
-            const isCompleted = index < currentStep;
-            const isUpcoming = index > currentStep;
+            const isActive = index === navigationStep;
+            const isCompleted = index < navigationStep;
+            const isUpcoming = index > navigationStep;
             const IconComponent = step.icon;
             
             return (
