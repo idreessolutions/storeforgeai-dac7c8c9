@@ -46,10 +46,83 @@ export class NicheKeywordsManager {
       'office': [
         'office', 'work', 'business', 'professional', 'desk', 'computer', 'productivity',
         'organization', 'supplies', 'stationery', 'meeting', 'corporate', 'workspace'
+      ],
+      // Extended niche support for broader functionality
+      'automotive': [
+        'car', 'auto', 'vehicle', 'driving', 'motor', 'engine', 'wheel', 'tire', 'brake',
+        'oil', 'maintenance', 'repair', 'accessory', 'dashboard', 'seat'
+      ],
+      'sports': [
+        'sport', 'athletic', 'competition', 'team', 'player', 'equipment', 'gear', 'training',
+        'performance', 'ball', 'field', 'court', 'outdoor', 'recreation'
+      ],
+      'health': [
+        'health', 'medical', 'wellness', 'therapy', 'treatment', 'care', 'vitamin', 'supplement',
+        'medicine', 'first aid', 'monitor', 'diagnostic', 'recovery'
+      ],
+      'music': [
+        'music', 'instrument', 'audio', 'sound', 'guitar', 'piano', 'drum', 'microphone',
+        'speaker', 'headphone', 'recording', 'studio', 'performance'
+      ],
+      'art': [
+        'art', 'creative', 'painting', 'drawing', 'craft', 'design', 'brush', 'canvas',
+        'color', 'paint', 'sketch', 'artistic', 'supplies'
+      ],
+      'photography': [
+        'photography', 'camera', 'photo', 'lens', 'tripod', 'lighting', 'studio', 'digital',
+        'professional', 'shoot', 'editing', 'flash'
+      ],
+      'books': [
+        'book', 'reading', 'novel', 'literature', 'education', 'learning', 'study', 'knowledge',
+        'library', 'author', 'writing', 'journal'
+      ],
+      'tools': [
+        'tool', 'hardware', 'construction', 'repair', 'maintenance', 'diy', 'building', 'fixing',
+        'workshop', 'professional', 'equipment'
+      ],
+      'jewelry': [
+        'jewelry', 'jewellery', 'ring', 'necklace', 'bracelet', 'earring', 'pendant', 'chain',
+        'gold', 'silver', 'diamond', 'gemstone', 'precious'
+      ],
+      'electronics': [
+        'electronic', 'electronics', 'circuit', 'component', 'wire', 'cable', 'adapter',
+        'connector', 'power', 'battery', 'voltage'
       ]
     };
     
-    return keywords[niche.toLowerCase() as keyof typeof keywords] || keywords['tech'];
+    // If niche not found in predefined list, generate dynamic keywords
+    const nicheKeywords = keywords[niche.toLowerCase() as keyof typeof keywords];
+    
+    if (nicheKeywords) {
+      return nicheKeywords;
+    }
+    
+    // Dynamic keyword generation for any niche
+    return this.generateDynamicKeywords(niche);
+  }
+
+  // Generate keywords dynamically for any niche
+  private static generateDynamicKeywords(niche: string): string[] {
+    const baseKeywords = [niche.toLowerCase()];
+    
+    // Add variations
+    baseKeywords.push(niche.toLowerCase() + 's'); // plural
+    baseKeywords.push(niche.toLowerCase() + 'ing'); // gerund
+    
+    // Add common product terms that could work with any niche
+    const genericTerms = [
+      'premium', 'professional', 'quality', 'advanced', 'smart', 'portable',
+      'durable', 'efficient', 'innovative', 'modern', 'classic', 'luxury',
+      'essential', 'basic', 'standard', 'deluxe', 'compact', 'lightweight'
+    ];
+    
+    // Combine niche with generic terms
+    genericTerms.forEach(term => {
+      baseKeywords.push(`${term} ${niche.toLowerCase()}`);
+      baseKeywords.push(`${niche.toLowerCase()} ${term}`);
+    });
+    
+    return baseKeywords;
   }
 
   static getPrimaryNicheKeywords(niche: string): string[] {
@@ -67,7 +140,14 @@ export class NicheKeywordsManager {
       'office': ['office', 'work', 'business', 'desk']
     };
     
-    return primaryKeywords[niche.toLowerCase() as keyof typeof primaryKeywords] || primaryKeywords['tech'];
+    const primary = primaryKeywords[niche.toLowerCase() as keyof typeof primaryKeywords];
+    
+    if (primary) {
+      return primary;
+    }
+    
+    // For unknown niches, return the niche itself and basic variations
+    return [niche.toLowerCase(), niche.toLowerCase() + 's'];
   }
 
   static isNicheRelevant(productTitle: string, niche: string): boolean {
