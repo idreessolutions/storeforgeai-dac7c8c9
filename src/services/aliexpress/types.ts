@@ -7,6 +7,7 @@ export interface AliExpressProduct {
   orders: number;
   features: string[];
   imageUrl: string;
+  images: string[]; // Added this property to fix the TypeScript error
   variants?: Array<{
     color?: string;
     size?: string;

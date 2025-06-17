@@ -10,6 +10,11 @@ export class ImageProcessor {
     console.log(`📸 Starting REAL AliExpress image upload for "${productTitle}"`);
     console.log(`🖼️ Real images to upload: ${realImages.length}`);
     
+    if (!realImages || realImages.length === 0) {
+      console.log(`⚠️ No real images provided for "${productTitle}" - this is a critical issue!`);
+      return { uploadedCount: 0, imageIds: [] };
+    }
+    
     let uploadedCount = 0;
     const imageIds: string[] = [];
 
@@ -17,7 +22,7 @@ export class ImageProcessor {
     for (let i = 0; i < realImages.length && i < 8; i++) {
       const imageUrl = realImages[i];
       
-      if (!imageUrl || !imageUrl.startsWith('http')) {
+      if (!imageUrl || (!imageUrl.startsWith('http') && !imageUrl.startsWith('https'))) {
         console.log(`⚠️ Skipping invalid image URL: ${imageUrl}`);
         continue;
       }
@@ -59,6 +64,10 @@ export class ImageProcessor {
     }
 
     console.log(`📸 Real image upload completed for "${productTitle}": ${uploadedCount}/${realImages.length} images successfully uploaded`);
+
+    if (uploadedCount === 0) {
+      console.error(`🚨 CRITICAL: No images were uploaded for "${productTitle}" - this will impact product quality!`);
+    }
 
     return {
       uploadedCount,
@@ -112,8 +121,8 @@ export class ImageProcessor {
 
   // Legacy method for backward compatibility - now uses real images only
   async uploadProductImages(productId: string, productTitle: string, features: string[], category: string, themeColor: string) {
-    console.log(`🚀 PRIORITY: Using real AliExpress images only for "${productTitle}"`);
-    console.log(`⚠️ DALL-E image generation is disabled - using real product images`);
+    console.log(`🚨 DEPRECATED: uploadProductImages called - redirecting to real image upload`);
+    console.log(`⚠️ DALL-E image generation is disabled - use uploadRealAliExpressImages instead`);
     
     return {
       uploadedCount: 0,
