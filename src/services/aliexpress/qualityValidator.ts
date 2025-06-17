@@ -5,11 +5,11 @@ import { NicheKeywordsManager } from './nicheKeywords';
 export class QualityValidator {
   static meetsPremiumQualityStandards(product: AliExpressProduct, niche: string): boolean {
     const checks = {
-      hasHighRating: product.rating >= 4.6,
+      hasHighRating: product.rating >= 4.5,
       hasHighOrders: product.orders >= 500,
       hasValidImage: product.imageUrl && product.imageUrl.length > 10,
       hasValidTitle: product.title && product.title.length > 15,
-      isStrictlyNicheRelevant: this.isStrictlyNicheRelevant(product.title, niche),
+      isNicheRelevant: this.isFlexibleNicheRelevant(product.title, niche),
       hasReasonablePrice: product.price >= 8 && product.price <= 150,
       hasQualityFeatures: product.features && product.features.length >= 3
     };
@@ -17,23 +17,40 @@ export class QualityValidator {
     const passed = Object.values(checks).every(check => check === true);
     
     if (!passed) {
-      console.log(`⚠️ ${niche} product failed premium quality check: ${product.title.substring(0, 40)}...`, checks);
+      console.log(`⚠️ ${niche} product quality check details: ${product.title.substring(0, 40)}...`, checks);
     } else {
-      console.log(`✅ ${niche} product passed all premium quality checks: ${product.title.substring(0, 40)}...`);
+      console.log(`✅ ${niche} product passed all quality checks: ${product.title.substring(0, 40)}...`);
     }
 
     return passed;
   }
 
-  static isStrictlyNicheRelevant(title: string, niche: string): boolean {
+  static isFlexibleNicheRelevant(title: string, niche: string): boolean {
     const titleLower = title.toLowerCase();
     const nicheKeywords = NicheKeywordsManager.getNicheKeywords(niche);
-    const primaryKeywords = NicheKeywordsManager.getPrimaryNicheKeywords(niche);
     
-    const hasPrimaryMatch = primaryKeywords.some(keyword => titleLower.includes(keyword.toLowerCase()));
-    const hasSecondaryMatch = nicheKeywords.some(keyword => titleLower.includes(keyword.toLowerCase()));
+    // More flexible matching - just needs one good keyword match
+    const hasKeywordMatch = nicheKeywords.some(keyword => {
+      const keywordLower = keyword.toLowerCase();
+      return titleLower.includes(keywordLower) || 
+             titleLower.includes(keywordLower.slice(0, -1)) || // plurals
+             titleLower.includes(keywordLower + 's') || // add 's'
+             titleLower.includes(keywordLower.slice(0, -2) + 'ies'); // y->ies
+    });
     
-    return hasPrimaryMatch && hasSecondaryMatch;
+    // Special case for beauty niche - be more inclusive
+    if (niche.toLowerCase() === 'beauty') {
+      const beautyTerms = ['led', 'light', 'therapy', 'sonic', 'cleansing', 'brush', 'mask', 'device', 'tool'];
+      const hasBeautyTerm = beautyTerms.some(term => titleLower.includes(term));
+      return hasKeywordMatch || hasBeautyTerm;
+    }
+    
+    return hasKeywordMatch;
+  }
+
+  static isStrictlyNicheRelevant(title: string, niche: string): boolean {
+    // Use the more flexible method
+    return this.isFlexibleNicheRelevant(title, niche);
   }
 
   static isSimilarProduct(product1: AliExpressProduct, product2: AliExpressProduct): boolean {

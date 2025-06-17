@@ -1,97 +1,83 @@
 
 export class NicheKeywordsManager {
-  static getNicheSearchTerms(niche: string): string[] {
-    const searchTermsMap: { [key: string]: string[] } = {
+  static getNicheKeywords(niche: string): string[] {
+    const keywords = {
       'pets': [
-        'premium pet feeder automatic', 'professional dog puzzle toy', 'luxury cat water fountain', 'smart pet GPS tracker',
-        'professional dog grooming brush', 'orthopedic pet bed premium', 'interactive pet treat dispenser', 'premium pet car harness',
-        'smart pet training collar', 'automatic premium pet door'
+        'pet', 'dog', 'cat', 'animal', 'puppy', 'kitten', 'collar', 'leash', 'toy', 'treat', 
+        'bowl', 'bed', 'carrier', 'grooming', 'training', 'food', 'health', 'care'
       ],
       'fitness': [
-        'professional resistance bands set', 'premium foam roller muscle', 'luxury yoga mat premium', 'adjustable dumbbells premium',
-        'professional fitness tracker watch', 'premium protein shaker bottle', 'professional exercise ball', 'gym gloves premium workout',
-        'weighted jump rope professional', 'premium ab roller wheel'
+        'fitness', 'workout', 'exercise', 'gym', 'training', 'muscle', 'weight', 'cardio',
+        'resistance', 'strength', 'yoga', 'pilates', 'running', 'sports', 'health', 'body'
       ],
       'beauty': [
-        'professional LED face mask', 'premium facial cleansing brush', 'luxury hair straightener ceramic', 'professional makeup brush set',
-        'heated eyelash curler premium', 'luxury face roller jade', 'professional nail lamp UV LED', 'premium hair dryer ionic',
-        'luxury makeup mirror LED', 'professional facial steamer'
+        'beauty', 'skincare', 'makeup', 'cosmetic', 'facial', 'skin', 'face', 'lip', 'eye',
+        'cream', 'serum', 'mask', 'cleansing', 'moisturizer', 'anti-aging', 'glow', 'radiant',
+        'therapy', 'treatment', 'care', 'routine', 'professional', 'spa', 'salon'
       ],
       'tech': [
-        'premium wireless charger fast', 'professional bluetooth earbuds noise cancelling', 'smart phone mount car magnetic',
-        'premium portable power bank', 'professional USB hub type C', 'smart smartphone gimbal stabilizer', 'premium LED ring light',
-        'professional wireless mouse gaming', 'premium laptop stand adjustable', 'smart cable organizer desk'
-      ],
-      'kitchen': [
-        'professional air fryer digital', 'premium kitchen scale smart', 'luxury silicone utensil set', 'premium coffee grinder electric',
-        'professional food storage containers', 'luxury cutting board bamboo', 'premium kitchen knife set', 'professional blender portable',
-        'luxury spice rack magnetic', 'premium dish drying rack'
-      ],
-      'home': [
-        'premium LED strip lights smart', 'luxury essential oil diffuser', 'premium throw pillow covers', 'luxury wall decor modern',
-        'premium organizer storage bins', 'luxury curtains blackout', 'premium area rug living room', 'luxury plant pot decorative',
-        'premium picture frames collage', 'luxury candles scented soy'
+        'tech', 'electronic', 'digital', 'smart', 'wireless', 'bluetooth', 'usb', 'charger',
+        'phone', 'computer', 'device', 'gadget', 'audio', 'video', 'led', 'screen'
       ],
       'baby': [
-        'premium baby monitor video', 'luxury diaper bag backpack', 'professional baby bottle warmer', 'premium teething toys silicone',
-        'ergonomic baby carrier premium', 'portable high chair premium', 'premium baby sleep sound machine', 'luxury baby bathtub foldable',
-        'professional baby food maker', 'premium baby gate safety'
+        'baby', 'infant', 'toddler', 'child', 'newborn', 'nursery', 'feeding', 'diaper',
+        'stroller', 'crib', 'toy', 'safety', 'care', 'bottle', 'pacifier', 'monitor'
+      ],
+      'home': [
+        'home', 'house', 'decor', 'decoration', 'furniture', 'lighting', 'storage', 'organization',
+        'kitchen', 'bedroom', 'living', 'bathroom', 'garden', 'outdoor', 'indoor', 'design'
       ],
       'fashion': [
-        'luxury jewelry organizer', 'premium watch band leather', 'professional sunglasses polarized', 'luxury scarf silk women',
-        'premium belt leather men', 'luxury handbag crossbody', 'premium wallet RFID blocking', 'luxury hat baseball cap',
-        'premium earrings stud set', 'luxury necklace pendant'
+        'fashion', 'clothing', 'apparel', 'style', 'outfit', 'dress', 'shirt', 'pants',
+        'accessory', 'jewelry', 'bag', 'shoe', 'watch', 'belt', 'scarf', 'hat'
+      ],
+      'kitchen': [
+        'kitchen', 'cooking', 'culinary', 'chef', 'food', 'recipe', 'utensil', 'cookware',
+        'appliance', 'knife', 'pan', 'pot', 'baking', 'prep', 'dining', 'meal'
       ],
       'gaming': [
-        'professional gaming headset', 'premium gaming mouse RGB', 'luxury gaming keyboard mechanical', 'professional gaming chair ergonomic',
-        'premium gaming mousepad large', 'smart gaming controller wireless', 'professional gaming monitor stand', 'premium gaming desk accessories'
+        'gaming', 'game', 'gamer', 'console', 'controller', 'keyboard', 'mouse', 'headset',
+        'monitor', 'pc', 'esports', 'competitive', 'stream', 'play', 'entertainment'
       ],
       'travel': [
-        'premium travel backpack', 'luxury luggage suitcase', 'professional travel pillow', 'premium travel organizer',
-        'luxury travel bottle', 'professional travel adapter', 'premium travel wallet', 'luxury travel blanket'
+        'travel', 'trip', 'vacation', 'journey', 'luggage', 'suitcase', 'backpack', 'portable',
+        'compact', 'lightweight', 'adventure', 'outdoor', 'camping', 'hiking', 'flight'
       ],
       'office': [
-        'premium office desk organizer', 'professional office chair cushion', 'luxury desk lamp LED', 'premium office supplies set',
-        'professional office storage', 'luxury office decor', 'premium office gadgets', 'professional office accessories'
+        'office', 'work', 'business', 'professional', 'desk', 'computer', 'productivity',
+        'organization', 'supplies', 'stationery', 'meeting', 'corporate', 'workspace'
       ]
     };
-
-    return searchTermsMap[niche.toLowerCase()] || [`premium ${niche}`, `professional ${niche}`, `luxury ${niche}`];
-  }
-
-  static getNicheKeywords(niche: string): string[] {
-    const keywordsMap: { [key: string]: string[] } = {
-      'pets': ['pet', 'dog', 'cat', 'animal', 'puppy', 'kitten', 'collar', 'leash', 'food', 'toy', 'care'],
-      'fitness': ['fitness', 'gym', 'workout', 'exercise', 'muscle', 'training', 'sport', 'health', 'yoga', 'running', 'strength'],
-      'beauty': ['beauty', 'makeup', 'cosmetic', 'skincare', 'facial', 'hair', 'nail', 'skin', 'face', 'lip', 'care'],
-      'tech': ['tech', 'electronic', 'digital', 'smart', 'wireless', 'bluetooth', 'USB', 'phone', 'computer', 'gadget', 'device'],
-      'kitchen': ['kitchen', 'cooking', 'cook', 'food', 'chef', 'recipe', 'utensil', 'appliance', 'dining', 'meal', 'culinary'],
-      'home': ['home', 'house', 'decor', 'furniture', 'room', 'living', 'bedroom', 'decoration', 'interior', 'design', 'comfort'],
-      'baby': ['baby', 'infant', 'newborn', 'toddler', 'child', 'kid', 'parent', 'mother', 'father', 'nursery', 'care'],
-      'fashion': ['fashion', 'style', 'clothing', 'wear', 'dress', 'shirt', 'accessory', 'jewelry', 'bag', 'shoe', 'trendy'],
-      'gaming': ['gaming', 'game', 'gamer', 'console', 'controller', 'keyboard', 'mouse', 'headset', 'pro', 'competitive'],
-      'travel': ['travel', 'trip', 'vacation', 'portable', 'luggage', 'backpack', 'journey', 'adventure', 'tourist', 'carry'],
-      'office': ['office', 'desk', 'work', 'business', 'professional', 'workplace', 'productivity', 'organize', 'corporate', 'admin']
-    };
-
-    return keywordsMap[niche.toLowerCase()] || [niche];
+    
+    return keywords[niche.toLowerCase() as keyof typeof keywords] || keywords['tech'];
   }
 
   static getPrimaryNicheKeywords(niche: string): string[] {
-    const primaryKeywordsMap: { [key: string]: string[] } = {
+    const primaryKeywords = {
       'pets': ['pet', 'dog', 'cat', 'animal'],
-      'fitness': ['fitness', 'gym', 'workout', 'exercise'],
-      'beauty': ['beauty', 'makeup', 'cosmetic', 'skincare'],
-      'tech': ['tech', 'electronic', 'smart', 'digital'],
-      'kitchen': ['kitchen', 'cooking', 'cook', 'chef'],
-      'home': ['home', 'house', 'decor', 'room'],
-      'baby': ['baby', 'infant', 'child', 'toddler'],
-      'fashion': ['fashion', 'style', 'clothing', 'wear'],
-      'gaming': ['gaming', 'game', 'gamer', 'console'],
-      'travel': ['travel', 'trip', 'vacation', 'portable'],
-      'office': ['office', 'desk', 'work', 'business']
+      'fitness': ['fitness', 'workout', 'exercise', 'gym'],
+      'beauty': ['beauty', 'skincare', 'makeup', 'facial', 'cosmetic', 'skin', 'face'],
+      'tech': ['tech', 'electronic', 'smart', 'wireless'],
+      'baby': ['baby', 'infant', 'toddler', 'child'],
+      'home': ['home', 'decor', 'furniture', 'lighting'],
+      'fashion': ['fashion', 'clothing', 'style', 'accessory'],
+      'kitchen': ['kitchen', 'cooking', 'culinary', 'cookware'],
+      'gaming': ['gaming', 'game', 'controller', 'esports'],
+      'travel': ['travel', 'luggage', 'portable', 'adventure'],
+      'office': ['office', 'work', 'business', 'desk']
     };
+    
+    return primaryKeywords[niche.toLowerCase() as keyof typeof primaryKeywords] || primaryKeywords['tech'];
+  }
 
-    return primaryKeywordsMap[niche.toLowerCase()] || [niche];
+  static isNicheRelevant(productTitle: string, niche: string): boolean {
+    const titleLower = productTitle.toLowerCase();
+    const nicheKeywords = this.getNicheKeywords(niche);
+    
+    // More flexible matching - needs at least one keyword match
+    return nicheKeywords.some(keyword => 
+      titleLower.includes(keyword.toLowerCase()) || 
+      titleLower.includes(keyword.toLowerCase().slice(0, -1)) // Handle plurals
+    );
   }
 }
