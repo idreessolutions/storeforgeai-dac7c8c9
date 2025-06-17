@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { AliExpressService } from "./aliexpressService";
 import { UniqueContentGenerator } from "./uniqueContentGenerator";
@@ -123,7 +124,7 @@ export const addProductsToShopify = async (
       
       try {
         // Generate SMART PRICING in $15-$80 range
-        const smartPrice = this.calculateSmartPricing(product.price, niche, product.rating, product.orders);
+        const smartPrice = calculateSmartPricing(product.price, niche, product.rating, product.orders);
         
         // Generate completely unique content for each product
         const uniqueContent = UniqueContentGenerator.generateUniqueProductContent(product, niche, i);
@@ -209,7 +210,7 @@ export const addProductsToShopify = async (
       } catch (error) {
         console.error(`❌ Error processing product ${i + 1}:`, error);
         // Use smart pricing fallback
-        const smartPrice = this.calculateSmartPricing(product.price, niche, product.rating, product.orders);
+        const smartPrice = calculateSmartPricing(product.price, niche, product.rating, product.orders);
         const uniqueContent = UniqueContentGenerator.generateUniqueProductContent(product, niche, i);
         processedProducts.push({
           ...product,
@@ -339,10 +340,10 @@ export const addProductsToShopify = async (
     console.error(`❌ StoreForge AI Ultimate ${niche} store creation failed:`, error);
     throw error;
   }
-},
+};
 
 // Helper method for smart pricing calculation
-calculateSmartPricing: (originalPrice: number, niche: string, rating: number, orders: number): number => {
+const calculateSmartPricing = (originalPrice: number, niche: string, rating: number, orders: number): number => {
   // Base price calculation for $15-$80 range
   let smartPrice = originalPrice;
   
@@ -383,4 +384,4 @@ calculateSmartPricing: (originalPrice: number, niche: string, rating: number, or
   } else {
     return Math.floor(smartPrice) + 0.99;
   }
-}
+};
