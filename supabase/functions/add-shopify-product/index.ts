@@ -19,10 +19,12 @@ serve(async (req) => {
   try {
     const { shopifyUrl, accessToken, themeColor, product } = await req.json();
     
-    console.log('✅ Uploading SPECIFIC winning product with matching images to Shopify:', product.title);
-    console.log('🎨 Applying theme color:', themeColor);
-    console.log('🎯 Product features for image generation:', product.features?.slice(0, 3) || ['Premium quality', 'Durable design', 'Easy to use']);
-    console.log('📝 Product description preview:', product.description?.substring(0, 100) + '...');
+    console.log('✅ Uploading REAL AliExpress product with theme color integration:', {
+      title: product.title,
+      themeColor: themeColor,
+      realImages: product.images?.length || 0,
+      source: product.source || 'AliExpress'
+    });
     
     // Validate required parameters
     if (!shopifyUrl || !accessToken || !product) {
@@ -42,7 +44,7 @@ serve(async (req) => {
     const uniqueHandle = generateUniqueHandle(product.title, timestamp);
     const productPrice = typeof product.price === 'number' ? product.price.toFixed(2) : parseFloat(String(product.price || 29.99)).toFixed(2);
     
-    console.log('Setting product price:', productPrice);
+    console.log('Setting product price with theme integration:', productPrice);
 
     // Extract store name for proper vendor naming
     const storeName = extractStoreNameFromUrl(shopifyUrl);
@@ -53,7 +55,7 @@ serve(async (req) => {
         title: product.title,
         body_html: styledDescription,
         vendor: storeName ? `${storeName.charAt(0).toUpperCase() + storeName.slice(1)} Store` : 'Premium Store',
-        product_type: product.product_type || 'General',
+        product_type: product.product_type || product.category || 'General',
         handle: uniqueHandle,
         status: 'active',
         published: true,
@@ -61,13 +63,13 @@ serve(async (req) => {
       }
     };
 
-    console.log('Enhanced product payload with specific details:', {
+    console.log('Enhanced product payload with theme color:', {
       title: productPayload.product.title,
       handle: productPayload.product.handle,
       product_type: productPayload.product.product_type,
       vendor: productPayload.product.vendor,
       theme_color: themeColor,
-      features: product.features?.slice(0, 3) || [],
+      real_images: product.images?.length || 0,
       price: productPrice,
       category: product.category || 'General'
     });
@@ -76,16 +78,16 @@ serve(async (req) => {
     const productData = await shopifyClient.createProduct(productPayload);
     const createdProduct = productData.product;
 
-    console.log('✅ Product created successfully with specific details:', createdProduct.id);
+    console.log('✅ Product created successfully with theme integration:', createdProduct.id);
 
-    // Process product enhancements with product-specific DALL·E 3 image generation
-    return await handleSpecificProductEnhancements(createdProduct, product, shopifyClient, imageProcessor, variantManager, themeColor, productPrice);
+    // Process product enhancements with REAL AliExpress images
+    return await handleRealProductEnhancements(createdProduct, product, shopifyClient, imageProcessor, variantManager, themeColor, productPrice);
 
   } catch (error) {
-    console.error('❌ Error adding SPECIFIC winning product to Shopify:', error);
+    console.error('❌ Error adding REAL AliExpress product to Shopify:', error);
     return new Response(JSON.stringify({
       success: false,
-      error: error.message || 'Failed to add SPECIFIC winning product to Shopify'
+      error: error.message || 'Failed to add REAL AliExpress product to Shopify'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -93,7 +95,7 @@ serve(async (req) => {
   }
 });
 
-async function handleSpecificProductEnhancements(
+async function handleRealProductEnhancements(
   createdProduct: any,
   product: any,
   shopifyClient: ShopifyAPIClient,
@@ -102,30 +104,28 @@ async function handleSpecificProductEnhancements(
   themeColor: string,
   productPrice: string
 ) {
-  // STEP 1: PRIORITY - Generate and upload product-specific DALL·E 3 images that MATCH the product
+  // STEP 1: Upload REAL AliExpress images (NO DALL-E)
   let uploadedImageCount = 0;
   let imageIds: string[] = [];
   
-  console.log(`🚀 PRIORITY: Generating product-specific DALL·E 3 images that match "${product.title}"`);
-  console.log(`📊 Using specific features: ${product.features?.slice(0, 3)?.join(', ') || 'premium quality, durable design, easy to use'}`);
-  console.log(`🏷️ Product category: ${product.category || 'General'}`);
+  console.log(`🚀 PRIORITY: Uploading REAL AliExpress images for "${product.title}"`);
+  console.log(`📊 Real images available: ${product.images?.length || 0}`);
   
-  const uploadResult = await imageProcessor.uploadProductImages(
+  const uploadResult = await imageProcessor.uploadRealAliExpressImages(
     createdProduct.id,
-    product.title, // Exact product title for specific image generation
-    product.features || ['Premium quality', 'Durable design', 'Easy to use'],
-    product.category || 'General', // Specific category
+    product.title,
+    product.images || [product.imageUrl].filter(Boolean), // Use real AliExpress images
     themeColor
   );
   
   uploadedImageCount = uploadResult.uploadedCount;
   imageIds = uploadResult.imageIds;
   
-  console.log(`📸 Specific product image upload result for "${product.title}": ${uploadedImageCount} images uploaded`);
+  console.log(`📸 Real AliExpress image upload result for "${product.title}": ${uploadedImageCount} images uploaded`);
 
   // STEP 2: Update the default variant with proper pricing
   let variantUpdateSuccess = false;
-  let createdVariants: any[] = []; // Initialize as empty array to prevent spread errors
+  let createdVariants: any[] = [];
   
   if (createdProduct.variants && createdProduct.variants.length > 0) {
     const defaultVariant = createdProduct.variants[0];
@@ -144,36 +144,38 @@ async function handleSpecificProductEnhancements(
     createdVariantCount = additionalVariants;
   }
 
-  // STEP 4: Assign product-specific images to variants (at least 1 image per variant)
+  // STEP 4: Assign real images to variants
   let imageAssignmentCount = 0;
   if (imageIds.length > 0 && createdVariants.length > 0) {
-    console.log(`🎯 Assigning ${imageIds.length} product-specific images to ${createdVariants.length} variants for "${product.title}"...`);
+    console.log(`🎯 Assigning ${imageIds.length} real AliExpress images to ${createdVariants.length} variants for "${product.title}"...`);
     imageAssignmentCount = await imageProcessor.assignImagesToVariants(imageIds, createdVariants);
   }
 
-  console.log('✅ SPECIFIC Product with matching images upload completed successfully:', {
+  console.log('✅ REAL AliExpress product upload completed successfully:', {
     id: createdProduct.id,
     title: createdProduct.title,
     handle: createdProduct.handle,
     price: productPrice,
-    images_uploaded: uploadedImageCount,
+    real_images_uploaded: uploadedImageCount,
     variants_created: createdVariantCount,
     variant_pricing_updated: variantUpdateSuccess,
     images_assigned_to_variants: imageAssignmentCount,
-    specific_features_used: product.features?.slice(0, 3) || [],
-    category: product.category || 'General'
+    theme_color_applied: themeColor,
+    source: 'AliExpress Drop Shipping API'
   });
 
   return new Response(JSON.stringify({
     success: true,
     product: createdProduct,
-    message: `Successfully added SPECIFIC winning product with matching images: ${createdProduct.title}`,
+    message: `Successfully added REAL AliExpress product with theme integration: ${createdProduct.title}`,
     price_set: productPrice,
-    images_uploaded: uploadedImageCount,
+    real_images_uploaded: uploadedImageCount,
     variants_created: createdVariantCount,
     images_assigned_to_variants: imageAssignmentCount,
-    image_upload_status: uploadedImageCount > 0 ? 'SUCCESS - Product-Specific Images' : 'FAILED',
-    features_used_for_images: product.features?.slice(0, 3) || ['Premium quality', 'Durable design', 'Easy to use']
+    image_upload_status: uploadedImageCount > 0 ? 'SUCCESS - Real AliExpress Images' : 'FAILED',
+    theme_color_applied: themeColor,
+    dalle_images_used: false,
+    real_images_used: true
   }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });

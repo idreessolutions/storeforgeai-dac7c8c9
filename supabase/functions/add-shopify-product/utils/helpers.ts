@@ -1,28 +1,23 @@
 
 export function extractStoreNameFromUrl(url: string): string {
   try {
-    // Handle various URL formats
-    let cleanUrl = url.replace(/^https?:\/\//, '').toLowerCase();
-    
-    // Remove trailing slashes and query parameters
-    cleanUrl = cleanUrl.split('?')[0].split('/')[0];
+    const cleanUrl = url.replace(/^https?:\/\//, '').toLowerCase();
     
     if (cleanUrl.includes('admin.shopify.com/store/')) {
       const match = cleanUrl.match(/admin\.shopify\.com\/store\/([^\/\?]+)/);
-      return match ? match[1] : cleanUrl;
+      return match ? match[1] : 'store';
     }
     
     if (cleanUrl.includes('.myshopify.com')) {
       const match = cleanUrl.match(/([^\/\.]+)\.myshopify\.com/);
-      return match ? match[1] : cleanUrl;
+      return match ? match[1] : 'store';
     }
     
-    // If it's just a store name without domain
     if (!cleanUrl.includes('.') && !cleanUrl.includes('/')) {
       return cleanUrl;
     }
     
-    return cleanUrl;
+    return 'store';
   } catch (error) {
     console.error('Error extracting store name:', error);
     return 'store';
@@ -32,21 +27,27 @@ export function extractStoreNameFromUrl(url: string): string {
 export function generateUniqueHandle(title: string, timestamp: number): string {
   const baseHandle = title
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .substring(0, 50);
-    
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 50);
+  
   return `${baseHandle}-${timestamp}`;
 }
 
 export function applyThemeColorToDescription(description: string, themeColor: string): string {
   if (!description) return '';
   
-  // Apply theme color to key phrases
-  return description
-    .replace(/Premium/g, `<span style="color:${themeColor}">Premium</span>`)
-    .replace(/Quality/g, `<span style="color:${themeColor}">Quality</span>`)
-    .replace(/Best/g, `<span style="color:${themeColor}">Best</span>`)
-    .replace(/Professional/g, `<span style="color:${themeColor}">Professional</span>`)
-    .replace(/Advanced/g, `<span style="color:${themeColor}">Advanced</span>`);
+  // Apply theme color styling to the description
+  const styledDescription = `
+    <div style="color: #333; font-family: Arial, sans-serif;">
+      ${description.replace(/\n/g, '<br>')}
+      <div style="margin-top: 20px; padding: 15px; background: linear-gradient(135deg, ${themeColor}15, ${themeColor}25); border-left: 4px solid ${themeColor}; border-radius: 8px;">
+        <p style="margin: 0; color: ${themeColor}; font-weight: bold;">✨ Premium Quality Guaranteed</p>
+        <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">Thousands of satisfied customers worldwide!</p>
+      </div>
+    </div>
+  `;
+  
+  return styledDescription;
 }

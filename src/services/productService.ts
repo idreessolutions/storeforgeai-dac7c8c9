@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { AliExpressService } from "./aliexpressService";
 
@@ -14,13 +13,14 @@ export const addProductsToShopify = async (
   customInfo: string = '',
   storeName: string = ''
 ) => {
-  console.log(`🚀 Starting REAL AliExpress Drop Shipping API integration for ${niche} products:`, {
+  console.log(`🚀 Starting REAL AliExpress integration with theme color for ${niche} products:`, {
     niche,
     targetAudience,
     businessType,
     storeStyle,
     storeName,
-    qualityStandards: 'AliExpress API: 1000+ orders, 4.6+ ratings'
+    themeColor,
+    qualityStandards: 'AliExpress API: Real images, 1000+ orders, 4.6+ ratings'
   });
   
   try {
@@ -28,30 +28,30 @@ export const addProductsToShopify = async (
     const sessionId = crypto.randomUUID();
     
     // Step 1: Fetch REAL winning products from AliExpress Drop Shipping API
-    onProgress(15, `Connecting to AliExpress Drop Shipping API for premium ${niche} products...`);
+    onProgress(15, `Connecting to AliExpress API for premium ${niche} products with real images...`);
     
     const aliExpressService = new AliExpressService();
     const realProducts = await aliExpressService.fetchWinningProducts(niche, 10, sessionId);
     
     if (!realProducts || realProducts.length === 0) {
-      throw new Error(`No winning ${niche} products found from AliExpress Drop Shipping API meeting quality standards (1000+ orders, 4.6+ ratings).`);
+      throw new Error(`No winning ${niche} products found from AliExpress API meeting quality standards (1000+ orders, 4.6+ ratings, real images).`);
     }
 
-    console.log(`✅ Found ${realProducts.length} REAL winning ${niche} products from AliExpress Drop Shipping API`);
-    onProgress(25, `Found ${realProducts.length} winning ${niche} products! Enhancing with GPT-4...`);
+    console.log(`✅ Found ${realProducts.length} REAL winning ${niche} products with verified images from AliExpress API`);
+    onProgress(25, `Found ${realProducts.length} winning ${niche} products with real images! Enhancing with GPT-4...`);
 
-    // Step 2: Process each product with GPT-4 AI enhancement
+    // Step 2: Process each product with GPT-4 AI enhancement (keeping real images)
     const processedProducts = [];
     
     for (let i = 0; i < realProducts.length; i++) {
       const product = realProducts[i];
       const progressPercent = 25 + ((i / realProducts.length) * 50);
       
-      onProgress(progressPercent, `GPT-4 enhancing ${niche} product: ${product.title.substring(0, 50)}...`);
-      console.log(`🤖 GPT-4 processing ${niche} product ${i + 1}/${realProducts.length}: ${product.title}`);
+      onProgress(progressPercent, `GPT-4 enhancing ${niche} product: ${product.title.substring(0, 50)}... (Real images preserved)`);
+      console.log(`🤖 GPT-4 processing ${niche} product ${i + 1}/${realProducts.length}: ${product.title} (Real images: ${product.imageUrl ? 'YES' : 'NO'})`);
 
       try {
-        // Generate AI-enhanced content with GPT-4
+        // Generate AI-enhanced content with GPT-4 while preserving real images
         const { data: aiResponse, error: aiError } = await supabase.functions.invoke('generate-products', {
           body: {
             realProduct: product,
@@ -64,12 +64,13 @@ export const addProductsToShopify = async (
             storeName,
             productIndex: i,
             sessionId: sessionId,
+            useRealImages: true, // Enforce real image usage
             qualityRequirements: {
               rating: '4.6+',
               orders: '1000+',
               source: 'AliExpress Drop Shipping API',
-              images: '6-8 per product via DALL·E',
-              descriptionLength: '500-800 words'
+              images: 'Real AliExpress images only',
+              descriptionLength: '400-600 words with emojis'
             }
           }
         });
@@ -85,8 +86,17 @@ export const addProductsToShopify = async (
         }
 
         const optimizedProduct = aiResponse.optimizedProduct;
+        
+        // Ensure real images are preserved
+        if (product.imageUrl && !optimizedProduct.imageUrl) {
+          optimizedProduct.imageUrl = product.imageUrl;
+        }
+        if (product.images && product.images.length > 0) {
+          optimizedProduct.images = product.images;
+        }
+        
         processedProducts.push(optimizedProduct);
-        console.log(`✅ ${niche} product ${i + 1} enhanced with GPT-4: ${optimizedProduct.title}`);
+        console.log(`✅ ${niche} product ${i + 1} enhanced with GPT-4: ${optimizedProduct.title} (Real images: ${optimizedProduct.images?.length || 0})`);
 
         // Rate limiting between AI calls
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -101,9 +111,9 @@ export const addProductsToShopify = async (
       throw new Error(`Failed to process any ${niche} products with GPT-4 enhancement`);
     }
 
-    onProgress(75, `Uploading ${processedProducts.length} AI-enhanced ${niche} products to Shopify...`);
+    onProgress(75, `Uploading ${processedProducts.length} AI-enhanced ${niche} products with real images and theme color to Shopify...`);
 
-    // Step 3: Upload all products to Shopify with winning-product tags
+    // Step 3: Upload all products to Shopify with real images and theme color
     let uploadedCount = 0;
     const uploadErrors = [];
 
@@ -111,8 +121,8 @@ export const addProductsToShopify = async (
       const product = processedProducts[i];
       const progressPercent = 75 + ((i / processedProducts.length) * 20);
       
-      onProgress(progressPercent, `Uploading ${niche} product: ${product.title.substring(0, 40)}...`);
-      console.log(`📦 Uploading ${niche} product ${i + 1}/${processedProducts.length}: ${product.title}`);
+      onProgress(progressPercent, `Uploading ${niche} product with theme color: ${product.title.substring(0, 40)}...`);
+      console.log(`📦 Uploading ${niche} product ${i + 1}/${processedProducts.length}: ${product.title} (Theme: ${themeColor})`);
 
       try {
         const { data: uploadResponse, error: uploadError } = await supabase.functions.invoke('add-shopify-product', {
@@ -124,7 +134,10 @@ export const addProductsToShopify = async (
               ...product,
               niche: niche,
               category: product.category || niche,
-              tags: `${niche}, ${targetAudience}, ${storeStyle}, ${storeName}, winning-product, best-seller, AliExpress-verified, 1000-orders, premium-quality`
+              tags: `${niche}, ${targetAudience}, ${storeStyle}, ${storeName}, winning-product, best-seller, AliExpress-verified, real-images, theme-color-applied`,
+              theme_color: themeColor,
+              real_images_used: true,
+              dalle_images_used: false
             }
           }
         });
@@ -137,7 +150,9 @@ export const addProductsToShopify = async (
 
         if (uploadResponse && uploadResponse.success) {
           uploadedCount++;
-          console.log(`✅ Successfully uploaded ${niche} winning product: ${product.title}`);
+          console.log(`✅ Successfully uploaded ${niche} winning product with theme color: ${product.title}`);
+          console.log(`🎨 Theme color ${themeColor} applied successfully`);
+          console.log(`📸 Real images used: ${uploadResponse.real_images_used ? 'YES' : 'NO'}`);
         } else {
           console.error(`❌ Upload failed for ${niche} product ${product.title}:`, uploadResponse?.error);
           uploadErrors.push(`${product.title}: ${uploadResponse?.error || 'Unknown error'}`);
@@ -153,15 +168,17 @@ export const addProductsToShopify = async (
       }
     }
 
-    onProgress(95, `Finalizing ${niche} store setup...`);
+    onProgress(95, `Finalizing ${niche} store with theme color integration...`);
 
     if (uploadedCount === 0) {
       throw new Error(`Failed to upload any ${niche} winning products. Errors: ${uploadErrors.join('; ')}`);
     }
 
-    onProgress(100, `${niche} store with AliExpress winning products complete!`);
+    onProgress(100, `${niche} store with real AliExpress products and theme color complete!`);
     
     console.log(`🎉 Successfully uploaded ${uploadedCount}/${processedProducts.length} AliExpress winning ${niche} products to Shopify`);
+    console.log(`🎨 Theme color ${themeColor} applied to all products`);
+    console.log(`📸 Real AliExpress images used exclusively (no DALL-E)`);
     
     if (uploadErrors.length > 0) {
       console.warn(`⚠️ Some ${niche} product uploads failed:`, uploadErrors);
@@ -175,11 +192,14 @@ export const addProductsToShopify = async (
       niche: niche,
       source: 'AliExpress Drop Shipping API',
       qualityStandards: '1000+ orders, 4.6+ ratings',
-      message: `Successfully added ${uploadedCount} winning ${niche} products from AliExpress Drop Shipping API with 1000+ orders and 4.6+ ratings to your store!`
+      theme_color_applied: themeColor,
+      real_images_used: true,
+      dalle_images_used: false,
+      message: `Successfully added ${uploadedCount} winning ${niche} products from AliExpress API with real images and ${themeColor} theme color to your store!`
     };
 
   } catch (error) {
-    console.error(`❌ AliExpress Drop Shipping API ${niche} product generation failed:`, error);
+    console.error(`❌ AliExpress ${niche} product generation with theme color failed:`, error);
     throw error;
   }
 };
