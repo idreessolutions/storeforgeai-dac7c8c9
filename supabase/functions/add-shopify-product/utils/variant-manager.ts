@@ -8,84 +8,150 @@ export class VariantManager {
 
   async updateDefaultVariant(variant: any, price: string): Promise<boolean> {
     try {
-      console.log(`🔄 Updating default variant pricing to: ${price}`);
+      console.log(`💰 Updating default variant pricing to $${price}`);
       
       const success = await this.shopifyClient.updateVariant(variant.id, {
         price: price,
-        compare_at_price: null,
         inventory_management: null,
         inventory_policy: 'deny',
+        inventory_quantity: 100,
         requires_shipping: true,
         taxable: true
       });
-      
+
       if (success) {
-        console.log(`✅ Default variant updated successfully with price: ${price}`);
-        return true;
+        console.log(`✅ Default variant updated successfully with price $${price}`);
       } else {
         console.error(`❌ Failed to update default variant pricing`);
-        return false;
       }
+
+      return success;
     } catch (error) {
-      console.error(`❌ Error updating default variant:`, error);
+      console.error('❌ Error updating default variant:', error);
       return false;
     }
   }
 
+  async createProductVariant(
+    productId: string,
+    title: string,
+    price: string,
+    color?: string,
+    size?: string
+  ): Promise<any> {
+    try {
+      console.log(`🎨 Creating product variant: ${title} (${color || 'N/A'}) - $${price}`);
+      
+      const variantData = {
+        product_id: productId,
+        title: title,
+        price: price,
+        sku: `${productId}-${title.toLowerCase().replace(/\s+/g, '-')}`,
+        inventory_management: null,
+        inventory_policy: 'deny',
+        inventory_quantity: 100,
+        requires_shipping: true,
+        taxable: true,
+        option1: color || title,
+        option2: size || null,
+        option3: null
+      };
+
+      const newVariant = await this.shopifyClient.createVariant(productId, variantData);
+      
+      if (newVariant) {
+        console.log(`✅ Created variant "${title}" with ID: ${newVariant.id}`);
+        return newVariant;
+      } else {
+        console.error(`❌ Failed to create variant "${title}"`);
+        return null;
+      }
+    } catch (error) {
+      console.error(`❌ Error creating variant "${title}":`, error);
+      return null;
+    }
+  }
+
   async processProductVariants(
-    productId: string, 
-    variants: any[], 
+    productId: string,
+    variations: Array<{ title: string; price: number; color?: string; size?: string }>,
     basePrice: string
   ): Promise<number> {
-    console.log(`🔄 Processing ${variants.length} additional variants for product ${productId}`);
-    
-    let createdCount = 0;
-    const basePriceNum = parseFloat(basePrice);
-    
-    // Skip the first variant as it's already the default variant
-    for (let i = 1; i < Math.min(variants.length, 4); i++) {
-      try {
-        const variant = variants[i];
-        const variantPrice = this.calculateVariantPrice(basePriceNum, i);
+    try {
+      console.log(`🎯 Processing ${variations.length} product variations...`);
+      
+      let createdCount = 0;
+      
+      // Skip first variation as it's usually the default
+      for (let i = 1; i < Math.min(variations.length, 4); i++) {
+        const variation = variations[i];
+        const variantPrice = variation.price?.toFixed(2) || basePrice;
         
-        const variantData = {
-          product_id: productId,
-          title: variant.title || `Option ${i + 1}`,
-          price: variantPrice.toFixed(2),
-          sku: `VAR-${productId}-${i}`,
-          inventory_management: null,
-          inventory_policy: 'deny',
-          inventory_quantity: 100,
-          requires_shipping: true,
-          taxable: true
-        };
+        const newVariant = await this.createProductVariant(
+          productId,
+          variation.title,
+          variantPrice,
+          variation.color,
+          variation.size
+        );
         
-        const createdVariant = await this.shopifyClient.createVariant(productId, variantData);
-        
-        if (createdVariant) {
+        if (newVariant) {
           createdCount++;
-          console.log(`✅ Variant ${i + 1} created: ${createdVariant.title} - $${variantPrice.toFixed(2)}`);
         }
         
         // Rate limiting
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-      } catch (error) {
-        console.error(`❌ Error creating variant ${i + 1}:`, error);
-        continue;
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
+      
+      console.log(`✅ Created ${createdCount} additional product variants`);
+      return createdCount;
+      
+    } catch (error) {
+      console.error('❌ Error processing product variants:', error);
+      return 0;
     }
-    
-    console.log(`🎉 Variant creation complete: ${createdCount} additional variants created`);
-    return createdCount;
   }
 
-  private calculateVariantPrice(basePrice: number, variantIndex: number): number {
-    // Add small variation to variant prices (5-15% difference)
-    const variation = 1 + (Math.random() * 0.1 + 0.05) * (variantIndex % 2 === 0 ? 1 : -1);
-    const variantPrice = basePrice * variation;
-    
-    // Ensure price stays within $15-$80 range
-    return Math.max(15, Math.min(80, variantPrice));
+  async setupProductOptions(productId: string, hasColorVariants: boolean, hasSizeVariants: boolean): Promise<boolean> {
+    try {
+      const options = [];
+      
+      if (hasColorVariants) {
+        options.push({
+          name: 'Color',
+          position: 1,
+          values: ['Black', 'White', 'Blue', 'Red']
+        });
+      }
+      
+      if (hasSizeVariants) {
+        options.push({
+          name: 'Size',
+          position: hasColorVariants ? 2 : 1,
+          values: ['Small', 'Medium', 'Large']
+        });
+      }
+      
+      if (options.length === 0) {
+        options.push({
+          name: 'Style',
+          position: 1,
+          values: ['Standard', 'Premium', 'Deluxe']
+        });
+      }
+      
+      const success = await this.shopifyClient.updateProductOptions(productId, options);
+      
+      if (success) {
+        console.log(`✅ Product options configured successfully`);
+      } else {
+        console.warn(`⚠️ Failed to configure product options`);
+      }
+      
+      return success;
+    } catch (error) {
+      console.error('❌ Error setting up product options:', error);
+      return false;
+    }
   }
 }

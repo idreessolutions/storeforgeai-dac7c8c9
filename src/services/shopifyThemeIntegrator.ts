@@ -7,45 +7,84 @@ export class ShopifyThemeIntegrator {
     themeColor: string,
     storeName: string
   ): Promise<boolean> {
-    console.log(`🎨 APPLYING PREMIUM THEME: ${themeColor} to ${storeName}'s Shopify store`);
+    console.log(`🎨 APPLYING COMPLETE BRANDING: ${themeColor} theme + "${storeName}" store name`);
     
     try {
-      // Get the current active theme
-      const theme = await this.getActiveTheme(shopifyUrl, accessToken);
+      // Step 1: Update store name and basic settings
+      const storeUpdated = await this.updateStoreDetails(shopifyUrl, accessToken, storeName);
       
-      if (!theme) {
-        console.warn('⚠️ No active theme found, applying default customizations');
-        return await this.applyDefaultCustomizations(shopifyUrl, accessToken, themeColor, storeName);
+      // Step 2: Get and customize the active theme
+      const theme = await this.getActiveTheme(shopifyUrl, accessToken);
+      let themeUpdated = false;
+      
+      if (theme) {
+        themeUpdated = await this.applyComprehensiveThemeCustomization(
+          shopifyUrl, accessToken, theme.id, themeColor, storeName
+        );
       }
       
-      // Apply comprehensive theme customizations
-      const customizations = await Promise.all([
-        this.customizeThemeColors(shopifyUrl, accessToken, theme.id, themeColor, storeName),
-        this.updateStoreBranding(shopifyUrl, accessToken, theme.id, storeName, themeColor),
-        this.applyLayoutSettings(shopifyUrl, accessToken, theme.id, themeColor)
-      ]);
+      // Step 3: Apply checkout and admin customizations
+      const checkoutUpdated = await this.updateCheckoutBranding(shopifyUrl, accessToken, themeColor, storeName);
       
-      const successCount = customizations.filter(result => result).length;
+      const successCount = [storeUpdated, themeUpdated, checkoutUpdated].filter(Boolean).length;
       
       if (successCount > 0) {
-        console.log(`✅ Successfully applied ${themeColor} theme with ${successCount}/3 customization sets`);
-        console.log(`🎨 Store branding: ${storeName} now features professional ${themeColor} styling`);
+        console.log(`✅ BRANDING SUCCESS: ${successCount}/3 customization areas updated`);
+        console.log(`🏪 Store Name: "${storeName}" | 🎨 Theme Color: ${themeColor}`);
         return true;
       } else {
-        console.error(`❌ Failed to apply theme customizations`);
+        console.error(`❌ Failed to apply complete branding`);
         return false;
       }
       
     } catch (error) {
       console.error(`💥 Theme integration error:`, error);
-      // Don't fail the entire process for theme issues
-      return true; // Return true to continue with product upload
+      return true; // Don't fail the entire process for theme issues
+    }
+  }
+
+  private static async updateStoreDetails(
+    shopifyUrl: string,
+    accessToken: string,
+    storeName: string
+  ): Promise<boolean> {
+    try {
+      console.log(`🏪 UPDATING STORE NAME to: "${storeName}"`);
+      
+      const response = await fetch(`${shopifyUrl}/admin/api/2024-10/shop.json`, {
+        method: 'PUT',
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          shop: {
+            name: storeName,
+            shop_owner: `${storeName} Team`,
+            email: `hello@${storeName.toLowerCase().replace(/\s+/g, '')}.com`,
+            customer_email: `support@${storeName.toLowerCase().replace(/\s+/g, '')}.com`
+          }
+        })
+      });
+      
+      if (response.ok) {
+        console.log(`✅ Store name successfully updated to: "${storeName}"`);
+        return true;
+      } else {
+        const error = await response.text();
+        console.warn(`⚠️ Store name update failed: ${response.status} - ${error}`);
+        return false;
+      }
+      
+    } catch (error) {
+      console.error('❌ Error updating store details:', error);
+      return false;
     }
   }
 
   private static async getActiveTheme(shopifyUrl: string, accessToken: string): Promise<any> {
     try {
-      const response = await fetch(`${shopifyUrl}/admin/api/2023-04/themes.json`, {
+      const response = await fetch(`${shopifyUrl}/admin/api/2024-10/themes.json`, {
         headers: {
           'X-Shopify-Access-Token': accessToken,
           'Content-Type': 'application/json'
@@ -69,7 +108,7 @@ export class ShopifyThemeIntegrator {
     }
   }
 
-  private static async customizeThemeColors(
+  private static async applyComprehensiveThemeCustomization(
     shopifyUrl: string,
     accessToken: string,
     themeId: string,
@@ -77,153 +116,139 @@ export class ShopifyThemeIntegrator {
     storeName: string
   ): Promise<boolean> {
     try {
-      // Enhanced color customizations for modern Shopify themes
-      const colorCustomizations: Record<string, string> = {
+      console.log(`🎨 APPLYING COMPREHENSIVE THEME CUSTOMIZATION for "${storeName}"`);
+      
+      // Get current theme settings
+      const currentSettings = await this.getCurrentThemeSettings(shopifyUrl, accessToken, themeId);
+      
+      // Enhanced comprehensive customizations
+      const customizations: Record<string, any> = {
+        // Primary color settings (most important)
         'colors_accent_1': themeColor,
         'colors_accent_2': themeColor,
         'colors_primary': themeColor,
-        'colors_button_primary': themeColor,
-        'colors_button_secondary': themeColor,
-        'colors_link': themeColor,
-        'colors_header': themeColor,
-        'colors_header_text': '#FFFFFF',
-        'colors_footer': themeColor,
         'color_primary': themeColor,
         'color_accent': themeColor,
-        'color_button': themeColor,
         'accent_color': themeColor,
-        'button_color': themeColor,
-        'link_color': themeColor,
-        // Additional modern theme settings
-        'gradient_accent': `linear-gradient(135deg, ${themeColor} 0%, ${this.adjustColorBrightness(themeColor, -20)} 100%)`,
-        'gradient_base': `linear-gradient(135deg, ${themeColor}20 0%, ${themeColor}10 100%)`
-      };
-      
-      console.log(`🎨 Applying ${Object.keys(colorCustomizations).length} color customizations for ${storeName}`);
-      
-      let successCount = 0;
-      for (const [setting, value] of Object.entries(colorCustomizations)) {
-        const applied = await this.updateThemeSetting(shopifyUrl, accessToken, themeId, setting, value);
-        if (applied) successCount++;
         
-        // Rate limiting to avoid API limits
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
-      
-      console.log(`✅ Applied ${successCount}/${Object.keys(colorCustomizations).length} color settings`);
-      return successCount > 0;
-      
-    } catch (error) {
-      console.error('❌ Error customizing theme colors:', error);
-      return false;
-    }
-  }
-
-  private static async updateStoreBranding(
-    shopifyUrl: string,
-    accessToken: string,
-    themeId: string,
-    storeName: string,
-    themeColor: string
-  ): Promise<boolean> {
-    try {
-      const brandingSettings: Record<string, string> = {
-        'shop_name': storeName,
+        // Button colors
+        'colors_button_primary': themeColor,
+        'colors_button_secondary': themeColor,
+        'color_button': themeColor,
+        'button_color': themeColor,
+        'button_background_color': themeColor,
+        
+        // Link colors
+        'colors_link': themeColor,
+        'link_color': themeColor,
+        'color_link': themeColor,
+        
+        // Header customization
+        'colors_header': '#FFFFFF',
+        'colors_header_text': '#333333',
+        'header_background_color': '#FFFFFF',
         'logo_text': storeName,
         'header_text': storeName,
+        
+        // Footer customization
+        'colors_footer': themeColor,
+        'footer_background_color': themeColor,
+        'footer_text_color': '#FFFFFF',
         'footer_text': `© ${new Date().getFullYear()} ${storeName}. Premium Quality Guaranteed.`,
-        'announcement_text': `🎉 Welcome to ${storeName} - Your Premium Shopping Destination!`,
-        'announcement_color': themeColor,
-        'announcement_background': themeColor,
+        
+        // Store branding
+        'shop_name': storeName,
+        'store_name': storeName,
         'store_title': storeName,
-        'meta_title': `${storeName} - Premium Quality Products`,
-        'meta_description': `Discover premium quality products at ${storeName}. Fast shipping, excellent customer service, and satisfaction guaranteed.`,
-        // Social media and branding
-        'social_twitter_link': '',
-        'social_facebook_link': '',
-        'social_instagram_link': '',
-        'favicon': '',
-        // Store policies
-        'checkout_accent_color': themeColor,
-        'checkout_button_color': themeColor
-      };
-      
-      console.log(`🏪 Applying store branding for: ${storeName}`);
-      
-      let brandingSuccess = 0;
-      for (const [setting, value] of Object.entries(brandingSettings)) {
-        if (value) { // Only apply settings with values
-          const applied = await this.updateThemeSetting(shopifyUrl, accessToken, themeId, setting, value);
-          if (applied) brandingSuccess++;
-        }
+        'brand_name': storeName,
         
-        await new Promise(resolve => setTimeout(resolve, 150));
-      }
-      
-      console.log(`✅ Applied ${brandingSuccess} branding customizations for ${storeName}`);
-      return brandingSuccess > 0;
-      
-    } catch (error) {
-      console.error('❌ Error updating store branding:', error);
-      return false;
-    }
-  }
-
-  private static async applyLayoutSettings(
-    shopifyUrl: string,
-    accessToken: string,
-    themeId: string,
-    themeColor: string
-  ): Promise<boolean> {
-    try {
-      const layoutSettings: Record<string, string> = {
-        // Product page settings - all values as strings
-        'product_show_vendor': 'true',
-        'product_show_sku': 'false',
-        'product_show_rating': 'true',
-        'product_show_quantity_selector': 'true',
-        'product_show_pickup_availability': 'true',
+        // Announcement bar
+        'announcement_text': `🎉 Welcome to ${storeName} - Your Premium Shopping Destination!`,
+        'announcement_color': '#FFFFFF',
+        'announcement_background': themeColor,
+        'announcement_bar_enabled': true,
         
-        // Collection page settings - all values as strings
-        'collection_products_per_page': '24',
-        'collection_show_sort': 'true',
-        'collection_show_filter': 'true',
+        // Product page enhancements
+        'product_show_vendor': true,
+        'product_show_rating': true,
+        'product_show_quantity_selector': true,
+        'product_show_pickup_availability': true,
+        
+        // Collection page settings
+        'collection_products_per_page': 24,
+        'collection_show_sort': true,
+        'collection_show_filter': true,
         
         // Cart settings
         'cart_type': 'drawer',
-        'cart_show_notes': 'true',
+        'cart_show_notes': true,
+        'cart_color': themeColor,
         
-        // Header settings
-        'header_style': 'minimal',
-        'logo_position': 'center',
-        'menu_style': 'horizontal',
-        
-        // Footer settings
-        'footer_show_social': 'true',
-        'footer_show_newsletter': 'true',
-        
-        // General styling
+        // Modern design settings
         'button_style': 'rounded',
         'text_alignment': 'left',
-        'section_spacing': 'medium'
+        'section_spacing': 'medium',
+        'enable_sticky_header': true,
+        'product_image_zoom': true,
+        
+        // Trust signals
+        'show_payment_icons': true,
+        'show_security_badges': true,
+        'enable_customer_reviews': true
       };
       
-      console.log(`⚙️ Applying layout and functionality settings`);
+      // Update theme settings in batches
+      let successCount = 0;
+      const batchSize = 5;
+      const entries = Object.entries(customizations);
       
-      let layoutSuccess = 0;
-      for (const [setting, value] of Object.entries(layoutSettings)) {
-        const applied = await this.updateThemeSetting(shopifyUrl, accessToken, themeId, setting, value);
-        if (applied) layoutSuccess++;
+      for (let i = 0; i < entries.length; i += batchSize) {
+        const batch = entries.slice(i, i + batchSize);
         
-        await new Promise(resolve => setTimeout(resolve, 100));
+        for (const [setting, value] of batch) {
+          const applied = await this.updateThemeSetting(shopifyUrl, accessToken, themeId, setting, value);
+          if (applied) successCount++;
+          
+          // Rate limiting
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+        
+        // Longer pause between batches
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
       
-      console.log(`✅ Applied ${layoutSuccess}/${Object.keys(layoutSettings).length} layout settings`);
-      return layoutSuccess > 0;
+      console.log(`✅ Applied ${successCount}/${entries.length} theme customizations for "${storeName}"`);
+      return successCount > (entries.length * 0.3); // Success if >30% applied
       
     } catch (error) {
-      console.error('❌ Error applying layout settings:', error);
+      console.error('❌ Error applying comprehensive theme customization:', error);
       return false;
+    }
+  }
+
+  private static async getCurrentThemeSettings(
+    shopifyUrl: string,
+    accessToken: string,
+    themeId: string
+  ): Promise<any> {
+    try {
+      const response = await fetch(`${shopifyUrl}/admin/api/2024-10/themes/${themeId}/assets.json?asset[key]=config/settings_data.json`, {
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const settingsData = JSON.parse(data.asset.value || '{}');
+        return settingsData.current || {};
+      }
+      
+      return {};
+    } catch (error) {
+      console.warn('⚠️ Could not fetch current theme settings:', error);
+      return {};
     }
   }
 
@@ -232,32 +257,20 @@ export class ShopifyThemeIntegrator {
     accessToken: string,
     themeId: string,
     key: string,
-    value: string | boolean
+    value: any
   ): Promise<boolean> {
     try {
-      // Try updating settings_data.json first
-      const settingsResponse = await this.updateSettingsData(shopifyUrl, accessToken, themeId, key, value);
-      if (settingsResponse) return true;
+      // Get current settings first
+      const currentSettings = await this.getCurrentThemeSettings(shopifyUrl, accessToken, themeId);
       
-      // Fallback to individual asset update
-      const assetResponse = await this.updateIndividualAsset(shopifyUrl, accessToken, themeId, key, value);
-      return assetResponse;
+      // Update with new setting
+      const updatedSettings = {
+        ...currentSettings,
+        [key]: value
+      };
       
-    } catch (error) {
-      console.error(`❌ Error updating theme setting ${key}:`, error);
-      return false;
-    }
-  }
-
-  private static async updateSettingsData(
-    shopifyUrl: string,
-    accessToken: string,
-    themeId: string,
-    key: string,
-    value: string | boolean
-  ): Promise<boolean> {
-    try {
-      const response = await fetch(`${shopifyUrl}/admin/api/2023-04/themes/${themeId}/assets.json`, {
+      // Save updated settings
+      const response = await fetch(`${shopifyUrl}/admin/api/2024-10/themes/${themeId}/assets.json`, {
         method: 'PUT',
         headers: {
           'X-Shopify-Access-Token': accessToken,
@@ -267,44 +280,8 @@ export class ShopifyThemeIntegrator {
           asset: {
             key: 'config/settings_data.json',
             value: JSON.stringify({
-              current: {
-                [key]: value
-              }
+              current: updatedSettings
             })
-          }
-        })
-      });
-      
-      if (response.ok) {
-        return true;
-      }
-      return false;
-      
-    } catch (error) {
-      return false;
-    }
-  }
-
-  private static async updateIndividualAsset(
-    shopifyUrl: string,
-    accessToken: string,
-    themeId: string,
-    key: string,
-    value: string | boolean
-  ): Promise<boolean> {
-    try {
-      // For individual theme files
-      const assetKey = `config/${key}.liquid`;
-      const response = await fetch(`${shopifyUrl}/admin/api/2023-04/themes/${themeId}/assets.json`, {
-        method: 'PUT',
-        headers: {
-          'X-Shopify-Access-Token': accessToken,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          asset: {
-            key: assetKey,
-            value: String(value)
           }
         })
       });
@@ -312,70 +289,75 @@ export class ShopifyThemeIntegrator {
       return response.ok;
       
     } catch (error) {
-      return false;
+      // Fallback: try individual asset update
+      try {
+        const response = await fetch(`${shopifyUrl}/admin/api/2024-10/themes/${themeId}/assets.json`, {
+          method: 'PUT',
+          headers: {
+            'X-Shopify-Access-Token': accessToken,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            asset: {
+              key: `config/${key}.liquid`,
+              value: String(value)
+            }
+          })
+        });
+        
+        return response.ok;
+      } catch (fallbackError) {
+        return false;
+      }
     }
   }
 
-  private static async applyDefaultCustomizations(
+  private static async updateCheckoutBranding(
     shopifyUrl: string,
     accessToken: string,
     themeColor: string,
     storeName: string
   ): Promise<boolean> {
     try {
-      console.log(`🎨 Applying default theme customizations for ${storeName}`);
+      console.log(`🛒 UPDATING CHECKOUT BRANDING for "${storeName}"`);
       
-      // Basic store customizations without theme ID
-      const basicCustomizations = {
-        shop_name: storeName,
-        primary_color: themeColor,
-        accent_color: themeColor
-      };
+      // Update checkout settings
+      const checkoutResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/shop.json`, {
+        method: 'PUT',
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          shop: {
+            checkout_api_supported: true,
+            checkout_logo_url: '',
+            primary_color: themeColor,
+            accent_color: themeColor
+          }
+        })
+      });
       
-      // Apply basic customizations
-      let successCount = 0;
-      for (const [key, value] of Object.entries(basicCustomizations)) {
-        try {
-          // Use shop API for basic settings
-          const response = await fetch(`${shopifyUrl}/admin/api/2023-04/shop.json`, {
-            method: 'PUT',
-            headers: {
-              'X-Shopify-Access-Token': accessToken,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              shop: {
-                [key]: value
-              }
-            })
-          });
-          
-          if (response.ok) successCount++;
-        } catch (error) {
-          console.warn(`⚠️ Failed to apply ${key}:`, error);
-        }
+      if (checkoutResponse.ok) {
+        console.log(`✅ Checkout branding updated with ${themeColor} theme`);
+        return true;
       }
       
-      console.log(`✅ Applied ${successCount}/${Object.keys(basicCustomizations).length} default customizations`);
-      return successCount > 0;
+      return false;
       
     } catch (error) {
-      console.error('❌ Error applying default customizations:', error);
+      console.error('❌ Error updating checkout branding:', error);
       return false;
     }
   }
 
   private static adjustColorBrightness(hexColor: string, percent: number): string {
-    // Remove # if present
     const hex = hexColor.replace('#', '');
-    
-    // Parse RGB
     const num = parseInt(hex, 16);
     const r = (num >> 16) + percent;
     const g = (num >> 8 & 0x00FF) + percent;
     const b = (num & 0x0000FF) + percent;
     
-    // Ensure values stay within 0-255 range
     const newR = Math.max(0, Math.min(255, r));
     const newG = Math.max(0, Math.min(255, g));
     const newB = Math.max(0, Math.min(255, b));
