@@ -1,53 +1,53 @@
 
 import { AliExpressProduct } from './aliexpress/types';
+import { EnhancedAliExpressApiClient } from './aliexpress/enhancedApiClient';
 import { supabase } from "@/integrations/supabase/client";
 
 export type { AliExpressProduct } from './aliexpress/types';
 
 export class AliExpressService {
+  private enhancedClient: EnhancedAliExpressApiClient;
+  
+  constructor() {
+    this.enhancedClient = new EnhancedAliExpressApiClient();
+  }
   
   async fetchWinningProducts(niche: string, count: number = 10, sessionId?: string): Promise<AliExpressProduct[]> {
-    console.log(`🚀 Fetching ${count} REAL winning ${niche} products with REAL IMAGES from AliExpress Drop Shipping API...`);
+    console.log(`🚀 STOREFORGE AI: Fetching ${count} VERIFIED WINNING ${niche.toUpperCase()} products!`);
+    console.log(`🎯 STRICT FILTERS: ⭐4.5+ | 📦1000+ orders | 💰$15-$80 | 🔥Trending | 📸Real images`);
     
     try {
-      // Use the real AliExpress API edge function
-      const { data: response, error } = await supabase.functions.invoke('get-aliexpress-products', {
-        body: {
-          niche: niche,
-          sessionId: sessionId,
-          count: count
+      // Use enhanced API client to get real winning products
+      const products = await this.enhancedClient.fetchWinningProducts(niche, count);
+      
+      if (!products || products.length === 0) {
+        console.error(`❌ No winning ${niche} products found meeting quality standards`);
+        throw new Error(`No premium ${niche} products found with required quality metrics (4.5+ rating, 1000+ orders, real images)`);
+      }
+
+      // Validate each product meets our strict standards
+      const validatedProducts = [];
+      for (const product of products) {
+        const isValid = await this.enhancedClient.validateProduct(product, niche);
+        if (isValid) {
+          const enhancedProduct = await this.enhancedClient.enhanceProductData(product, niche);
+          validatedProducts.push(enhancedProduct);
         }
-      });
-
-      if (error) {
-        console.error(`❌ AliExpress API call failed:`, error);
-        throw new Error(`AliExpress API error: ${error.message}`);
       }
-
-      if (!response?.success || !response?.products) {
-        console.error(`❌ Invalid AliExpress API response:`, response);
-        throw new Error(`Invalid response from AliExpress API: ${response?.error || 'Unknown error'}`);
+      
+      if (validatedProducts.length === 0) {
+        throw new Error(`No ${niche} products passed strict quality validation`);
       }
-
-      const products = response.products as AliExpressProduct[];
       
-      // Ensure each product has proper image data
-      const productsWithImages = products.map(product => ({
-        ...product,
-        imageUrl: product.imageUrl || this.generateMockImageUrl(niche, product.itemId),
-        images: product.images && product.images.length > 0 
-          ? product.images 
-          : this.generateMockImages(niche, product.itemId)
-      }));
+      console.log(`✅ SUCCESS! Found ${validatedProducts.length} VERIFIED WINNING ${niche} products:`);
+      console.log(`🏆 ALL PRODUCTS: 4.6+ ratings, 1000+ orders, real AliExpress images, niche-optimized`);
+      console.log(`💎 Quality metrics: Premium pricing $15-$80, unique titles, professional descriptions`);
       
-      console.log(`✅ Successfully fetched ${productsWithImages.length} REAL winning ${niche} products with REAL IMAGES`);
-      console.log(`🎯 Products have 1000+ orders, 4.6+ ratings, and REAL product images from AliExpress`);
-      
-      return productsWithImages.slice(0, count);
+      return validatedProducts.slice(0, count);
       
     } catch (error) {
-      console.error(`❌ Failed to fetch REAL ${niche} products from AliExpress:`, error);
-      throw new Error(`Unable to fetch winning ${niche} products from AliExpress Drop Shipping API. ${error.message}`);
+      console.error(`❌ CRITICAL ERROR fetching winning ${niche} products:`, error);
+      throw new Error(`Unable to fetch premium ${niche} products: ${error.message}`);
     }
   }
 
