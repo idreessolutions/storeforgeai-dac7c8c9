@@ -20,25 +20,31 @@ export class SmartPricingService {
       orders
     } = context;
 
-    // Base multiplier based on niche emotional value
+    // Enhanced pricing algorithm for $15-$80 range
     const nicheMultipliers = {
-      'pets': 2.8,      // High emotional value
-      'baby': 2.6,      // High emotional value
-      'beauty': 2.4,    // Premium positioning
-      'fitness': 2.2,   // Health investment value
-      'tech': 2.0,      // Innovation premium
-      'home': 1.8,      // Utility focus
-      'kitchen': 1.8,   // Utility focus
-      'fashion': 2.2,   // Style premium
-      'car': 2.0,       // Functional premium
-      'gifts': 2.4      // Emotional premium
+      'beauty': 1.8,      // Beauty products have good margins
+      'fitness': 1.6,     // Fitness gear premium
+      'pets': 1.7,        // Pet owners spend well
+      'electronics': 1.9, // Tech premium
+      'kitchen': 1.4,     // Kitchen utility focus
+      'home': 1.5,        // Home improvement value
+      'jewelry': 2.2,     // Jewelry high margins
+      'fashion': 1.6,     // Fashion moderate premium
+      'automotive': 1.8,  // Car accessories premium
+      'tech': 1.9,        // Technology premium
+      'baby': 2.0,        // Baby products high value
+      'luxury': 2.5,      // Luxury positioning
+      'gaming': 1.7,      // Gaming accessories
+      'sports': 1.6,      // Sports equipment
+      'travel': 1.5       // Travel gear
     };
 
-    let multiplier = nicheMultipliers[niche.toLowerCase() as keyof typeof nicheMultipliers] || 2.0;
+    let multiplier = nicheMultipliers[niche.toLowerCase() as keyof typeof nicheMultipliers] || 1.5;
 
     // Adjust based on target audience
     if (targetAudience.toLowerCase().includes('premium') || 
-        targetAudience.toLowerCase().includes('luxury')) {
+        targetAudience.toLowerCase().includes('luxury') ||
+        targetAudience.toLowerCase().includes('professional')) {
       multiplier += 0.3;
     }
 
@@ -52,7 +58,8 @@ export class SmartPricingService {
     // Feature-based value enhancement
     const premiumFeatures = [
       'wireless', 'smart', 'premium', 'professional', 'advanced',
-      'automatic', 'rechargeable', 'waterproof', 'eco-friendly'
+      'automatic', 'rechargeable', 'waterproof', 'eco-friendly',
+      'bluetooth', 'led', 'digital', 'portable', 'ergonomic'
     ];
 
     const featureBonus = features.filter(feature => 
@@ -63,23 +70,24 @@ export class SmartPricingService {
 
     multiplier += featureBonus;
 
-    // Calculate final price
-    let finalPrice = originalPrice * multiplier;
+    // Calculate base price from original (ensure minimum viability)
+    const basePrice = Math.max(8, originalPrice || 12);
+    let finalPrice = basePrice * multiplier;
 
-    // Ensure price falls within optimal range ($15-$80)
+    // Strict enforcement of $15-$80 range
     finalPrice = Math.max(15, Math.min(80, finalPrice));
 
-    // Round to psychological pricing points
+    // Apply psychological pricing
     return this.applyPsychologicalPricing(finalPrice);
   }
 
   private static applyPsychologicalPricing(price: number): number {
-    if (price < 20) {
-      return Math.round(price * 100) / 100; // Keep cents for low prices
+    if (price < 25) {
+      return Math.floor(price) + 0.99; // $X.99 for lower prices
     } else if (price < 50) {
-      return Math.floor(price) + 0.95; // .95 ending
+      return Math.floor(price) + 0.95; // $X.95 for mid-range
     } else {
-      return Math.floor(price) + 0.99; // .99 ending
+      return Math.floor(price) + 0.99; // $X.99 for higher prices
     }
   }
 
@@ -87,12 +95,30 @@ export class SmartPricingService {
     const prices = [basePrice];
     
     for (let i = 1; i < variantCount; i++) {
-      // Add 5-15% variation for different variants
-      const variation = 1 + (Math.random() * 0.1 + 0.05) * (i % 2 === 0 ? 1 : -1);
+      // Add 8-20% variation for different variants
+      const variation = 1 + (0.08 + Math.random() * 0.12) * (i % 2 === 0 ? 1 : -1);
       const variantPrice = Math.max(15, Math.min(80, basePrice * variation));
       prices.push(this.applyPsychologicalPricing(variantPrice));
     }
     
     return prices;
+  }
+
+  static validatePriceRange(price: number): boolean {
+    return price >= 15 && price <= 80;
+  }
+
+  static adjustForCompetition(price: number, competitorPrices: number[]): number {
+    if (competitorPrices.length === 0) return price;
+    
+    const avgCompetitorPrice = competitorPrices.reduce((a, b) => a + b, 0) / competitorPrices.length;
+    
+    // Position slightly below average competitor price for competitiveness
+    const targetPrice = avgCompetitorPrice * 0.92;
+    
+    // Ensure it stays within our range
+    const adjustedPrice = Math.max(15, Math.min(80, targetPrice));
+    
+    return this.applyPsychologicalPricing(adjustedPrice);
   }
 }

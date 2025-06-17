@@ -10,7 +10,6 @@ import ProductsStep from "./ProductsStep";
 import MentorshipStep from "./MentorshipStep";
 import LaunchStep from "./LaunchStep";
 import GetStartedStep from "./GetStartedStep";
-import FutureStep from "./FutureStep";
 import { FormData } from "./StoreBuilderLogic";
 
 interface StepRendererProps {
@@ -30,6 +29,18 @@ const StepRenderer = ({
   onNext,
   validateCurrentStep
 }: StepRendererProps) => {
+  // Limit to maximum of 8 steps (0-7, where 0 is Get Started)
+  const maxSteps = storeSteps.length;
+  
+  // If somehow we get beyond the valid steps, show the last step
+  if (currentStep > maxSteps) {
+    return (
+      <LaunchStep 
+        formData={{ shopifyUrl: formData.shopifyUrl }} 
+      />
+    );
+  }
+
   switch (currentStep) {
     case 0:
       return (
@@ -115,12 +126,12 @@ const StepRenderer = ({
         />
       );
     default:
+      // Should never reach here, but fallback to Get Started
       return (
-        <FutureStep 
-          step={currentStep} 
-          stepTitle="Coming Soon"
-          stepDescription="This step will be available soon"
-          icon={storeSteps[currentStep - 1]?.icon || storeSteps[0].icon}
+        <GetStartedStep 
+          onNext={onNext}
+          formData={{ themeColor: formData.selectedColor }}
+          handleInputChange={handleInputChange}
         />
       );
   }
