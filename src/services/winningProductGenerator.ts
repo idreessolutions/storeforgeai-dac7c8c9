@@ -58,6 +58,83 @@ export class WinningProductGenerator {
     return { title, description, price, features, benefits, tags };
   }
 
+  private static generateNicheFeatures(niche: string, index: number, styleConfig: any): string[] {
+    const nicheFeatures = this.getNicheSpecificFeatures(niche);
+    return nicheFeatures.map(feature => `${styleConfig.featurePrefix} ${feature}`).slice(0, 4);
+  }
+
+  private static generateCompellingBenefits(niche: string, index: number, businessConfig: any): string[] {
+    const benefits = {
+      'pets': ['Keeps pets happy and healthy', 'Veterinarian approved safety', 'Easy to clean and maintain', 'Durable for daily use'],
+      'beauty': ['Glowing, radiant skin results', 'Dermatologist tested formula', 'Long-lasting effectiveness', 'Professional quality'],
+      'fitness': ['Builds strength and endurance', 'Professional trainer approved', 'Adjustable for all levels', 'Quick visible results'],
+      'kitchen': ['Effortless cooking experience', 'Chef-grade performance', 'Time-saving efficiency', 'Easy cleanup'],
+      'home': ['Organized, beautiful space', 'Stylish home enhancement', 'Space-saving solution', 'Easy installation'],
+      'tech': ['Enhanced productivity', 'Seamless connectivity', 'User-friendly interface', 'Long-lasting battery'],
+      'fashion': ['Confident, stylish look', 'Comfortable all-day wear', 'Versatile styling options', 'High-quality materials'],
+      'jewelry': ['Elegant, sophisticated style', 'Eye-catching sparkle', 'Timeless design', 'Durable craftsmanship'],
+      'automotive': ['Improved vehicle performance', 'Easy installation process', 'Weather-resistant durability', 'Professional results'],
+      'baby': ['Safe for baby\'s comfort', 'Parent peace of mind', 'Easy to clean', 'Gentle on skin']
+    };
+    
+    const nicheBenefits = benefits[niche.toLowerCase()] || ['Premium quality results', 'Professional performance', 'Easy to use', 'Guaranteed satisfaction'];
+    return nicheBenefits.slice(0, 3);
+  }
+
+  private static generateTargetedTags(niche: string, businessType: string, storeStyle: string, index: number): string {
+    const baseTags = [niche, businessType, storeStyle, 'winning-product', 'bestseller', 'premium-quality'];
+    const nicheSpecificTags = this.getNicheSpecificTags(niche);
+    const styleSpecificTags = this.getStyleSpecificTags(storeStyle);
+    
+    const allTags = [...baseTags, ...nicheSpecificTags, ...styleSpecificTags, `product-${index + 1}`];
+    return allTags.join(', ');
+  }
+
+  private static getNicheSpecificTags(niche: string): string[] {
+    const tags = {
+      'pets': ['pet-care', 'animal-lover', 'pet-essential', 'vet-approved'],
+      'beauty': ['skincare', 'beauty-essential', 'self-care', 'glow-up'],
+      'fitness': ['workout', 'fitness-gear', 'health', 'exercise'],
+      'kitchen': ['cooking', 'chef-tools', 'kitchen-essential', 'culinary'],
+      'home': ['home-decor', 'organization', 'living-space', 'interior'],
+      'tech': ['technology', 'gadget', 'innovation', 'smart-device'],
+      'fashion': ['style', 'trendy', 'wardrobe', 'fashion-forward'],
+      'jewelry': ['accessory', 'elegant', 'sparkle', 'statement-piece'],
+      'automotive': ['car-care', 'vehicle', 'auto-improvement', 'driving'],
+      'baby': ['baby-care', 'parenting', 'child-safety', 'newborn']
+    };
+    
+    return tags[niche.toLowerCase()] || ['essential', 'quality', 'premium'];
+  }
+
+  private static getStyleSpecificTags(storeStyle: string): string[] {
+    const tags = {
+      'luxury': ['luxury', 'premium', 'exclusive', 'high-end'],
+      'modern': ['modern', 'contemporary', 'sleek', 'innovative'],
+      'fun': ['fun', 'colorful', 'vibrant', 'playful'],
+      'minimalist': ['minimalist', 'clean', 'simple', 'elegant']
+    };
+    
+    return tags[storeStyle] || ['quality', 'professional'];
+  }
+
+  private static getBenefit(niche: string): string {
+    const benefits = {
+      'pets': 'keeps your pets happy and healthy',
+      'beauty': 'gives you glowing, radiant skin',
+      'fitness': 'builds strength and confidence',
+      'kitchen': 'makes cooking effortless and fun',
+      'home': 'creates an organized, beautiful space',
+      'tech': 'enhances your productivity',
+      'fashion': 'makes you look confident and stylish',
+      'jewelry': 'adds elegant sparkle to any outfit',
+      'automotive': 'improves your vehicle\'s performance',
+      'baby': 'keeps your baby safe and comfortable'
+    };
+    
+    return benefits[niche.toLowerCase()] || 'delivers amazing results';
+  }
+
   private static generateDynamicTitle(niche: string, index: number, styleConfig: any, businessConfig: any): string {
     const nicheWords = this.getNicheWords(niche);
     const powerWords = styleConfig.powerWords;
