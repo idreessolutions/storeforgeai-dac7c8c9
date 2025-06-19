@@ -17,7 +17,7 @@ export const addProductsToShopify = async (
   customInfo: string = '',
   storeName: string = ''
 ) => {
-  console.log(`🚨 FINAL CRITICAL FIXES: Creating PERFECT ${niche} store with GUARANTEED success!`);
+  console.log(`🚨 CRITICAL FIXES: Creating PERFECT ${niche} store with GUARANTEED success!`);
   
   try {
     const sessionId = crypto.randomUUID();
@@ -42,16 +42,16 @@ export const addProductsToShopify = async (
     currentProgress = 15;
     onProgress(currentProgress, `✅ "${storeName}" store branding and ${themeColor} theme applied!`);
 
-    // CRITICAL FIX 2: Generate 10 ELITE winning products with REAL images
-    onProgress(25, `🚨 CRITICAL: Generating 10 ELITE ${niche} products with REAL AliExpress images...`);
+    // CRITICAL FIX 2: Generate 10 ELITE winning products with REAL images and enhanced content
+    onProgress(25, `🚨 CRITICAL: Generating 10 ELITE ${niche} products with REAL images and ${storeStyle} styling...`);
     
     const eliteProducts = [];
     
     for (let i = 0; i < 10; i++) {
-      // Generate elite winning product
-      const product = WinningProductGenerator.generateEliteProduct(niche, i);
+      // Generate elite winning product with business model and style
+      const product = WinningProductGenerator.generateEliteProduct(niche, i, businessType, storeStyle);
       
-      // CRITICAL FIX: Apply real AliExpress images
+      // CRITICAL FIX: Apply real images
       const productWithImages = await CriticalImageFixer.ensureProductImages(product, niche, i);
       
       eliteProducts.push(productWithImages);
@@ -73,6 +73,16 @@ export const addProductsToShopify = async (
       onProgress(currentProgress, `🚨 UPLOADING: ${i + 1}/${eliteProducts.length} - ${product.title.substring(0, 30)}...`);
       
       try {
+        console.log(`🚨 UPLOADING PRODUCT ${i + 1}:`, {
+          title: product.title.substring(0, 50),
+          images: product.images?.length || 0,
+          variants: product.variants?.length || 0,
+          price: product.price,
+          storeName: storeName,
+          storeStyle: storeStyle,
+          businessType: businessType
+        });
+
         const { data: uploadResponse, error: uploadError } = await supabase.functions.invoke('add-shopify-product', {
           body: {
             shopifyUrl,
@@ -82,32 +92,39 @@ export const addProductsToShopify = async (
               ...product,
               niche: niche,
               category: product.category || niche,
-              tags: `${niche}, ${targetAudience}, ${storeStyle}, ${storeName}, elite-product, real-images, verified-quality, winning-product, bestseller, premium-${i + 1}`,
+              tags: `${niche}, ${targetAudience}, ${storeStyle}, ${storeName}, elite-product, real-images, verified-quality, winning-product, bestseller, premium-${i + 1}, ${businessType}`,
               theme_color: themeColor,
               store_name: storeName,
               critical_fixes_applied: true,
               real_images_verified: true,
-              elite_quality_confirmed: true
+              elite_quality_confirmed: true,
+              business_model: businessType,
+              store_style: storeStyle
             },
             storeName,
             targetAudience,
             storeStyle,
+            businessType,
             productIndex: i
           }
         });
 
         if (uploadResponse?.success) {
           uploadedCount++;
-          console.log(`✅ CRITICAL SUCCESS: Product ${i + 1} uploaded with ${product.images.length} REAL images and ${product.variants.length} variations`);
+          console.log(`✅ CRITICAL SUCCESS: Product ${i + 1} uploaded with ${product.images?.length || 0} REAL images and ${product.variants?.length || 0} variations`);
+          console.log(`📊 UPLOAD DETAILS:`, {
+            productId: uploadResponse.product?.id,
+            imagesUploaded: uploadResponse.real_images_uploaded || 0,
+            variantsCreated: uploadResponse.variants_created || 0,
+            imageAssignments: uploadResponse.images_assigned_to_variants || 0
+          });
         } else {
           console.error(`❌ CRITICAL UPLOAD FAILURE for product ${i + 1}:`, uploadError || uploadResponse?.error);
-          
-          // CRITICAL: Don't fail completely, continue with remaining products
           continue;
         }
 
         // Aggressive rate limiting for reliability
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
       } catch (error) {
         console.error(`🚨 CRITICAL ERROR uploading product ${i + 1}:`, error);
@@ -135,13 +152,15 @@ export const addProductsToShopify = async (
       storeName: storeName,
       themeColor: themeColor,
       niche: niche,
+      businessModel: businessType,
+      storeStyle: storeStyle,
       realImagesVerified: true,
       shopifySyncCompleted: true,
       criticalFixesApplied: true,
       eliteQualityConfirmed: true,
       storeNameSynced: shopifySync.storeNameSuccess,
       themeSynced: shopifySync.themeSuccess,
-      message: `Critical fixes applied! ${uploadedCount} elite ${niche} products with real images uploaded to "${storeName}" store.`
+      message: `Critical fixes applied! ${uploadedCount} elite ${niche} products with real images uploaded to "${storeName}" store using ${storeStyle} styling and ${businessType} business model.`
     };
 
   } catch (error) {

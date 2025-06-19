@@ -17,11 +17,13 @@ serve(async (req) => {
   }
 
   try {
-    const { shopifyUrl, accessToken, themeColor, product, storeName, targetAudience, storeStyle, productIndex } = await req.json();
+    const { shopifyUrl, accessToken, themeColor, product, storeName, targetAudience, storeStyle, businessType, productIndex } = await req.json();
     
     console.log('🚨 CRITICAL UPLOAD: Processing ELITE product with REAL images:', {
       title: product.title?.substring(0, 50),
       storeName: storeName,
+      storeStyle: storeStyle,
+      businessType: businessType,
       themeColor: themeColor,
       realImages: product.images?.length || 0,
       variations: product.variants?.length || 0,
@@ -39,7 +41,7 @@ serve(async (req) => {
     const imageProcessor = new ImageProcessor(shopifyClient);
     const variantManager = new VariantManager(shopifyClient);
 
-    // Enhanced product content with theme integration
+    // Enhanced product content with theme integration and business model
     const styledDescription = applyThemeColorToDescription(product.description || '', themeColor);
     const timestamp = Date.now();
     const uniqueHandle = generateUniqueHandle(product.title, timestamp);
@@ -50,10 +52,12 @@ serve(async (req) => {
       price: productPrice,
       realImages: product.images?.length || 0,
       variations: product.variants?.length || 0,
-      handle: uniqueHandle
+      handle: uniqueHandle,
+      businessModel: businessType,
+      storeStyle: storeStyle
     });
 
-    // Create the main product payload
+    // Create the main product payload with enhanced tags and vendor
     const productPayload = {
       product: {
         title: product.title,
@@ -63,22 +67,35 @@ serve(async (req) => {
         handle: uniqueHandle,
         status: 'active',
         published: true,
-        tags: `${product.category || 'general'}, ${targetAudience || 'premium'}, ${storeStyle || 'professional'}, ${storeName}, elite-product, real-images, verified-quality, bestseller`,
+        tags: `${product.category || 'general'}, ${targetAudience || 'premium'}, ${storeStyle || 'professional'}, ${storeName}, ${businessType || 'dropshipping'}, elite-product, real-images, verified-quality, bestseller, winning-product-${productIndex + 1}`,
         metafields: [
           {
             namespace: 'custom',
             key: 'quality_score',
             value: product.originalData?.quality_score?.toString() || '95',
             type: 'number_integer'
+          },
+          {
+            namespace: 'custom',
+            key: 'store_style',
+            value: storeStyle || 'modern',
+            type: 'single_line_text_field'
+          },
+          {
+            namespace: 'custom',
+            key: 'business_model',
+            value: businessType || 'dropshipping',
+            type: 'single_line_text_field'
           }
         ]
       }
     };
 
-    console.log('🚨 CRITICAL: Creating product in Shopify with payload:', {
+    console.log('🚨 CRITICAL: Creating product in Shopify with enhanced payload:', {
       title: productPayload.product.title,
       vendor: productPayload.product.vendor,
-      handle: productPayload.product.handle
+      handle: productPayload.product.handle,
+      tags: productPayload.product.tags?.substring(0, 100) + '...'
     });
 
     // Create product in Shopify
@@ -87,11 +104,11 @@ serve(async (req) => {
 
     console.log('✅ CRITICAL: Product created successfully:', createdProduct.id);
 
-    // CRITICAL FIX 1: Upload REAL AliExpress images (6-8 images)
+    // CRITICAL FIX 1: Upload REAL images with enhanced error handling
     let uploadedImageCount = 0;
     let imageIds: string[] = [];
     
-    console.log(`🚨 CRITICAL: Uploading ${product.images?.length || 0} REAL AliExpress images`);
+    console.log(`🚨 CRITICAL: Uploading ${product.images?.length || 0} REAL images`);
     
     if (product.images && product.images.length > 0) {
       const uploadResult = await imageProcessor.uploadRealAliExpressImages(
@@ -104,7 +121,11 @@ serve(async (req) => {
       uploadedImageCount = uploadResult.uploadedCount;
       imageIds = uploadResult.imageIds;
       
-      console.log(`🎉 CRITICAL SUCCESS: ${uploadedImageCount} real images uploaded`);
+      console.log(`🎉 CRITICAL SUCCESS: ${uploadedImageCount} real images uploaded successfully`);
+      
+      if (uploadedImageCount === 0) {
+        console.error(`🚨 IMAGE UPLOAD FAILURE: No images uploaded for "${createdProduct.title}"`);
+      }
     } else {
       console.error('❌ CRITICAL ERROR: No real images provided for product');
     }
@@ -140,17 +161,20 @@ serve(async (req) => {
           console.log(`✅ CRITICAL: Variant "${variant.title}" created at $${variant.price.toFixed(2)}`);
         }
         
-        await new Promise(resolve => setTimeout(resolve, 800)); // Rate limiting
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Rate limiting
       }
     }
 
-    // CRITICAL FIX 4: Assign real images to variants
+    // CRITICAL FIX 4: Assign real images to variants with better error handling
     let imageAssignmentCount = 0;
     if (imageIds.length > 0 && createdVariants.length > 0) {
       console.log(`🚨 CRITICAL: Assigning ${imageIds.length} images to ${createdVariants.length} variants`);
       imageAssignmentCount = await imageProcessor.assignImagesToVariants(imageIds, createdVariants);
       console.log(`✅ CRITICAL: ${imageAssignmentCount} image assignments completed`);
     }
+
+    // Final success validation
+    const isSuccessful = createdProduct.id && (uploadedImageCount > 0 || imageIds.length > 0);
 
     console.log('🎉 CRITICAL FIXES COMPLETE:', {
       productId: createdProduct.id,
@@ -159,13 +183,15 @@ serve(async (req) => {
       realImagesUploaded: uploadedImageCount,
       variantsCreated: createdVariantCount,
       imagesAssigned: imageAssignmentCount,
-      status: 'ELITE_PRODUCT_LIVE'
+      businessModel: businessType,
+      storeStyle: storeStyle,
+      status: isSuccessful ? 'ELITE_PRODUCT_LIVE' : 'PARTIAL_SUCCESS'
     });
 
     return new Response(JSON.stringify({
-      success: true,
+      success: isSuccessful,
       product: createdProduct,
-      message: `CRITICAL SUCCESS: Elite product "${createdProduct.title}" is now live with real images!`,
+      message: `CRITICAL SUCCESS: Elite product "${createdProduct.title}" is now live with ${uploadedImageCount} real images!`,
       price_set: productPrice,
       real_images_uploaded: uploadedImageCount,
       variants_created: createdVariantCount,
@@ -173,7 +199,9 @@ serve(async (req) => {
       critical_fixes_applied: true,
       elite_quality_confirmed: true,
       real_images_verified: uploadedImageCount > 0,
-      shopify_integration: 'COMPLETE'
+      shopify_integration: 'COMPLETE',
+      business_model_applied: businessType,
+      store_style_applied: storeStyle
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

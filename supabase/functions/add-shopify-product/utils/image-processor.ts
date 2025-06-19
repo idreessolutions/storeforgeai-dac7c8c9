@@ -12,8 +12,8 @@ export class ImageProcessor {
     realImages: string[],
     themeColor: string
   ): Promise<{ uploadedCount: number; imageIds: string[] }> {
-    console.log(`📸 CRITICAL FIX: UPLOADING REAL IMAGES for "${productTitle}"`);
-    console.log(`🎯 Processing ${realImages.length} verified working image URLs`);
+    console.log(`🚨 CRITICAL IMAGE UPLOAD: Starting upload for "${productTitle}"`);
+    console.log(`📸 Processing ${realImages.length} real image URLs`);
     
     if (!realImages || realImages.length === 0) {
       console.error(`❌ CRITICAL: No images provided for ${productTitle}`);
@@ -23,36 +23,45 @@ export class ImageProcessor {
     const uploadedImageIds: string[] = [];
     const validImages = realImages.filter(img => this.isValidImageUrl(img));
     
-    console.log(`✅ Valid working images to upload: ${validImages.length}`);
+    console.log(`✅ Valid images to upload: ${validImages.length}`);
 
-    // Upload all available images (up to 8)
+    // Upload images one by one with proper error handling
     for (let i = 0; i < Math.min(validImages.length, 8); i++) {
       const imageUrl = validImages[i];
       
       try {
-        console.log(`🔄 Uploading image ${i + 1}/${validImages.length} for "${productTitle}"`);
+        console.log(`🔄 Uploading image ${i + 1}/${validImages.length}: ${imageUrl}`);
         
+        // Create proper image data structure for Shopify
         const imageData = {
           src: imageUrl,
-          alt: `${productTitle} - High Quality Product Image ${i + 1}`,
-          position: i + 1
+          alt: `${productTitle} - Product Image ${i + 1}`,
+          position: i + 1,
+          product_id: productId
         };
 
-        // Upload to Shopify with retry logic
-        const imageResponse = await this.uploadWithRetry(productId, imageData, 2);
+        // Upload with multiple retry attempts
+        const imageResponse = await this.uploadWithRetry(productId, imageData, 3);
         
         if (imageResponse && imageResponse.image && imageResponse.image.id) {
           uploadedImageIds.push(imageResponse.image.id);
-          console.log(`✅ Image ${i + 1} uploaded successfully: ${imageResponse.image.id}`);
+          console.log(`✅ SUCCESS: Image ${i + 1} uploaded with ID: ${imageResponse.image.id}`);
         } else {
-          console.error(`❌ Failed to upload image ${i + 1} for "${productTitle}"`);
+          console.error(`❌ FAILED: Image ${i + 1} upload failed for "${productTitle}"`);
+          
+          // Try alternative upload method
+          const altResponse = await this.alternativeUpload(productId, imageData);
+          if (altResponse && altResponse.image && altResponse.image.id) {
+            uploadedImageIds.push(altResponse.image.id);
+            console.log(`✅ ALT SUCCESS: Image ${i + 1} uploaded via alternative method`);
+          }
         }
 
-        // Rate limiting for reliable uploads
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Rate limiting to prevent API overload
+        await new Promise(resolve => setTimeout(resolve, 1200));
         
       } catch (error) {
-        console.error(`❌ ERROR uploading image ${i + 1} for "${productTitle}":`, error);
+        console.error(`❌ ERROR uploading image ${i + 1}:`, error);
         continue;
       }
     }
@@ -60,7 +69,7 @@ export class ImageProcessor {
     if (uploadedImageIds.length === 0) {
       console.error(`🚨 CRITICAL FAILURE: NO IMAGES UPLOADED for "${productTitle}"`);
     } else {
-      console.log(`🎉 SUCCESS: ${uploadedImageIds.length}/${validImages.length} images uploaded for "${productTitle}"`);
+      console.log(`🎉 UPLOAD SUCCESS: ${uploadedImageIds.length}/${validImages.length} images uploaded`);
     }
     
     return {
@@ -72,19 +81,41 @@ export class ImageProcessor {
   private async uploadWithRetry(productId: string, imageData: any, maxRetries: number): Promise<any> {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
+        console.log(`📤 Upload attempt ${attempt}/${maxRetries} for product ${productId}`);
+        
         const response = await this.shopifyClient.uploadImage(productId, imageData);
-        if (response && response.image) {
+        
+        if (response && response.image && response.image.id) {
+          console.log(`✅ Upload successful on attempt ${attempt}`);
           return response;
+        } else {
+          console.warn(`⚠️ Upload attempt ${attempt} returned no image ID`);
         }
       } catch (error) {
-        console.log(`Attempt ${attempt} failed, retrying...`);
+        console.error(`❌ Upload attempt ${attempt} failed:`, error);
         if (attempt === maxRetries) {
           throw error;
         }
+        // Exponential backoff
         await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
       }
     }
     return null;
+  }
+
+  private async alternativeUpload(productId: string, imageData: any): Promise<any> {
+    try {
+      // Alternative approach: Create image without position first
+      const altImageData = {
+        src: imageData.src,
+        alt: imageData.alt
+      };
+      
+      return await this.shopifyClient.uploadImage(productId, altImageData);
+    } catch (error) {
+      console.error('❌ Alternative upload failed:', error);
+      return null;
+    }
   }
 
   private isValidImageUrl(url: string): boolean {
@@ -92,25 +123,28 @@ export class ImageProcessor {
       return false;
     }
     
-    // Check for working image sources
+    // Validate working image sources
     const validSources = [
       'images.unsplash.com',
       'cdn.shopify.com',
-      'picsum.photos'
+      'picsum.photos',
+      'ae01.alicdn.com',
+      'ae02.alicdn.com',
+      'ae03.alicdn.com'
     ];
     
     const isValid = validSources.some(source => url.includes(source)) && 
                    (url.includes('http://') || url.includes('https://'));
     
     if (!isValid) {
-      console.warn(`⚠️ Invalid image URL detected: ${url}`);
+      console.warn(`⚠️ Invalid image URL: ${url}`);
     }
     
     return isValid;
   }
 
   async assignImagesToVariants(imageIds: string[], variants: any[]): Promise<number> {
-    console.log(`🎯 CRITICAL: Assigning ${imageIds.length} images to ${variants.length} product variants...`);
+    console.log(`🎯 ASSIGNING IMAGES TO VARIANTS: ${imageIds.length} images, ${variants.length} variants`);
     
     let assignmentCount = 0;
     
@@ -120,25 +154,27 @@ export class ImageProcessor {
         const imageId = imageIds[i];
         
         if (variant && variant.id && imageId) {
+          console.log(`🔄 Assigning image ${imageId} to variant ${variant.id}`);
+          
           const success = await this.shopifyClient.assignImageToVariant(imageId, variant.id);
           if (success) {
             assignmentCount++;
-            console.log(`✅ CRITICAL: Image ${imageId} assigned to variant ${variant.id} successfully`);
+            console.log(`✅ Image assigned successfully: ${imageId} -> ${variant.id}`);
           } else {
-            console.error(`❌ CRITICAL: Failed to assign image ${imageId} to variant ${variant.id}`);
+            console.error(`❌ Failed to assign image ${imageId} to variant ${variant.id}`);
           }
         }
         
-        // Rate limiting for reliable assignments
+        // Rate limiting
         await new Promise(resolve => setTimeout(resolve, 800));
         
       } catch (error) {
-        console.error(`❌ CRITICAL ERROR assigning image ${i + 1} to variant:`, error);
+        console.error(`❌ Error assigning image ${i + 1}:`, error);
         continue;
       }
     }
     
-    console.log(`🎉 CRITICAL FIX COMPLETE: ${assignmentCount} image assignments successful`);
+    console.log(`🎉 IMAGE ASSIGNMENT COMPLETE: ${assignmentCount} successful assignments`);
     return assignmentCount;
   }
 
