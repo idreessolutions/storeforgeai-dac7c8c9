@@ -13,7 +13,7 @@ export class ImageProcessor {
     themeColor: string
   ): Promise<{ uploadedCount: number; imageIds: string[] }> {
     console.log(`🚨 CRITICAL IMAGE UPLOAD: Starting upload for "${productTitle}"`);
-    console.log(`📸 Processing ${realImages.length} real image URLs`);
+    console.log(`📸 Processing ${realImages.length} real image URLs:`, realImages);
     
     if (!realImages || realImages.length === 0) {
       console.error(`❌ CRITICAL: No images provided for ${productTitle}`);
@@ -21,11 +21,16 @@ export class ImageProcessor {
     }
 
     const uploadedImageIds: string[] = [];
+    // Use all provided images and validate them properly
     const validImages = realImages.filter(img => this.isValidImageUrl(img));
     
-    console.log(`✅ Valid images to upload: ${validImages.length}`);
+    console.log(`✅ Valid images to upload: ${validImages.length} out of ${realImages.length}`);
+    if (validImages.length === 0) {
+      console.error(`❌ CRITICAL: No valid images found for ${productTitle}`);
+      console.error(`🔍 Rejected URLs:`, realImages);
+    }
 
-    // Upload images one by one with proper error handling
+    // Upload images one by one with comprehensive error handling
     for (let i = 0; i < Math.min(validImages.length, 8); i++) {
       const imageUrl = validImages[i];
       
@@ -47,7 +52,7 @@ export class ImageProcessor {
           uploadedImageIds.push(imageResponse.image.id);
           console.log(`✅ SUCCESS: Image ${i + 1} uploaded with ID: ${imageResponse.image.id}`);
         } else {
-          console.error(`❌ FAILED: Image ${i + 1} upload failed for "${productTitle}"`);
+          console.error(`❌ FAILED: Image ${i + 1} upload failed for "${productTitle}"`, imageResponse);
           
           // Try alternative upload method
           const altResponse = await this.alternativeUpload(productId, imageData);
@@ -117,7 +122,7 @@ export class ImageProcessor {
           console.log(`✅ Upload successful on attempt ${attempt}`);
           return response;
         } else {
-          console.warn(`⚠️ Upload attempt ${attempt} returned no image ID`);
+          console.warn(`⚠️ Upload attempt ${attempt} returned no image ID`, response);
         }
       } catch (error) {
         console.error(`❌ Upload attempt ${attempt} failed:`, error);
@@ -148,12 +153,14 @@ export class ImageProcessor {
 
   private isValidImageUrl(url: string): boolean {
     if (!url || typeof url !== 'string' || url.length < 10) {
+      console.warn(`⚠️ Invalid image URL - too short or invalid: ${url}`);
       return false;
     }
     
-    // Validate working image sources
+    // FIXED: Allow Unsplash and other valid image sources
     const validSources = [
       'images.unsplash.com',
+      'unsplash.com',
       'cdn.shopify.com',
       'picsum.photos',
       'ae01.alicdn.com',
@@ -161,11 +168,13 @@ export class ImageProcessor {
       'ae03.alicdn.com'
     ];
     
-    const isValid = validSources.some(source => url.includes(source)) && 
-                   (url.includes('http://') || url.includes('https://'));
+    const hasValidSource = validSources.some(source => url.includes(source));
+    const hasProtocol = url.includes('http://') || url.includes('https://');
+    const isValid = hasValidSource && hasProtocol;
     
     if (!isValid) {
-      console.warn(`⚠️ Invalid image URL: ${url}`);
+      console.warn(`⚠️ Invalid image URL - source not allowed: ${url}`);
+      console.warn(`🔍 Valid sources: ${validSources.join(', ')}`);
     }
     
     return isValid;
