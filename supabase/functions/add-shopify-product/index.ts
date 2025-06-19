@@ -27,6 +27,7 @@ serve(async (req) => {
       themeColor: themeColor,
       realImages: product.images?.length || 0,
       variations: product.variants?.length || 0,
+      imageUrls: product.images?.slice(0, 2), // Log first 2 URLs for debugging
       criticalFixes: 'APPLIED'
     });
     
@@ -54,7 +55,8 @@ serve(async (req) => {
       variations: product.variants?.length || 0,
       handle: uniqueHandle,
       businessModel: businessType,
-      storeStyle: storeStyle
+      storeStyle: storeStyle,
+      descriptionLength: styledDescription.length
     });
 
     // Create the main product payload with enhanced tags and vendor
@@ -91,12 +93,7 @@ serve(async (req) => {
       }
     };
 
-    console.log('🚨 CRITICAL: Creating product in Shopify with enhanced payload:', {
-      title: productPayload.product.title,
-      vendor: productPayload.product.vendor,
-      handle: productPayload.product.handle,
-      tags: productPayload.product.tags?.substring(0, 100) + '...'
-    });
+    console.log('🚨 CRITICAL: Creating product in Shopify with enhanced payload');
 
     // Create product in Shopify
     const productData = await shopifyClient.createProduct(productPayload);
@@ -104,13 +101,15 @@ serve(async (req) => {
 
     console.log('✅ CRITICAL: Product created successfully:', createdProduct.id);
 
-    // CRITICAL FIX 1: Upload REAL images with enhanced error handling
+    // CRITICAL FIX 1: Upload REAL images with enhanced error handling and detailed logging
     let uploadedImageCount = 0;
     let imageIds: string[] = [];
     
-    console.log(`🚨 CRITICAL: Uploading ${product.images?.length || 0} REAL images`);
+    console.log(`🚨 CRITICAL: Starting image upload for ${product.images?.length || 0} images`);
     
     if (product.images && product.images.length > 0) {
+      console.log('🖼️ Image URLs to upload:', product.images);
+      
       const uploadResult = await imageProcessor.uploadRealAliExpressImages(
         createdProduct.id,
         createdProduct.title,
@@ -121,10 +120,12 @@ serve(async (req) => {
       uploadedImageCount = uploadResult.uploadedCount;
       imageIds = uploadResult.imageIds;
       
-      console.log(`🎉 CRITICAL SUCCESS: ${uploadedImageCount} real images uploaded successfully`);
+      console.log(`🎉 CRITICAL IMAGE RESULT: ${uploadedImageCount}/${product.images.length} images uploaded successfully`);
+      console.log(`📸 Uploaded Image IDs:`, imageIds);
       
       if (uploadedImageCount === 0) {
-        console.error(`🚨 IMAGE UPLOAD FAILURE: No images uploaded for "${createdProduct.title}"`);
+        console.error(`🚨 ZERO IMAGES UPLOADED: This is a critical failure for "${createdProduct.title}"`);
+        console.error(`🔍 DEBUG: Image URLs were:`, product.images);
       }
     } else {
       console.error('❌ CRITICAL ERROR: No real images provided for product');
@@ -161,7 +162,7 @@ serve(async (req) => {
           console.log(`✅ CRITICAL: Variant "${variant.title}" created at $${variant.price.toFixed(2)}`);
         }
         
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Rate limiting
+        await new Promise(resolve => setTimeout(resolve, 1200)); // Rate limiting
       }
     }
 
@@ -171,29 +172,37 @@ serve(async (req) => {
       console.log(`🚨 CRITICAL: Assigning ${imageIds.length} images to ${createdVariants.length} variants`);
       imageAssignmentCount = await imageProcessor.assignImagesToVariants(imageIds, createdVariants);
       console.log(`✅ CRITICAL: ${imageAssignmentCount} image assignments completed`);
+    } else {
+      console.warn(`⚠️ No image assignments possible: ${imageIds.length} images, ${createdVariants.length} variants`);
     }
 
-    // Final success validation
-    const isSuccessful = createdProduct.id && (uploadedImageCount > 0 || imageIds.length > 0);
-
-    console.log('🎉 CRITICAL FIXES COMPLETE:', {
+    // Final success validation with detailed logging
+    const isSuccessful = createdProduct.id && uploadedImageCount > 0;
+    
+    console.log('🎉 CRITICAL FIXES COMPLETE - FINAL RESULTS:', {
       productId: createdProduct.id,
-      title: createdProduct.title,
+      title: createdProduct.title?.substring(0, 50),
       price: productPrice,
       realImagesUploaded: uploadedImageCount,
+      imageIds: imageIds,
       variantsCreated: createdVariantCount,
       imagesAssigned: imageAssignmentCount,
       businessModel: businessType,
       storeStyle: storeStyle,
-      status: isSuccessful ? 'ELITE_PRODUCT_LIVE' : 'PARTIAL_SUCCESS'
+      status: isSuccessful ? 'ELITE_PRODUCT_LIVE_WITH_IMAGES' : 'CREATED_BUT_MISSING_IMAGES',
+      imageUploadSuccess: uploadedImageCount > 0,
+      totalExpectedImages: product.images?.length || 0
     });
 
     return new Response(JSON.stringify({
       success: isSuccessful,
       product: createdProduct,
-      message: `CRITICAL SUCCESS: Elite product "${createdProduct.title}" is now live with ${uploadedImageCount} real images!`,
+      message: isSuccessful ? 
+        `CRITICAL SUCCESS: Elite product "${createdProduct.title}" is now live with ${uploadedImageCount} real images!` :
+        `PARTIAL SUCCESS: Product created but only ${uploadedImageCount} images uploaded`,
       price_set: productPrice,
       real_images_uploaded: uploadedImageCount,
+      expected_images: product.images?.length || 0,
       variants_created: createdVariantCount,
       images_assigned_to_variants: imageAssignmentCount,
       critical_fixes_applied: true,
@@ -201,7 +210,13 @@ serve(async (req) => {
       real_images_verified: uploadedImageCount > 0,
       shopify_integration: 'COMPLETE',
       business_model_applied: businessType,
-      store_style_applied: storeStyle
+      store_style_applied: storeStyle,
+      image_upload_details: {
+        attempted: product.images?.length || 0,
+        successful: uploadedImageCount,
+        image_ids: imageIds,
+        failure_reasons: uploadedImageCount === 0 ? 'Check image URLs and Shopify API connectivity' : null
+      }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -211,7 +226,12 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       success: false,
       error: error.message || 'Critical error in product upload',
-      critical_fixes_status: 'FAILED'
+      critical_fixes_status: 'FAILED',
+      debug_info: {
+        error_type: error.name,
+        error_message: error.message,
+        stack_trace: error.stack
+      }
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

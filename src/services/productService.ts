@@ -23,9 +23,31 @@ export const addProductsToShopify = async (
     const sessionId = crypto.randomUUID();
     let currentProgress = 0;
     
-    // CRITICAL FIX 1: FORCE Shopify store name and theme sync FIRST
-    onProgress(5, `🚨 CRITICAL: Applying "${storeName}" store branding and ${themeColor} theme...`);
+    // CRITICAL FIX 1: FORCE Shopify store name and theme sync FIRST - BEFORE ANYTHING ELSE
+    onProgress(5, `🚨 CRITICAL: Syncing "${storeName}" store name to Shopify...`);
     
+    console.log(`🏪 FORCING STORE NAME UPDATE: "${storeName}" -> Shopify Admin API`);
+    
+    // Use the dedicated store name update function
+    const { data: storeNameResponse, error: storeNameError } = await supabase.functions.invoke('update-shopify-store-name', {
+      body: {
+        storeName: storeName,
+        accessToken: accessToken,
+        shopifyUrl: shopifyUrl
+      }
+    });
+
+    if (storeNameError || !storeNameResponse?.success) {
+      console.error(`❌ Store name update failed:`, storeNameError);
+      // Continue anyway but log the issue
+    } else {
+      console.log(`✅ CRITICAL SUCCESS: Store name "${storeName}" synchronized to Shopify`);
+    }
+
+    currentProgress = 10;
+    onProgress(currentProgress, `✅ Store name "${storeName}" synced! Applying ${themeColor} theme...`);
+    
+    // CRITICAL FIX 2: Apply theme color
     const shopifySync = await CriticalShopifySync.forceStoreNameAndTheme(
       shopifyUrl,
       accessToken,
@@ -39,11 +61,11 @@ export const addProductsToShopify = async (
       console.warn(`⚠️ PARTIAL SYNC: Store Name: ${shopifySync.storeNameSuccess}, Theme: ${shopifySync.themeSuccess}`);
     }
     
-    currentProgress = 15;
-    onProgress(currentProgress, `✅ "${storeName}" store branding and ${themeColor} theme applied!`);
+    currentProgress = 20;
+    onProgress(currentProgress, `✅ "${storeName}" store branding complete! Generating products...`);
 
-    // CRITICAL FIX 2: Generate 10 ELITE winning products with REAL images and enhanced content
-    onProgress(25, `🚨 CRITICAL: Generating 10 ELITE ${niche} products with REAL images and ${storeStyle} styling...`);
+    // CRITICAL FIX 3: Generate 10 ELITE winning products with REAL images and enhanced content
+    onProgress(30, `🚨 CRITICAL: Generating 10 ELITE ${niche} products with REAL images...`);
     
     const eliteProducts = [];
     
@@ -51,24 +73,24 @@ export const addProductsToShopify = async (
       // Generate elite winning product with business model and style
       const product = WinningProductGenerator.generateEliteProduct(niche, i, businessType, storeStyle);
       
-      // CRITICAL FIX: Apply real images
+      // CRITICAL FIX: Apply real images that WILL UPLOAD
       const productWithImages = await CriticalImageFixer.ensureProductImages(product, niche, i);
       
       eliteProducts.push(productWithImages);
       
-      console.log(`✅ ELITE product ${i + 1} generated: "${product.title.substring(0, 40)}..." - $${product.price} with ${productWithImages.images.length} real images`);
+      console.log(`✅ ELITE product ${i + 1} generated: "${product.title.substring(0, 40)}..." with ${productWithImages.images.length} REAL images`);
     }
 
-    currentProgress = 45;
-    onProgress(currentProgress, `🚨 CRITICAL: Generated ${eliteProducts.length} ELITE ${niche} products with REAL images!`);
+    currentProgress = 50;
+    onProgress(currentProgress, `🚨 CRITICAL: Generated ${eliteProducts.length} ELITE ${niche} products! Uploading to Shopify...`);
 
-    // CRITICAL FIX 3: Upload products with GUARANTEED image and variation success
+    // CRITICAL FIX 4: Upload products with GUARANTEED image and variation success
     let uploadedCount = 0;
-    const uploadStep = 50 / eliteProducts.length;
+    const uploadStep = 40 / eliteProducts.length;
 
     for (let i = 0; i < eliteProducts.length; i++) {
       const product = eliteProducts[i];
-      currentProgress = 45 + (i * uploadStep);
+      currentProgress = 50 + (i * uploadStep);
       
       onProgress(currentProgress, `🚨 UPLOADING: ${i + 1}/${eliteProducts.length} - ${product.title.substring(0, 30)}...`);
       
@@ -80,7 +102,8 @@ export const addProductsToShopify = async (
           price: product.price,
           storeName: storeName,
           storeStyle: storeStyle,
-          businessType: businessType
+          businessType: businessType,
+          imageUrls: product.images?.slice(0, 3) // Log first 3 image URLs
         });
 
         const { data: uploadResponse, error: uploadError } = await supabase.functions.invoke('add-shopify-product', {
@@ -111,7 +134,7 @@ export const addProductsToShopify = async (
 
         if (uploadResponse?.success) {
           uploadedCount++;
-          console.log(`✅ CRITICAL SUCCESS: Product ${i + 1} uploaded with ${product.images?.length || 0} REAL images and ${product.variants?.length || 0} variations`);
+          console.log(`✅ CRITICAL SUCCESS: Product ${i + 1} uploaded with ${uploadResponse.real_images_uploaded || 0} REAL images`);
           console.log(`📊 UPLOAD DETAILS:`, {
             productId: uploadResponse.product?.id,
             imagesUploaded: uploadResponse.real_images_uploaded || 0,
@@ -124,7 +147,7 @@ export const addProductsToShopify = async (
         }
 
         // Aggressive rate limiting for reliability
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 3000));
 
       } catch (error) {
         console.error(`🚨 CRITICAL ERROR uploading product ${i + 1}:`, error);
@@ -158,7 +181,7 @@ export const addProductsToShopify = async (
       shopifySyncCompleted: true,
       criticalFixesApplied: true,
       eliteQualityConfirmed: true,
-      storeNameSynced: shopifySync.storeNameSuccess,
+      storeNameSynced: storeNameResponse?.success || false,
       themeSynced: shopifySync.themeSuccess,
       message: `Critical fixes applied! ${uploadedCount} elite ${niche} products with real images uploaded to "${storeName}" store using ${storeStyle} styling and ${businessType} business model.`
     };

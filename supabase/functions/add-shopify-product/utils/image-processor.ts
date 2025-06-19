@@ -58,7 +58,7 @@ export class ImageProcessor {
         }
 
         // Rate limiting to prevent API overload
-        await new Promise(resolve => setTimeout(resolve, 1200));
+        await new Promise(resolve => setTimeout(resolve, 1500));
         
       } catch (error) {
         console.error(`❌ ERROR uploading image ${i + 1}:`, error);
@@ -68,6 +68,16 @@ export class ImageProcessor {
 
     if (uploadedImageIds.length === 0) {
       console.error(`🚨 CRITICAL FAILURE: NO IMAGES UPLOADED for "${productTitle}"`);
+      // Try fallback with first image only
+      try {
+        const fallbackResponse = await this.uploadSingleImageFallback(productId, validImages[0], productTitle);
+        if (fallbackResponse) {
+          uploadedImageIds.push(fallbackResponse);
+          console.log(`✅ FALLBACK SUCCESS: 1 image uploaded`);
+        }
+      } catch (fallbackError) {
+        console.error(`❌ Even fallback failed:`, fallbackError);
+      }
     } else {
       console.log(`🎉 UPLOAD SUCCESS: ${uploadedImageIds.length}/${validImages.length} images uploaded`);
     }
@@ -76,6 +86,24 @@ export class ImageProcessor {
       uploadedCount: uploadedImageIds.length,
       imageIds: uploadedImageIds
     };
+  }
+
+  private async uploadSingleImageFallback(productId: string, imageUrl: string, productTitle: string): Promise<string | null> {
+    try {
+      console.log(`🔄 FALLBACK: Attempting single image upload for ${productTitle}`);
+      const response = await this.shopifyClient.uploadImage(productId, {
+        src: imageUrl,
+        alt: productTitle
+      });
+      
+      if (response && response.image && response.image.id) {
+        return response.image.id;
+      }
+      return null;
+    } catch (error) {
+      console.error(`❌ Fallback upload failed:`, error);
+      return null;
+    }
   }
 
   private async uploadWithRetry(productId: string, imageData: any, maxRetries: number): Promise<any> {
@@ -166,7 +194,7 @@ export class ImageProcessor {
         }
         
         // Rate limiting
-        await new Promise(resolve => setTimeout(resolve, 800));
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
       } catch (error) {
         console.error(`❌ Error assigning image ${i + 1}:`, error);
