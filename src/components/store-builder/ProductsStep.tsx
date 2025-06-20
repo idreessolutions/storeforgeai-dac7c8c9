@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,20 +47,37 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
 
   const currentNicheConfig = nicheConfig[formData.niche.toLowerCase()] || nicheConfig['pets'];
 
-  // Helper function to extract the actual Shopify domain
+  // FIXED: Enhanced helper function to properly extract Shopify domain from admin URLs
   const extractShopifyDomain = (shopifyUrl: string): string => {
     if (!shopifyUrl) return '';
+    
+    console.log('🔍 EXTRACTING FROM:', shopifyUrl);
+    
+    // Handle admin.shopify.com URLs: https://admin.shopify.com/store/p7vdbh-fh
+    if (shopifyUrl.includes('admin.shopify.com/store/')) {
+      const match = shopifyUrl.match(/admin\.shopify\.com\/store\/([^\/\?]+)/);
+      if (match) {
+        const storeId = match[1];
+        const domain = `${storeId}.myshopify.com`;
+        console.log('✅ EXTRACTED ADMIN URL:', storeId, '->', domain);
+        return domain;
+      }
+    }
     
     // Remove protocol if present
     let domain = shopifyUrl.replace(/^https?:\/\//, '');
     
     // If it's already a .myshopify.com domain, return it
     if (domain.includes('.myshopify.com')) {
-      return domain.split('/')[0]; // Remove any path
+      const cleanDomain = domain.split('/')[0]; // Remove any path
+      console.log('✅ ALREADY MYSHOPIFY:', cleanDomain);
+      return cleanDomain;
     }
     
     // If it's just the store name, add .myshopify.com
-    return `${domain}.myshopify.com`;
+    const finalDomain = `${domain}.myshopify.com`;
+    console.log('✅ CONSTRUCTED DOMAIN:', finalDomain);
+    return finalDomain;
   };
 
   const handleAddProducts = async () => {
@@ -97,36 +113,40 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         businessType: formData.businessType,
         storeStyle: formData.storeStyle,
         themeColor: formData.themeColor,
-        customInfo: formData.customInfo
+        customInfo: formData.customInfo,
+        originalUrl: formData.shopifyUrl
       });
+      
+      // FIXED: Extract the actual Shopify domain properly
+      const actualShopifyDomain = extractShopifyDomain(formData.shopifyUrl);
+      console.log('🎯 USING DOMAIN:', actualShopifyDomain);
+      
+      if (!actualShopifyDomain || !actualShopifyDomain.includes('.myshopify.com')) {
+        throw new Error(`Invalid Shopify domain extracted: ${actualShopifyDomain}. Please check your store URL format.`);
+      }
       
       // Step 1: Install and customize theme
       setCurrentStep(`🎨 Installing premium theme with ${formData.niche} customization...`);
       setProgress(15);
       
-      // Use the actual Shopify domain instead of the custom store name
-      const actualShopifyDomain = extractShopifyDomain(formData.shopifyUrl);
-      
-      if (actualShopifyDomain) {
-        try {
-          await installAndConfigureSenseTheme({
-            storeName: actualShopifyDomain, // Use the actual domain here
-            accessToken: formData.accessToken,
-            themeColor: formData.themeColor || currentNicheConfig.color,
-            niche: formData.niche,
-            targetAudience: formData.targetAudience,
-            businessType: formData.businessType,
-            storeStyle: formData.storeStyle,
-            customInfo: formData.customInfo
-          });
-          
-          setProgress(30);
-          setCurrentStep(`✅ Premium theme customized for ${formData.niche}`);
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        } catch (themeError) {
-          console.warn(`⚠️ Theme installation failed for ${formData.niche}, continuing with products:`, themeError);
-          setCurrentStep(`Theme installation skipped, proceeding with ${formData.niche} products...`);
-        }
+      try {
+        await installAndConfigureSenseTheme({
+          storeName: actualShopifyDomain,
+          accessToken: formData.accessToken,
+          themeColor: formData.themeColor || currentNicheConfig.color,
+          niche: formData.niche,
+          targetAudience: formData.targetAudience,
+          businessType: formData.businessType,
+          storeStyle: formData.storeStyle,
+          customInfo: formData.customInfo
+        });
+        
+        setProgress(30);
+        setCurrentStep(`✅ Premium theme customized for ${formData.niche}`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (themeError) {
+        console.warn(`⚠️ Theme installation failed for ${formData.niche}, continuing with products:`, themeError);
+        setCurrentStep(`Theme installation skipped, proceeding with ${formData.niche} products...`);
       }
 
       // Step 2: Enhanced product generation using Supabase Edge Function
@@ -134,16 +154,17 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       setProgress(40);
 
       console.log(`🤖 Calling enhanced product generation for ${formData.niche} niche`);
+      console.log('🔗 FINAL SHOPIFY URL:', `https://${actualShopifyDomain}`);
 
-      // Call the enhanced product generation service with the correct Shopify URL
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/add-shopify-product`, {
+      // FIXED: Call the edge function directly with the correct domain
+      const response = await fetch(`https://utozxityfmoxonfyvdfm.supabase.co/functions/v1/add-shopify-product`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0b3p4aXR5Zm1veG9uZnl2ZGZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NTM4OTksImV4cCI6MjA2MzUyOTg5OX0.2z4k6cS6lc-0UISH7a17lIGY9m9hPINY3up9Zd-nRrk`
         },
         body: JSON.stringify({
-          shopifyUrl: `https://${actualShopifyDomain}`, // Use the correct domain
+          shopifyUrl: `https://${actualShopifyDomain}`,
           accessToken: formData.accessToken,
           niche: formData.niche,
           themeColor: formData.themeColor || currentNicheConfig.color,
@@ -156,10 +177,13 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       });
 
       if (!response.ok) {
-        throw new Error(`Product generation failed: ${response.status} - ${await response.text()}`);
+        const errorText = await response.text();
+        console.error('❌ Edge function failed:', response.status, errorText);
+        throw new Error(`Product generation failed: ${response.status} - ${errorText || 'Unknown error'}`);
       }
 
       const result = await response.json();
+      console.log('✅ Product generation result:', result);
       
       // Simulate progress updates during product generation
       for (let i = 40; i <= 95; i += 5) {

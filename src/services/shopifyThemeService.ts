@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface ThemeConfiguration {
@@ -12,20 +11,37 @@ export interface ThemeConfiguration {
   customInfo?: string;
 }
 
-// Helper function to extract the actual Shopify domain from URL
+// FIXED: Enhanced helper function to extract the actual Shopify domain from admin URLs
 const extractShopifyDomain = (shopifyUrl: string): string => {
   if (!shopifyUrl) return '';
+  
+  console.log('🔍 THEME SERVICE - EXTRACTING FROM:', shopifyUrl);
+  
+  // Handle admin.shopify.com URLs: https://admin.shopify.com/store/p7vdbh-fh
+  if (shopifyUrl.includes('admin.shopify.com/store/')) {
+    const match = shopifyUrl.match(/admin\.shopify\.com\/store\/([^\/\?]+)/);
+    if (match) {
+      const storeId = match[1];
+      const domain = `${storeId}.myshopify.com`;
+      console.log('✅ THEME SERVICE - EXTRACTED ADMIN URL:', storeId, '->', domain);
+      return domain;
+    }
+  }
   
   // Remove protocol if present
   let domain = shopifyUrl.replace(/^https?:\/\//, '');
   
   // If it's already a .myshopify.com domain, return it
   if (domain.includes('.myshopify.com')) {
-    return domain.split('/')[0]; // Remove any path
+    const cleanDomain = domain.split('/')[0]; // Remove any path
+    console.log('✅ THEME SERVICE - ALREADY MYSHOPIFY:', cleanDomain);
+    return cleanDomain;
   }
   
   // If it's just the store name, add .myshopify.com
-  return `${domain}.myshopify.com`;
+  const finalDomain = `${domain}.myshopify.com`;
+  console.log('✅ THEME SERVICE - CONSTRUCTED DOMAIN:', finalDomain);
+  return finalDomain;
 };
 
 export const installAndConfigureSenseTheme = async (config: ThemeConfiguration): Promise<boolean> => {
@@ -40,7 +56,7 @@ export const installAndConfigureSenseTheme = async (config: ThemeConfiguration):
       themeColor: config.themeColor
     });
 
-    // Get the actual Shopify domain from the form data
+    // FIXED: Get the actual Shopify domain from the form data
     const actualShopifyDomain = extractShopifyDomain(config.storeName);
     const shopifyUrl = `https://${actualShopifyDomain}`;
 
