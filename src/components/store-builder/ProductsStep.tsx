@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,12 +43,12 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
     'kitchen': { emoji: '🍳', color: '#ff5722', description: 'Smart kitchen gadgets' },
     'gaming': { emoji: '🎮', color: '#9c27b0', description: 'Epic gaming accessories' },
     'travel': { emoji: '✈️', color: '#03a9f4', description: 'Essential travel gear' },
-    'office': { emoji: '💼', color: '#607d8b', description: 'Smart office solutions' }
+    'office': { emoji: '💼', color: '#607d8b', description: 'Smart office solutions' },
+    'toy': { emoji: '🧸', color: '#ff9800', description: 'Fun and educational toys' }
   };
 
-  const currentNicheConfig = nicheConfig[formData.niche.toLowerCase()] || nicheConfig['pets'];
+  const currentNicheConfig = nicheConfig[formData.niche.toLowerCase() as keyof typeof nicheConfig] || nicheConfig['pets'];
 
-  // FIXED: Enhanced helper function to properly extract Shopify domain from admin URLs
   const extractShopifyDomain = (shopifyUrl: string): string => {
     if (!shopifyUrl) return '';
     
@@ -117,7 +118,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         originalUrl: formData.shopifyUrl
       });
       
-      // FIXED: Extract the actual Shopify domain properly
+      // Extract the actual Shopify domain properly
       const actualShopifyDomain = extractShopifyDomain(formData.shopifyUrl);
       console.log('🎯 USING DOMAIN:', actualShopifyDomain);
       
@@ -149,14 +150,14 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         setCurrentStep(`Theme installation skipped, proceeding with ${formData.niche} products...`);
       }
 
-      // Step 2: Enhanced product generation using Supabase Edge Function
+      // Step 2: Enhanced product generation using fixed Supabase Edge Function
       setCurrentStep(`${currentNicheConfig.emoji} AI is analyzing trending ${formData.niche} products...`);
       setProgress(40);
 
-      console.log(`🤖 Calling enhanced product generation for ${formData.niche} niche`);
+      console.log(`🤖 Calling FIXED product generation for ${formData.niche} niche`);
       console.log('🔗 FINAL SHOPIFY URL:', `https://${actualShopifyDomain}`);
 
-      // FIXED: Call the edge function directly with the correct domain
+      // Call the FIXED edge function with correct parameters
       const response = await fetch(`https://utozxityfmoxonfyvdfm.supabase.co/functions/v1/add-shopify-product`, {
         method: 'POST',
         headers: {
@@ -185,6 +186,10 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       const result = await response.json();
       console.log('✅ Product generation result:', result);
       
+      if (!result.success) {
+        throw new Error(result.error || 'Product generation failed');
+      }
+      
       // Simulate progress updates during product generation
       for (let i = 40; i <= 95; i += 5) {
         setProgress(i);
@@ -199,7 +204,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       
       toast({
         title: `🏆 AI-Powered ${formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Store Complete!`,
-        description: `Your ${formData.niche} store now has 10 trending products with premium theme and AI-optimized content!`,
+        description: `Your ${formData.niche} store now has ${result.successCount || 10} trending products with premium theme and AI-optimized content!`,
       });
 
     } catch (error) {
@@ -313,7 +318,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               <h4 className="font-semibold text-red-800">Setup Failed</h4>
               <p className="text-red-700 text-sm mt-1">{error}</p>
               <p className="text-red-600 text-xs mt-2">
-                Supported niches: pets, fitness, beauty, tech, baby, home, fashion, kitchen, gaming, travel, office
+                Supported niches: pets, fitness, beauty, tech, baby, home, fashion, kitchen, gaming, travel, office, toy
               </p>
             </div>
           </div>
