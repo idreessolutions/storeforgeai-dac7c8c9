@@ -48,6 +48,22 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
 
   const currentNicheConfig = nicheConfig[formData.niche.toLowerCase()] || nicheConfig['pets'];
 
+  // Helper function to extract the actual Shopify domain
+  const extractShopifyDomain = (shopifyUrl: string): string => {
+    if (!shopifyUrl) return '';
+    
+    // Remove protocol if present
+    let domain = shopifyUrl.replace(/^https?:\/\//, '');
+    
+    // If it's already a .myshopify.com domain, return it
+    if (domain.includes('.myshopify.com')) {
+      return domain.split('/')[0]; // Remove any path
+    }
+    
+    // If it's just the store name, add .myshopify.com
+    return `${domain}.myshopify.com`;
+  };
+
   const handleAddProducts = async () => {
     console.log(`🚀 Starting AI product generation workflow for ${formData.niche}:`, formData);
     
@@ -88,12 +104,13 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       setCurrentStep(`🎨 Installing premium theme with ${formData.niche} customization...`);
       setProgress(15);
       
-      const storeName = extractStoreName(formData.shopifyUrl);
+      // Use the actual Shopify domain instead of the custom store name
+      const actualShopifyDomain = extractShopifyDomain(formData.shopifyUrl);
       
-      if (storeName) {
+      if (actualShopifyDomain) {
         try {
           await installAndConfigureSenseTheme({
-            storeName: formData.storeName || storeName,
+            storeName: actualShopifyDomain, // Use the actual domain here
             accessToken: formData.accessToken,
             themeColor: formData.themeColor || currentNicheConfig.color,
             niche: formData.niche,
@@ -118,14 +135,15 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
 
       console.log(`🤖 Calling enhanced product generation for ${formData.niche} niche`);
 
-      // Call the enhanced product generation service
-      const response = await fetch('/api/generate-products', {
+      // Call the enhanced product generation service with the correct Shopify URL
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/add-shopify-product`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
         },
         body: JSON.stringify({
-          shopifyUrl: formData.shopifyUrl,
+          shopifyUrl: `https://${actualShopifyDomain}`, // Use the correct domain
           accessToken: formData.accessToken,
           niche: formData.niche,
           themeColor: formData.themeColor || currentNicheConfig.color,

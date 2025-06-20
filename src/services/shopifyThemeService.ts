@@ -12,6 +12,22 @@ export interface ThemeConfiguration {
   customInfo?: string;
 }
 
+// Helper function to extract the actual Shopify domain from URL
+const extractShopifyDomain = (shopifyUrl: string): string => {
+  if (!shopifyUrl) return '';
+  
+  // Remove protocol if present
+  let domain = shopifyUrl.replace(/^https?:\/\//, '');
+  
+  // If it's already a .myshopify.com domain, return it
+  if (domain.includes('.myshopify.com')) {
+    return domain.split('/')[0]; // Remove any path
+  }
+  
+  // If it's just the store name, add .myshopify.com
+  return `${domain}.myshopify.com`;
+};
+
 export const installAndConfigureSenseTheme = async (config: ThemeConfiguration): Promise<boolean> => {
   try {
     console.log('🎨 Installing and configuring theme for personalized store...');
@@ -24,13 +40,19 @@ export const installAndConfigureSenseTheme = async (config: ThemeConfiguration):
       themeColor: config.themeColor
     });
 
+    // Get the actual Shopify domain from the form data
+    const actualShopifyDomain = extractShopifyDomain(config.storeName);
+    const shopifyUrl = `https://${actualShopifyDomain}`;
+
+    console.log('🔗 Using Shopify URL:', shopifyUrl);
+
     // Step 1: Update store name in Shopify admin settings
-    await updateShopifyStoreName(config.storeName, config.accessToken);
+    await updateShopifyStoreName(config.storeName, config.accessToken, shopifyUrl);
 
     // Step 2: Use Supabase edge function to install and configure theme with full personalization
     const { data, error } = await supabase.functions.invoke('install-shopify-theme', {
       body: {
-        shopifyUrl: `https://${config.storeName}.myshopify.com`,
+        shopifyUrl: shopifyUrl,
         accessToken: config.accessToken,
         themeColor: config.themeColor,
         niche: config.niche,
@@ -68,16 +90,15 @@ export const installAndConfigureSenseTheme = async (config: ThemeConfiguration):
   }
 };
 
-const updateShopifyStoreName = async (storeName: string, accessToken: string): Promise<boolean> => {
+const updateShopifyStoreName = async (storeName: string, accessToken: string, shopifyUrl: string): Promise<boolean> => {
   try {
     console.log(`🏪 Updating Shopify store name to: ${storeName}`);
 
-    // Extract store domain from access token context or construct it
-    // We'll use the supabase edge function to handle this
     const { data, error } = await supabase.functions.invoke('update-shopify-store-name', {
       body: {
         storeName: storeName,
-        accessToken: accessToken
+        accessToken: accessToken,
+        shopifyUrl: shopifyUrl
       }
     });
 
