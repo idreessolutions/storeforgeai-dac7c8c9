@@ -1,211 +1,185 @@
 
-import { useState } from "react";
-import { generateWinningProducts } from "@/services/productService";
-import { installAndConfigureSenseTheme } from "@/services/shopifyThemeService";
-import { toast } from "sonner";
-import { useStoreSession } from "@/hooks/useStoreSession";
+import { useState, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export interface FormData {
-  // Store Details
   storeName: string;
   niche: string;
   targetAudience: string;
   businessType: string;
   storeStyle: string;
   customInfo: string;
-  
-  // Shopify Setup
   shopifyUrl: string;
   accessToken: string;
-  
-  // Theme/Design
-  selectedColor: string;
-  
-  // Additional fields to match StepRenderer expectations
-  additionalInfo: string;
   planActivated: boolean;
-  themeColor: string;
+  selectedColor: string;
   productsAdded: boolean;
   mentorshipRequested: boolean;
   createdViaAffiliate: boolean;
-  
-  // Progress tracking
-  progress: number;
-  currentProduct: string;
 }
 
 export const useStoreBuilderLogic = () => {
-  const { saveSessionData } = useStoreSession();
-  
-  // CRITICAL FIX: Start from step 0 (Get Started), allow progression to step 8 (Launch)
-  const [currentStep, setCurrentStep] = useState(0);
+  const { toast } = useToast();
+  const [currentStep, setCurrentStep] = useState(0); // Start at 0 (Get Started)
   const [isGenerating, setIsGenerating] = useState(false);
   const [formData, setFormData] = useState<FormData>({
-    // Store Details
-    storeName: '',
-    niche: '',
-    targetAudience: '',
-    businessType: '',
-    storeStyle: '',
-    customInfo: '',
-    
-    // Shopify Setup  
-    shopifyUrl: '',
-    accessToken: '',
-    
-    // Theme/Design
-    selectedColor: '#1E40AF',
-    
-    // Additional fields
-    additionalInfo: '',
+    storeName: "",
+    niche: "",
+    targetAudience: "",
+    businessType: "",
+    storeStyle: "",
+    customInfo: "",
+    shopifyUrl: "",
+    accessToken: "",
     planActivated: false,
-    themeColor: '#1E40AF',
+    selectedColor: "#3B82F6",
     productsAdded: false,
     mentorshipRequested: false,
     createdViaAffiliate: false,
-    
-    // Progress tracking
-    progress: 0,
-    currentProduct: '',
   });
 
-  const handleInputChange = (field: keyof FormData, value: string | boolean) => {
-    setFormData(prev => {
-      const updated = {
-        ...prev,
-        [field]: value
-      };
-      
-      // Keep customInfo and additionalInfo in sync
-      if (field === 'customInfo') {
-        updated.additionalInfo = value as string;
-      } else if (field === 'additionalInfo') {
-        updated.customInfo = value as string;
-      }
-      
-      // Keep selectedColor and themeColor in sync
-      if (field === 'selectedColor') {
-        updated.themeColor = value as string;
-      } else if (field === 'themeColor') {
-        updated.selectedColor = value as string;
-      }
-      
-      return updated;
-    });
-  };
+  const handleInputChange = useCallback((field: keyof FormData, value: string | boolean) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
 
-  // Enhanced validation function that works silently
-  const validateCurrentStep = (step: number): { isValid: boolean; missingFields: string[] } => {
+  const validateCurrentStep = useCallback((step: number): { isValid: boolean; missingFields: string[] } => {
     const missingFields: string[] = [];
 
     switch (step) {
-      case 1: // Store Details Step - All fields required but validation is silent
-        if (!formData.storeName?.trim()) missingFields.push("Store Name");
-        if (!formData.niche?.trim()) missingFields.push("Store Niche");
-        if (!formData.targetAudience?.trim()) missingFields.push("Target Audience");
-        if (!formData.businessType?.trim()) missingFields.push("Business Type");
-        if (!formData.storeStyle?.trim()) missingFields.push("Store Style Preference");
+      case 0: // Get Started - always valid
+        return { isValid: true, missingFields: [] };
+      case 1: // Store Details
+        if (!formData.storeName.trim()) missingFields.push("Store Name");
+        if (!formData.niche.trim()) missingFields.push("Niche");
+        if (!formData.targetAudience.trim()) missingFields.push("Target Audience");
+        if (!formData.businessType.trim()) missingFields.push("Business Type");
+        if (!formData.storeStyle.trim()) missingFields.push("Store Style");
         break;
-      
+      case 2: // Color Selection
+        if (!formData.selectedColor.trim()) missingFields.push("Theme Color");
+        break;
       case 3: // Shopify Setup
-        if (!formData.shopifyUrl?.trim()) missingFields.push("Shopify Store URL");
+        if (!formData.shopifyUrl.trim()) missingFields.push("Shopify URL");
         break;
-        
       case 4: // API Config
-        if (!formData.accessToken?.trim()) missingFields.push("Shopify Access Token");
+        if (!formData.accessToken.trim()) missingFields.push("Access Token");
         break;
-        
-      default:
-        // No validation needed for other steps
+      case 5: // Activate Trial
+        if (!formData.planActivated) missingFields.push("Plan Activation");
+        break;
+      case 6: // Products
+        if (!formData.productsAdded) missingFields.push("Products");
+        break;
+      case 7: // Mentorship
+        // No validation needed - optional step
+        break;
+      case 8: // Launch
+        // Final step - always valid
         break;
     }
 
-    return {
-      isValid: missingFields.length === 0,
-      missingFields
-    };
-  };
+    return { isValid: missingFields.length === 0, missingFields };
+  }, [formData]);
 
-  const handleNextStep = async () => {
-    console.log('🚀 CRITICAL: Next step clicked, current step:', currentStep);
-    
+  const saveSessionData = useCallback(async (stepToSave: number) => {
     try {
-      // CRITICAL FIX: Allow progression to step 8 (Launch) - step 8 is the final step
-      if (currentStep >= 8) {
-        console.log('✅ FINAL STEP REACHED: Already at Launch step (8)');
-        toast.success('🎉 Congratulations! Your store is ready to launch!');
-        return;
-      }
+      const sessionData = {
+        completed_steps: stepToSave,
+        niche: formData.niche,
+        target_audience: formData.targetAudience,
+        business_type: formData.businessType,
+        store_style: formData.storeStyle,
+        additional_info: formData.customInfo,
+        shopify_url: formData.shopifyUrl,
+        access_token: formData.accessToken,
+        plan_activated: formData.planActivated,
+        theme_color: formData.selectedColor,
+        products_added: formData.productsAdded,
+        mentorship_requested: formData.mentorshipRequested,
+        created_via_affiliate: formData.createdViaAffiliate,
+      };
 
-      // CRITICAL FIX: Skip validation for Get Started step (step 0)
-      if (currentStep > 0) {
-        const validation = validateCurrentStep(currentStep);
-        
-        if (!validation.isValid) {
-          console.log('❌ Validation failed for step', currentStep, '- Missing fields:', validation.missingFields);
-          return;
-        }
-      }
+      console.log('Saving session data:', sessionData);
 
-      // Special logging for store details completion
-      if (currentStep === 1) {
-        console.log('✅ Store details completed:', {
-          storeName: formData.storeName,
-          niche: formData.niche,
-          targetAudience: formData.targetAudience,
-          businessType: formData.businessType,
-          storeStyle: formData.storeStyle,
-          customInfo: formData.customInfo
-        });
-      }
+      const { error } = await supabase
+        .from('store_builder_sessions')
+        .upsert(sessionData);
 
-      // Save session data with ALL store personalization details
-      if (currentStep > 0) {
-        await saveSessionData({
-          completed_steps: Math.min(currentStep + 1, 8), // CRITICAL: Allow saving step 8
-          niche: formData.niche,
-          target_audience: formData.targetAudience,
-          business_type: formData.businessType,
-          store_style: formData.storeStyle,
-          additional_info: formData.customInfo,
-          shopify_url: formData.shopifyUrl,
-          access_token: formData.accessToken,
-          plan_activated: formData.planActivated,
-          theme_color: formData.selectedColor,
-          products_added: formData.productsAdded,
-          mentorship_requested: formData.mentorshipRequested,
-          created_via_affiliate: formData.createdViaAffiliate
-        });
+      if (error) {
+        console.error('Session save error:', error);
+      } else {
+        console.log('Session updated successfully');
       }
-      
-      // CRITICAL FIX: Increment step but cap at 8 (Launch)
-      const nextStep = Math.min(currentStep + 1, 8);
-      setCurrentStep(nextStep);
-      
-      // Show success message for completing store details
-      if (currentStep === 1) {
-        toast.success(`✅ ${formData.storeName} store details saved! AI will generate ${formData.niche} products for ${formData.targetAudience} with ${formData.storeStyle} styling`);
-      }
-
-      // CRITICAL: Special message when reaching Launch step
-      if (nextStep === 8) {
-        console.log('🎉 REACHED FINAL STEP: Launch step (8)');
-        toast.success('🚀 Congratulations! You have reached the final step - Launch Your Store!');
-      }
-      
     } catch (error) {
-      console.error('❌ Error in next step:', error);
-      toast.error('Failed to proceed to next step');
+      console.error('Error saving session:', error);
     }
-  };
+  }, [formData]);
 
-  const handlePrevStep = () => {
-    if (currentStep > 0) {
-      const prevStep = currentStep - 1;
-      setCurrentStep(prevStep);
-      console.log('⬅️ Moving to previous step:', prevStep);
+  const handleNextStep = useCallback(async () => {
+    console.log('🚀 ENHANCED: Next step clicked, current step:', currentStep);
+    
+    if (currentStep === 0) {
+      // From Get Started to Store Details (step 1)
+      setCurrentStep(1);
+      return;
     }
-  };
+
+    const validation = validateCurrentStep(currentStep);
+    if (!validation.isValid) {
+      toast({
+        title: "Please complete required fields",
+        description: `Missing: ${validation.missingFields.join(", ")}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+
+    try {
+      // ENHANCED: Always save session data before moving to next step
+      await saveSessionData(currentStep + 1);
+
+      // ENHANCED: Move to next step with proper limits
+      if (currentStep < 8) { // Allow up to step 8 (Launch)
+        const nextStep = currentStep + 1;
+        console.log(`✅ ENHANCED: Moving to step ${nextStep}`);
+        
+        if (nextStep === 8) {
+          console.log('🎉 REACHED FINAL STEP: Launch step (8)');
+        }
+        
+        setCurrentStep(nextStep);
+      } else {
+        console.log('🚨 ENHANCED: Cannot proceed beyond Launch step (8)');
+      }
+
+    } catch (error) {
+      console.error('Error in handleNextStep:', error);
+      toast({
+        title: "Error",
+        description: "Failed to proceed to next step",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [currentStep, validateCurrentStep, saveSessionData, toast]);
+
+  const handlePrevStep = useCallback(() => {
+    console.log('🔙 ENHANCED: Previous step clicked, current step:', currentStep);
+    
+    if (currentStep > 1) { // Can go back to step 1 (Store Details) minimum
+      const prevStep = currentStep - 1;
+      console.log(`✅ ENHANCED: Moving back to step ${prevStep}`);
+      setCurrentStep(prevStep);
+    } else if (currentStep === 1) {
+      // From Store Details back to Get Started
+      console.log('✅ ENHANCED: Moving back to Get Started (step 0)');
+      setCurrentStep(0);
+    }
+  }, [currentStep]);
 
   return {
     currentStep,
@@ -214,6 +188,6 @@ export const useStoreBuilderLogic = () => {
     handleInputChange,
     handleNextStep,
     handlePrevStep,
-    validateCurrentStep
+    validateCurrentStep,
   };
 };

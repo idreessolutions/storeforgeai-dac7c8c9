@@ -14,32 +14,30 @@ interface StepNavigationProps {
 }
 
 const StepNavigation = ({ steps, currentStep }: StepNavigationProps) => {
-  // CRITICAL FIX: Hide navigation for step 0 (Get Started)
+  // ENHANCED: Hide navigation for step 0 (Get Started)
   if (currentStep === 0) {
     return null;
   }
   
-  // CRITICAL FIX: Proper step display (1-8, excluding Get Started)
-  // Step 0 = Get Started (hidden)
-  // Steps 1-8 = Actual building steps (8 total steps including Launch)
-  const maxAllowedStep = 8; // FIXED: Allow step 8 (Launch)
+  // ENHANCED: Proper 8-step display (steps 1-8, excluding Get Started)
+  const maxAllowedStep = 8; // ENHANCED: Allow step 8 (Launch)
   const displayStep = Math.min(currentStep, maxAllowedStep);
-  const totalSteps = 8; // FIXED: Always show 8 steps maximum (including Launch)
-  const stepsToShow = steps.slice(1, 9); // Show steps 1-8 only (exclude Get Started, include Launch)
+  const totalSteps = 8; // ENHANCED: Always show 8 steps (including Launch)
+  const stepsToShow = steps.slice(1, 9); // Show steps 1-8 only (exclude Get Started at index 0)
   
-  console.log(`🛠️ STEP NAV CRITICAL FIX: Displaying step ${displayStep} of ${totalSteps} (current: ${currentStep})`);
+  console.log(`🛠️ ENHANCED STEP NAV: Displaying step ${displayStep} of ${totalSteps} (current: ${currentStep})`);
   console.log(`📊 Steps available:`, stepsToShow.map(s => s.title));
   
   return (
     <nav className="bg-gradient-to-r from-white via-blue-50 to-indigo-50 py-8 px-6 shadow-lg border-b border-blue-100">
       <div className="max-w-6xl mx-auto">
-        {/* CRITICAL: Progress Header */}
+        {/* ENHANCED: Progress Header */}
         <div className="text-center mb-6">
           <h2 className="text-xl font-bold text-gray-800">
             Step {displayStep} of {totalSteps}
           </h2>
           <p className="text-sm text-gray-600 mt-1">
-            {displayStep === 8 ? 'Launch Your Store!' : 'Building Your Dream Store'}
+            {displayStep === 8 ? '🎉 Launch Your Store!' : '🚀 Building Your Dream Store'}
           </p>
         </div>
         
@@ -58,7 +56,7 @@ const StepNavigation = ({ steps, currentStep }: StepNavigationProps) => {
             const isUpcoming = stepNumber > displayStep;
             const IconComponent = step.icon;
             
-            // CRITICAL: Special styling for Launch step (step 8)
+            // ENHANCED: Special styling for Launch step (step 8)
             const isLaunchStep = stepNumber === 8;
             
             return (
@@ -119,7 +117,7 @@ const StepNavigation = ({ steps, currentStep }: StepNavigationProps) => {
                   </>
                 )}
 
-                {/* CRITICAL: Special decorations for Launch step */}
+                {/* ENHANCED: Special decorations for Launch step */}
                 {isActive && isLaunchStep && (
                   <>
                     <div className="absolute -top-6 left-1/2 transform -translate-x-1/2">
@@ -127,6 +125,12 @@ const StepNavigation = ({ steps, currentStep }: StepNavigationProps) => {
                     </div>
                     <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
                       <Sparkles className="h-4 w-4 text-green-500 animate-pulse" />
+                    </div>
+                    <div className="absolute -top-2 -left-6">
+                      <Star className="h-3 w-3 text-yellow-400 animate-ping" />
+                    </div>
+                    <div className="absolute -bottom-1 -right-6">
+                      <Zap className="h-3 w-3 text-green-400 animate-pulse" />
                     </div>
                   </>
                 )}
