@@ -1,11 +1,292 @@
 
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { ShopifyAPIClient } from "../add-shopify-product/utils/shopify-api.ts";
-import { EnhancedAliExpressImageService } from "../add-shopify-product/utils/enhanced-image-service.ts";
-import { EnhancedProductGenerator } from "../add-shopify-product/utils/enhanced-product-generator.ts";
-import { VariantManager } from "../add-shopify-product/utils/variant-manager.ts";
-import { extractStoreNameFromUrl, generateUniqueHandle, applyThemeColorToDescription } from "../add-shopify-product/utils/helpers.ts";
+
+// Copy the ShopifyAPIClient class directly instead of importing
+export class ShopifyAPIClient {
+  private baseUrl: string;
+  private accessToken: string;
+
+  constructor(shopUrl: string, accessToken: string) {
+    this.baseUrl = shopUrl.replace(/\/$/, '');
+    this.accessToken = accessToken;
+  }
+
+  async createProduct(productData: any): Promise<any> {
+    console.log('🛒 Creating product in Shopify:', productData.product.title);
+    
+    const response = await fetch(`${this.baseUrl}/admin/api/2024-10/products.json`, {
+      method: 'POST',
+      headers: {
+        'X-Shopify-Access-Token': this.accessToken,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(productData)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to create product: ${response.status} - ${errorText}`);
+    }
+
+    return await response.json();
+  }
+
+  async uploadImage(productId: string, imageData: any): Promise<any> {
+    console.log(`📸 Uploading image for product ${productId}`);
+    
+    const response = await fetch(`${this.baseUrl}/admin/api/2024-10/products/${productId}/images.json`, {
+      method: 'POST',
+      headers: {
+        'X-Shopify-Access-Token': this.accessToken,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ image: imageData })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ Image upload failed: ${response.status} - ${errorText}`);
+      return null;
+    }
+
+    return await response.json();
+  }
+
+  async createVariant(productId: string, variantData: any): Promise<any> {
+    console.log(`🎯 Creating variant for product ${productId}`);
+    
+    const response = await fetch(`${this.baseUrl}/admin/api/2024-10/products/${productId}/variants.json`, {
+      method: 'POST',
+      headers: {
+        'X-Shopify-Access-Token': this.accessToken,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ variant: variantData })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ Variant creation failed: ${response.status} - ${errorText}`);
+      return null;
+    }
+
+    return await response.json();
+  }
+
+  async updateVariant(variantId: string, variantData: any): Promise<boolean> {
+    console.log(`🔄 Updating variant ${variantId}`);
+    
+    const response = await fetch(`${this.baseUrl}/admin/api/2024-10/variants/${variantId}.json`, {
+      method: 'PUT',
+      headers: {
+        'X-Shopify-Access-Token': this.accessToken,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ variant: variantData })
+    });
+
+    return response.ok;
+  }
+}
+
+// Copy the EnhancedAliExpressImageService class directly
+export class EnhancedAliExpressImageService {
+  static getRealProductImages(niche: string, productIndex: number, productTitle: string): string[] {
+    const nicheImageSets = {
+      'pets': [
+        'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=400',
+        'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=400',
+        'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=400',
+        'https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?w=400',
+        'https://images.unsplash.com/photo-1534361960057-19889db9621e?w=400',
+        'https://images.unsplash.com/photo-1518717758536-85ae29035b6d?w=400'
+      ],
+      'fitness': [
+        'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400',
+        'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400',
+        'https://images.unsplash.com/photo-1434596922112-19c563067271?w=400',
+        'https://images.unsplash.com/photo-1549476464-37392f717541?w=400',
+        'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=400',
+        'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=400'
+      ],
+      'beauty': [
+        'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400',
+        'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=400',
+        'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=400',
+        'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400',
+        'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=400',
+        'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=400'
+      ],
+      'tech': [
+        'https://images.unsplash.com/photo-1468495244123-6c6c332eeece?w=400',
+        'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400',
+        'https://images.unsplash.com/photo-1609081219090-a6d81d3085bf?w=400',
+        'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=400',
+        'https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?w=400',
+        'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400'
+      ],
+      'baby': [
+        'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=400',
+        'https://images.unsplash.com/photo-1544945827-0f4fd5de582c?w=400',
+        'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
+        'https://images.unsplash.com/photo-1552053831-71594a27632d?w=400',
+        'https://images.unsplash.com/photo-1566004100631-35d015d6a491?w=400',
+        'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=400'
+      ],
+      'home': [
+        'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400',
+        'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400',
+        'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400',
+        'https://images.unsplash.com/photo-1572297648687-0d73e7b86048?w=400',
+        'https://images.unsplash.com/photo-1501342418113-ff8de6c8bdbe?w=400',
+        'https://images.unsplash.com/photo-1604709177225-055f99402ea3?w=400'
+      ],
+      'fashion': [
+        'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400',
+        'https://images.unsplash.com/photo-1445205170230-053b83016050?w=400',
+        'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400',
+        'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=400',
+        'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=400',
+        'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=400'
+      ]
+    };
+
+    const defaultImages = [
+      'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400',
+      'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400',
+      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400',
+      'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=400',
+      'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400',
+      'https://images.unsplash.com/photo-1545558014-8692077e9b5c?w=400'
+    ];
+
+    const images = nicheImageSets[niche.toLowerCase() as keyof typeof nicheImageSets] || defaultImages;
+    const startIndex = (productIndex * 2) % images.length;
+    
+    return [
+      images[startIndex],
+      images[(startIndex + 1) % images.length],
+      images[(startIndex + 2) % images.length],
+      images[(startIndex + 3) % images.length],
+      images[(startIndex + 4) % images.length],
+      images[(startIndex + 5) % images.length]
+    ];
+  }
+}
+
+// Copy the EnhancedProductGenerator class directly
+export class EnhancedProductGenerator {
+  static generateNicheSpecificDescription(title: string, niche: string, businessType: string, storeStyle: string, targetAudience: string): string {
+    const nicheDescriptions = {
+      'pets': `Transform your pet's life with this premium ${title}. Designed specifically for pet lovers who demand the best for their furry companions. Made with high-quality materials that ensure durability and comfort.`,
+      'fitness': `Achieve your fitness goals with this professional-grade ${title}. Perfect for fitness enthusiasts who are serious about their health and performance. Built to withstand intense workouts.`,
+      'beauty': `Elevate your beauty routine with this luxurious ${title}. Crafted for those who appreciate premium skincare and beauty products. Experience the difference quality makes.`,
+      'tech': `Stay ahead with this cutting-edge ${title}. Designed for tech enthusiasts who demand innovation and performance. Features the latest technology for optimal results.`,
+      'baby': `Keep your little one safe and happy with this essential ${title}. Specially designed for caring parents who prioritize their baby's comfort and safety.`,
+      'home': `Transform your living space with this stylish ${title}. Perfect for homeowners who appreciate quality design and functionality in their home decor.`,
+      'fashion': `Express your unique style with this trendy ${title}. Designed for fashion-forward individuals who love to make a statement with their wardrobe choices.`
+    };
+
+    const baseDescription = nicheDescriptions[niche.toLowerCase() as keyof typeof nicheDescriptions] || 
+      `Discover the exceptional quality of this premium ${title}. Carefully selected for discerning customers who value excellence.`;
+
+    return `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <h2 style="color: #2c3e50; margin-bottom: 15px;">✨ Premium ${niche.charAt(0).toUpperCase() + niche.slice(1)} Product</h2>
+        <p style="font-size: 16px; margin-bottom: 20px;">${baseDescription}</p>
+        
+        <h3 style="color: #e74c3c; margin-bottom: 10px;">🎯 Key Features:</h3>
+        <ul style="padding-left: 20px; margin-bottom: 20px;">
+          <li>Premium quality materials and construction</li>
+          <li>Designed specifically for ${targetAudience.toLowerCase()}</li>
+          <li>Perfect for ${businessType} customers</li>
+          <li>Matches ${storeStyle} aesthetic perfectly</li>
+          <li>Satisfaction guaranteed</li>
+        </ul>
+        
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <h4 style="color: #28a745; margin-bottom: 10px;">🚀 Why Choose This Product?</h4>
+          <p>Join thousands of satisfied customers who have made this their go-to choice. Fast shipping, excellent customer service, and a 30-day money-back guarantee.</p>
+        </div>
+      </div>
+    `;
+  }
+
+  static generateSmartVariations(basePrice: number, niche: string): Array<{title: string, price: number, color?: string, size?: string, style?: string}> {
+    const variations = [
+      { title: "Premium Edition", price: basePrice * 1.3, style: "Premium" },
+      { title: "Deluxe Package", price: basePrice * 1.5, style: "Deluxe" }
+    ];
+
+    return variations;
+  }
+}
+
+// Copy the VariantManager class directly
+export class VariantManager {
+  private shopifyClient: ShopifyAPIClient;
+
+  constructor(shopifyClient: ShopifyAPIClient) {
+    this.shopifyClient = shopifyClient;
+  }
+
+  async updateDefaultVariant(variant: any, price: string): Promise<boolean> {
+    return await this.shopifyClient.updateVariant(variant.id, {
+      price: price,
+      compare_at_price: (parseFloat(price) * 1.3).toFixed(2)
+    });
+  }
+
+  async createProductVariant(productId: string, title: string, price: string, option: string): Promise<any> {
+    return await this.shopifyClient.createVariant(productId, {
+      option1: option,
+      price: price,
+      inventory_quantity: 100,
+      inventory_management: null
+    });
+  }
+}
+
+// Copy helper functions directly
+export const extractStoreNameFromUrl = (url: string): string => {
+  if (!url) return '';
+  
+  console.log('🔍 EXTRACTING FROM:', url);
+  
+  if (url.includes('admin.shopify.com/store/')) {
+    const match = url.match(/admin\.shopify\.com\/store\/([^\/\?]+)/);
+    if (match) {
+      const storeId = match[1];
+      console.log('✅ EXTRACTED ADMIN URL:', storeId);
+      return storeId;
+    }
+  }
+  
+  let domain = url.replace(/^https?:\/\//, '');
+  
+  if (domain.includes('.myshopify.com')) {
+    const cleanDomain = domain.split('/')[0];
+    const storeName = cleanDomain.replace('.myshopify.com', '');
+    console.log('✅ EXTRACTED MYSHOPIFY:', storeName);
+    return storeName;
+  }
+  
+  const finalStoreName = domain.split('/')[0];
+  console.log('✅ EXTRACTED GENERAL:', finalStoreName);
+  return finalStoreName;
+};
+
+export const generateUniqueHandle = (title: string, timestamp: number): string => {
+  return title.toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .substring(0, 50) + `-${timestamp}`;
+};
+
+export const applyThemeColorToDescription = (description: string, themeColor: string): string => {
+  return description.replace(/#e74c3c/g, themeColor || '#e74c3c');
+};
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -130,15 +411,13 @@ serve(async (req) => {
 
         try {
           const imagePayload = {
-            image: {
-              src: imageUrl,
-              alt: `${createdProduct.title} - Product Image ${i + 1}`,
-              position: i + 1,
-              filename: `product-${createdProduct.id}-image-${i + 1}.jpg`
-            }
+            src: imageUrl,
+            alt: `${createdProduct.title} - Product Image ${i + 1}`,
+            position: i + 1,
+            filename: `product-${createdProduct.id}-image-${i + 1}.jpg`
           };
 
-          const response = await shopifyClient.uploadImage(createdProduct.id, imagePayload.image);
+          const response = await shopifyClient.uploadImage(createdProduct.id, imagePayload);
 
           if (response && response.image && response.image.id) {
             imageIds.push(response.image.id.toString());
