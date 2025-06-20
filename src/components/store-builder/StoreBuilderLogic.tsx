@@ -39,6 +39,16 @@ export const useStoreBuilderLogic = () => {
     createdViaAffiliate: false,
   });
 
+  // Generate or get session ID
+  const [sessionId] = useState(() => {
+    let id = localStorage.getItem('storeBuilderSessionId');
+    if (!id) {
+      id = Math.random().toString(36).substring(2, 15);
+      localStorage.setItem('storeBuilderSessionId', id);
+    }
+    return id;
+  });
+
   const handleInputChange = useCallback((field: keyof FormData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   }, []);
@@ -85,6 +95,7 @@ export const useStoreBuilderLogic = () => {
   const saveSessionData = useCallback(async (stepToSave: number) => {
     try {
       const sessionData = {
+        session_id: sessionId, // FIXED: Add the missing session_id field
         completed_steps: stepToSave,
         niche: formData.niche,
         target_audience: formData.targetAudience,
@@ -114,7 +125,7 @@ export const useStoreBuilderLogic = () => {
     } catch (error) {
       console.error('Error saving session:', error);
     }
-  }, [formData]);
+  }, [formData, sessionId]);
 
   const handleNextStep = useCallback(async () => {
     console.log('🚀 ENHANCED: Next step clicked, current step:', currentStep);
