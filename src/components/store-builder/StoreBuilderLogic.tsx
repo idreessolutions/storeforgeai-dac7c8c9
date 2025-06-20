@@ -1,5 +1,6 @@
+
 import { useState } from "react";
-import { addProductsToShopify } from "@/services/productService";
+import { generateWinningProducts } from "@/services/productService";
 import { installAndConfigureSenseTheme } from "@/services/shopifyThemeService";
 import { toast } from "sonner";
 import { useStoreSession } from "@/hooks/useStoreSession";
