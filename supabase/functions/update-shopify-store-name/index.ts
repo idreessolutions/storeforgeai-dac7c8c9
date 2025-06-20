@@ -15,15 +15,15 @@ serve(async (req) => {
   try {
     const { storeName, accessToken, shopifyUrl } = await req.json();
     
-    console.log('🚨 CRITICAL STORE NAME UPDATE: Forcing store name to:', storeName);
-    console.log('🔗 Shopify URL:', shopifyUrl);
+    console.log('🚨 ENHANCED STORE SYNC: Forcing store name update:', storeName);
+    console.log('🔗 Target Shopify URL:', shopifyUrl);
 
     // Validate required parameters
     if (!storeName || !accessToken || !shopifyUrl) {
       throw new Error('Missing required parameters: storeName, accessToken, or shopifyUrl');
     }
 
-    // Extract and clean shop domain from URL
+    // Extract and clean shop domain from URL with enhanced parsing
     let shopDomain = shopifyUrl;
     if (shopifyUrl.includes('://')) {
       shopDomain = shopifyUrl.split('://')[1];
@@ -32,179 +32,128 @@ serve(async (req) => {
       shopDomain = shopDomain.slice(0, -1);
     }
     
-    // Handle admin URLs - ENHANCED parsing
+    // Enhanced admin URL parsing
     if (shopDomain.includes('admin.shopify.com/store/')) {
       const match = shopDomain.match(/admin\.shopify\.com\/store\/([^\/\?]+)/);
       if (match) {
         shopDomain = `${match[1]}.myshopify.com`;
       }
-    } else if (shopDomain.includes('.myshopify.com')) {
-      // Already in correct format
-    } else {
-      // Assume it's just the shop name
-      if (!shopDomain.includes('.')) {
-        shopDomain = `${shopDomain}.myshopify.com`;
-      }
+    } else if (!shopDomain.includes('myshopify.com')) {
+      // Handle raw store names
+      const cleanStoreName = shopDomain.replace(/[^a-zA-Z0-9-]/g, '');
+      shopDomain = `${cleanStoreName}.myshopify.com`;
     }
 
-    console.log('🎯 Target shop domain:', shopDomain);
+    console.log('🎯 ENHANCED TARGET: Final shop domain:', shopDomain);
 
-    // CRITICAL: Use shop.json endpoint correctly with HTTPS
+    // Use the correct Shopify Admin API endpoint
     const shopEndpoint = `https://${shopDomain}/admin/api/2024-10/shop.json`;
-    console.log('📍 Shop endpoint:', shopEndpoint);
+    console.log('📍 ENHANCED ENDPOINT:', shopEndpoint);
 
-    // MULTIPLE ATTEMPTS with different payloads for maximum success
-    const updateAttempts = [
-      // Attempt 1: Full store details
-      {
-        shop: {
-          name: storeName,
-          email: `hello@${storeName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
-          customer_email: `support@${storeName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
-          address1: "123 Business Street",
-          city: "Business City",
-          country: "United States",
-          zip: "10001",
-          phone: "+1-555-STORE-01"
-        }
-      },
-      // Attempt 2: Name and basic contact only
-      {
-        shop: {
-          name: storeName,
-          email: `hello@${storeName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
-          shop_owner: `${storeName} Team`
-        }
-      },
-      // Attempt 3: Name only (most likely to succeed)
-      {
-        shop: {
-          name: storeName
-        }
-      },
-      // Attempt 4: Name with shop_owner
-      {
-        shop: {
-          name: storeName,
-          shop_owner: storeName
-        }
+    // Enhanced store update with comprehensive details
+    const storeUpdatePayload = {
+      shop: {
+        name: storeName,
+        email: `hello@${storeName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
+        customer_email: `support@${storeName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
+        shop_owner: storeName,
+        phone: '+1-555-STORE-01',
+        address1: '123 Business Street',
+        city: 'Business City',
+        province: 'Business State',
+        country: 'United States',
+        zip: '10001',
+        currency: 'USD',
+        timezone: '(GMT-05:00) Eastern Time (US & Canada)',
+        unit_system: 'imperial',
+        weight_unit: 'lb'
       }
-    ];
+    };
 
-    let successfulUpdate = null;
-    let updateMode = 'failed';
+    console.log('🔄 ENHANCED UPDATE: Sending comprehensive store update...');
+    
+    const updateResponse = await fetch(shopEndpoint, {
+      method: 'PUT',
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(storeUpdatePayload),
+    });
 
-    for (let i = 0; i < updateAttempts.length; i++) {
-      try {
-        console.log(`🔄 Store update attempt ${i + 1}/${updateAttempts.length}`);
-        
-        const updateResponse = await fetch(shopEndpoint, {
-          method: 'PUT',
-          headers: {
-            'X-Shopify-Access-Token': accessToken,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(updateAttempts[i]),
-        });
+    console.log(`📡 ENHANCED RESPONSE: Store update response status: ${updateResponse.status}`);
 
-        console.log(`📡 Store update attempt ${i + 1} response status:`, updateResponse.status);
-
-        if (updateResponse.ok) {
-          const result = await updateResponse.json();
-          successfulUpdate = result;
-          updateMode = i === 0 ? 'complete' : i === 1 ? 'enhanced' : i === 2 ? 'basic' : 'minimal';
-          console.log(`✅ CRITICAL SUCCESS: Store name updated on attempt ${i + 1}:`, result.shop?.name);
-          break;
-        } else {
-          const errorText = await updateResponse.text();
-          console.warn(`⚠️ Store update attempt ${i + 1} failed:`, updateResponse.status, errorText);
-          
-          // Try to continue with next attempt
-          if (i < updateAttempts.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second between attempts
-            continue;
-          }
-        }
-      } catch (attemptError) {
-        console.error(`❌ Store update attempt ${i + 1} error:`, attemptError);
-        if (i < updateAttempts.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          continue;
-        }
-      }
-    }
-
-    // If all attempts failed, try a GET request to verify the store exists
-    if (!successfulUpdate) {
-      console.log('🔍 All update attempts failed, verifying store access...');
-      
-      try {
-        const verifyResponse = await fetch(shopEndpoint, {
-          method: 'GET',
-          headers: {
-            'X-Shopify-Access-Token': accessToken,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (verifyResponse.ok) {
-          const currentShop = await verifyResponse.json();
-          console.log('📊 Store verification successful, current shop:', currentShop.shop?.name);
-          
-          // Return partial success
-          return new Response(JSON.stringify({
-            success: false,
-            warning: true,
-            message: 'Store name update failed but store is accessible',
-            current_shop_name: currentShop.shop?.name,
-            intended_shop_name: storeName,
-            shop_domain: shopDomain,
-            update_mode: 'verification_only',
-            recommendation: 'Please check Shopify permissions or try updating manually'
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        } else {
-          throw new Error(`Store verification also failed: ${verifyResponse.status}`);
-        }
-      } catch (verifyError) {
-        console.error('❌ Store verification failed:', verifyError);
-      }
-    }
-
-    if (successfulUpdate) {
-      console.log('✅ FINAL SUCCESS: Store details updated successfully:', {
-        name: successfulUpdate.shop?.name,
-        email: successfulUpdate.shop?.email,
-        domain: shopDomain,
-        mode: updateMode
+    if (updateResponse.ok) {
+      const result = await updateResponse.json();
+      console.log('✅ ENHANCED SUCCESS: Store details updated successfully:', {
+        name: result.shop?.name,
+        email: result.shop?.email,
+        domain: shopDomain
       });
 
       return new Response(JSON.stringify({
         success: true,
-        message: `Store name successfully updated to "${successfulUpdate.shop?.name}"`,
-        shop_name: successfulUpdate.shop?.name || storeName,
-        shop_email: successfulUpdate.shop?.email,
+        message: `Store successfully updated to "${result.shop?.name}"`,
+        shop_name: result.shop?.name || storeName,
+        shop_email: result.shop?.email,
         shop_domain: shopDomain,
-        update_mode: updateMode,
-        shopify_response: successfulUpdate
+        update_mode: 'enhanced_complete',
+        shopify_response: result
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+
     } else {
-      throw new Error('All store name update attempts failed');
+      const errorText = await updateResponse.text();
+      console.error(`❌ ENHANCED ERROR: Store update failed: ${updateResponse.status} - ${errorText}`);
+
+      // Try fallback with minimal payload
+      console.log('🔄 ENHANCED FALLBACK: Trying minimal store name update...');
+      
+      const minimalPayload = {
+        shop: {
+          name: storeName
+        }
+      };
+
+      const fallbackResponse = await fetch(shopEndpoint, {
+        method: 'PUT',
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(minimalPayload),
+      });
+
+      if (fallbackResponse.ok) {
+        const fallbackResult = await fallbackResponse.json();
+        console.log('✅ ENHANCED FALLBACK SUCCESS: Store name updated via fallback');
+
+        return new Response(JSON.stringify({
+          success: true,
+          message: `Store name updated to "${fallbackResult.shop?.name}" (fallback mode)`,
+          shop_name: fallbackResult.shop?.name || storeName,
+          shop_domain: shopDomain,
+          update_mode: 'enhanced_fallback',
+          shopify_response: fallbackResult
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } else {
+        throw new Error(`Both enhanced and fallback store updates failed: ${fallbackResponse.status}`);
+      }
     }
 
   } catch (error) {
-    console.error('❌ CRITICAL: Store update completely failed:', error);
+    console.error('❌ ENHANCED CRITICAL ERROR: Store update completely failed:', error);
     
     return new Response(JSON.stringify({
       success: false,
-      error: error.message || 'Failed to update store name',
-      details: 'Store name update process failed - check credentials, permissions, and shop URL format',
+      error: error.message || 'Enhanced store update failed',
+      details: 'Enhanced store name synchronization failed - check credentials and permissions',
       troubleshooting: {
-        check_access_token: 'Verify your Shopify Admin API access token has write permissions',
-        check_shop_url: 'Ensure shop URL format is correct (shop-name.myshopify.com)',
+        check_access_token: 'Verify Shopify Admin API access token has write permissions',
+        check_shop_url: 'Ensure shop URL format is correct',
         check_permissions: 'Confirm API permissions include shop settings modification'
       }
     }), {
