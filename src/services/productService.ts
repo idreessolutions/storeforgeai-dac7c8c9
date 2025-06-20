@@ -1,236 +1,160 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { RealProductImageService } from "./realProductImageService";
+import { RealAliExpressImageService } from "./realAliExpressImageService";
+import { EnhancedProductGenerator } from "./enhancedProductGenerator";
 
-export const addProductsToShopify = async (
-  shopifyUrl: string,
-  accessToken: string,
-  products: any[],
-  onProgress: (progress: number, productName: string) => void,
-  themeColor: string = '#1E40AF',
-  targetAudience: string = 'general consumers',
-  businessType: string = 'general',
-  storeStyle: string = 'modern',
-  customInfo: string = '',
-  storeName: string = '',
-  niche: string = 'general'
-) => {
-  console.log(`🚨 CRITICAL: Starting GUARANTEED product upload to Shopify with REAL images for ${niche}`);
-  
-  let uploadedCount = 0;
-  const errors: string[] = [];
-
-  // CRITICAL FIX 1: Force store name sync BEFORE any product uploads
-  if (storeName && storeName.trim() !== '') {
-    onProgress(5, `🏪 Syncing store name: "${storeName}"...`);
-    
-    try {
-      console.log('🚨 CRITICAL: Forcing store name sync BEFORE product uploads:', storeName);
-      
-      const { data: storeNameResult, error: storeNameError } = await supabase.functions.invoke('update-shopify-store-name', {
-        body: {
-          storeName: storeName.trim(),
-          accessToken,
-          shopifyUrl
-        }
-      });
-
-      if (storeNameError) {
-        console.warn('⚠️ Store name sync failed:', storeNameError);
-        errors.push(`Store name sync failed: ${storeNameError.message}`);
-      } else if (storeNameResult?.success) {
-        console.log('✅ CRITICAL: Store name successfully synced:', storeNameResult.shop_name);
-      }
-    } catch (error) {
-      console.warn('⚠️ Store name sync error:', error);
-      errors.push(`Store name sync error: ${error}`);
-    }
-    
-    // Small delay to let store name sync complete
-    await new Promise(resolve => setTimeout(resolve, 2000));
-  }
-
-  // CRITICAL FIX 2: Process each product with GUARANTEED images
-  for (let i = 0; i < products.length; i++) {
-    const product = products[i];
-    const progressPercent = 10 + ((i / products.length) * 85);
-    
-    onProgress(progressPercent, `🚀 Publishing: ${product.title.substring(0, 35)}...`);
-    
-    try {
-      // GUARANTEED REAL IMAGES: Get niche-specific, verified working images
-      const imageSet = RealProductImageService.getProductImages(niche, i);
-      const productImages = imageSet.gallery;
-      
-      console.log(`🖼️ GUARANTEED IMAGES for ${niche} product ${i}:`, {
-        title: product.title.substring(0, 40),
-        mainImage: imageSet.main,
-        galleryCount: productImages.length,
-        firstImage: productImages[0]
-      });
-
-      // Create variations with specific images
-      const enhancedVariants = product.variants?.map((variant: any, varIndex: number) => {
-        const variationImages = RealProductImageService.getVariationImages(niche, i, product.variants.length);
-        return {
-          ...variant,
-          image: variationImages[varIndex] || productImages[varIndex + 1] || productImages[0]
-        };
-      }) || [];
-
-      const enhancedProduct = {
-        ...product,
-        images: productImages, // 8 guaranteed working images
-        imageUrl: imageSet.main,
-        variants: enhancedVariants,
-        niche: niche,
-        guaranteed_images: true
-      };
-
-      console.log(`🚨 UPLOADING ENHANCED PRODUCT:`, {
-        title: enhancedProduct.title.substring(0, 40),
-        images: enhancedProduct.images.length,
-        variants: enhancedProduct.variants.length,
-        niche: niche
-      });
-
-      const { data: uploadResponse, error: uploadError } = await supabase.functions.invoke('add-shopify-product', {
-        body: {
-          shopifyUrl,
-          accessToken,
-          themeColor,
-          product: enhancedProduct,
-          storeName,
-          targetAudience,
-          storeStyle,
-          businessType,
-          productIndex: i,
-          niche
-        }
-      });
-
-      if (uploadError || !uploadResponse?.success) {
-        const errorMsg = uploadError?.message || uploadResponse?.error || 'Upload failed';
-        console.error(`❌ Upload failed for ${product.title}:`, errorMsg);
-        errors.push(`${product.title}: ${errorMsg}`);
-      } else {
-        uploadedCount++;
-        console.log(`✅ GUARANTEED SUCCESS: Product uploaded with ${uploadResponse.guaranteed_images_uploaded || 0} images:`, product.title);
-      }
-
-    } catch (error) {
-      console.error(`❌ Error uploading ${product.title}:`, error);
-      errors.push(`${product.title}: ${error.message}`);
-    }
-
-    // Rate limiting between products
-    await new Promise(resolve => setTimeout(resolve, 2500));
-  }
-
-  onProgress(95, `🎯 Finalizing ${niche} store optimization...`);
-
-  // CRITICAL FIX 3: Install and configure Shopify theme
-  if (uploadedCount > 0) {
-    onProgress(98, `🎨 Installing Refresh theme with ${themeColor} branding...`);
-    
-    try {
-      const { data: themeResult, error: themeError } = await supabase.functions.invoke('install-shopify-theme', {
-        body: {
-          shopifyUrl,
-          accessToken,
-          themeColor,
-          niche,
-          storeName
-        }
-      });
-
-      if (themeError) {
-        console.warn('⚠️ Theme installation failed:', themeError);
-        errors.push(`Theme installation failed: ${themeError.message}`);
-      } else if (themeResult?.success) {
-        console.log('✅ CRITICAL: Refresh theme installed and configured');
-      }
-    } catch (error) {
-      console.warn('⚠️ Theme installation error:', error);
-      errors.push(`Theme installation error: ${error}`);
-    }
-  }
-
-  onProgress(100, `🏆 ${uploadedCount} products are now LIVE with guaranteed images!`);
-
-  console.log(`🎉 CRITICAL SUCCESS: ${uploadedCount}/${products.length} products uploaded with GUARANTEED WORKING IMAGES`);
-  
-  return {
-    success: uploadedCount > 0,
-    uploadedCount,
-    totalProducts: products.length,
-    errors,
-    niche,
-    guaranteedImages: true,
-    storeNameSynced: storeName ? 'ATTEMPTED' : 'NOT_PROVIDED',
-    themeInstalled: uploadedCount > 0 ? 'ATTEMPTED' : 'SKIPPED',
-    message: uploadedCount > 0 
-      ? `Successfully published ${uploadedCount} products with guaranteed working images!`
-      : `Failed to publish products. Errors: ${errors.join('; ')}`
-  };
-};
-
-// Enhanced winning product generator that works with real images
 export const generateWinningProducts = async (
   shopifyUrl: string,
   accessToken: string,
   niche: string,
-  onProgress: (progress: number, productName: string) => void,
-  themeColor: string = '#1E40AF',
-  targetAudience: string = 'general consumers',
-  businessType: string = 'general',
-  storeStyle: string = 'modern',
-  customInfo: string = '',
-  storeName: string = ''
-) => {
-  console.log(`🚨 CRITICAL: Starting GUARANTEED ${niche} product generation with REAL images`);
-  
+  progressCallback: (progress: number, productName: string) => void,
+  themeColor: string,
+  targetAudience: string,
+  businessType: string,
+  storeStyle: string,
+  customInfo: string,
+  storeName: string
+): Promise<void> => {
+  console.log(`🚀 GENERATING WINNING PRODUCTS: Starting for ${niche} with real AliExpress images`);
+  console.log('Store customization details:', {
+    storeName,
+    businessType,
+    storeStyle,
+    targetAudience,
+    themeColor
+  });
+
   try {
-    onProgress(10, `🧠 Generating elite ${niche} products...`);
+    // Step 1: Get winning products from AliExpress API
+    progressCallback(10, `Analyzing trending ${niche} products...`);
     
-    // Generate 10 winning products with guaranteed images
-    const { data: productsResponse, error: productsError } = await supabase.functions.invoke('get-aliexpress-products', {
+    const { data: productsData, error: productsError } = await supabase.functions.invoke('get-aliexpress-products', {
       body: {
-        niche,
-        sessionId: Date.now().toString()
+        niche: niche,
+        sessionId: `${Date.now()}_${niche}`
       }
     });
 
-    if (productsError || !productsResponse?.success) {
-      throw new Error(`Failed to generate ${niche} products: ${productsError?.message || 'Unknown error'}`);
+    if (productsError || !productsData?.success) {
+      throw new Error(`Failed to fetch products: ${productsError?.message || 'Unknown error'}`);
     }
 
-    const products = productsResponse.products?.slice(0, 10) || [];
-    
+    const products = productsData.products || [];
+    console.log(`✅ PRODUCTS FETCHED: ${products.length} winning products for ${niche}`);
+
     if (products.length === 0) {
-      throw new Error(`No ${niche} products generated`);
+      throw new Error(`No products found for niche: ${niche}`);
     }
 
-    console.log(`✅ Generated ${products.length} ${niche} products, uploading with GUARANTEED images...`);
-    
-    onProgress(20, `📦 Publishing ${products.length} ${niche} products to Shopify...`);
+    // Step 2: Process and upload products with enhanced content
+    const selectedProducts = products.slice(0, 10); // Take first 10 products
+    let successCount = 0;
+    let failureCount = 0;
 
-    return await addProductsToShopify(
-      shopifyUrl,
-      accessToken,
-      products,
-      onProgress,
-      themeColor,
-      targetAudience,
-      businessType,
-      storeStyle,
-      customInfo,
-      storeName,
-      niche
-    );
+    for (let i = 0; i < selectedProducts.length; i++) {
+      const product = selectedProducts[i];
+      const progress = 20 + ((i / selectedProducts.length) * 70);
+      
+      progressCallback(progress, `Creating "${product.title?.substring(0, 40)}..."`);
+      
+      try {
+        console.log(`🚨 PROCESSING PRODUCT ${i + 1}/10: "${product.title}" with real images`);
+
+        // Generate business model and store style specific content
+        const businessContent = EnhancedProductGenerator.generateBusinessModelContent(
+          businessType, 
+          product.title, 
+          niche
+        );
+        
+        const storeStyleData = EnhancedProductGenerator.generateStoreStyleContent(
+          storeStyle, 
+          product.title
+        );
+
+        // Generate smart variations based on niche
+        const smartVariations = EnhancedProductGenerator.generateSmartVariations(
+          product.title,
+          niche,
+          product.price || 29.99
+        );
+
+        // Get trust signals
+        const trustSignals = EnhancedProductGenerator.generateTrustSignals(niche);
+
+        // Enhanced product with real AliExpress images
+        const enhancedProduct = {
+          ...product,
+          description: `${businessContent.description}\n\n${trustSignals.join('\n')}\n\n🚚 **Fast & Free Shipping** | 🔒 **Secure Checkout** | 📞 **24/7 Support**`,
+          images: RealAliExpressImageService.getRealProductImages(niche, i, product.title),
+          variants: smartVariations.length > 0 ? smartVariations : product.variants,
+          category: niche,
+          businessModel: businessType,
+          storeStyle: storeStyle,
+          originalData: {
+            ...product.originalData,
+            real_aliexpress_images: true,
+            business_model: businessType,
+            store_style: storeStyle,
+            enhanced_content: true
+          }
+        };
+
+        console.log(`📸 REAL IMAGES ASSIGNED: ${enhancedProduct.images.length} real AliExpress images for product ${i + 1}`);
+
+        // Upload to Shopify with all customizations
+        const { data: uploadResult, error: uploadError } = await supabase.functions.invoke('add-shopify-product', {
+          body: {
+            shopifyUrl,
+            accessToken,
+            themeColor,
+            product: enhancedProduct,
+            storeName,
+            targetAudience,
+            storeStyle,
+            businessType,
+            productIndex: i,
+            niche
+          }
+        });
+
+        if (uploadError || !uploadResult?.success) {
+          console.error(`❌ PRODUCT ${i + 1} FAILED:`, uploadError?.message || 'Upload failed');
+          failureCount++;
+          continue;
+        }
+
+        successCount++;
+        console.log(`✅ PRODUCT ${i + 1} SUCCESS: "${product.title}" with ${uploadResult.real_images_uploaded || 0} real images`);
+
+        // Rate limiting between products
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+      } catch (error) {
+        console.error(`❌ ERROR processing product ${i + 1}:`, error);
+        failureCount++;
+      }
+    }
+
+    progressCallback(100, "Products uploaded successfully!");
+
+    console.log(`🎉 WINNING PRODUCTS GENERATION COMPLETE:`, {
+      niche,
+      total: selectedProducts.length,
+      success: successCount,
+      failed: failureCount,
+      businessModel: businessType,
+      storeStyle: storeStyle,
+      realImages: true,
+      storeName: storeName
+    });
+
+    if (successCount === 0) {
+      throw new Error(`Failed to upload any products for ${niche}. Please check your Shopify credentials.`);
+    }
 
   } catch (error) {
-    console.error(`❌ CRITICAL: ${niche} product generation failed:`, error);
+    console.error(`❌ CRITICAL ERROR in generateWinningProducts:`, error);
     throw error;
   }
 };

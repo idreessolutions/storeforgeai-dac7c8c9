@@ -28,23 +28,33 @@ const StoreBuilder = ({ onBack }: StoreBuilderProps) => {
     return validation.isValid;
   };
 
-  // FIXED: Correct step calculation for display
+  // FIXED: Correct step calculation - exclude "Get Started" from progress count
   // Step 0 = Get Started (not counted in progress)
   // Steps 1-7 = Actual building steps (7 total steps)
   const displayCurrentStep = currentStep === 0 ? 0 : currentStep;
   const displayTotalSteps = 7; // Choose Color, Create Store, API Config, Activate Trial, Products, Mentorship, Launch
+  
+  // CRITICAL FIX: Don't count "Get Started" in progress
   const actualProgress = currentStep === 0 ? 0 : currentStep;
+
+  console.log('🚨 STEP TRACKING DEBUG:', {
+    currentStep,
+    displayCurrentStep,
+    displayTotalSteps,
+    actualProgress,
+    stepName: storeSteps[currentStep]?.title || 'Unknown'
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 overflow-hidden">
-      {/* Header Component - FIXED step display */}
+      {/* Header Component - FIXED: Only show progress for actual building steps */}
       <Header 
         onBack={onBack} 
         currentStep={actualProgress}
         totalSteps={displayTotalSteps} 
       />
 
-      {/* Step Navigation Component - FIXED to show correct progress */}
+      {/* Step Navigation Component - FIXED: Show correct progress excluding "Get Started" */}
       <StepNavigation 
         steps={storeSteps} 
         currentStep={currentStep}
