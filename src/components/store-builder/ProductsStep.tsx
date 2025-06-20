@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle, Sparkles, Loader2, Target, Zap, Star, Trophy, ShoppingBag, Wand2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { addProductsToShopify } from "@/services/productService";
+import { generateWinningProducts } from "@/services/productService";
 import { installAndConfigureSenseTheme } from "@/services/shopifyThemeService";
 
 interface ProductsStepProps {
@@ -113,13 +113,13 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         }
       }
 
-      // Step 2: AI product generation
+      // Step 2: AI product generation - FIXED: Use generateWinningProducts instead of addProductsToShopify
       setCurrentStep(`${currentNicheConfig.emoji} AI is analyzing trending ${formData.niche} products...`);
       setProgress(40);
 
       console.log(`🤖 Calling AI product generation for ${formData.niche} niche`);
 
-      await addProductsToShopify(
+      await generateWinningProducts(
         formData.shopifyUrl,
         formData.accessToken,
         formData.niche,
@@ -132,7 +132,8 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         formData.targetAudience,
         formData.businessType,
         formData.storeStyle,
-        formData.customInfo
+        formData.customInfo,
+        formData.storeName
       );
 
       handleInputChange('productsAdded', true);
