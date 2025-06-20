@@ -15,7 +15,7 @@ serve(async (req) => {
   try {
     const { storeName, accessToken, shopifyUrl } = await req.json();
     
-    console.log('🚨 ENHANCED STORE SYNC: Forcing store name update:', storeName);
+    console.log('🏪 CRITICAL STORE SYNC: Forcing store name update:', storeName);
     console.log('🔗 Target Shopify URL:', shopifyUrl);
 
     // Validate required parameters
@@ -44,20 +44,20 @@ serve(async (req) => {
       shopDomain = `${cleanStoreName}.myshopify.com`;
     }
 
-    console.log('🎯 ENHANCED TARGET: Final shop domain:', shopDomain);
+    console.log('🎯 FINAL TARGET: Shop domain:', shopDomain);
 
     // Use the correct Shopify Admin API endpoint
     const shopEndpoint = `https://${shopDomain}/admin/api/2024-10/shop.json`;
-    console.log('📍 ENHANCED ENDPOINT:', shopEndpoint);
+    console.log('📍 API ENDPOINT:', shopEndpoint);
 
-    // Enhanced store update with comprehensive details
+    // CRITICAL: Enhanced store update with comprehensive details including phone
     const storeUpdatePayload = {
       shop: {
         name: storeName,
         email: `hello@${storeName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
         customer_email: `support@${storeName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
         shop_owner: storeName,
-        phone: '+1-555-STORE-01',
+        phone: '+12345678910', // FIXED: Adding default phone number as requested
         address1: '123 Business Street',
         city: 'Business City',
         province: 'Business State',
@@ -70,7 +70,7 @@ serve(async (req) => {
       }
     };
 
-    console.log('🔄 ENHANCED UPDATE: Sending comprehensive store update...');
+    console.log('🔄 STORE UPDATE: Sending comprehensive store update with phone number...');
     
     const updateResponse = await fetch(shopEndpoint, {
       method: 'PUT',
@@ -81,23 +81,25 @@ serve(async (req) => {
       body: JSON.stringify(storeUpdatePayload),
     });
 
-    console.log(`📡 ENHANCED RESPONSE: Store update response status: ${updateResponse.status}`);
+    console.log(`📡 STORE RESPONSE: Store update response status: ${updateResponse.status}`);
 
     if (updateResponse.ok) {
       const result = await updateResponse.json();
-      console.log('✅ ENHANCED SUCCESS: Store details updated successfully:', {
+      console.log('✅ STORE SUCCESS: Store details updated successfully:', {
         name: result.shop?.name,
         email: result.shop?.email,
+        phone: result.shop?.phone,
         domain: shopDomain
       });
 
       return new Response(JSON.stringify({
         success: true,
-        message: `Store successfully updated to "${result.shop?.name}"`,
+        message: `Store successfully updated to "${result.shop?.name}" with phone ${result.shop?.phone}`,
         shop_name: result.shop?.name || storeName,
         shop_email: result.shop?.email,
+        shop_phone: result.shop?.phone || '+12345678910',
         shop_domain: shopDomain,
-        update_mode: 'enhanced_complete',
+        update_mode: 'enhanced_complete_with_phone',
         shopify_response: result
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -105,14 +107,15 @@ serve(async (req) => {
 
     } else {
       const errorText = await updateResponse.text();
-      console.error(`❌ ENHANCED ERROR: Store update failed: ${updateResponse.status} - ${errorText}`);
+      console.error(`❌ STORE ERROR: Store update failed: ${updateResponse.status} - ${errorText}`);
 
-      // Try fallback with minimal payload
-      console.log('🔄 ENHANCED FALLBACK: Trying minimal store name update...');
+      // Try fallback with minimal payload but include phone
+      console.log('🔄 FALLBACK: Trying minimal store update with phone...');
       
       const minimalPayload = {
         shop: {
-          name: storeName
+          name: storeName,
+          phone: '+12345678910'
         }
       };
 
@@ -127,14 +130,15 @@ serve(async (req) => {
 
       if (fallbackResponse.ok) {
         const fallbackResult = await fallbackResponse.json();
-        console.log('✅ ENHANCED FALLBACK SUCCESS: Store name updated via fallback');
+        console.log('✅ FALLBACK SUCCESS: Store name and phone updated via fallback');
 
         return new Response(JSON.stringify({
           success: true,
-          message: `Store name updated to "${fallbackResult.shop?.name}" (fallback mode)`,
+          message: `Store name updated to "${fallbackResult.shop?.name}" with phone (fallback mode)`,
           shop_name: fallbackResult.shop?.name || storeName,
+          shop_phone: fallbackResult.shop?.phone || '+12345678910',
           shop_domain: shopDomain,
-          update_mode: 'enhanced_fallback',
+          update_mode: 'fallback_with_phone',
           shopify_response: fallbackResult
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -145,12 +149,12 @@ serve(async (req) => {
     }
 
   } catch (error) {
-    console.error('❌ ENHANCED CRITICAL ERROR: Store update completely failed:', error);
+    console.error('❌ CRITICAL ERROR: Store update completely failed:', error);
     
     return new Response(JSON.stringify({
       success: false,
       error: error.message || 'Enhanced store update failed',
-      details: 'Enhanced store name synchronization failed - check credentials and permissions',
+      details: 'Enhanced store name and phone synchronization failed - check credentials and permissions',
       troubleshooting: {
         check_access_token: 'Verify Shopify Admin API access token has write permissions',
         check_shop_url: 'Ensure shop URL format is correct',

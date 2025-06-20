@@ -37,7 +37,7 @@ export interface FormData {
 export const useStoreBuilderLogic = () => {
   const { saveSessionData } = useStoreSession();
   
-  // FIXED: Start from step 0 (Get Started), but step counting starts from step 1
+  // CRITICAL FIX: Start from step 0 (Get Started), allow progression to step 8 (Launch)
   const [currentStep, setCurrentStep] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [formData, setFormData] = useState<FormData>({
@@ -127,17 +127,17 @@ export const useStoreBuilderLogic = () => {
   };
 
   const handleNextStep = async () => {
-    console.log('Next step clicked, current step:', currentStep);
+    console.log('🚀 CRITICAL: Next step clicked, current step:', currentStep);
     
     try {
-      // FIXED: Don't allow beyond step 7 (Launch is the final step)
-      if (currentStep >= 7) {
-        console.log('❌ Cannot proceed beyond final step (7 - Launch)');
-        toast.error('You have reached the final step!');
+      // CRITICAL FIX: Allow progression to step 8 (Launch) - step 8 is the final step
+      if (currentStep >= 8) {
+        console.log('✅ FINAL STEP REACHED: Already at Launch step (8)');
+        toast.success('🎉 Congratulations! Your store is ready to launch!');
         return;
       }
 
-      // FIXED: Skip validation for Get Started step (step 0)
+      // CRITICAL FIX: Skip validation for Get Started step (step 0)
       if (currentStep > 0) {
         const validation = validateCurrentStep(currentStep);
         
@@ -162,7 +162,7 @@ export const useStoreBuilderLogic = () => {
       // Save session data with ALL store personalization details
       if (currentStep > 0) {
         await saveSessionData({
-          completed_steps: Math.min(currentStep + 1, 7),
+          completed_steps: Math.min(currentStep + 1, 8), // CRITICAL: Allow saving step 8
           niche: formData.niche,
           target_audience: formData.targetAudience,
           business_type: formData.businessType,
@@ -178,23 +178,32 @@ export const useStoreBuilderLogic = () => {
         });
       }
       
-      // FIXED: Increment step but cap at 7 (Launch)
-      setCurrentStep(Math.min(currentStep + 1, 7));
+      // CRITICAL FIX: Increment step but cap at 8 (Launch)
+      const nextStep = Math.min(currentStep + 1, 8);
+      setCurrentStep(nextStep);
       
       // Show success message for completing store details
       if (currentStep === 1) {
         toast.success(`✅ ${formData.storeName} store details saved! AI will generate ${formData.niche} products for ${formData.targetAudience} with ${formData.storeStyle} styling`);
       }
+
+      // CRITICAL: Special message when reaching Launch step
+      if (nextStep === 8) {
+        console.log('🎉 REACHED FINAL STEP: Launch step (8)');
+        toast.success('🚀 Congratulations! You have reached the final step - Launch Your Store!');
+      }
       
     } catch (error) {
-      console.error('Error in next step:', error);
+      console.error('❌ Error in next step:', error);
       toast.error('Failed to proceed to next step');
     }
   };
 
   const handlePrevStep = () => {
     if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
+      const prevStep = currentStep - 1;
+      setCurrentStep(prevStep);
+      console.log('⬅️ Moving to previous step:', prevStep);
     }
   };
 
