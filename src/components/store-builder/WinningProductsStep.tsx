@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, Sparkles, Loader2, Target, Zap, Star, Trophy, ShoppingBag, Wand2, TrendingUp, BarChart3, Shield, Rocket, Brain, Cpu, Award, Crown, Gem, Flame, Clock, Users, DollarSign, TrendingDown } from "lucide-react";
+import { CheckCircle, Sparkles, Loader2, Target, Zap, Star, Trophy, ShoppingBag, Wand2, TrendingUp, BarChart3, Shield, Rocket, Brain, Cpu, Award, Crown, Gem, Flame, Clock, Users, DollarSign, TrendingDown, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateWinningProducts } from "@/services/enhancedProductService";
 import { installAndConfigureSenseTheme } from "@/services/shopifyThemeService";
@@ -196,16 +196,46 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
 
   const currentNicheConfig = eliteNicheConfig[formData.niche.toLowerCase() as keyof typeof eliteNicheConfig] || eliteNicheConfig['pets'];
 
+  const validateShopifyCredentials = () => {
+    if (!formData.shopifyUrl || !formData.shopifyUrl.trim()) {
+      return "Shopify URL is required";
+    }
+    
+    if (!formData.accessToken || !formData.accessToken.trim()) {
+      return "Shopify Access Token is required";
+    }
+    
+    // Basic URL validation
+    const urlPattern = /^https?:\/\/.+/;
+    if (!urlPattern.test(formData.shopifyUrl)) {
+      return "Shopify URL must start with http:// or https://";
+    }
+    
+    return null;
+  };
+
   const handleGenerateWinningProducts = async () => {
     console.log(`🚀 ELITE ENHANCED: Starting premium ${formData.niche} product generation with advanced market intelligence`);
     
     // Enhanced validation with specific error messages
-    const requiredFields = ['shopifyUrl', 'accessToken', 'niche', 'targetAudience', 'storeName'];
+    const credentialError = validateShopifyCredentials();
+    if (credentialError) {
+      setError(credentialError);
+      toast({
+        title: "Invalid Shopify Credentials",
+        description: credentialError,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const requiredFields = ['niche', 'targetAudience', 'storeName'];
     const missingFields = requiredFields.filter(field => !formData[field]);
     
     if (missingFields.length > 0) {
       const errorMsg = `Missing critical information: ${missingFields.join(', ')}`;
       console.error('❌ Elite validation failed:', errorMsg);
+      setError(errorMsg);
       
       toast({
         title: "Missing Critical Information",
@@ -336,7 +366,16 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
       if (error instanceof Error) {
         errorMessage = error.message;
         
-        if (errorMessage.includes('No elite') || errorMessage.includes('No premium')) {
+        // Enhanced error messages based on common issues
+        if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+          errorMessage = "Invalid Shopify Access Token. Please check your credentials and try again.";
+        } else if (errorMessage.includes('404') || errorMessage.includes('Not Found')) {
+          errorMessage = "Shopify store not found. Please verify your store URL is correct.";
+        } else if (errorMessage.includes('403') || errorMessage.includes('Forbidden')) {
+          errorMessage = "Access denied. Please ensure your Shopify Access Token has the required permissions (read_products, write_products, read_themes, write_themes).";
+        } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+          errorMessage = "Network connection failed. Please check your internet connection and try again.";
+        } else if (errorMessage.includes('No elite') || errorMessage.includes('No premium')) {
           errorMessage = `No ELITE ${formData.niche} products found meeting our premium standards. Try: pets, fitness, beauty, tech, baby, home, fashion, kitchen, gaming, travel, or office.`;
         } else if (errorMessage.includes('database connection failed')) {
           errorMessage = "Elite product database connection failed. Please check configuration.";
@@ -473,10 +512,19 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
 
         {error && (
           <div className="mb-8 p-6 bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-200 rounded-2xl flex items-start gap-4 shadow-lg">
-            <Zap className="h-6 w-6 text-red-600 mt-1 flex-shrink-0" />
+            <AlertTriangle className="h-6 w-6 text-red-600 mt-1 flex-shrink-0" />
             <div>
-              <h4 className="font-bold text-red-800 text-lg">Elite Generation Failed</h4>
+              <h4 className="font-bold text-red-800 text-lg">Setup Failed</h4>
               <p className="text-red-700 mt-2">{error}</p>
+              <div className="mt-3 text-sm text-red-600">
+                <p className="font-semibold">Common Solutions:</p>
+                <ul className="list-disc list-inside mt-1 space-y-1">
+                  <li>Verify your Shopify store URL is correct</li>
+                  <li>Check that your access token has the required permissions</li>
+                  <li>Ensure your store allows API access</li>
+                  <li>Try refreshing the page and generating again</li>
+                </ul>
+              </div>
             </div>
           </div>
         )}
