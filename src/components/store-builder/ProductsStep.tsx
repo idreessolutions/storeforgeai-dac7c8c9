@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle, Sparkles, Loader2, Target, Zap, Star, Trophy, ShoppingBag, Wand2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { generateWinningProducts } from "@/services/productService";
 import { installAndConfigureSenseTheme } from "@/services/shopifyThemeService";
 
 interface ProductsStepProps {
@@ -113,29 +112,46 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         }
       }
 
-      // Step 2: AI product generation - FIXED: Use generateWinningProducts instead of addProductsToShopify
+      // Step 2: Enhanced product generation using Supabase Edge Function
       setCurrentStep(`${currentNicheConfig.emoji} AI is analyzing trending ${formData.niche} products...`);
       setProgress(40);
 
-      console.log(`🤖 Calling AI product generation for ${formData.niche} niche`);
+      console.log(`🤖 Calling enhanced product generation for ${formData.niche} niche`);
 
-      await generateWinningProducts(
-        formData.shopifyUrl,
-        formData.accessToken,
-        formData.niche,
-        (progress: number, productName: string) => {
-          setProgress(40 + (progress * 0.6));
-          setCurrentProduct(productName);
-          setCurrentStep(`🤖 AI is creating optimized ${formData.niche} products...`);
+      // Call the enhanced product generation service
+      const response = await fetch('/api/generate-products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        formData.themeColor || currentNicheConfig.color,
-        formData.targetAudience,
-        formData.businessType,
-        formData.storeStyle,
-        formData.customInfo,
-        formData.storeName
-      );
+        body: JSON.stringify({
+          shopifyUrl: formData.shopifyUrl,
+          accessToken: formData.accessToken,
+          niche: formData.niche,
+          themeColor: formData.themeColor || currentNicheConfig.color,
+          targetAudience: formData.targetAudience,
+          businessType: formData.businessType,
+          storeStyle: formData.storeStyle,
+          customInfo: formData.customInfo,
+          storeName: formData.storeName
+        })
+      });
 
+      if (!response.ok) {
+        throw new Error(`Product generation failed: ${response.status} - ${await response.text()}`);
+      }
+
+      const result = await response.json();
+      
+      // Simulate progress updates during product generation
+      for (let i = 40; i <= 95; i += 5) {
+        setProgress(i);
+        setCurrentProduct(`Creating enhanced ${formData.niche} product ${Math.ceil((i-40)/6)}...`);
+        setCurrentStep(`🤖 AI is creating optimized ${formData.niche} products...`);
+        await new Promise(resolve => setTimeout(resolve, 800));
+      }
+
+      setProgress(100);
       handleInputChange('productsAdded', true);
       setCurrentStep("🎉 Complete!");
       
@@ -151,18 +167,16 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       if (error instanceof Error) {
         errorMessage = error.message;
         
-        if (errorMessage.includes('OpenAI API key not configured')) {
-          errorMessage = "AI services are not configured. Please check your configuration.";
-        } else if (errorMessage.includes('RapidAPI key not configured')) {
-          errorMessage = "Product API is not configured. Please check your configuration.";
-        } else if (errorMessage.includes('Failed to send a request to the Edge Function')) {
-          errorMessage = "Network error connecting to AI services. Please check your internet connection and try again.";
-        } else if (errorMessage.includes('401') || errorMessage.includes('403')) {
-          errorMessage = "Authentication failed. Please check your Shopify access token.";
+        if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+          errorMessage = "Invalid Shopify Access Token. Please check your credentials and try again.";
+        } else if (errorMessage.includes('404') || errorMessage.includes('Not Found')) {
+          errorMessage = "Shopify store not found. Please verify your store URL is correct.";
+        } else if (errorMessage.includes('403') || errorMessage.includes('Forbidden')) {
+          errorMessage = "Access denied. Please ensure your Shopify Access Token has the required permissions.";
+        } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+          errorMessage = "Network connection failed. Please check your internet connection and try again.";
         } else if (errorMessage.includes('timeout')) {
           errorMessage = `The operation timed out. Please try again.`;
-        } else if (errorMessage.includes('not supported')) {
-          errorMessage = `The niche "${formData.niche}" is not supported. Please select from: pets, fitness, beauty, tech, baby, home, fashion, kitchen, gaming, travel, office.`;
         }
       }
       
