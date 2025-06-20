@@ -28,17 +28,27 @@ const StoreBuilder = ({ onBack }: StoreBuilderProps) => {
     return validation.isValid;
   };
 
+  // FIXED: Correct step calculation for display
+  // Step 0 = Get Started (not counted in progress)
+  // Steps 1-7 = Actual building steps (7 total steps)
+  const displayCurrentStep = currentStep === 0 ? 0 : currentStep;
+  const displayTotalSteps = 7; // Choose Color, Create Store, API Config, Activate Trial, Products, Mentorship, Launch
+  const actualProgress = currentStep === 0 ? 0 : currentStep;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 overflow-hidden">
-      {/* Header Component */}
+      {/* Header Component - FIXED step display */}
       <Header 
         onBack={onBack} 
-        currentStep={currentStep} 
-        totalSteps={storeSteps.length} 
+        currentStep={actualProgress}
+        totalSteps={displayTotalSteps} 
       />
 
-      {/* Step Navigation Component - Always visible */}
-      <StepNavigation steps={storeSteps} currentStep={currentStep} />
+      {/* Step Navigation Component - FIXED to show correct progress */}
+      <StepNavigation 
+        steps={storeSteps} 
+        currentStep={currentStep}
+      />
 
       {/* Main Content - Fixed height with scroll */}
       <div className="h-[calc(100vh-200px)] overflow-y-auto">
@@ -55,8 +65,8 @@ const StoreBuilder = ({ onBack }: StoreBuilderProps) => {
           {currentStep > 0 && (
             <div className="mt-6">
               <Navigation 
-                currentStep={currentStep} 
-                totalSteps={storeSteps.length} 
+                currentStep={actualProgress}
+                totalSteps={displayTotalSteps}
                 isGenerating={isGenerating}
                 onPrevious={handlePrevStep}
                 onNext={handleNextStep}

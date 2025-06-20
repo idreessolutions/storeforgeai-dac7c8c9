@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { addProductsToShopify } from "@/services/productService";
 import { installAndConfigureSenseTheme } from "@/services/shopifyThemeService";
@@ -36,6 +35,8 @@ export interface FormData {
 
 export const useStoreBuilderLogic = () => {
   const { saveSessionData } = useStoreSession();
+  
+  // FIXED: Start from step 0 (Get Started), but step counting starts from step 1
   const [currentStep, setCurrentStep] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [formData, setFormData] = useState<FormData>({
@@ -126,73 +127,58 @@ export const useStoreBuilderLogic = () => {
 
   const handleNextStep = async () => {
     console.log('Next step clicked, current step:', currentStep);
-    console.log('Store Details:', {
-      storeName: formData.storeName,
-      niche: formData.niche,
-      targetAudience: formData.targetAudience,
-      businessType: formData.businessType,
-      storeStyle: formData.storeStyle,
-      customInfo: formData.customInfo
-    });
     
     try {
-      // STRICT STEP LIMIT: Don't allow beyond step 8
-      if (currentStep >= 8) {
-        console.log('❌ Cannot proceed beyond final step (8)');
+      // FIXED: Don't allow beyond step 7 (Launch is the final step)
+      if (currentStep >= 7) {
+        console.log('❌ Cannot proceed beyond final step (7 - Launch)');
         toast.error('You have reached the final step!');
         return;
       }
 
-      // Validate current step before proceeding (silent validation)
-      const validation = validateCurrentStep(currentStep);
-      
-      if (!validation.isValid) {
-        console.log('❌ Validation failed for step', currentStep, '- Missing fields:', validation.missingFields);
-        // Don't show error to user, just prevent progression
-        return;
-      }
-
-      // Special validation for ProductsStep (step 6) preparation
-      if (currentStep === 5) { // Going TO step 6 (ProductsStep)
-        // Double-check all store details are complete
-        const storeDetailsValidation = validateCurrentStep(1);
-        if (!storeDetailsValidation.isValid) {
-          console.log('❌ Store details incomplete for ProductsStep');
+      // FIXED: Skip validation for Get Started step (step 0)
+      if (currentStep > 0) {
+        const validation = validateCurrentStep(currentStep);
+        
+        if (!validation.isValid) {
+          console.log('❌ Validation failed for step', currentStep, '- Missing fields:', validation.missingFields);
           return;
         }
-        
-        console.log('✅ All store personalization details ready for ProductsStep:', {
+      }
+
+      // Special logging for store details completion
+      if (currentStep === 1) {
+        console.log('✅ Store details completed:', {
           storeName: formData.storeName,
           niche: formData.niche,
           targetAudience: formData.targetAudience,
           businessType: formData.businessType,
           storeStyle: formData.storeStyle,
-          customInfo: formData.customInfo,
-          shopifyUrl: formData.shopifyUrl,
-          accessToken: formData.accessToken,
-          themeColor: formData.selectedColor
+          customInfo: formData.customInfo
         });
       }
 
       // Save session data with ALL store personalization details
-      await saveSessionData({
-        completed_steps: Math.min(currentStep + 1, 8), // Cap at 8
-        niche: formData.niche,
-        target_audience: formData.targetAudience,
-        business_type: formData.businessType,
-        store_style: formData.storeStyle,
-        additional_info: formData.customInfo,
-        shopify_url: formData.shopifyUrl,
-        access_token: formData.accessToken,
-        plan_activated: formData.planActivated,
-        theme_color: formData.selectedColor,
-        products_added: formData.productsAdded,
-        mentorship_requested: formData.mentorshipRequested,
-        created_via_affiliate: formData.createdViaAffiliate
-      });
+      if (currentStep > 0) {
+        await saveSessionData({
+          completed_steps: Math.min(currentStep + 1, 7),
+          niche: formData.niche,
+          target_audience: formData.targetAudience,
+          business_type: formData.businessType,
+          store_style: formData.storeStyle,
+          additional_info: formData.customInfo,
+          shopify_url: formData.shopifyUrl,
+          access_token: formData.accessToken,
+          plan_activated: formData.planActivated,
+          theme_color: formData.selectedColor,
+          products_added: formData.productsAdded,
+          mentorship_requested: formData.mentorshipRequested,
+          created_via_affiliate: formData.createdViaAffiliate
+        });
+      }
       
-      // STRICT: Don't exceed step 8
-      setCurrentStep(Math.min(currentStep + 1, 8));
+      // FIXED: Increment step but cap at 7 (Launch)
+      setCurrentStep(Math.min(currentStep + 1, 7));
       
       // Show success message for completing store details
       if (currentStep === 1) {
