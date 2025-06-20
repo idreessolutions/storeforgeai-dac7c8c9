@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -26,6 +27,23 @@ class AliExpressDropShippingAPI {
     // Generate enhanced winning products with REAL AliExpress image URLs for ANY niche
     console.log(`⚡ Generating products for "${niche}" with REAL AliExpress CDN image URLs`);
     return this.generateUniversalNicheProducts(niche);
+  }
+
+  private getUniversalNicheKeywords(niche: string): string[] {
+    const nicheKeywords: Record<string, string[]> = {
+      'pets': ['Pet Food Bowl', 'Dog Toy', 'Cat Bed', 'Pet Carrier', 'Dog Leash', 'Pet Grooming Kit', 'Cat Scratching Post', 'Pet Training Collar'],
+      'beauty': ['Makeup Brush Set', 'Skincare Serum', 'Face Mask', 'Hair Styling Tool', 'Lipstick Set', 'Eye Cream', 'Foundation', 'Perfume'],
+      'fitness': ['Resistance Bands', 'Fitness Tracker', 'Yoga Mat', 'Dumbbells', 'Protein Shaker', 'Foam Roller', 'Wireless Earbuds', 'Jump Rope'],
+      'kitchen': ['Knife Set', 'Air Fryer', 'Baking Mats', 'Mixing Bowls', 'Can Opener', 'Cutting Board', 'Food Storage', 'Kitchen Scale'],
+      'tech': ['Wireless Charger', 'Bluetooth Speaker', 'USB Hub', 'Phone Stand', 'Power Bank', 'HDMI Cable', 'Screen Protector', 'Car Mount'],
+      'home': ['LED Strip Lights', 'Oil Diffuser', 'Storage Organizer', 'Wall Clock', 'Throw Pillows', 'Table Lamp', 'Picture Frames', 'Curtains'],
+      'fashion': ['Sunglasses', 'Handbag', 'Fashion Watch', 'Jewelry Set', 'Fashion Scarf', 'Leather Belt', 'Fashion Ring', 'Hair Accessories'],
+      'jewelry': ['Necklace Set', 'Earrings', 'Bracelet', 'Ring Set', 'Watch', 'Pendant', 'Charm Bracelet', 'Jewelry Box'],
+      'automotive': ['Car Accessories', 'Phone Mount', 'Car Charger', 'Seat Covers', 'Floor Mats', 'Dashboard Camera', 'Car Organizer', 'LED Lights'],
+      'baby': ['Baby Bottle', 'Baby Carrier', 'Pacifier', 'Baby Blanket', 'Diaper Bag', 'Baby Monitor', 'High Chair', 'Baby Toys']
+    };
+    
+    return nicheKeywords[niche.toLowerCase()] || nicheKeywords['pets']; // Default fallback
   }
 
   private generateUniversalNicheProducts(niche: string): any[] {
