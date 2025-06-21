@@ -149,6 +149,46 @@ export class EnhancedAliExpressImageService {
         'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=400',
         'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=400',
         'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=400'
+      ],
+      'kitchen': [
+        'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400',
+        'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400',
+        'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400',
+        'https://images.unsplash.com/photo-1572297648687-0d73e7b86048?w=400',
+        'https://images.unsplash.com/photo-1501342418113-ff8de6c8bdbe?w=400',
+        'https://images.unsplash.com/photo-1604709177225-055f99402ea3?w=400'
+      ],
+      'gaming': [
+        'https://images.unsplash.com/photo-1493711662062-fa541adb3fc8?w=400',
+        'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400',
+        'https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=400',
+        'https://images.unsplash.com/photo-1552820728-909c6c077661?w=400',
+        'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400',
+        'https://images.unsplash.com/photo-1548092372-0d1bd40894a3?w=400'
+      ],
+      'travel': [
+        'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400',
+        'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400',
+        'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400',
+        'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=400',
+        'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400',
+        'https://images.unsplash.com/photo-1502602898536-47ad22581b52?w=400'
+      ],
+      'office': [
+        'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?w=400',
+        'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400',
+        'https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=400',
+        'https://images.unsplash.com/photo-1531973576160-7125cd663d86?w=400',
+        'https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=400',
+        'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=400'
+      ],
+      'toy': [
+        'https://images.unsplash.com/photo-1558877385-8c3cf1869973?w=400',
+        'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=400',
+        'https://images.unsplash.com/photo-1566004100631-35d015d6a491?w=400',
+        'https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?w=400',
+        'https://images.unsplash.com/photo-1632482434103-b3c55c6ac2fb?w=400',
+        'https://images.unsplash.com/photo-1595433707802-6b2626ef1c91?w=400'
       ]
     };
 
@@ -185,7 +225,12 @@ export class EnhancedProductGenerator {
       'tech': `Stay ahead with this cutting-edge ${title}. Designed for tech enthusiasts who demand innovation and performance. Features the latest technology for optimal results.`,
       'baby': `Keep your little one safe and happy with this essential ${title}. Specially designed for caring parents who prioritize their baby's comfort and safety.`,
       'home': `Transform your living space with this stylish ${title}. Perfect for homeowners who appreciate quality design and functionality in their home decor.`,
-      'fashion': `Express your unique style with this trendy ${title}. Designed for fashion-forward individuals who love to make a statement with their wardrobe choices.`
+      'fashion': `Express your unique style with this trendy ${title}. Designed for fashion-forward individuals who love to make a statement with their wardrobe choices.`,
+      'kitchen': `Elevate your cooking experience with this innovative ${title}. Perfect for home chefs who appreciate quality kitchen tools and gadgets.`,
+      'gaming': `Level up your gaming experience with this premium ${title}. Designed for serious gamers who demand performance and reliability.`,
+      'travel': `Make your travels more comfortable with this essential ${title}. Perfect for adventurers who value convenience and quality on the go.`,
+      'office': `Boost your productivity with this professional ${title}. Ideal for professionals who value efficiency and quality in their workspace.`,
+      'toy': `Spark imagination and creativity with this amazing ${title}. Perfect for children and parents who appreciate safe, educational, and fun toys.`
     };
 
     const baseDescription = nicheDescriptions[niche.toLowerCase() as keyof typeof nicheDescriptions] || 
