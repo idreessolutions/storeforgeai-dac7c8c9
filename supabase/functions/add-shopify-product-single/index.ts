@@ -2,7 +2,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-// Copy the ShopifyAPIClient class directly instead of importing
+// ShopifyAPIClient class - copied directly to avoid import issues
 export class ShopifyAPIClient {
   private baseUrl: string;
   private accessToken: string;
@@ -90,7 +90,7 @@ export class ShopifyAPIClient {
   }
 }
 
-// Copy the EnhancedAliExpressImageService class directly
+// EnhancedAliExpressImageService class - copied directly
 export class EnhancedAliExpressImageService {
   static getRealProductImages(niche: string, productIndex: number, productTitle: string): string[] {
     const nicheImageSets = {
@@ -215,7 +215,7 @@ export class EnhancedAliExpressImageService {
   }
 }
 
-// Copy the EnhancedProductGenerator class directly
+// EnhancedProductGenerator class - copied directly
 export class EnhancedProductGenerator {
   static generateNicheSpecificDescription(title: string, niche: string, businessType: string, storeStyle: string, targetAudience: string): string {
     const nicheDescriptions = {
@@ -268,7 +268,7 @@ export class EnhancedProductGenerator {
   }
 }
 
-// Copy the VariantManager class directly
+// VariantManager class - copied directly
 export class VariantManager {
   private shopifyClient: ShopifyAPIClient;
 
@@ -293,7 +293,7 @@ export class VariantManager {
   }
 }
 
-// Copy helper functions directly
+// Helper functions - copied directly
 export const extractStoreNameFromUrl = (url: string): string => {
   if (!url) return '';
   
