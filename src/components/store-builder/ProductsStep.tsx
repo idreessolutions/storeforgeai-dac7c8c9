@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { CheckCircle, Sparkles, Loader2, Target, Zap, Star, Trophy, ShoppingBag, Wand2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { installAndConfigureSenseTheme } from "@/services/shopifyThemeService";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProductsStepProps {
   formData: {
@@ -31,7 +31,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
   const [error, setError] = useState("");
   const { toast } = useToast();
 
-  // Enhanced niche configurations for ALL 11 supported niches
+  // Enhanced niche configurations for ALL 12 supported niches
   const nicheConfig = {
     'pets': { emoji: '🐾', color: '#ff6600', description: 'Premium pet care essentials' },
     'fitness': { emoji: '💪', color: '#00cc66', description: 'Powerful fitness equipment' },
@@ -150,21 +150,16 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         setCurrentStep(`Theme installation skipped, proceeding with ${formData.niche} products...`);
       }
 
-      // Step 2: Enhanced product generation using fixed Supabase Edge Function
+      // Step 2: Enhanced product generation using Supabase edge function
       setCurrentStep(`${currentNicheConfig.emoji} AI is analyzing trending ${formData.niche} products...`);
       setProgress(40);
 
-      console.log(`🤖 Calling FIXED product generation for ${formData.niche} niche`);
+      console.log(`🤖 Calling product generation for ${formData.niche} niche`);
       console.log('🔗 FINAL SHOPIFY URL:', `https://${actualShopifyDomain}`);
 
-      // Call the FIXED edge function with correct parameters
-      const response = await fetch(`https://utozxityfmoxonfyvdfm.supabase.co/functions/v1/add-shopify-product`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0b3p4aXR5Zm1veG9uZnl2ZGZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5NTM4OTksImV4cCI6MjA2MzUyOTg5OX0.2z4k6cS6lc-0UISH7a17lIGY9m9hPINY3up9Zd-nRrk`
-        },
-        body: JSON.stringify({
+      // Call the edge function using Supabase client
+      const { data: result, error } = await supabase.functions.invoke('add-shopify-product', {
+        body: {
           shopifyUrl: `https://${actualShopifyDomain}`,
           accessToken: formData.accessToken,
           niche: formData.niche,
@@ -174,20 +169,18 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
           storeStyle: formData.storeStyle,
           customInfo: formData.customInfo,
           storeName: formData.storeName
-        })
+        }
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Edge function failed:', response.status, errorText);
-        throw new Error(`Product generation failed: ${response.status} - ${errorText || 'Unknown error'}`);
+      if (error) {
+        console.error('❌ Edge function failed:', error);
+        throw new Error(`Product generation failed: ${error.message || 'Unknown error'}`);
       }
 
-      const result = await response.json();
       console.log('✅ Product generation result:', result);
       
-      if (!result.success) {
-        throw new Error(result.error || 'Product generation failed');
+      if (!result?.success) {
+        throw new Error(result?.error || 'Product generation failed');
       }
       
       // Simulate progress updates during product generation
@@ -239,31 +232,6 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       setProgress(0);
       setCurrentProduct("");
       setCurrentStep("");
-    }
-  };
-
-  const extractStoreName = (url: string): string | null => {
-    try {
-      const cleanUrl = url.replace(/^https?:\/\//, '').toLowerCase();
-      
-      if (cleanUrl.includes('admin.shopify.com/store/')) {
-        const match = cleanUrl.match(/admin\.shopify\.com\/store\/([^\/\?]+)/);
-        return match ? match[1] : null;
-      }
-      
-      if (cleanUrl.includes('.myshopify.com')) {
-        const match = cleanUrl.match(/([^\/\.]+)\.myshopify\.com/);
-        return match ? match[1] : null;
-      }
-      
-      if (!cleanUrl.includes('.') && !cleanUrl.includes('/')) {
-        return cleanUrl;
-      }
-      
-      return null;
-    } catch (error) {
-      console.error('Error extracting store name:', error);
-      return null;
     }
   };
 
