@@ -31,7 +31,7 @@ serve(async (req) => {
       throw new Error('Missing required parameters: shopifyUrl, accessToken, or niche');
     }
 
-    // Get products from the new products service with timeout
+    // Get products from the new products service with longer timeout
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -40,9 +40,9 @@ serve(async (req) => {
     console.log('🔍 Fetching products for niche:', niche);
     
     try {
-      // Add timeout to the products fetch
+      // Increased timeout to 25 seconds for product fetching
       const productsTimeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Products fetch timeout')), 15000) // 15 seconds
+        setTimeout(() => reject(new Error('Products fetch timeout')), 25000)
       );
 
       const productsPromise = supabase.functions.invoke('get-aliexpress-products', {
@@ -73,8 +73,8 @@ serve(async (req) => {
         throw new Error(`No products found for niche: ${niche}`);
       }
 
-      // Process first 5 products instead of 10 to reduce timeout risk
-      const productsToAdd = products.slice(0, 5);
+      // Process first 3 products to reduce total processing time
+      const productsToAdd = products.slice(0, 3);
       const results = [];
       let successCount = 0;
 
@@ -104,9 +104,9 @@ serve(async (req) => {
             niche
           };
 
-          // Call the single product creation function with shorter timeout
+          // Increased timeout to 45 seconds per product
           const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Product creation timeout')), 20000) // 20 seconds
+            setTimeout(() => reject(new Error('Product creation timeout')), 45000)
           );
 
           const createPromise = supabase.functions.invoke('add-shopify-product-single', {
@@ -134,8 +134,8 @@ serve(async (req) => {
           results.push({ success: false, error: productError.message, product: product.title });
         }
 
-        // Shorter rate limiting between products
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Reduced rate limiting between products
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
 
       console.log(`🎉 BULK GENERATION COMPLETE: ${successCount}/${productsToAdd.length} products created`);
