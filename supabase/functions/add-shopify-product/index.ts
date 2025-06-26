@@ -31,7 +31,7 @@ serve(async (req) => {
       throw new Error('Missing required parameters: shopifyUrl, accessToken, or niche');
     }
 
-    // Get products from the new products service
+    // Get products from the new products service with timeout
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -40,12 +40,21 @@ serve(async (req) => {
     console.log('🔍 Fetching products for niche:', niche);
     
     try {
-      const { data: productsData, error: productsError } = await supabase.functions.invoke('get-aliexpress-products', {
+      // Add timeout to the products fetch
+      const productsTimeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Products fetch timeout')), 15000) // 15 seconds
+      );
+
+      const productsPromise = supabase.functions.invoke('get-aliexpress-products', {
         body: {
           niche: niche,
           sessionId: `session_${Date.now()}`
         }
       });
+
+      const productsResponse = await Promise.race([productsPromise, productsTimeoutPromise]);
+      const productsData = productsResponse.data;
+      const productsError = productsResponse.error;
 
       if (productsError) {
         console.error('❌ Failed to get products - error object:', productsError);
@@ -64,8 +73,8 @@ serve(async (req) => {
         throw new Error(`No products found for niche: ${niche}`);
       }
 
-      // Process first 10 products
-      const productsToAdd = products.slice(0, 10);
+      // Process first 5 products instead of 10 to reduce timeout risk
+      const productsToAdd = products.slice(0, 5);
       const results = [];
       let successCount = 0;
 
@@ -95,16 +104,18 @@ serve(async (req) => {
             niche
           };
 
-          // Call the single product creation function with timeout
+          // Call the single product creation function with shorter timeout
           const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Product creation timeout')), 30000)
+            setTimeout(() => reject(new Error('Product creation timeout')), 20000) // 20 seconds
           );
 
           const createPromise = supabase.functions.invoke('add-shopify-product-single', {
             body: productPayload
           });
 
-          const { data: result, error } = await Promise.race([createPromise, timeoutPromise]);
+          const createResponse = await Promise.race([createPromise, timeoutPromise]);
+          const result = createResponse.data;
+          const error = createResponse.error;
 
           if (error) {
             console.error(`❌ Product ${i + 1} failed:`, error);
@@ -123,8 +134,8 @@ serve(async (req) => {
           results.push({ success: false, error: productError.message, product: product.title });
         }
 
-        // Rate limiting between products
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Shorter rate limiting between products
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
       console.log(`🎉 BULK GENERATION COMPLETE: ${successCount}/${productsToAdd.length} products created`);

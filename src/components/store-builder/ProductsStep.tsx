@@ -126,40 +126,44 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         throw new Error(`Invalid Shopify domain extracted: ${actualShopifyDomain}. Please check your store URL format.`);
       }
       
-      // Step 1: Install and customize theme
+      // Step 1: Install and customize theme (skip if fails)
       setCurrentStep(`🎨 Installing premium theme with ${formData.niche} customization...`);
       setProgress(15);
       
       try {
-        await installAndConfigureSenseTheme({
-          storeName: actualShopifyDomain,
-          accessToken: formData.accessToken,
-          themeColor: formData.themeColor || currentNicheConfig.color,
-          niche: formData.niche,
-          targetAudience: formData.targetAudience,
-          businessType: formData.businessType,
-          storeStyle: formData.storeStyle,
-          customInfo: formData.customInfo
-        });
+        await Promise.race([
+          installAndConfigureSenseTheme({
+            storeName: actualShopifyDomain,
+            accessToken: formData.accessToken,
+            themeColor: formData.themeColor || currentNicheConfig.color,
+            niche: formData.niche,
+            targetAudience: formData.targetAudience,
+            businessType: formData.businessType,
+            storeStyle: formData.storeStyle,
+            customInfo: formData.customInfo
+          }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Theme timeout')), 15000))
+        ]);
         
         setProgress(30);
         setCurrentStep(`✅ Premium theme customized for ${formData.niche}`);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 500));
       } catch (themeError) {
         console.warn(`⚠️ Theme installation failed for ${formData.niche}, continuing with products:`, themeError);
         setCurrentStep(`Theme installation skipped, proceeding with ${formData.niche} products...`);
+        setProgress(30);
       }
 
-      // Step 2: Enhanced product generation with better error handling
+      // Step 2: Enhanced product generation with shorter timeout
       setCurrentStep(`${currentNicheConfig.emoji} AI is analyzing trending ${formData.niche} products...`);
       setProgress(40);
 
       console.log(`🤖 Calling product generation for ${formData.niche} niche`);
       console.log('🔗 FINAL SHOPIFY URL:', `https://${actualShopifyDomain}`);
 
-      // Call the edge function with timeout and better error handling
+      // Call the edge function with shorter timeout and better error handling
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Request timeout - please try again')), 120000) // 2 minutes
+        setTimeout(() => reject(new Error('Request timeout - please try again')), 60000) // Reduced to 1 minute
       );
 
       const requestPromise = supabase.functions.invoke('add-shopify-product', {
@@ -190,11 +194,11 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       }
       
       // Simulate progress updates during product generation
-      for (let i = 40; i <= 95; i += 5) {
+      for (let i = 40; i <= 95; i += 10) {
         setProgress(i);
-        setCurrentProduct(`Creating enhanced ${formData.niche} product ${Math.ceil((i-40)/6)}...`);
+        setCurrentProduct(`Creating enhanced ${formData.niche} product ${Math.ceil((i-40)/10)}...`);
         setCurrentStep(`🤖 AI is creating optimized ${formData.niche} products...`);
-        await new Promise(resolve => setTimeout(resolve, 800));
+        await new Promise(resolve => setTimeout(resolve, 400));
       }
 
       setProgress(100);
@@ -203,7 +207,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       
       toast({
         title: `🏆 AI-Powered ${formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Store Complete!`,
-        description: `Your ${formData.niche} store now has ${result.data.successCount || 10} trending products with premium theme and AI-optimized content!`,
+        description: `Your ${formData.niche} store now has ${result.data.successCount || 5} trending products with premium theme and AI-optimized content!`,
       });
 
     } catch (error) {
@@ -222,7 +226,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
           errorMessage = "Network connection failed. Please check your internet connection and try again.";
         } else if (errorMessage.includes('timeout')) {
-          errorMessage = `The operation timed out. Please try again.`;
+          errorMessage = `The operation timed out. This usually means the AI is working hard on your products. Please wait 30 seconds and try again.`;
         } else if (errorMessage.includes('Failed to send a request to the Edge Function')) {
           errorMessage = "Edge Function connection failed. The function may be deploying - please wait 30 seconds and try again.";
         }
@@ -259,7 +263,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
             🤖 Launch AI-Powered {formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Store
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Install <strong>premium theme</strong> + add 10 <strong>trending {formData.niche} products</strong> targeting <strong>{formData.targetAudience}</strong> with:
+            Install <strong>premium theme</strong> + add 5 <strong>trending {formData.niche} products</strong> targeting <strong>{formData.targetAudience}</strong> with:
           </p>
           
           {/* AI Features Grid */}
@@ -297,7 +301,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 Supported niches: pets, fitness, beauty, tech, baby, home, fashion, kitchen, gaming, travel, office, toy
               </p>
               <p className="text-red-600 text-xs mt-1">
-                If the issue persists, please wait 30 seconds for edge functions to deploy and try again.
+                If timeout errors persist, please wait 30 seconds between attempts as the AI works on optimizing your products.
               </p>
             </div>
           </div>
@@ -315,11 +319,11 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
             </div>
             <h3 className="text-2xl font-semibold text-gray-900 mb-2 flex items-center justify-center gap-2">
               <span className="text-2xl">{currentNicheConfig.emoji}</span>
-              10 AI-Selected {formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Products Added!
+              5 AI-Selected {formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Products Added!
               <Sparkles className="h-6 w-6 text-yellow-500" />
             </h3>
             <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-              Your {formData.niche} store now has <strong>10 trending {formData.niche} products</strong> with proven track records, featuring:
+              Your {formData.niche} store now has <strong>5 trending {formData.niche} products</strong> with proven track records, featuring:
             </p>
             
             {/* Success Features Grid */}
@@ -351,7 +355,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 🎉 Your AI-Powered {formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Store is Live!
               </h4>
               <p className="text-gray-700 text-sm">
-                Visit your Shopify admin to see your 10 trending {formData.niche} products with high ratings, 
+                Visit your Shopify admin to see your 5 trending {formData.niche} products with high ratings, 
                 proven sales, custom AI images, optimized descriptions, and variants - all ready to start selling!
               </p>
             </div>
