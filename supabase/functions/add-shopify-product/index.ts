@@ -31,7 +31,7 @@ serve(async (req) => {
       throw new Error('Missing required parameters: shopifyUrl, accessToken, or niche');
     }
 
-    // Get products from AliExpress API
+    // Get products from the new products service
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -39,93 +39,110 @@ serve(async (req) => {
 
     console.log('🔍 Fetching products for niche:', niche);
     
-    const { data: productsData, error: productsError } = await supabase.functions.invoke('get-aliexpress-products', {
-      body: {
-        niche: niche,
-        sessionId: `session_${Date.now()}`
+    try {
+      const { data: productsData, error: productsError } = await supabase.functions.invoke('get-aliexpress-products', {
+        body: {
+          niche: niche,
+          sessionId: `session_${Date.now()}`
+        }
+      });
+
+      if (productsError) {
+        console.error('❌ Failed to get products - error object:', productsError);
+        throw new Error(`Failed to fetch products: ${productsError.message || 'Unknown error'}`);
       }
-    });
 
-    if (productsError || !productsData?.success) {
-      console.error('❌ Failed to get products:', productsError);
-      throw new Error('Failed to fetch products from AliExpress');
-    }
+      if (!productsData?.success) {
+        console.error('❌ Failed to get products - unsuccessful response:', productsData);
+        throw new Error(`Failed to fetch products: ${productsData?.error || 'Service returned unsuccessful response'}`);
+      }
 
-    const products = productsData.products || [];
-    console.log(`✅ Got ${products.length} products for ${niche}`);
+      const products = productsData.products || [];
+      console.log(`✅ Got ${products.length} products for ${niche}`);
 
-    if (products.length === 0) {
-      throw new Error(`No products found for niche: ${niche}`);
-    }
+      if (products.length === 0) {
+        throw new Error(`No products found for niche: ${niche}`);
+      }
 
-    // Process first 10 products
-    const productsToAdd = products.slice(0, 10);
-    const results = [];
-    let successCount = 0;
+      // Process first 10 products
+      const productsToAdd = products.slice(0, 10);
+      const results = [];
+      let successCount = 0;
 
-    for (let i = 0; i < productsToAdd.length; i++) {
-      const product = productsToAdd[i];
-      console.log(`🔄 Processing product ${i + 1}/${productsToAdd.length}: ${product.title}`);
+      for (let i = 0; i < productsToAdd.length; i++) {
+        const product = productsToAdd[i];
+        console.log(`🔄 Processing product ${i + 1}/${productsToAdd.length}: ${product.title}`);
 
-      try {
-        // Create individual product payload
-        const productPayload = {
-          shopifyUrl,
-          accessToken,
-          themeColor: themeColor || '#3B82F6',
-          product: {
-            title: product.title || `${niche} Product ${i + 1}`,
-            price: product.price || 29.99,
-            category: niche,
-            images: product.images || [],
-            features: product.features || [],
-            variants: product.variants || []
-          },
-          storeName,
-          targetAudience,
-          storeStyle,
-          businessType,
-          productIndex: i,
-          niche
-        };
+        try {
+          // Create individual product payload
+          const productPayload = {
+            shopifyUrl,
+            accessToken,
+            themeColor: themeColor || '#3B82F6',
+            product: {
+              title: product.title || `${niche} Product ${i + 1}`,
+              price: product.price || 29.99,
+              category: niche,
+              images: product.images || [],
+              features: product.features || [],
+              variants: product.variants || []
+            },
+            storeName,
+            targetAudience,
+            storeStyle,
+            businessType,
+            productIndex: i,
+            niche
+          };
 
-        // Call the single product creation function
-        const { data: result, error } = await supabase.functions.invoke('add-shopify-product-single', {
-          body: productPayload
-        });
+          // Call the single product creation function with timeout
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Product creation timeout')), 30000)
+          );
 
-        if (error) {
-          console.error(`❌ Product ${i + 1} failed:`, error);
-          results.push({ success: false, error: error.message, product: product.title });
-        } else if (result?.success) {
-          console.log(`✅ Product ${i + 1} created successfully`);
-          successCount++;
-          results.push({ success: true, product: product.title, productId: result.product?.id });
-        } else {
-          console.error(`❌ Product ${i + 1} failed:`, result?.error);
-          results.push({ success: false, error: result?.error || 'Unknown error', product: product.title });
+          const createPromise = supabase.functions.invoke('add-shopify-product-single', {
+            body: productPayload
+          });
+
+          const { data: result, error } = await Promise.race([createPromise, timeoutPromise]);
+
+          if (error) {
+            console.error(`❌ Product ${i + 1} failed:`, error);
+            results.push({ success: false, error: error.message, product: product.title });
+          } else if (result?.success) {
+            console.log(`✅ Product ${i + 1} created successfully`);
+            successCount++;
+            results.push({ success: true, product: product.title, productId: result.product?.id });
+          } else {
+            console.error(`❌ Product ${i + 1} failed:`, result?.error);
+            results.push({ success: false, error: result?.error || 'Unknown error', product: product.title });
+          }
+
+        } catch (productError) {
+          console.error(`❌ Product ${i + 1} exception:`, productError);
+          results.push({ success: false, error: productError.message, product: product.title });
         }
 
-      } catch (productError) {
-        console.error(`❌ Product ${i + 1} exception:`, productError);
-        results.push({ success: false, error: productError.message, product: product.title });
+        // Rate limiting between products
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
 
-      // Rate limiting between products
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      console.log(`🎉 BULK GENERATION COMPLETE: ${successCount}/${productsToAdd.length} products created`);
+
+      return new Response(JSON.stringify({
+        success: successCount > 0,
+        totalProcessed: productsToAdd.length,
+        successCount,
+        results,
+        message: `Successfully created ${successCount} out of ${productsToAdd.length} products for ${niche} niche`
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+
+    } catch (fetchError) {
+      console.error('❌ Product fetching failed:', fetchError);
+      throw new Error(`Product fetching failed: ${fetchError.message}`);
     }
-
-    console.log(`🎉 BULK GENERATION COMPLETE: ${successCount}/${productsToAdd.length} products created`);
-
-    return new Response(JSON.stringify({
-      success: successCount > 0,
-      totalProcessed: productsToAdd.length,
-      successCount,
-      results,
-      message: `Successfully created ${successCount} out of ${productsToAdd.length} products for ${niche} niche`
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
 
   } catch (error) {
     console.error('🚨 BULK GENERATION ERROR:', error);
@@ -134,7 +151,8 @@ serve(async (req) => {
       error: error.message || 'Bulk product generation failed',
       debug_info: {
         error_type: error.name,
-        error_message: error.message
+        error_message: error.message,
+        stack: error.stack?.substring(0, 500)
       }
     }), {
       status: 500,

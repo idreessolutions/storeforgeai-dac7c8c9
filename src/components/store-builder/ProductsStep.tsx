@@ -150,15 +150,19 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         setCurrentStep(`Theme installation skipped, proceeding with ${formData.niche} products...`);
       }
 
-      // Step 2: Enhanced product generation using Supabase edge function
+      // Step 2: Enhanced product generation with better error handling
       setCurrentStep(`${currentNicheConfig.emoji} AI is analyzing trending ${formData.niche} products...`);
       setProgress(40);
 
       console.log(`🤖 Calling product generation for ${formData.niche} niche`);
       console.log('🔗 FINAL SHOPIFY URL:', `https://${actualShopifyDomain}`);
 
-      // Call the edge function using Supabase client
-      const { data: result, error } = await supabase.functions.invoke('add-shopify-product', {
+      // Call the edge function with timeout and better error handling
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Request timeout - please try again')), 120000) // 2 minutes
+      );
+
+      const requestPromise = supabase.functions.invoke('add-shopify-product', {
         body: {
           shopifyUrl: `https://${actualShopifyDomain}`,
           accessToken: formData.accessToken,
@@ -171,6 +175,8 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
           storeName: formData.storeName
         }
       });
+
+      const { data: result, error } = await Promise.race([requestPromise, timeoutPromise]);
 
       if (error) {
         console.error('❌ Edge function failed:', error);
@@ -217,6 +223,8 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
           errorMessage = "Network connection failed. Please check your internet connection and try again.";
         } else if (errorMessage.includes('timeout')) {
           errorMessage = `The operation timed out. Please try again.`;
+        } else if (errorMessage.includes('Failed to send a request to the Edge Function')) {
+          errorMessage = "Edge Function connection failed. The function may be deploying - please wait 30 seconds and try again.";
         }
       }
       
@@ -268,7 +276,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
             </div>
             <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
               <Wand2 className="h-6 w-6 text-purple-600 mx-auto mb-1" />
-              <div className="text-xs font-semibold text-purple-800">AI Images</div>
+              <div className="text-xs font-semibold text-purple-800">Real Images</div>
               <div className="text-xs text-purple-600">6-8 per product</div>
             </div>
             <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
@@ -287,6 +295,9 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               <p className="text-red-700 text-sm mt-1">{error}</p>
               <p className="text-red-600 text-xs mt-2">
                 Supported niches: pets, fitness, beauty, tech, baby, home, fashion, kitchen, gaming, travel, office, toy
+              </p>
+              <p className="text-red-600 text-xs mt-1">
+                If the issue persists, please wait 30 seconds for edge functions to deploy and try again.
               </p>
             </div>
           </div>
@@ -325,7 +336,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               </div>
               <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
                 <Wand2 className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                <div className="text-sm font-semibold text-purple-800">AI Images</div>
+                <div className="text-sm font-semibold text-purple-800">Real Images</div>
                 <div className="text-xs text-purple-600">60+ total images</div>
               </div>
               <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
