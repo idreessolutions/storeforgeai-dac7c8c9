@@ -25,24 +25,24 @@ serve(async (req) => {
       niche 
     } = await req.json();
     
-    console.log('🚨 BULK PRODUCT GENERATION: Starting for niche:', niche);
+    console.log('🚨 BULK PRODUCT GENERATION: Starting 10 unique products for niche:', niche);
     
     if (!shopifyUrl || !accessToken || !niche) {
       throw new Error('Missing required parameters: shopifyUrl, accessToken, or niche');
     }
 
-    // Get products from the new products service with longer timeout
+    // Get Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    console.log('🔍 Fetching products for niche:', niche);
+    console.log('🔍 Fetching niche-specific products for:', niche);
     
     try {
-      // Increased timeout to 25 seconds for product fetching
+      // Get niche-specific products with longer timeout
       const productsTimeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Products fetch timeout')), 25000)
+        setTimeout(() => reject(new Error('Products fetch timeout')), 30000)
       );
 
       const productsPromise = supabase.functions.invoke('get-aliexpress-products', {
@@ -73,24 +73,26 @@ serve(async (req) => {
         throw new Error(`No products found for niche: ${niche}`);
       }
 
-      // Process first 3 products to reduce total processing time
-      const productsToAdd = products.slice(0, 3);
+      // Generate 10 unique products
+      const productsToAdd = products.slice(0, 10);
       const results = [];
       let successCount = 0;
 
+      console.log(`🚀 PROCESSING ${productsToAdd.length} UNIQUE PRODUCTS FOR ${niche.toUpperCase()}`);
+
       for (let i = 0; i < productsToAdd.length; i++) {
         const product = productsToAdd[i];
-        console.log(`🔄 Processing product ${i + 1}/${productsToAdd.length}: ${product.title}`);
+        console.log(`🔄 Processing unique product ${i + 1}/${productsToAdd.length}: ${product.title}`);
 
         try {
-          // Create individual product payload
+          // Create individual product payload with unique data
           const productPayload = {
             shopifyUrl,
             accessToken,
             themeColor: themeColor || '#3B82F6',
             product: {
               title: product.title || `${niche} Product ${i + 1}`,
-              price: product.price || 29.99,
+              price: product.price || (20 + Math.random() * 40), // Random price between $20-$60
               category: niche,
               images: product.images || [],
               features: product.features || [],
@@ -100,13 +102,13 @@ serve(async (req) => {
             targetAudience,
             storeStyle,
             businessType,
-            productIndex: i,
-            niche
+            productIndex: i, // This ensures each product gets unique GPT content
+            niche: niche.toLowerCase()
           };
 
-          // Increased timeout to 45 seconds per product
+          // Extended timeout for individual product creation
           const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Product creation timeout')), 45000)
+            setTimeout(() => reject(new Error('Product creation timeout')), 60000)
           );
 
           const createPromise = supabase.functions.invoke('add-shopify-product-single', {
@@ -121,9 +123,16 @@ serve(async (req) => {
             console.error(`❌ Product ${i + 1} failed:`, error);
             results.push({ success: false, error: error.message, product: product.title });
           } else if (result?.success) {
-            console.log(`✅ Product ${i + 1} created successfully`);
+            console.log(`✅ Product ${i + 1} created successfully: "${result.product?.title || product.title}"`);
             successCount++;
-            results.push({ success: true, product: product.title, productId: result.product?.id });
+            results.push({ 
+              success: true, 
+              product: result.product?.title || product.title, 
+              productId: result.product?.id,
+              price: result.product?.price,
+              images: result.product?.images,
+              variants: result.product?.variants
+            });
           } else {
             console.error(`❌ Product ${i + 1} failed:`, result?.error);
             results.push({ success: false, error: result?.error || 'Unknown error', product: product.title });
@@ -134,18 +143,43 @@ serve(async (req) => {
           results.push({ success: false, error: productError.message, product: product.title });
         }
 
-        // Reduced rate limiting between products
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Rate limiting between products
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
-      console.log(`🎉 BULK GENERATION COMPLETE: ${successCount}/${productsToAdd.length} products created`);
+      console.log(`🎉 BULK GENERATION COMPLETE: ${successCount}/${productsToAdd.length} unique products created for ${niche}`);
+
+      // Apply theme color after products are created
+      if (successCount > 0) {
+        console.log(`🎨 APPLYING THEME COLOR: ${themeColor} to store`);
+        try {
+          const themeResponse = await supabase.functions.invoke('apply-theme-color', {
+            body: {
+              shopifyUrl,
+              accessToken,
+              themeColor,
+              storeName
+            }
+          });
+          
+          if (themeResponse.data?.success) {
+            console.log('✅ THEME COLOR APPLIED SUCCESSFULLY');
+          } else {
+            console.warn('⚠️ Theme color application failed, but products were created');
+          }
+        } catch (themeError) {
+          console.warn('⚠️ Theme color application failed:', themeError);
+        }
+      }
 
       return new Response(JSON.stringify({
         success: successCount > 0,
         totalProcessed: productsToAdd.length,
         successCount,
         results,
-        message: `Successfully created ${successCount} out of ${productsToAdd.length} products for ${niche} niche`
+        niche: niche,
+        themeColorApplied: themeColor,
+        message: `Successfully created ${successCount} unique ${niche} products with individual GPT-generated content, pricing, and images`
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

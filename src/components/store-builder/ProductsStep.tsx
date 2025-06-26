@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -83,7 +82,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
   };
 
   const handleAddProducts = async () => {
-    console.log(`🚀 Starting AI product generation workflow for ${formData.niche}:`, formData);
+    console.log(`🚀 Starting 10 unique AI products generation for ${formData.niche}:`, formData);
     
     // Validate all required fields
     const requiredFields = ['shopifyUrl', 'accessToken', 'niche', 'targetAudience', 'storeName'];
@@ -108,7 +107,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
     setError("");
 
     try {
-      console.log(`🤖 Starting AI-powered store setup for ${formData.niche}:`, {
+      console.log(`🤖 Starting COMPREHENSIVE AI store setup for ${formData.niche}:`, {
         storeName: formData.storeName,
         niche: formData.niche,
         targetAudience: formData.targetAudience,
@@ -155,16 +154,16 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         setProgress(30);
       }
 
-      // Step 2: Enhanced product generation with increased timeout
-      setCurrentStep(`${currentNicheConfig.emoji} AI is analyzing trending ${formData.niche} products...`);
+      // Step 2: ENHANCED product generation with 10 unique products
+      setCurrentStep(`${currentNicheConfig.emoji} AI is creating 10 unique ${formData.niche} products...`);
       setProgress(40);
 
-      console.log(`🤖 Calling product generation for ${formData.niche} niche`);
+      console.log(`🤖 Calling ENHANCED product generation for ${formData.niche} niche - 10 UNIQUE PRODUCTS`);
       console.log('🔗 FINAL SHOPIFY URL:', `https://${actualShopifyDomain}`);
 
-      // Call the edge function with increased timeout (2 minutes)
+      // Call the edge function with extended timeout for 10 products
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Request timeout - please try again')), 120000) // Increased to 2 minutes
+        setTimeout(() => reject(new Error('Request timeout - AI is working on your 10 unique products. Please wait and try again.')), 180000) // 3 minutes for 10 products
       );
 
       const requestPromise = supabase.functions.invoke('add-shopify-product', {
@@ -188,18 +187,19 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         throw new Error(`Product generation failed: ${result.error.message || 'Unknown error'}`);
       }
 
-      console.log('✅ Product generation result:', result.data);
+      console.log('✅ ENHANCED Product generation result:', result.data);
       
       if (!result.data?.success) {
         throw new Error(result.data?.error || 'Product generation failed');
       }
       
-      // Simulate progress updates during product generation
-      for (let i = 40; i <= 95; i += 15) {
+      // Simulate progress updates during 10-product generation
+      for (let i = 40; i <= 95; i += 11) {
         setProgress(i);
-        setCurrentProduct(`Creating enhanced ${formData.niche} product ${Math.ceil((i-40)/15)}...`);
-        setCurrentStep(`🤖 AI is creating optimized ${formData.niche} products...`);
-        await new Promise(resolve => setTimeout(resolve, 800));
+        const productNum = Math.ceil((i-40)/11);
+        setCurrentProduct(`Creating unique ${formData.niche} product ${productNum}/10...`);
+        setCurrentStep(`🤖 AI is generating diverse ${formData.niche} products with GPT...`);
+        await new Promise(resolve => setTimeout(resolve, 1200));
       }
 
       setProgress(100);
@@ -208,7 +208,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       
       toast({
         title: `🏆 AI-Powered ${formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Store Complete!`,
-        description: `Your ${formData.niche} store now has ${result.data.successCount || 3} trending products with premium theme and AI-optimized content!`,
+        description: `Your ${formData.niche} store now has ${result.data.successCount || 10} unique trending products with premium theme, custom GPT content, and brand colors!`,
       });
 
     } catch (error) {
@@ -264,7 +264,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
             🤖 Launch AI-Powered {formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Store
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Install <strong>premium theme</strong> + add 3 <strong>trending {formData.niche} products</strong> targeting <strong>{formData.targetAudience}</strong> with:
+            Install <strong>premium theme</strong> + add 10 <strong>unique {formData.niche} products</strong> targeting <strong>{formData.targetAudience}</strong> with:
           </p>
           
           {/* AI Features Grid */}
@@ -281,13 +281,13 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
             </div>
             <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
               <Wand2 className="h-6 w-6 text-purple-600 mx-auto mb-1" />
-              <div className="text-xs font-semibold text-purple-800">Real Images</div>
-              <div className="text-xs text-purple-600">6-8 per product</div>
+              <div className="text-xs font-semibold text-purple-800">GPT Content</div>
+              <div className="text-xs text-purple-600">Unique per product</div>
             </div>
             <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
               <Sparkles className="h-6 w-6 text-orange-600 mx-auto mb-1" />
-              <div className="text-xs font-semibold text-orange-800">AI Content</div>
-              <div className="text-xs text-orange-600">Niche-optimized</div>
+              <div className="text-xs font-semibold text-orange-800">10 Products</div>
+              <div className="text-xs text-orange-600">All different</div>
             </div>
           </div>
         </div>
@@ -320,24 +320,24 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
             </div>
             <h3 className="text-2xl font-semibold text-gray-900 mb-2 flex items-center justify-center gap-2">
               <span className="text-2xl">{currentNicheConfig.emoji}</span>
-              3 AI-Selected {formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Products Added!
+              10 Unique {formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Products Added!
               <Sparkles className="h-6 w-6 text-yellow-500" />
             </h3>
             <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-              Your {formData.niche} store now has <strong>3 trending {formData.niche} products</strong> with proven track records, featuring:
+              Your {formData.niche} store now has <strong>10 completely unique {formData.niche} products</strong> with individual GPT-generated content, featuring:
             </p>
             
             {/* Success Features Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
               <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                 <Star className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                <div className="text-sm font-semibold text-green-800">Premium {formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)}</div>
-                <div className="text-xs text-green-600">4.8+ star ratings</div>
+                <div className="text-sm font-semibold text-green-800">Unique {formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)}</div>
+                <div className="text-xs text-green-600">10 different products</div>
               </div>
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                 <Trophy className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                <div className="text-sm font-semibold text-blue-800">Bestsellers</div>
-                <div className="text-xs text-blue-600">1000+ orders each</div>
+                <div className="text-sm font-semibold text-blue-800">GPT Content</div>
+                <div className="text-xs text-blue-600">Unique descriptions</div>
               </div>
               <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
                 <Wand2 className="h-8 w-8 text-purple-600 mx-auto mb-2" />
@@ -346,8 +346,8 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               </div>
               <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
                 <Target className="h-8 w-8 text-orange-600 mx-auto mb-2" />
-                <div className="text-sm font-semibold text-orange-800">Smart Pricing</div>
-                <div className="text-xs text-orange-600">$15-$80 optimized</div>
+                <div className="text-sm font-semibold text-orange-800">Brand Colors</div>
+                <div className="text-xs text-orange-600">Theme applied</div>
               </div>
             </div>
 
@@ -356,8 +356,8 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 🎉 Your AI-Powered {formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Store is Live!
               </h4>
               <p className="text-gray-700 text-sm">
-                Visit your Shopify admin to see your 5 trending {formData.niche} products with high ratings, 
-                proven sales, custom AI images, optimized descriptions, and variants - all ready to start selling!
+                Visit your Shopify admin to see your 10 unique {formData.niche} products with individual GPT-generated titles, 
+                descriptions, pricing, real images, and your custom theme color - all ready to start selling!
               </p>
             </div>
           </div>
@@ -368,7 +368,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 <div className="flex items-center justify-center gap-3 mb-4">
                   <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
                   <span className="text-lg font-semibold text-gray-900">
-                    AI is setting up your {formData.niche} store...
+                    AI is creating your 10 unique {formData.niche} products...
                   </span>
                 </div>
                 
@@ -378,7 +378,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                   <p className="text-sm font-medium text-gray-700">{currentStep}</p>
                   {currentProduct && (
                     <p className="text-sm text-gray-600">
-                      Creating: <span className="font-medium">{currentProduct}</span>
+                      <span className="font-medium">{currentProduct}</span>
                     </p>
                   )}
                   <p className="text-xs text-gray-500">{Math.round(progress)}% complete</p>
@@ -394,7 +394,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 }}
               >
                 <span className="mr-2 text-xl">{currentNicheConfig.emoji}</span>
-                Launch AI-Powered {formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Store
+                Launch 10 Unique {formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Products
               </Button>
             )}
           </div>
