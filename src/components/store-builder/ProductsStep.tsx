@@ -158,7 +158,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       console.log('🔗 FINAL SHOPIFY URL:', `https://${actualShopifyDomain}`);
 
       // Call the edge function with timeout and better error handling
-      const timeoutPromise = new Promise((_, reject) =>
+      const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('Request timeout - please try again')), 120000) // 2 minutes
       );
 
@@ -176,17 +176,17 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         }
       });
 
-      const { data: result, error } = await Promise.race([requestPromise, timeoutPromise]);
+      const result = await Promise.race([requestPromise, timeoutPromise]);
 
-      if (error) {
-        console.error('❌ Edge function failed:', error);
-        throw new Error(`Product generation failed: ${error.message || 'Unknown error'}`);
+      if (result.error) {
+        console.error('❌ Edge function failed:', result.error);
+        throw new Error(`Product generation failed: ${result.error.message || 'Unknown error'}`);
       }
 
-      console.log('✅ Product generation result:', result);
+      console.log('✅ Product generation result:', result.data);
       
-      if (!result?.success) {
-        throw new Error(result?.error || 'Product generation failed');
+      if (!result.data?.success) {
+        throw new Error(result.data?.error || 'Product generation failed');
       }
       
       // Simulate progress updates during product generation
@@ -203,7 +203,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       
       toast({
         title: `🏆 AI-Powered ${formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Store Complete!`,
-        description: `Your ${formData.niche} store now has ${result.successCount || 10} trending products with premium theme and AI-optimized content!`,
+        description: `Your ${formData.niche} store now has ${result.data.successCount || 10} trending products with premium theme and AI-optimized content!`,
       });
 
     } catch (error) {
