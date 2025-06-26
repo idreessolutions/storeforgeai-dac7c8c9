@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, Sparkles, Loader2, Target, Zap, Star, Trophy, ShoppingBag, Wand2 } from "lucide-react";
+import { CheckCircle, Sparkles, Loader2, Target, Zap, Star, Trophy, ShoppingBag, Wand2, RefreshCw, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { installAndConfigureSenseTheme } from "@/services/shopifyThemeService";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,6 +29,8 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
   const [currentProduct, setCurrentProduct] = useState("");
   const [currentStep, setCurrentStep] = useState("");
   const [error, setError] = useState("");
+  const [retryCount, setRetryCount] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
   const { toast } = useToast();
 
   // Enhanced niche configurations for ALL 12 supported niches
@@ -81,6 +83,89 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
     return finalDomain;
   };
 
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+  const callProductGenerationWithRetry = async (attempt: number = 1): Promise<any> => {
+    const maxAttempts = 3;
+    const baseDelay = 5000; // 5 seconds base delay
+    const backoffMultiplier = 2;
+
+    console.log(`🔄 ATTEMPT ${attempt}/${maxAttempts}: Calling product generation`);
+    
+    try {
+      // Add exponential backoff delay for retries
+      if (attempt > 1) {
+        const delay = baseDelay * Math.pow(backoffMultiplier, attempt - 2);
+        console.log(`⏳ Waiting ${delay}ms before retry attempt ${attempt}`);
+        setCurrentStep(`⏳ Waiting ${delay/1000}s before retry attempt ${attempt}...`);
+        await sleep(delay);
+      }
+
+      setCurrentStep(`🚀 Connecting to AI engine (attempt ${attempt}/${maxAttempts})...`);
+      
+      // Extract the actual Shopify domain properly
+      const actualShopifyDomain = extractShopifyDomain(formData.shopifyUrl);
+      console.log('🎯 USING DOMAIN:', actualShopifyDomain);
+      
+      if (!actualShopifyDomain || !actualShopifyDomain.includes('.myshopify.com')) {
+        throw new Error(`Invalid Shopify domain extracted: ${actualShopifyDomain}. Please check your store URL format.`);
+      }
+
+      // Create enhanced timeout promise with more lenient timing
+      const timeoutDuration = 150000 + (attempt * 30000); // 2.5 min + 30s per attempt
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`Request timeout after ${timeoutDuration/1000}s - AI is processing your 10 unique products. Retrying automatically...`)), timeoutDuration)
+      );
+
+      const requestPromise = supabase.functions.invoke('add-shopify-product', {
+        body: {
+          shopifyUrl: `https://${actualShopifyDomain}`,
+          accessToken: formData.accessToken,
+          niche: formData.niche,
+          themeColor: formData.themeColor || currentNicheConfig.color,
+          targetAudience: formData.targetAudience,
+          businessType: formData.businessType,
+          storeStyle: formData.storeStyle,
+          customInfo: formData.customInfo,
+          storeName: formData.storeName
+        }
+      });
+
+      const result = await Promise.race([requestPromise, timeoutPromise]);
+
+      if (result.error) {
+        console.error(`❌ Edge function failed on attempt ${attempt}:`, result.error);
+        throw new Error(`Product generation failed: ${result.error.message || 'Unknown error'}`);
+      }
+
+      console.log(`✅ SUCCESS on attempt ${attempt}:`, result.data);
+      return result;
+
+    } catch (error) {
+      console.error(`❌ ATTEMPT ${attempt} FAILED:`, error);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      // Check for specific errors that indicate we should retry
+      const shouldRetry = 
+        errorMessage.includes('Failed to send a request to the Edge Function') ||
+        errorMessage.includes('NetworkError') ||
+        errorMessage.includes('timeout') ||
+        errorMessage.includes('connection failed') ||
+        errorMessage.includes('function may be deploying') ||
+        (attempt < maxAttempts && !errorMessage.includes('Invalid') && !errorMessage.includes('credentials'));
+
+      if (shouldRetry && attempt < maxAttempts) {
+        console.log(`🔄 Will retry attempt ${attempt + 1}/${maxAttempts}`);
+        setRetryCount(attempt);
+        return await callProductGenerationWithRetry(attempt + 1);
+      } else {
+        // Final failure - throw the error
+        throw error;
+      }
+    }
+  };
+
   const handleAddProducts = async () => {
     console.log(`🚀 Starting 10 unique AI products generation for ${formData.niche}:`, formData);
     
@@ -105,9 +190,11 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
     setCurrentProduct("");
     setCurrentStep("");
     setError("");
+    setRetryCount(0);
+    setIsRetrying(false);
 
     try {
-      console.log(`🤖 Starting COMPREHENSIVE AI store setup for ${formData.niche}:`, {
+      console.log(`🤖 Starting COMPREHENSIVE AI store setup for ${formData.niche} with auto-retry system:`, {
         storeName: formData.storeName,
         niche: formData.niche,
         targetAudience: formData.targetAudience,
@@ -118,19 +205,12 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         originalUrl: formData.shopifyUrl
       });
       
-      // Extract the actual Shopify domain properly
-      const actualShopifyDomain = extractShopifyDomain(formData.shopifyUrl);
-      console.log('🎯 USING DOMAIN:', actualShopifyDomain);
-      
-      if (!actualShopifyDomain || !actualShopifyDomain.includes('.myshopify.com')) {
-        throw new Error(`Invalid Shopify domain extracted: ${actualShopifyDomain}. Please check your store URL format.`);
-      }
-      
       // Step 1: Install and customize theme (skip if fails)
       setCurrentStep(`🎨 Installing premium theme with ${formData.niche} customization...`);
       setProgress(15);
       
       try {
+        const actualShopifyDomain = extractShopifyDomain(formData.shopifyUrl);
         await Promise.race([
           installAndConfigureSenseTheme({
             storeName: actualShopifyDomain,
@@ -142,53 +222,29 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
             storeStyle: formData.storeStyle,
             customInfo: formData.customInfo
           }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Theme timeout')), 15000))
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Theme timeout')), 20000))
         ]);
         
         setProgress(30);
         setCurrentStep(`✅ Premium theme customized for ${formData.niche}`);
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await sleep(500);
       } catch (themeError) {
         console.warn(`⚠️ Theme installation failed for ${formData.niche}, continuing with products:`, themeError);
         setCurrentStep(`Theme installation skipped, proceeding with ${formData.niche} products...`);
         setProgress(30);
       }
 
-      // Step 2: ENHANCED product generation with 10 unique products
+      // Step 2: ENHANCED product generation with auto-retry
       setCurrentStep(`${currentNicheConfig.emoji} AI is creating 10 unique ${formData.niche} products...`);
       setProgress(40);
 
-      console.log(`🤖 Calling ENHANCED product generation for ${formData.niche} niche - 10 UNIQUE PRODUCTS`);
-      console.log('🔗 FINAL SHOPIFY URL:', `https://${actualShopifyDomain}`);
+      console.log(`🤖 Calling ENHANCED product generation for ${formData.niche} niche - 10 UNIQUE PRODUCTS with AUTO-RETRY`);
 
-      // Call the edge function with extended timeout for 10 products
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Request timeout - AI is working on your 10 unique products. Please wait and try again.')), 180000) // 3 minutes for 10 products
-      );
+      // Call with automatic retry system
+      setIsRetrying(true);
+      const result = await callProductGenerationWithRetry(1);
+      setIsRetrying(false);
 
-      const requestPromise = supabase.functions.invoke('add-shopify-product', {
-        body: {
-          shopifyUrl: `https://${actualShopifyDomain}`,
-          accessToken: formData.accessToken,
-          niche: formData.niche,
-          themeColor: formData.themeColor || currentNicheConfig.color,
-          targetAudience: formData.targetAudience,
-          businessType: formData.businessType,
-          storeStyle: formData.storeStyle,
-          customInfo: formData.customInfo,
-          storeName: formData.storeName
-        }
-      });
-
-      const result = await Promise.race([requestPromise, timeoutPromise]);
-
-      if (result.error) {
-        console.error('❌ Edge function failed:', result.error);
-        throw new Error(`Product generation failed: ${result.error.message || 'Unknown error'}`);
-      }
-
-      console.log('✅ ENHANCED Product generation result:', result.data);
-      
       if (!result.data?.success) {
         throw new Error(result.data?.error || 'Product generation failed');
       }
@@ -199,7 +255,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         const productNum = Math.ceil((i-40)/11);
         setCurrentProduct(`Creating unique ${formData.niche} product ${productNum}/10...`);
         setCurrentStep(`🤖 AI is generating diverse ${formData.niche} products with GPT...`);
-        await new Promise(resolve => setTimeout(resolve, 1200));
+        await sleep(800);
       }
 
       setProgress(100);
@@ -227,13 +283,14 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
           errorMessage = "Network connection failed. Please check your internet connection and try again.";
         } else if (errorMessage.includes('timeout')) {
-          errorMessage = `The operation timed out. The AI is working hard on your products. Please wait 1 minute and try again.`;
+          errorMessage = `The operation timed out after multiple attempts. The AI is working hard on your products. Please wait 1 minute and try again - the function may be initializing.`;
         } else if (errorMessage.includes('Failed to send a request to the Edge Function')) {
           errorMessage = "Edge Function connection failed. The function may be deploying - please wait 30 seconds and try again.";
         }
       }
       
       setError(errorMessage);
+      setIsRetrying(false);
       
       toast({
         title: "Setup Failed",
@@ -246,6 +303,13 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       setCurrentProduct("");
       setCurrentStep("");
     }
+  };
+
+  const handleQuickRetry = async () => {
+    console.log('🔄 QUICK RETRY: User requested immediate retry');
+    setError("");
+    await sleep(2000); // Brief delay
+    handleAddProducts();
   };
 
   return (
@@ -264,7 +328,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
             🤖 Launch AI-Powered {formData.niche.charAt(0).toUpperCase() + formData.niche.slice(1)} Store
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Install <strong>premium theme</strong> + add 10 <strong>unique {formData.niche} products</strong> targeting <strong>{formData.targetAudience}</strong> with:
+            Install <strong>premium theme</strong> + add 10 <strong>unique {formData.niche} products</strong> targeting <strong>{formData.targetAudience}</strong> with auto-retry system:
           </p>
           
           {/* AI Features Grid */}
@@ -295,15 +359,29 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
             <Zap className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
-            <div>
+            <div className="flex-1">
               <h4 className="font-semibold text-red-800">Setup Failed</h4>
               <p className="text-red-700 text-sm mt-1">{error}</p>
               <p className="text-red-600 text-xs mt-2">
                 Supported niches: pets, fitness, beauty, tech, baby, home, fashion, kitchen, gaming, travel, office, toy
               </p>
               <p className="text-red-600 text-xs mt-1">
-                If timeout errors persist, please wait 1 minute between attempts as the AI works on optimizing your products.
+                Auto-retry system attempted {retryCount > 0 ? retryCount : 'multiple'} times. The function may be initializing - please wait 30-60 seconds.
               </p>
+              
+              {/* Quick Retry Button */}
+              <div className="mt-3">
+                <Button
+                  onClick={handleQuickRetry}
+                  size="sm"
+                  variant="outline"
+                  className="text-red-700 border-red-300 hover:bg-red-50"
+                  disabled={isAdding}
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Try Again ({retryCount + 1})
+                </Button>
+              </div>
             </div>
           </div>
         )}
@@ -342,7 +420,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
                 <Wand2 className="h-8 w-8 text-purple-600 mx-auto mb-2" />
                 <div className="text-sm font-semibold text-purple-800">Real Images</div>
-                <div className="text-xs text-purple-600">60+ total images</div>
+                <div className="text-xs text-purple-600">100+ total images</div>
               </div>
               <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
                 <Target className="h-8 w-8 text-orange-600 mx-auto mb-2" />
@@ -368,7 +446,14 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 <div className="flex items-center justify-center gap-3 mb-4">
                   <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
                   <span className="text-lg font-semibold text-gray-900">
-                    AI is creating your 10 unique {formData.niche} products...
+                    {isRetrying ? (
+                      <>
+                        <RefreshCw className="h-5 w-5 inline mr-2" />
+                        Auto-retry system active (attempt {retryCount + 1}/3)
+                      </>
+                    ) : (
+                      `AI is creating your 10 unique ${formData.niche} products...`
+                    )}
                   </span>
                 </div>
                 
@@ -382,6 +467,13 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                     </p>
                   )}
                   <p className="text-xs text-gray-500">{Math.round(progress)}% complete</p>
+                  
+                  {isRetrying && retryCount > 0 && (
+                    <p className="text-xs text-orange-600 flex items-center justify-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      Auto-retry {retryCount}/3 - Function may be initializing
+                    </p>
+                  )}
                 </div>
               </div>
             ) : (
