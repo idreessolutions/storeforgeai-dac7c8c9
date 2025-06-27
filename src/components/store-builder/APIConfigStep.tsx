@@ -4,7 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, ExternalLink, AlertCircle, CheckCircle } from "lucide-react";
+import { Key, ExternalLink, CheckCircle, Timer, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 
 interface APIConfigStepProps {
   formData: {
@@ -15,175 +16,177 @@ interface APIConfigStepProps {
 }
 
 const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
-  const [appsAccessed, setAppsAccessed] = useState(false);
+  const [hasClickedAccess, setHasClickedAccess] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [canProceed, setCanProceed] = useState(false);
 
+  // Store validation state on window for StoreBuilderLogic to access
   useEffect(() => {
-    if (countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [countdown]);
+    (window as any).validateAPIConfig = () => {
+      return hasClickedAccess && canProceed && formData.accessToken;
+    };
+  }, [hasClickedAccess, canProceed, formData.accessToken]);
 
   const handleAccessShopifyApps = () => {
-    setAppsAccessed(true);
-    setCountdown(25); // 25 second countdown
-    console.log('🚨 CRITICAL: User accessed Shopify Apps - starting 25s countdown');
-    
+    if (!hasClickedAccess) {
+      setHasClickedAccess(true);
+      setCountdown(25); // 25 second countdown
+      
+      toast.success("API setup process started! Please wait 25 seconds.", {
+        duration: 3000,
+      });
+
+      // Countdown timer
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            setCanProceed(true);
+            toast.success("✅ API setup complete! You can now proceed to the next step.", {
+              duration: 4000,
+            });
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+  };
+
+  const getShopifyAppsUrl = () => {
     if (formData.shopifyUrl) {
-      // Extract store name from the domain (e.g., "your-store" from "your-store.myshopify.com")
-      const storeName = formData.shopifyUrl.replace('.myshopify.com', '');
-      const appsUrl = `https://admin.shopify.com/store/${storeName}/settings/apps/development`;
-      window.open(appsUrl, '_blank');
-    } else {
-      window.open('https://admin.shopify.com/settings/apps/development', '_blank');
+      const baseUrl = formData.shopifyUrl.replace(/\/$/, '');
+      return `${baseUrl}/admin/settings/apps`;
     }
+    return "https://admin.shopify.com/settings/apps";
   };
-
-  const validateAPIConfig = () => {
-    if (!appsAccessed) {
-      console.log('🚨 CRITICAL: User must click Access Shopify Apps first');
-      return false;
-    }
-    if (countdown > 0) {
-      console.log(`🚨 CRITICAL: User must wait ${countdown} more seconds before proceeding`);
-      return false;
-    }
-    if (!formData.accessToken.trim()) {
-      console.log('🚨 CRITICAL: Access token is required');
-      return false;
-    }
-    return true;
-  };
-
-  // This function will be called by the parent component
-  React.useEffect(() => {
-    (window as any).validateAPIConfig = validateAPIConfig;
-  }, [appsAccessed, countdown, formData.accessToken]);
 
   return (
     <Card className="border-0 shadow-lg max-w-2xl mx-auto">
       <CardContent className="py-12 px-8">
-        <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Settings className="h-10 w-10 text-white" />
+        <div className="text-center mb-12">
+          <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Key className="h-10 w-10 text-white" />
           </div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">API Config</h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">API Configuration</h2>
+          <p className="text-gray-600">Connect your store with secure API access</p>
         </div>
 
-        <div className="space-y-6">
-          <div className="bg-gray-50 p-6 rounded-lg">
-            <p className="text-gray-700 mb-4">
-              Configure the App on Shopify to safely build your store using our technology. This method ensures secure access and eliminates risks associated with sharing passwords.
-            </p>
-            
-            <p className="text-gray-700 mb-6">
-              To set up the App on Shopify, please follow these steps:
-            </p>
-            
-            <ul className="space-y-2 text-gray-700 mb-6">
-              <li className="flex items-start">
-                <span className="font-medium mr-2">•</span>
-                Click <strong>Access Shopify Apps</strong> button below
-              </li>
-              <li className="flex items-start">
-                <span className="font-medium mr-2">•</span>
-                Click <strong>Allow custom app development</strong> twice
-              </li>
-              <li className="flex items-start">
-                <span className="font-medium mr-2">•</span>
-                Click <strong>Create an app</strong>
-              </li>
-              <li className="flex items-start">
-                <span className="font-medium mr-2">•</span>
-                Fill in Name with <strong>"Custom Store"</strong>
-              </li>
-              <li className="flex items-start">
-                <span className="font-medium mr-2">•</span>
-                Click <strong>Configure Admin API Scopes</strong>
-              </li>
-              <li className="flex items-start">
-                <span className="font-medium mr-2">•</span>
-                Select <strong>ALL API Scopes (Check All Boxes)</strong>
-              </li>
-              <li className="flex items-start">
-                <span className="font-medium mr-2">•</span>
-                Click <strong>Save</strong> button and <strong>Install</strong> at the top right
-              </li>
-              <li className="flex items-start">
-                <span className="font-medium mr-2">•</span>
-                Click the <strong>Reveal Token</strong> button once
-              </li>
-              <li className="flex items-start">
-                <span className="font-medium mr-2">•</span>
-                Copy the token that is revealed
-              </li>
-              <li className="flex items-start">
-                <span className="font-medium mr-2">•</span>
-                Paste the token in the field below
-              </li>
-              <li className="flex items-start">
-                <span className="font-medium mr-2">•</span>
-                Click the <strong>Next Step</strong> button to continue
-              </li>
-            </ul>
+        <div className="space-y-8">
+          {/* Step 1: Access Shopify Apps */}
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6">
+            <div className="flex items-start space-x-4">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                canProceed ? 'bg-green-500' : hasClickedAccess ? 'bg-yellow-500' : 'bg-gray-300'
+              }`}>
+                {canProceed ? (
+                  <CheckCircle className="h-5 w-5 text-white" />
+                ) : hasClickedAccess ? (
+                  <Timer className="h-5 w-5 text-white" />
+                ) : (
+                  <span className="text-white font-semibold">1</span>
+                )}
+              </div>
+              
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Access Shopify Apps & API Settings
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Set up API access to enable seamless integration with your store.
+                </p>
+                
+                <Button
+                  onClick={handleAccessShopifyApps}
+                  disabled={hasClickedAccess}
+                  className={`${
+                    canProceed 
+                      ? 'bg-green-600 hover:bg-green-700' 
+                      : hasClickedAccess 
+                        ? 'bg-yellow-500 cursor-not-allowed' 
+                        : 'bg-blue-600 hover:bg-blue-700'
+                  } text-white`}
+                >
+                  {canProceed ? (
+                    <>
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      API Access Configured
+                    </>
+                  ) : hasClickedAccess ? (
+                    <>
+                      <Timer className="mr-2 h-4 w-4" />
+                      Configuring... ({countdown}s)
+                    </>
+                  ) : (
+                    <>
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      Access Shopify Apps
+                    </>
+                  )}
+                </Button>
 
-            <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-4 mb-6">
-              <p className="text-yellow-800 text-sm font-medium">
-                <strong>NOTE:</strong> Make sure you select all access scope options. If any are left unchecked, your store build may fail.
-              </p>
-            </div>
-
-            <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-4 mb-6">
-              <p className="text-yellow-800 text-sm font-medium">
-                Remember to return to this tab to continue creating your store.
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="accessToken" className="text-sm font-medium text-gray-700">
-                  Access Token
-                </Label>
-                <Input
-                  id="accessToken"
-                  placeholder="Ex: shpat_115753..."
-                  value={formData.accessToken}
-                  onChange={(e) => handleInputChange('accessToken', e.target.value)}
-                  className="mt-1"
-                />
+                {hasClickedAccess && countdown > 0 && (
+                  <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
+                    <p className="text-yellow-800 text-sm">
+                      <Timer className="inline h-4 w-4 mr-1" />
+                      Please wait {countdown} seconds while we configure your API access...
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
-          <Button 
-            className={`w-full py-4 text-lg font-semibold flex items-center justify-center ${
-              appsAccessed && countdown === 0
-                ? 'bg-green-600 hover:bg-green-700 text-white'
-                : appsAccessed && countdown > 0
-                ? 'bg-orange-500 text-white cursor-not-allowed'
-                : 'bg-green-600 hover:bg-green-700 text-white'
-            }`}
-            onClick={handleAccessShopifyApps}
-            disabled={appsAccessed && countdown > 0}
-          >
-            {appsAccessed && countdown > 0 ? (
-              <>
-                <AlertCircle className="mr-2 h-5 w-5" />
-                Wait {countdown}s before Next Step
-              </>
-            ) : appsAccessed && countdown === 0 ? (
-              <>
-                <CheckCircle className="mr-2 h-5 w-5" />
-                Apps Accessed - Ready to Proceed
-              </>
-            ) : (
-              <>
-                Access Shopify Apps
-                <ExternalLink className="ml-2 h-5 w-5" />
-              </>
-            )}
-          </Button>
+          {/* Step 2: API Token Input */}
+          {hasClickedAccess && (
+            <div className="space-y-6">
+              <div>
+                <Label htmlFor="accessToken" className="text-base font-medium text-gray-900">
+                  Shopify Access Token
+                </Label>
+                <p className="text-sm text-gray-600 mb-3">
+                  Enter your Shopify private app access token to enable API integration
+                </p>
+                <Input
+                  id="accessToken"
+                  type="password"
+                  placeholder="shpat_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                  value={formData.accessToken}
+                  onChange={(e) => handleInputChange('accessToken', e.target.value)}
+                  className="w-full h-12 text-base font-mono"
+                />
+              </div>
+
+              {/* Instructions */}
+              <div className="bg-blue-50 rounded-lg p-4">
+                <div className="flex items-start space-x-3">
+                  <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-blue-900">How to get your Access Token:</h4>
+                    <ol className="mt-2 text-sm text-blue-700 space-y-1 list-decimal list-inside">
+                      <li>Go to your Shopify Admin → Apps and sales channels</li>
+                      <li>Click "Develop apps" → "Create an app"</li>
+                      <li>Configure scopes: products, inventory, orders (read/write)</li>
+                      <li>Install the app and copy the access token</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Status indicator */}
+          {canProceed && formData.accessToken && (
+            <div className="bg-green-50 rounded-xl p-6 text-center">
+              <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-green-900 mb-2">
+                ✅ API Configuration Complete!
+              </h3>
+              <p className="text-green-700">
+                Your API connection is secure and ready. You can now proceed to the next step.
+              </p>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
