@@ -7,205 +7,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Enhanced niche-specific product data with real variations
-const NICHE_PRODUCT_DATA = {
-  'beauty': [
-    {
-      baseTitle: "LED Light Therapy Face Mask",
-      basePrice: 89.99,
-      category: "Skincare Tools",
-      features: ["7 LED colors", "Anti-aging technology", "FDA approved", "Wireless design"],
-      images: [
-        "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=500",
-        "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=500",
-        "https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=500",
-        "https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=500",
-        "https://images.unsplash.com/photo-1505944270255-72b8c68c6a70?w=500",
-        "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=500"
-      ]
-    },
-    {
-      baseTitle: "Jade Facial Roller & Gua Sha Set",
-      basePrice: 24.99,
-      category: "Facial Tools",
-      features: ["Natural jade stone", "Reduces puffiness", "Improves circulation", "Includes storage pouch"],
-      images: [
-        "https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=500",
-        "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=500",
-        "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500",
-        "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=500",
-        "https://images.unsplash.com/photo-1594736797933-d0d14eeb3573?w=500",
-        "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=500"
-      ]
-    },
-    {
-      baseTitle: "Vitamin C Serum with Hyaluronic Acid",
-      basePrice: 32.99,
-      category: "Serums",
-      features: ["20% Vitamin C", "Anti-aging formula", "Brightens skin", "Dermatologist tested"],
-      images: [
-        "https://images.unsplash.com/photo-1570194065650-d99fb4bedf0a?w=500",
-        "https://images.unsplash.com/photo-1556228653-71bb69e0117e?w=500",
-        "https://images.unsplash.com/photo-1585652757141-058f9d84c00b?w=500",
-        "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=500",
-        "https://images.unsplash.com/photo-1564149504819-64f968c7c175?w=500",
-        "https://images.unsplash.com/photo-1596755389378-c31d21fd1273?w=500"
-      ]
-    }
-  ],
-  'pets': [
-    {
-      baseTitle: "Smart Pet Feeder with Camera",
-      basePrice: 79.99,
-      category: "Pet Tech",
-      features: ["1080p HD camera", "Voice recording", "Scheduled feeding", "Mobile app control"],
-      images: [
-        "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=500",
-        "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=500",
-        "https://images.unsplash.com/photo-1415369629372-26f2fe60c467?w=500",
-        "https://images.unsplash.com/photo-1444212477490-ca407925329e?w=500",
-        "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=500",
-        "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=500"
-      ]
-    },
-    {
-      baseTitle: "Orthopedic Memory Foam Pet Bed",
-      basePrice: 45.99,
-      category: "Pet Comfort",
-      features: ["Memory foam support", "Removable cover", "Non-slip bottom", "Waterproof liner"],
-      images: [
-        "https://images.unsplash.com/photo-1552053831-71594a27632d?w=500",
-        "https://images.unsplash.com/photo-1601758124510-52d02ddb7cbd?w=500",
-        "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=500",
-        "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=500",
-        "https://images.unsplash.com/photo-1415369629372-26f2fe60c467?w=500",
-        "https://images.unsplash.com/photo-1444212477490-ca407925329e?w=500"
-      ]
-    }
-  ],
-  'fitness': [
-    {
-      baseTitle: "Resistance Bands Set with Door Anchor",
-      basePrice: 29.99,
-      category: "Home Gym",
-      features: ["5 resistance levels", "Door anchor included", "Foam handles", "Exercise guide"],
-      images: [
-        "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500",
-        "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=500",
-        "https://images.unsplash.com/photo-1594736797933-d0d14eeb3573?w=500",
-        "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=500",
-        "https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=500",
-        "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=500"
-      ]
-    }
-  ]
-};
-
-// GPT-powered content generation
-async function generateUniqueProductContent(baseProduct: any, niche: string, productIndex: number, openAIKey: string) {
-  console.log(`🤖 GENERATING UNIQUE CONTENT for product ${productIndex + 1} in ${niche} niche`);
-  
-  const contentPrompt = `You are an expert e-commerce copywriter. Create a unique, compelling product listing for a ${niche} product.
-
-Base Product: ${baseProduct.baseTitle}
-Product Index: ${productIndex + 1}/10
-Target Audience: ${niche} enthusiasts
-Store Style: Modern e-commerce
-
-Create COMPLETELY UNIQUE content (no repetition from other products):
-
-1. CREATIVE TITLE (max 60 chars): Add emojis, power words, and unique hooks. Make it feel premium and different from basic product names.
-
-2. COMPELLING DESCRIPTION: Write 3-4 paragraphs in HTML format with:
-   - Emotional hook opening
-   - Key benefits with emojis  
-   - Social proof elements
-   - Call to action
-
-3. FEATURES: List 4-6 specific features with emojis
-
-4. TAGS: 6-8 SEO tags for ${niche} niche
-
-5. PRICING: Suggest price between $${Math.max(15, baseProduct.basePrice * 0.7)} - $${Math.min(80, baseProduct.basePrice * 1.3)}
-
-Make this product sound premium, unique, and irresistible. Use varied writing styles (story-driven, benefit-focused, review-style) to ensure each product feels different.
-
-Return JSON format:
-{
-  "title": "unique title with emojis",
-  "description": "HTML formatted description",
-  "features": ["feature 1", "feature 2", ...],
-  "tags": ["tag1", "tag2", ...],
-  "price": suggested_price_number
-}`;
-
-  try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: 'You are an expert e-commerce copywriter who creates unique, compelling product descriptions.' },
-          { role: 'user', content: contentPrompt }
-        ],
-        temperature: 0.8, // Higher creativity
-        max_tokens: 1500
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const content = JSON.parse(data.choices[0].message.content);
-    
-    console.log(`✅ UNIQUE CONTENT GENERATED: "${content.title}"`);
-    return content;
-    
-  } catch (error) {
-    console.error('❌ GPT content generation failed:', error);
-    // Fallback to manual unique content
-    return generateFallbackContent(baseProduct, niche, productIndex);
-  }
-}
-
-function generateFallbackContent(baseProduct: any, niche: string, productIndex: number) {
-  const variations = [
-    { prefix: "✨ Premium", style: "luxury" },
-    { prefix: "🚀 Revolutionary", style: "innovation" },
-    { prefix: "🏆 Award-Winning", style: "achievement" },
-    { prefix: "💎 Professional", style: "quality" },
-    { prefix: "⚡ Advanced", style: "technology" },
-    { prefix: "🌟 Ultimate", style: "supreme" },
-    { prefix: "🔥 Best-Selling", style: "popular" },
-    { prefix: "💯 Top-Rated", style: "trusted" }
-  ];
-
-  const variation = variations[productIndex % variations.length];
-  const price = Math.round(baseProduct.basePrice + (productIndex * 5) + (Math.random() * 20));
-
-  return {
-    title: `${variation.prefix} ${baseProduct.baseTitle}`,
-    description: `<h3>Transform Your ${niche.charAt(0).toUpperCase() + niche.slice(1)} Experience</h3><p>Discover why thousands choose this ${variation.style} solution. Perfect for ${niche} enthusiasts who demand quality and results.</p><p><strong>Key Benefits:</strong><br>• Premium quality construction<br>• Proven results<br>• Easy to use<br>• Money-back guarantee</p>`,
-    features: baseProduct.features,
-    tags: [niche, 'premium', 'quality', 'bestseller', variation.style, 'trending'],
-    price: Math.min(80, Math.max(15, price))
-  };
-}
-
 // Shopify API Client
-class ShopifyClient {
-  constructor(private shopUrl: string, private accessToken: string) {}
+class ShopifyApiClient {
+  private baseUrl: string;
+  private accessToken: string;
 
-  async createProduct(productData: any) {
+  constructor(shopUrl: string, accessToken: string) {
+    this.baseUrl = shopUrl.replace(/\/$/, '');
+    this.accessToken = accessToken;
+  }
+
+  async createProduct(productData: any): Promise<any> {
     console.log('🛒 Creating product in Shopify:', productData.product.title);
     
-    const response = await fetch(`${this.shopUrl}/admin/api/2024-10/products.json`, {
+    const response = await fetch(`${this.baseUrl}/admin/api/2024-10/products.json`, {
       method: 'POST',
       headers: {
         'X-Shopify-Access-Token': this.accessToken,
@@ -222,58 +37,31 @@ class ShopifyClient {
     return await response.json();
   }
 
-  async uploadImage(productId: string, imageUrl: string, position: number) {
-    console.log(`📸 Uploading image ${position} for product ${productId}`);
+  async uploadImage(productId: string, imageData: any): Promise<any> {
+    console.log(`📸 Uploading image ${imageData.position} for product ${productId}`);
     
-    const response = await fetch(`${this.shopUrl}/admin/api/2024-10/products/${productId}/images.json`, {
+    const response = await fetch(`${this.baseUrl}/admin/api/2024-10/products/${productId}/images.json`, {
       method: 'POST',
       headers: {
         'X-Shopify-Access-Token': this.accessToken,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        image: {
-          src: imageUrl,
-          position: position,
-          alt: `Product image ${position}`
-        }
-      })
+      body: JSON.stringify({ image: imageData })
     });
 
     if (!response.ok) {
-      console.warn(`⚠️ Image upload failed for position ${position}`);
-      return null;
-    }
-
-    const result = await response.json();
-    console.log(`✅ IMAGE SUCCESS: Image ${position} uploaded with ID: ${result.image.id}`);
-    return result;
-  }
-
-  async createVariant(productId: string, variantData: any) {
-    console.log(`🎯 Creating variant for product ${productId}`);
-    
-    const response = await fetch(`${this.shopUrl}/admin/api/2024-10/products/${productId}/variants.json`, {
-      method: 'POST',
-      headers: {
-        'X-Shopify-Access-Token': this.accessToken,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ variant: variantData })
-    });
-
-    if (!response.ok) {
-      console.warn(`⚠️ Variant creation failed`);
+      const errorText = await response.text();
+      console.error(`❌ Image upload failed: ${response.status} - ${errorText}`);
       return null;
     }
 
     return await response.json();
   }
 
-  async updateVariant(variantId: string, variantData: any) {
+  async updateVariant(variantId: string, variantData: any): Promise<any> {
     console.log(`🔄 Updating variant ${variantId}`);
     
-    const response = await fetch(`${this.shopUrl}/admin/api/2024-10/variants/${variantId}.json`, {
+    const response = await fetch(`${this.baseUrl}/admin/api/2024-10/variants/${variantId}.json`, {
       method: 'PUT',
       headers: {
         'X-Shopify-Access-Token': this.accessToken,
@@ -283,11 +71,166 @@ class ShopifyClient {
     });
 
     if (!response.ok) {
-      console.warn(`⚠️ Variant update failed`);
+      const errorText = await response.text();
+      console.error(`❌ Variant update failed: ${response.status} - ${errorText}`);
       return null;
     }
 
     return await response.json();
+  }
+
+  async createVariant(productId: string, variantData: any): Promise<any> {
+    console.log(`🎯 Creating variant for product ${productId}`);
+    
+    const response = await fetch(`${this.baseUrl}/admin/api/2024-10/products/${productId}/variants.json`, {
+      method: 'POST',
+      headers: {
+        'X-Shopify-Access-Token': this.accessToken,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ variant: variantData })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ Variant creation failed: ${response.status} - ${errorText}`);
+      return null;
+    }
+
+    return await response.json();
+  }
+}
+
+// GPT prompt templates for maximum variation
+const GPT_PROMPT_TEMPLATES = {
+  storytelling: (product: any, niche: string, targetAudience: string, index: number) => `
+    Create a compelling product story for this ${niche} item targeting ${targetAudience}. Product ${index + 1}/10.
+    
+    Original: ${product.title}
+    Price: $${product.price}
+    Features: ${product.features?.join(', ') || 'Premium quality'}
+    
+    Write a story-driven title with emojis and description that tells how this product transforms lives.
+    Make it emotional and personal. Use unique hook words like "Ultimate", "Revolutionary", "Life-Changing".
+    
+    Return JSON: {"title": "emoji + hook + benefit", "description": "HTML story format", "tags": ["unique", "tags", "here"]}
+  `,
+  
+  benefits: (product: any, niche: string, targetAudience: string, index: number) => `
+    Create benefit-focused content for this ${niche} product targeting ${targetAudience}. Product ${index + 1}/10.
+    
+    Original: ${product.title}
+    Price: $${product.price}
+    Features: ${product.features?.join(', ') || 'High quality'}
+    
+    Focus on clear benefits and problem-solving. Use action words and urgency.
+    Make the title benefit-driven with power words like "Transform", "Boost", "Maximize".
+    
+    Return JSON: {"title": "emoji + action word + benefit", "description": "HTML benefits list", "tags": ["benefit", "focused", "tags"]}
+  `,
+  
+  luxury: (product: any, niche: string, targetAudience: string, index: number) => `
+    Create premium luxury content for this ${niche} item targeting ${targetAudience}. Product ${index + 1}/10.
+    
+    Original: ${product.title}
+    Price: $${product.price}
+    Features: ${product.features?.join(', ') || 'Premium features'}
+    
+    Make it sound luxurious and exclusive. Use words like "Premium", "Elite", "Exclusive", "Professional".
+    Create desire and exclusivity.
+    
+    Return JSON: {"title": "emoji + luxury word + exclusive benefit", "description": "HTML luxury format", "tags": ["premium", "luxury", "exclusive"]}
+  `,
+  
+  practical: (product: any, niche: string, targetAudience: string, index: number) => `
+    Create practical, no-nonsense content for this ${niche} product targeting ${targetAudience}. Product ${index + 1}/10.
+    
+    Original: ${product.title}
+    Price: $${product.price}
+    Features: ${product.features?.join(', ') || 'Practical features'}
+    
+    Focus on functionality and value. Use straightforward language with practical hooks.
+    Use words like "Essential", "Smart", "Efficient", "Must-Have".
+    
+    Return JSON: {"title": "emoji + practical word + function", "description": "HTML practical format", "tags": ["essential", "practical", "smart"]}
+  `
+};
+
+// Generate unique content using GPT with rotation
+async function generateUniqueProductContent(product: any, niche: string, targetAudience: string, businessType: string, storeStyle: string, productIndex: number): Promise<any> {
+  const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+  if (!openAIApiKey) {
+    throw new Error('OpenAI API key not configured');
+  }
+
+  console.log(`🤖 GENERATING UNIQUE CONTENT for product ${productIndex + 1} in ${niche} niche`);
+
+  // Rotate through different prompt templates for maximum variation
+  const templates = Object.values(GPT_PROMPT_TEMPLATES);
+  const templateIndex = productIndex % templates.length;
+  const selectedTemplate = templates[templateIndex];
+  
+  const prompt = selectedTemplate(product, niche, targetAudience, productIndex);
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { 
+            role: 'system', 
+            content: `You are an expert e-commerce copywriter creating unique, compelling product content. Each product must be completely different from others. Focus on ${niche} products for ${targetAudience}. Always return valid JSON.` 
+          },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.8 + (productIndex * 0.1), // Increase creativity for each product
+        max_tokens: 800
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    let content = data.choices[0].message.content.trim();
+    
+    // Clean up GPT response
+    if (content.startsWith('```json')) {
+      content = content.replace(/```json\n?/, '').replace(/\n?```$/, '');
+    }
+    
+    const parsedContent = JSON.parse(content);
+    console.log(`✅ UNIQUE CONTENT GENERATED: "${parsedContent.title}"`);
+    
+    return parsedContent;
+  } catch (error) {
+    console.error('❌ GPT content generation failed:', error);
+    
+    // Fallback with unique variations
+    const fallbackTitles = [
+      `🌟 ${product.title} - Premium Edition`,
+      `✨ Ultimate ${product.title}`,
+      `🔥 ${product.title} - Pro Version`,
+      `⭐ Elite ${product.title}`,
+      `💎 ${product.title} - Deluxe`,
+      `🚀 Advanced ${product.title}`,
+      `🎯 Smart ${product.title}`,
+      `🏆 Professional ${product.title}`,
+      `💫 ${product.title} Plus`,
+      `🔥 ${product.title} - Special Edition`
+    ];
+    
+    return {
+      title: fallbackTitles[productIndex % fallbackTitles.length],
+      description: `<p>Experience the difference with this premium ${niche} product designed for ${targetAudience}.</p><ul><li>High-quality construction</li><li>Perfect for ${targetAudience}</li><li>Fast shipping</li><li>30-day return policy</li></ul>`,
+      tags: [`${niche}`, 'premium', 'quality', targetAudience, 'bestseller']
+    };
   }
 }
 
@@ -297,99 +240,96 @@ serve(async (req) => {
   }
 
   try {
-    const {
-      shopifyUrl,
-      accessToken,
-      themeColor,
-      product,
-      storeName,
-      targetAudience,
-      storeStyle,
-      businessType,
-      productIndex,
-      niche
+    const { 
+      shopifyUrl, 
+      accessToken, 
+      themeColor, 
+      product, 
+      storeName, 
+      targetAudience, 
+      storeStyle, 
+      businessType, 
+      productIndex, 
+      niche 
     } = await req.json();
 
-    console.log(`🚨 SINGLE PRODUCT UPLOAD: Processing product: {
-  title: "${product.title}",
-  storeName: "${storeName}",
-  niche: "${niche}",
-  productIndex: ${productIndex},
-  businessType: "${businessType}",
-  storeStyle: "${storeStyle}"
-}`);
+    console.log('🚨 SINGLE PRODUCT UPLOAD: Processing product:', {
+      title: product.title,
+      storeName,
+      niche,
+      productIndex,
+      businessType,
+      storeStyle
+    });
 
-    // Extract domain from URL
-    const extractDomain = (url: string) => {
-      if (!url) return '';
-      
-      console.log('🔍 EXTRACTING FROM:', url);
-      
+    if (!shopifyUrl || !accessToken || !product) {
+      throw new Error('Missing required parameters');
+    }
+
+    // Extract domain properly
+    const extractShopifyDomain = (url: string): string => {
       if (url.includes('admin.shopify.com/store/')) {
         const match = url.match(/admin\.shopify\.com\/store\/([^\/\?]+)/);
-        if (match) {
-          const storeId = match[1];
-          const domain = `${storeId}.myshopify.com`;
-          console.log('✅ EXTRACTED ADMIN URL:', storeId, '->', domain);
-          return domain;
-        }
+        if (match) return `${match[1]}.myshopify.com`;
       }
       
       let domain = url.replace(/^https?:\/\//, '');
-      
       if (domain.includes('.myshopify.com')) {
-        const cleanDomain = domain.split('/')[0];
-        console.log('✅ ALREADY MYSHOPIFY:', cleanDomain);
-        return cleanDomain;
+        return domain.split('/')[0];
       }
       
-      const finalDomain = `${domain}.myshopify.com`;
-      console.log('✅ CONSTRUCTED DOMAIN:', finalDomain);
-      return finalDomain;
+      return `${domain}.myshopify.com`;
     };
 
-    const domain = extractDomain(shopifyUrl);
-    const finalShopifyUrl = `https://${domain}`;
+    const shopifyDomain = extractShopifyDomain(shopifyUrl);
+    const fullShopifyUrl = `https://${shopifyDomain}`;
     
-    // Get OpenAI API key
-    const openAIKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openAIKey) {
-      throw new Error('OpenAI API key not configured');
-    }
+    console.log('🔍 EXTRACTING FROM:', shopifyUrl);
+    console.log('✅ ALREADY MYSHOPIFY:', shopifyDomain);
 
-    // Get niche-specific product data
-    const nicheProducts = NICHE_PRODUCT_DATA[niche.toLowerCase() as keyof typeof NICHE_PRODUCT_DATA] || NICHE_PRODUCT_DATA['beauty'];
-    const baseProduct = nicheProducts[productIndex % nicheProducts.length];
-    
+    const shopifyClient = new ShopifyApiClient(fullShopifyUrl, accessToken);
+
     // Generate unique content with GPT
-    const uniqueContent = await generateUniqueProductContent(baseProduct, niche, productIndex, openAIKey);
-    
-    console.log(`🚨 PRODUCT DETAILS: {
-  title: "${uniqueContent.title}",
-  price: "${uniqueContent.price}",
-  niche: "${niche}",
-  handle: "${uniqueContent.title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').substring(0, 50)}-${Date.now()}",
-  businessType: "${businessType}",
-  storeStyle: "${storeStyle}"
-}`);
+    const enhancedContent = await generateUniqueProductContent(
+      product, 
+      niche, 
+      targetAudience, 
+      businessType, 
+      storeStyle, 
+      productIndex
+    );
 
-    // Create Shopify client
-    const shopify = new ShopifyClient(finalShopifyUrl, accessToken);
+    // Calculate unique pricing based on index and original price
+    const basePrice = typeof product.price === 'number' ? product.price : parseFloat(product.price) || 25;
+    const priceVariation = (productIndex * 5) + (Math.random() * 20 - 10); // Add variation
+    const finalPrice = Math.max(15, Math.min(80, basePrice + priceVariation));
 
-    // Create product payload
+    console.log('🚨 PRODUCT DETAILS:', {
+      title: enhancedContent.title,
+      price: finalPrice.toFixed(0),
+      niche,
+      handle: enhancedContent.title.toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .substring(0, 50) + `-${Date.now()}`,
+      businessType,
+      storeStyle
+    });
+
+    // Create comprehensive product payload
     const productPayload = {
       product: {
-        title: uniqueContent.title,
-        body_html: uniqueContent.description,
-        vendor: storeName,
-        product_type: baseProduct.category,
-        handle: uniqueContent.title.toLowerCase()
+        title: enhancedContent.title,
+        body_html: enhancedContent.description,
+        vendor: storeName || `${niche.charAt(0).toUpperCase() + niche.slice(1)} Store`,
+        product_type: niche.charAt(0).toUpperCase() + niche.slice(1),
+        handle: enhancedContent.title.toLowerCase()
           .replace(/[^a-z0-9\s-]/g, '')
           .replace(/\s+/g, '-')
           .substring(0, 50) + `-${Date.now()}`,
         status: 'active',
         published: true,
-        tags: uniqueContent.tags.join(', '),
+        tags: enhancedContent.tags.join(', '),
         options: [
           {
             name: 'Variant',
@@ -400,109 +340,123 @@ serve(async (req) => {
         variants: [
           {
             option1: 'Standard',
-            price: uniqueContent.price.toFixed(2),
-            compare_at_price: (uniqueContent.price * 1.3).toFixed(2),
+            price: finalPrice.toFixed(2),
+            compare_at_price: (finalPrice * 1.3).toFixed(2),
             inventory_quantity: 100,
             inventory_management: null,
             fulfillment_service: 'manual',
-            requires_shipping: true
+            requires_shipping: true,
+            weight: 0.5,
+            weight_unit: 'kg'
           }
         ]
       }
     };
 
     console.log('🚨 CREATING PRODUCT: With enhanced payload');
-    
-    // Create the product
-    const productResponse = await shopify.createProduct(productPayload);
+    const productResponse = await shopifyClient.createProduct(productPayload);
     const createdProduct = productResponse.product;
-    
+
     console.log('✅ PRODUCT CREATED:', createdProduct.id);
 
-    // Upload images
+    // Upload unique images for this product
     console.log('🚨 STARTING IMAGE UPLOAD: Using enhanced images for', niche);
+    
+    const productImages = product.images || [];
     let uploadedImages = 0;
     
-    for (let i = 0; i < Math.min(6, baseProduct.images.length); i++) {
+    // Upload up to 6 images with proper spacing
+    for (let i = 0; i < Math.min(productImages.length, 6); i++) {
       try {
-        console.log(`🔄 UPLOADING IMAGE ${i + 1}/${baseProduct.images.length}: ${baseProduct.images[i]}`);
-        const imageResult = await shopify.uploadImage(createdProduct.id, baseProduct.images[i], i + 1);
-        if (imageResult) {
+        console.log(`🔄 UPLOADING IMAGE ${i + 1}/${Math.min(productImages.length, 6)}: ${productImages[i]}`);
+        
+        const imagePayload = {
+          src: productImages[i],
+          alt: `${enhancedContent.title} - Image ${i + 1}`,
+          position: i + 1
+        };
+
+        const imageResponse = await shopifyClient.uploadImage(createdProduct.id, imagePayload);
+        if (imageResponse) {
           uploadedImages++;
+          console.log(`✅ IMAGE SUCCESS: Image ${i + 1} uploaded with ID: ${imageResponse.image.id}`);
         }
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Rate limiting
+
+        // Rate limiting between images
+        await new Promise(resolve => setTimeout(resolve, 1500));
       } catch (imageError) {
-        console.error(`❌ Image ${i + 1} upload failed:`, imageError);
+        console.error(`⚠️ Image upload failed for position ${i + 1}`);
       }
     }
 
     console.log(`🎉 IMAGE UPLOAD SUCCESS: ${uploadedImages} images uploaded`);
 
-    // Update default variant price
+    // Update default variant with correct pricing
     if (createdProduct.variants && createdProduct.variants.length > 0) {
       const defaultVariant = createdProduct.variants[0];
-      await shopify.updateVariant(defaultVariant.id, {
-        price: uniqueContent.price.toFixed(2),
-        compare_at_price: (uniqueContent.price * 1.2).toFixed(2)
+      await shopifyClient.updateVariant(defaultVariant.id, {
+        price: finalPrice.toFixed(2),
+        compare_at_price: (finalPrice * 1.25).toFixed(2)
       });
-      console.log(`✅ DEFAULT VARIANT UPDATED: Price set to $${uniqueContent.price.toFixed(2)}`);
+      console.log('✅ DEFAULT VARIANT UPDATED: Price set to $' + finalPrice.toFixed(2));
     }
 
-    // Create additional smart variations
-    console.log(`🚨 CREATING VARIATIONS: Smart variations for ${niche}`);
-    const variations = [
-      { title: 'Premium Edition', multiplier: 1.3 },
-      { title: 'Deluxe Package', multiplier: 1.5 }
+    // Create additional smart variations based on niche
+    console.log('🚨 CREATING VARIATIONS: Smart variations for', niche);
+    let createdVariants = 0;
+    
+    const smartVariations = [
+      { name: 'Premium Edition', priceMultiplier: 1.3 },
+      { name: 'Deluxe Package', priceMultiplier: 1.5 }
     ];
 
-    let createdVariants = 0;
-    for (const variation of variations) {
+    for (const variation of smartVariations) {
       try {
-        const variantPrice = Math.min(80, uniqueContent.price * variation.multiplier);
-        const variantResult = await shopify.createVariant(createdProduct.id, {
-          option1: variation.title,
-          price: variantPrice.toFixed(2),
-          compare_at_price: (variantPrice * 1.15).toFixed(2),
+        const variantPrice = (finalPrice * variation.priceMultiplier).toFixed(2);
+        const variantPayload = {
+          option1: variation.name,
+          price: variantPrice,
+          compare_at_price: (parseFloat(variantPrice) * 1.2).toFixed(2),
           inventory_quantity: 50,
           inventory_management: null,
           fulfillment_service: 'manual',
           requires_shipping: true
-        });
-        
-        if (variantResult) {
+        };
+
+        const variantResponse = await shopifyClient.createVariant(createdProduct.id, variantPayload);
+        if (variantResponse) {
           createdVariants++;
-          console.log(`✅ VARIATION SUCCESS: "${variation.title}" at $${variantPrice.toFixed(2)}`);
+          console.log(`✅ VARIATION SUCCESS: "${variation.name}" at $${variantPrice}`);
         }
-        
+
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (variantError) {
-        console.error(`❌ Variant creation failed for ${variation.title}:`, variantError);
+        console.error(`❌ Failed to create variant: ${variation.name}`);
       }
     }
 
-    const results = {
+    console.log('🎉 SINGLE PRODUCT COMPLETE - RESULTS:', {
       productId: createdProduct.id,
-      title: uniqueContent.title,
-      price: uniqueContent.price.toFixed(2),
+      title: createdProduct.title,
+      price: finalPrice.toFixed(2),
       imagesUploaded: uploadedImages,
-      variantsCreated: createdVariants + 1, // +1 for default variant
+      variantsCreated: createdVariants,
       niche: niche,
       status: 'SUCCESS'
-    };
-
-    console.log('🎉 SINGLE PRODUCT COMPLETE - RESULTS:', results);
+    });
 
     return new Response(JSON.stringify({
       success: true,
       product: {
         id: createdProduct.id,
-        title: uniqueContent.title,
-        price: uniqueContent.price,
+        title: createdProduct.title,
+        price: finalPrice.toFixed(2),
+        handle: createdProduct.handle,
         images: uploadedImages,
-        variants: createdVariants + 1
+        variants: createdVariants + 1, // +1 for default
+        niche: niche
       },
-      shopifyUrl: `${finalShopifyUrl}/admin/products/${createdProduct.id}`,
-      message: `Product "${uniqueContent.title}" created successfully with ${uploadedImages} images and ${createdVariants + 1} variants`
+      message: `Product created successfully with ${uploadedImages} images and ${createdVariants + 1} variants`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -511,7 +465,7 @@ serve(async (req) => {
     console.error('❌ Single product creation failed:', error);
     return new Response(JSON.stringify({
       success: false,
-      error: error.message || 'Product creation failed'
+      error: error.message || 'Single product creation failed'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

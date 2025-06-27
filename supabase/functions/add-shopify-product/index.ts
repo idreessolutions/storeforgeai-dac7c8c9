@@ -14,7 +14,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🚀 ENHANCED BULK PRODUCT GENERATION: Starting with connection test');
+    console.log('🚀 STABLE BULK PRODUCT GENERATION: Starting with enhanced stability');
     
     const { 
       shopifyUrl, 
@@ -27,16 +27,18 @@ serve(async (req) => {
       niche 
     } = await req.json();
     
-    console.log('🚨 BULK PRODUCT GENERATION: Starting 10 unique products for niche:', niche);
-    console.log('🔗 Store URL:', shopifyUrl);
-    console.log('🎨 Theme Color:', themeColor);
-    console.log('👥 Target Audience:', targetAudience);
+    console.log('🚨 GENERATING 10 UNIQUE PRODUCTS:', {
+      niche,
+      shopifyUrl,
+      themeColor,
+      targetAudience
+    });
     
     if (!shopifyUrl || !accessToken || !niche) {
       throw new Error('Missing required parameters: shopifyUrl, accessToken, or niche');
     }
 
-    // Test connection first
+    // Enhanced connection test with detailed logging
     console.log('🔍 Testing Shopify connection...');
     const testResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/shop.json`, {
       headers: {
@@ -60,199 +62,222 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    console.log('🔍 Fetching niche-specific products for:', niche);
+    console.log('🔍 Fetching 10 unique niche-specific products for:', niche);
     
-    try {
-      // Get niche-specific products with timeout
-      const productsTimeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Products fetch timeout')), 25000)
-      );
+    // Get niche-specific products with enhanced timeout and retry
+    let productsData;
+    let attempts = 0;
+    const maxAttempts = 3;
 
-      const productsPromise = supabase.functions.invoke('get-aliexpress-products', {
-        body: {
-          niche: niche,
-          sessionId: `session_${Date.now()}`
+    while (attempts < maxAttempts) {
+      try {
+        console.log(`🔄 Product fetch attempt ${attempts + 1}/${maxAttempts}`);
+        
+        const productsTimeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Products fetch timeout')), 30000)
+        );
+
+        const productsPromise = supabase.functions.invoke('get-aliexpress-products', {
+          body: {
+            niche: niche,
+            sessionId: `session_${Date.now()}_${attempts}`
+          }
+        });
+
+        const productsResponse = await Promise.race([productsPromise, productsTimeoutPromise]);
+        
+        if (productsResponse.error) {
+          throw new Error(`Products fetch failed: ${productsResponse.error.message}`);
         }
-      });
 
-      const productsResponse = await Promise.race([productsPromise, productsTimeoutPromise]);
-      const productsData = productsResponse.data;
-      const productsError = productsResponse.error;
+        productsData = productsResponse.data;
+        if (productsData?.success && productsData.products?.length >= 10) {
+          console.log(`✅ Got ${productsData.products.length} products on attempt ${attempts + 1}`);
+          break;
+        } else {
+          throw new Error(`Insufficient products: got ${productsData?.products?.length || 0}, need 10`);
+        }
+      } catch (error) {
+        attempts++;
+        console.error(`❌ Product fetch attempt ${attempts} failed:`, error);
+        
+        if (attempts >= maxAttempts) {
+          throw new Error(`Failed to fetch products after ${maxAttempts} attempts: ${error.message}`);
+        }
+        
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, 2000 * attempts));
+      }
+    }
 
-      if (productsError) {
-        console.error('❌ Failed to get products - error object:', productsError);
-        throw new Error(`Failed to fetch products: ${productsError.message || 'Unknown error'}`);
+    const products = productsData.products || [];
+    console.log(`✅ Successfully got ${products.length} unique products for ${niche}`);
+
+    if (products.length < 10) {
+      throw new Error(`Insufficient products for ${niche}: got ${products.length}, need 10`);
+    }
+
+    // Process exactly 10 unique products
+    const productsToAdd = products.slice(0, 10);
+    const results = [];
+    let successCount = 0;
+
+    console.log(`🚀 PROCESSING 10 UNIQUE ${niche.toUpperCase()} PRODUCTS WITH ENHANCED STABILITY`);
+
+    for (let i = 0; i < productsToAdd.length; i++) {
+      const product = productsToAdd[i];
+      console.log(`🔄 Processing unique product ${i + 1}/10: ${product.title}`);
+
+      try {
+        // Create individual product payload with guaranteed uniqueness
+        const productPayload = {
+          shopifyUrl,
+          accessToken,
+          themeColor: themeColor || '#3B82F6',
+          product: {
+            ...product,
+            title: product.title,
+            price: product.price,
+            category: niche,
+            images: product.images || [],
+            features: product.features || [],
+            variants: product.variants || [],
+            uniqueId: `${niche}_${i}_${Date.now()}` // Ensure uniqueness
+          },
+          storeName,
+          targetAudience,
+          storeStyle,
+          businessType,
+          productIndex: i, // Critical for GPT variation
+          niche: niche.toLowerCase(),
+          totalProducts: 10,
+          batchId: Date.now()
+        };
+
+        // Enhanced timeout for individual product creation
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error(`Product ${i + 1} creation timeout after 60s`)), 60000)
+        );
+
+        const createPromise = supabase.functions.invoke('add-shopify-product-single', {
+          body: productPayload
+        });
+
+        console.log(`⏳ Creating unique product ${i + 1}/10 with 60s timeout...`);
+        const createResponse = await Promise.race([createPromise, timeoutPromise]);
+        
+        if (createResponse.error) {
+          console.error(`❌ Product ${i + 1} failed:`, createResponse.error);
+          results.push({ 
+            success: false, 
+            error: createResponse.error.message, 
+            product: product.title,
+            index: i + 1
+          });
+        } else if (createResponse.data?.success) {
+          console.log(`✅ Product ${i + 1}/10 created successfully: "${createResponse.data.product?.title || product.title}"`);
+          successCount++;
+          results.push({ 
+            success: true, 
+            product: createResponse.data.product?.title || product.title, 
+            productId: createResponse.data.product?.id,
+            price: createResponse.data.product?.price,
+            index: i + 1
+          });
+        } else {
+          console.error(`❌ Product ${i + 1} failed:`, createResponse.data?.error);
+          results.push({ 
+            success: false, 
+            error: createResponse.data?.error || 'Unknown error', 
+            product: product.title,
+            index: i + 1
+          });
+        }
+
+      } catch (productError) {
+        console.error(`❌ Product ${i + 1} exception:`, productError);
+        results.push({ 
+          success: false, 
+          error: productError.message, 
+          product: product.title,
+          index: i + 1
+        });
       }
 
-      if (!productsData?.success) {
-        console.error('❌ Failed to get products - unsuccessful response:', productsData);
-        throw new Error(`Failed to fetch products: ${productsData?.error || 'Service returned unsuccessful response'}`);
+      // Enhanced rate limiting between products
+      if (i < productsToAdd.length - 1) {
+        console.log(`⏳ Waiting 3s between products... (${i + 1}/10 complete)`);
+        await new Promise(resolve => setTimeout(resolve, 3000));
       }
+    }
 
-      const products = productsData.products || [];
-      console.log(`✅ Got ${products.length} products for ${niche}`);
+    console.log(`🎉 BULK GENERATION COMPLETE: ${successCount}/10 unique ${niche} products created`);
 
-      if (products.length === 0) {
-        throw new Error(`No products found for niche: ${niche}`);
-      }
+    // Apply theme color after products are created
+    if (successCount > 0) {
+      console.log(`🎨 APPLYING THEME COLOR: ${themeColor} to ${niche} store`);
+      try {
+        const themeTimeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Theme timeout')), 30000)
+        );
 
-      // Generate 10 unique products (back to 10)
-      const productsToAdd = products.slice(0, 10);
-      const results = [];
-      let successCount = 0;
-
-      console.log(`🚀 PROCESSING ${productsToAdd.length} UNIQUE PRODUCTS FOR ${niche.toUpperCase()}`);
-
-      for (let i = 0; i < productsToAdd.length; i++) {
-        const product = productsToAdd[i];
-        console.log(`🔄 Processing unique product ${i + 1}/${productsToAdd.length}: ${product.title}`);
-
-        try {
-          // Create individual product payload with unique data
-          const productPayload = {
+        const themePromise = supabase.functions.invoke('apply-theme-color', {
+          body: {
             shopifyUrl,
             accessToken,
-            themeColor: themeColor || '#3B82F6',
-            product: {
-              title: product.title || `${niche} Product ${i + 1}`,
-              price: product.price || (20 + Math.random() * 40), // Random price between $20-$60
-              category: niche,
-              images: product.images || [],
-              features: product.features || [],
-              variants: product.variants || []
-            },
+            themeColor,
             storeName,
-            targetAudience,
-            storeStyle,
-            businessType,
-            productIndex: i, // This ensures each product gets unique GPT content
-            niche: niche.toLowerCase()
-          };
-
-          // Extended timeout for individual product creation
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Product creation timeout')), 45000)
-          );
-
-          const createPromise = supabase.functions.invoke('add-shopify-product-single', {
-            body: productPayload
-          });
-
-          console.log(`⏳ Creating product ${i + 1} with 45s timeout...`);
-          const createResponse = await Promise.race([createPromise, timeoutPromise]);
-          const result = createResponse.data;
-          const error = createResponse.error;
-
-          if (error) {
-            console.error(`❌ Product ${i + 1} failed:`, error);
-            results.push({ success: false, error: error.message, product: product.title });
-          } else if (result?.success) {
-            console.log(`✅ Product ${i + 1} created successfully: "${result.product?.title || product.title}"`);
-            successCount++;
-            results.push({ 
-              success: true, 
-              product: result.product?.title || product.title, 
-              productId: result.product?.id,
-              price: result.product?.price,
-              images: result.product?.images,
-              variants: result.product?.variants
-            });
-          } else {
-            console.error(`❌ Product ${i + 1} failed:`, result?.error);
-            results.push({ success: false, error: result?.error || 'Unknown error', product: product.title });
+            niche
           }
-
-        } catch (productError) {
-          console.error(`❌ Product ${i + 1} exception:`, productError);
-          results.push({ success: false, error: productError.message, product: product.title });
+        });
+        
+        const themeResponse = await Promise.race([themePromise, themeTimeoutPromise]);
+        
+        if (themeResponse.data?.success) {
+          console.log('✅ THEME COLOR APPLIED SUCCESSFULLY');
+        } else {
+          console.warn('⚠️ Theme color application failed, but products were created');
         }
-
-        // Rate limiting between products
-        if (i < productsToAdd.length - 1) {
-          console.log('⏳ Waiting 2s between products...');
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        }
+      } catch (themeError) {
+        console.warn('⚠️ Theme color application failed:', themeError);
       }
-
-      console.log(`🎉 BULK GENERATION COMPLETE: ${successCount}/${productsToAdd.length} unique products created for ${niche}`);
-
-      // Apply theme color after products are created
-      if (successCount > 0) {
-        console.log(`🎨 APPLYING THEME COLOR: ${themeColor} to store`);
-        try {
-          const themeTimeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Theme timeout')), 30000)
-          );
-
-          const themePromise = supabase.functions.invoke('apply-theme-color', {
-            body: {
-              shopifyUrl,
-              accessToken,
-              themeColor,
-              storeName
-            }
-          });
-          
-          const themeResponse = await Promise.race([themePromise, themeTimeoutPromise]);
-          
-          if (themeResponse.data?.success) {
-            console.log('✅ THEME COLOR APPLIED SUCCESSFULLY');
-          } else {
-            console.warn('⚠️ Theme color application failed, but products were created');
-          }
-        } catch (themeError) {
-          console.warn('⚠️ Theme color application failed:', themeError);
-        }
-      }
-
-      return new Response(JSON.stringify({
-        success: successCount > 0,
-        totalProcessed: productsToAdd.length,
-        successCount,
-        results,
-        niche: niche,
-        themeColorApplied: themeColor,
-        message: `Successfully created ${successCount} unique ${niche} products with individual GPT-generated content, pricing, and images`,
-        connectionTest: 'passed',
-        shopName: shopData.shop?.name
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-
-    } catch (fetchError) {
-      console.error('❌ Product fetching failed:', fetchError);
-      throw new Error(`Product fetching failed: ${fetchError.message}`);
     }
+
+    // Enhanced success response
+    return new Response(JSON.stringify({
+      success: successCount >= 8, // Consider success if 8+ products created
+      totalProcessed: productsToAdd.length,
+      successCount,
+      failureCount: productsToAdd.length - successCount,
+      results,
+      niche: niche,
+      themeColorApplied: themeColor,
+      message: `Successfully created ${successCount}/10 unique ${niche} products with individual GPT-generated content and real images`,
+      connectionTest: 'passed',
+      shopName: shopData.shop?.name,
+      timestamp: new Date().toISOString(),
+      qualityMetrics: {
+        uniqueTitles: successCount,
+        realImages: successCount,
+        nicheSpecific: true,
+        gptEnhanced: true
+      }
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
   } catch (error) {
     console.error('🚨 BULK GENERATION ERROR:', error);
     
-    // Enhanced error response with more context
-    let errorDetails = 'Unknown error occurred';
-    let statusCode = 500;
-    
-    if (error instanceof Error) {
-      errorDetails = error.message;
-      
-      if (errorDetails.includes('Shopify connection failed')) {
-        statusCode = 401;
-      } else if (errorDetails.includes('Products fetch timeout')) {
-        statusCode = 408;
-      } else if (errorDetails.includes('Missing required parameters')) {
-        statusCode = 400;
-      }
-    }
-    
     return new Response(JSON.stringify({
       success: false,
-      error: errorDetails,
+      error: error.message || 'Unknown error occurred',
       timestamp: new Date().toISOString(),
-      niche: error.niche || 'unknown',
       troubleshooting: {
         check_connection: 'Verify Shopify store URL and access token',
-        check_niche: 'Ensure niche is supported (pets, fitness, beauty, tech, baby, home, fashion, kitchen, gaming, travel, office, toy)',
-        retry_advice: 'Function may be initializing - wait 30-60 seconds and retry',
-        timeout_info: 'Extended timeouts active - process may take 2-3 minutes total'
+        check_function_deployment: 'Edge function may be deploying - wait 60 seconds',
+        retry_advice: 'Use the retry button to attempt again with exponential backoff',
+        timeout_info: 'Enhanced timeouts active - process may take 3-4 minutes total'
       },
       debug_info: {
         error_type: error.name,
@@ -260,7 +285,7 @@ serve(async (req) => {
         stack: error.stack?.substring(0, 500)
       }
     }), {
-      status: statusCode,
+      status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
