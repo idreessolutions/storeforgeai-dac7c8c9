@@ -60,7 +60,7 @@ const StepRenderer = ({
       console.log('🎨 Rendering: Color Selection Step');
       return (
         <ColorSelectionStep 
-          formData={{ themeColor: formData.selectedColor }} 
+          formData={{ selectedColor: formData.selectedColor }} 
           handleInputChange={handleInputChange} 
         />
       );
