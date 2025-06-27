@@ -1,9 +1,10 @@
-import React from "react";
+
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, ExternalLink } from "lucide-react";
+import { Settings, ExternalLink, AlertCircle, CheckCircle } from "lucide-react";
 
 interface APIConfigStepProps {
   formData: {
@@ -14,7 +15,21 @@ interface APIConfigStepProps {
 }
 
 const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
+  const [appsAccessed, setAppsAccessed] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
+
   const handleAccessShopifyApps = () => {
+    setAppsAccessed(true);
+    setCountdown(25); // 25 second countdown
+    console.log('🚨 CRITICAL: User accessed Shopify Apps - starting 25s countdown');
+    
     if (formData.shopifyUrl) {
       // Extract store name from the domain (e.g., "your-store" from "your-store.myshopify.com")
       const storeName = formData.shopifyUrl.replace('.myshopify.com', '');
@@ -24,6 +39,27 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
       window.open('https://admin.shopify.com/settings/apps/development', '_blank');
     }
   };
+
+  const validateAPIConfig = () => {
+    if (!appsAccessed) {
+      console.log('🚨 CRITICAL: User must click Access Shopify Apps first');
+      return false;
+    }
+    if (countdown > 0) {
+      console.log(`🚨 CRITICAL: User must wait ${countdown} more seconds before proceeding`);
+      return false;
+    }
+    if (!formData.accessToken.trim()) {
+      console.log('🚨 CRITICAL: Access token is required');
+      return false;
+    }
+    return true;
+  };
+
+  // This function will be called by the parent component
+  React.useEffect(() => {
+    (window as any).validateAPIConfig = validateAPIConfig;
+  }, [appsAccessed, countdown, formData.accessToken]);
 
   return (
     <Card className="border-0 shadow-lg max-w-2xl mx-auto">
@@ -121,11 +157,32 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
           </div>
 
           <Button 
-            className="w-full bg-green-600 hover:bg-green-700 text-white py-4 text-lg font-semibold"
+            className={`w-full py-4 text-lg font-semibold flex items-center justify-center ${
+              appsAccessed && countdown === 0
+                ? 'bg-green-600 hover:bg-green-700 text-white'
+                : appsAccessed && countdown > 0
+                ? 'bg-orange-500 text-white cursor-not-allowed'
+                : 'bg-green-600 hover:bg-green-700 text-white'
+            }`}
             onClick={handleAccessShopifyApps}
+            disabled={appsAccessed && countdown > 0}
           >
-            Access Shopify Apps
-            <ExternalLink className="ml-2 h-5 w-5" />
+            {appsAccessed && countdown > 0 ? (
+              <>
+                <AlertCircle className="mr-2 h-5 w-5" />
+                Wait {countdown}s before Next Step
+              </>
+            ) : appsAccessed && countdown === 0 ? (
+              <>
+                <CheckCircle className="mr-2 h-5 w-5" />
+                Apps Accessed - Ready to Proceed
+              </>
+            ) : (
+              <>
+                Access Shopify Apps
+                <ExternalLink className="ml-2 h-5 w-5" />
+              </>
+            )}
           </Button>
         </div>
       </CardContent>

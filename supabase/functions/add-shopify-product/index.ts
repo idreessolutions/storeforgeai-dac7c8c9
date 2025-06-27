@@ -30,8 +30,9 @@ serve(async (req) => {
     console.log('🚨 GENERATING 10 UNIQUE PRODUCTS:', {
       niche,
       shopifyUrl,
-      themeColor,
-      targetAudience
+      themeColor: themeColor || '#3B82F6', // CRITICAL FIX: Use themeColor properly
+      targetAudience,
+      storeName
     });
     
     if (!shopifyUrl || !accessToken || !niche) {
@@ -133,7 +134,7 @@ serve(async (req) => {
         const productPayload = {
           shopifyUrl,
           accessToken,
-          themeColor: themeColor || '#3B82F6',
+          themeColor: themeColor || '#3B82F6', // CRITICAL FIX: Pass correct theme color
           product: {
             ...product,
             title: product.title,
@@ -213,20 +214,20 @@ serve(async (req) => {
 
     console.log(`🎉 BULK GENERATION COMPLETE: ${successCount}/10 unique ${niche} products created`);
 
-    // Apply theme color after products are created
-    if (successCount > 0) {
-      console.log(`🎨 APPLYING THEME COLOR: ${themeColor} to ${niche} store`);
+    // CRITICAL FIX: Apply theme color after products are created
+    if (successCount > 0 && themeColor) {
+      console.log(`🎨 CRITICAL FIX: APPLYING THEME COLOR: ${themeColor} to ${storeName || niche} store`);
       try {
         const themeTimeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Theme timeout')), 30000)
+          setTimeout(() => reject(new Error('Theme timeout')), 45000)
         );
 
         const themePromise = supabase.functions.invoke('apply-theme-color', {
           body: {
             shopifyUrl,
             accessToken,
-            themeColor,
-            storeName,
+            themeColor: themeColor,
+            storeName: storeName || `${niche.charAt(0).toUpperCase() + niche.slice(1)} Store`,
             niche
           }
         });
@@ -234,13 +235,15 @@ serve(async (req) => {
         const themeResponse = await Promise.race([themePromise, themeTimeoutPromise]);
         
         if (themeResponse.data?.success) {
-          console.log('✅ THEME COLOR APPLIED SUCCESSFULLY');
+          console.log(`✅ CRITICAL SUCCESS: THEME COLOR ${themeColor} APPLIED TO STORE`);
         } else {
-          console.warn('⚠️ Theme color application failed, but products were created');
+          console.warn(`⚠️ Theme color application failed: ${themeResponse.data?.error || 'Unknown error'}`);
         }
       } catch (themeError) {
         console.warn('⚠️ Theme color application failed:', themeError);
       }
+    } else {
+      console.warn('⚠️ No theme color provided or no products created - skipping theme application');
     }
 
     // Enhanced success response
@@ -260,7 +263,8 @@ serve(async (req) => {
         uniqueTitles: successCount,
         realImages: successCount,
         nicheSpecific: true,
-        gptEnhanced: true
+        gptEnhanced: true,
+        themeColorFixed: !!themeColor
       }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -5,7 +5,7 @@ import { Palette } from "lucide-react";
 
 interface ColorSelectionStepProps {
   formData: {
-    themeColor: string;
+    selectedColor: string;
   };
   handleInputChange: (field: string, value: string) => void;
 }
@@ -35,15 +35,15 @@ const ColorSelectionStep = ({ formData, handleInputChange }: ColorSelectionStepP
           {colors.map((color) => (
             <button
               key={color.name}
-              onClick={() => handleInputChange('themeColor', color.value)}
+              onClick={() => handleInputChange('selectedColor', color.value)}
               className={`w-full aspect-square rounded-2xl transition-all duration-200 hover:scale-105 ${
-                formData.themeColor === color.value 
+                formData.selectedColor === color.value 
                   ? 'ring-4 ring-blue-400 ring-offset-4' 
                   : 'hover:ring-2 hover:ring-gray-300 hover:ring-offset-2'
               }`}
               style={{ backgroundColor: color.value }}
             >
-              {formData.themeColor === color.value && (
+              {formData.selectedColor === color.value && (
                 <div className="w-full h-full rounded-2xl flex items-center justify-center">
                   <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
                     <div className="w-3 h-3 bg-current rounded-full"></div>
@@ -54,11 +54,11 @@ const ColorSelectionStep = ({ formData, handleInputChange }: ColorSelectionStepP
           ))}
         </div>
 
-        {formData.themeColor && (
+        {formData.selectedColor && (
           <div className="text-center">
             <p className="text-gray-600 mb-4">
-              Selected color: <span className="font-semibold" style={{ color: formData.themeColor }}>
-                {colors.find(c => c.value === formData.themeColor)?.name}
+              Selected color: <span className="font-semibold" style={{ color: formData.selectedColor }}>
+                {colors.find(c => c.value === formData.selectedColor)?.name}
               </span>
             </p>
           </div>

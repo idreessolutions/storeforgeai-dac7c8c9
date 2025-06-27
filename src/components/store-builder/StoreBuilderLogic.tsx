@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -69,11 +68,22 @@ export const useStoreBuilderLogic = () => {
       case 2: // Color Selection
         if (!formData.selectedColor.trim()) missingFields.push("Theme Color");
         break;
-      case 3: // Shopify Setup
+      case 3: // Shopify Setup - ENHANCED VALIDATION
         if (!formData.shopifyUrl.trim()) missingFields.push("Shopify URL");
+        if (!formData.createdViaAffiliate) missingFields.push("Account Creation");
+        // Check if the validation function exists and call it
+        if (typeof (window as any).validateShopifySetup === 'function') {
+          const isValid = (window as any).validateShopifySetup();
+          if (!isValid) missingFields.push("Complete Account Setup");
+        }
         break;
-      case 4: // API Config
+      case 4: // API Config - ENHANCED VALIDATION
         if (!formData.accessToken.trim()) missingFields.push("Access Token");
+        // Check if the validation function exists and call it
+        if (typeof (window as any).validateAPIConfig === 'function') {
+          const isValid = (window as any).validateAPIConfig();
+          if (!isValid) missingFields.push("Complete API Setup");
+        }
         break;
       case 5: // Activate Trial
         if (!formData.planActivated) missingFields.push("Plan Activation");

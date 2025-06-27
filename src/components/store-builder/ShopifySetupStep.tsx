@@ -1,10 +1,10 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ExternalLink, Store, AlertCircle } from "lucide-react";
+import { ExternalLink, Store, AlertCircle, CheckCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface ShopifySetupStepProps {
@@ -18,6 +18,15 @@ interface ShopifySetupStepProps {
 const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps) => {
   const [showModal, setShowModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [accountCreated, setAccountCreated] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
 
   const handleCreateAccount = () => {
     setShowModal(true);
@@ -25,8 +34,10 @@ const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps
 
   const handleConfirmRedirect = () => {
     setShowModal(false);
+    setAccountCreated(true);
+    setCountdown(25); // 25 second countdown
     handleInputChange('createdViaAffiliate', true);
-    console.log('User confirmed affiliate account creation');
+    console.log('🚨 CRITICAL: User confirmed affiliate account creation - starting 25s countdown');
     window.open('http://shopify.pxf.io/GK7n9s', '_blank');
   };
 
@@ -57,12 +68,21 @@ const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps
   };
 
   const validateAndProceed = () => {
-    if (!formData.createdViaAffiliate) {
+    if (!formData.createdViaAffiliate || !accountCreated) {
       setShowErrorModal(true);
+      return false;
+    }
+    if (countdown > 0) {
+      console.log(`🚨 CRITICAL: User must wait ${countdown} more seconds before proceeding`);
       return false;
     }
     return true;
   };
+
+  // This function will be called by the parent component
+  React.useEffect(() => {
+    (window as any).validateShopifySetup = validateAndProceed;
+  }, [formData.createdViaAffiliate, accountCreated, countdown]);
 
   return (
     <>
@@ -122,11 +142,32 @@ const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps
             </div>
 
             <Button 
-              className="w-full bg-green-600 hover:bg-green-700 text-white py-2 text-sm font-semibold"
+              className={`w-full py-2 text-sm font-semibold flex items-center justify-center ${
+                accountCreated && countdown === 0
+                  ? 'bg-green-600 hover:bg-green-700 text-white'
+                  : accountCreated && countdown > 0
+                  ? 'bg-orange-500 text-white cursor-not-allowed'
+                  : 'bg-green-600 hover:bg-green-700 text-white'
+              }`}
               onClick={handleCreateAccount}
+              disabled={accountCreated && countdown > 0}
             >
-              Create Account
-              <ExternalLink className="ml-2 h-4 w-4" />
+              {accountCreated && countdown > 0 ? (
+                <>
+                  <AlertCircle className="mr-2 h-4 w-4" />
+                  Wait {countdown}s before Next Step
+                </>
+              ) : accountCreated && countdown === 0 ? (
+                <>
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Account Created - Ready to Proceed
+                </>
+              ) : (
+                <>
+                  Create Account
+                  <ExternalLink className="ml-2 h-4 w-4" />
+                </>
+              )}
             </Button>
           </div>
         </CardContent>
@@ -161,7 +202,10 @@ const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps
               <AlertCircle className="h-5 w-5 text-red-600" />
             </div>
             <p className="text-gray-700 mb-4 text-sm">
-              Please create a Shopify account by clicking the "Create Account" button first.
+              {countdown > 0 
+                ? `Please wait ${countdown} seconds before proceeding.`
+                : 'Please create a Shopify account by clicking the "Create Account" button first.'
+              }
             </p>
             <Button onClick={() => setShowErrorModal(false)} className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm">
               OK
