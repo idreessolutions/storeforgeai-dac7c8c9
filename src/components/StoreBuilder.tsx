@@ -30,7 +30,7 @@ const StoreBuilder = ({ onBack, onViewAutomation }: StoreBuilderProps) => {
   };
 
   // Strict step limit to prevent UI bugs
-  const maxSteps = storeSteps.length; // Should be 8
+  const maxSteps = storeSteps.length - 1; // Subtract 1 because we start from 0
   const displayCurrentStep = Math.min(currentStep, maxSteps);
 
   return (
