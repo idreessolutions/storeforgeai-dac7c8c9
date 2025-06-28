@@ -19,13 +19,53 @@ const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps
   const [hasClickedCreate, setHasClickedCreate] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [canProceed, setCanProceed] = useState(false);
+  const [isValidUrl, setIsValidUrl] = useState(false);
+
+  // Enhanced validation function
+  const validateShopifyUrl = (url: string): boolean => {
+    if (!url) return false;
+    
+    // Check for various Shopify URL formats
+    const patterns = [
+      /^https?:\/\/admin\.shopify\.com\/store\/([^\/\?]+)/,
+      /^https?:\/\/([^\.]+)\.myshopify\.com/,
+      /^([^\.]+)\.myshopify\.com$/,
+      /^[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]$/
+    ];
+    
+    return patterns.some(pattern => pattern.test(url.trim()));
+  };
+
+  // Auto-format URL function
+  const formatShopifyUrl = (inputUrl: string): string => {
+    const url = inputUrl.trim();
+    
+    // Extract store name from admin URL
+    const adminMatch = url.match(/admin\.shopify\.com\/store\/([^\/\?]+)/);
+    if (adminMatch) {
+      return `${adminMatch[1]}.myshopify.com`;
+    }
+    
+    // If it's already myshopify.com format, clean it
+    const myshopifyMatch = url.match(/([^\.]+)\.myshopify\.com/);
+    if (myshopifyMatch) {
+      return `${myshopifyMatch[1]}.myshopify.com`;
+    }
+    
+    // If it's just the store name, add myshopify.com
+    if (/^[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]$/.test(url)) {
+      return `${url}.myshopify.com`;
+    }
+    
+    return url;
+  };
 
   // Store validation state on window for StoreBuilderLogic to access
   useEffect(() => {
-    (window as any).validateShopifySetup = () => {
-      return hasClickedCreate && canProceed && formData.shopifyUrl;
-    };
-  }, [hasClickedCreate, canProceed, formData.shopifyUrl]);
+    const isValid = hasClickedCreate && canProceed && isValidUrl;
+    (window as any).validateShopifySetup = () => isValid;
+    console.log('Shopify validation state:', { hasClickedCreate, canProceed, isValidUrl, isValid });
+  }, [hasClickedCreate, canProceed, isValidUrl]);
 
   const handleCreateAccount = () => {
     if (!hasClickedCreate) {
@@ -56,68 +96,43 @@ const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps
   };
 
   const handleStoreUrlChange = (value: string) => {
-    // Auto-convert Shopify admin URLs to myshopify.com format
-    let processedUrl = value;
+    const isValid = validateShopifyUrl(value);
+    setIsValidUrl(isValid);
     
-    if (value.includes('admin.shopify.com/store/')) {
-      const match = value.match(/admin\.shopify\.com\/store\/([^\/\?]+)/);
-      if (match) {
-        processedUrl = `${match[1]}.myshopify.com`;
-        toast.success("Store URL automatically converted!", { duration: 2000 });
+    if (isValid) {
+      const formattedUrl = formatShopifyUrl(value);
+      handleInputChange('shopifyUrl', formattedUrl);
+      
+      if (formattedUrl !== value) {
+        toast.success("Store URL automatically formatted!", { duration: 2000 });
       }
+    } else {
+      handleInputChange('shopifyUrl', value);
     }
-    
-    handleInputChange('shopifyUrl', processedUrl);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="max-w-4xl mx-auto pt-8">
         <Card className="bg-white shadow-2xl border-0">
-          <CardContent className="p-12">
+          <CardContent className="p-8 lg:p-12">
             {/* Header */}
             <div className="text-center mb-8">
-              <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Store className="h-10 w-10 text-white" />
+              <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Store className="h-8 w-8 lg:h-10 lg:w-10 text-white" />
               </div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-4">Create Your Dream Store</h1>
-              <p className="text-xl text-gray-600">Get started with your professional Shopify store</p>
-            </div>
-
-            {/* Video Section */}
-            <div className="mb-10">
-              <div className="relative w-full bg-gray-900 rounded-xl overflow-hidden shadow-lg" style={{ aspectRatio: '16/9' }}>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-white text-2xl font-bold bg-black bg-opacity-70 px-6 py-3 rounded-lg">
-                    YOU MUST MAKE A BRAND NEW STORE
-                  </div>
-                </div>
-                {/* Video controls overlay */}
-                <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 p-3">
-                  <div className="flex items-center space-x-3">
-                    <button className="text-white text-lg">▶</button>
-                    <div className="flex-1 bg-gray-600 h-2 rounded-full">
-                      <div className="bg-blue-500 h-2 rounded-full" style={{ width: '60%' }}></div>
-                    </div>
-                    <span className="text-white text-sm font-medium">01:13</span>
-                    <div className="flex space-x-2">
-                      <button className="text-white">🔊</button>
-                      <button className="text-white">📺</button>
-                      <button className="text-white">⚙️</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <h1 className="text-2xl lg:text-4xl font-bold text-gray-900 mb-4">Create Your Dream Store</h1>
+              <p className="text-lg lg:text-xl text-gray-600">Get started with your professional Shopify store</p>
             </div>
 
             {/* Instructions */}
             <div className="mb-8">
-              <div className="bg-gray-100 rounded-xl p-6 mb-6">
+              <div className="bg-gray-100 rounded-xl p-4 lg:p-6 mb-6">
                 <p className="text-gray-800 font-medium mb-4">
                   First you need to create a Shopify account before we start building your completely free store!
                 </p>
                 
-                <ul className="text-gray-700 space-y-3 mb-4">
+                <ul className="text-gray-700 space-y-3 mb-4 text-sm lg:text-base">
                   <li className="flex items-start">
                     <span className="mr-3 text-blue-600 font-bold">•</span>
                     <span>Click the <strong>Create Account</strong> button below</span>
@@ -137,7 +152,7 @@ const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps
                 </ul>
 
                 <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-3">
-                  <p className="text-yellow-800 font-medium">
+                  <p className="text-yellow-800 font-medium text-sm lg:text-base">
                     🟨 Remember to return to this tab to continue creating your store.
                   </p>
                 </div>
@@ -146,17 +161,27 @@ const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps
 
             {/* Store URL Input */}
             <div className="mb-8">
-              <Label htmlFor="shopifyUrl" className="block text-gray-700 font-semibold text-lg mb-3">
+              <Label htmlFor="shopifyUrl" className="block text-gray-700 font-semibold text-base lg:text-lg mb-3">
                 Store URL
               </Label>
               <Input
                 id="shopifyUrl"
                 type="text"
-                placeholder="p7vdbh-fh.myshopify.com"
+                placeholder="mystore.myshopify.com or admin.shopify.com/store/mystore"
                 value={formData.shopifyUrl}
                 onChange={(e) => handleStoreUrlChange(e.target.value)}
-                className="w-full h-14 text-lg border-2 border-gray-300 rounded-xl focus:border-blue-500 transition-colors"
+                className={`w-full h-12 lg:h-14 text-base lg:text-lg border-2 rounded-xl transition-colors ${
+                  isValidUrl 
+                    ? 'border-green-500 focus:border-green-600' 
+                    : 'border-gray-300 focus:border-blue-500'
+                }`}
               />
+              {isValidUrl && (
+                <p className="text-green-600 text-sm mt-2 flex items-center">
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  Valid Shopify store URL detected
+                </p>
+              )}
             </div>
 
             {/* Create Account Button */}
@@ -164,7 +189,7 @@ const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps
               <Button
                 onClick={handleCreateAccount}
                 disabled={hasClickedCreate}
-                className={`w-full h-16 text-xl font-bold rounded-xl transition-all transform hover:scale-105 ${
+                className={`w-full h-12 lg:h-16 text-lg lg:text-xl font-bold rounded-xl transition-all transform hover:scale-105 ${
                   canProceed 
                     ? 'bg-green-600 hover:bg-green-700' 
                     : hasClickedCreate 
@@ -174,17 +199,17 @@ const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps
               >
                 {canProceed ? (
                   <>
-                    <CheckCircle className="mr-3 h-6 w-6" />
+                    <CheckCircle className="mr-3 h-5 w-5 lg:h-6 lg:w-6" />
                     Account Created Successfully - Continue
                   </>
                 ) : hasClickedCreate ? (
                   <>
-                    <Timer className="mr-3 h-6 w-6" />
+                    <Timer className="mr-3 h-5 w-5 lg:h-6 lg:w-6" />
                     Please complete signup and return ({countdown}s)
                   </>
                 ) : (
                   <>
-                    <ExternalLink className="mr-3 h-6 w-6" />
+                    <ExternalLink className="mr-3 h-5 w-5 lg:h-6 lg:w-6" />
                     Create Account
                   </>
                 )}

@@ -60,7 +60,10 @@ export class EnhancedProductGenerator {
       `${businessPrefix} ${powerWords[1]} ${nicheKeyword} Collection`,
       `${styleModifier} ${nicheKeyword} ${powerWords[2]} Edition`,
       `Ultimate ${nicheKeyword} ${powerWords[0]} for ${params.targetAudience}`,
-      `${powerWords[2]} ${nicheKeyword} - ${styleModifier} ${businessPrefix}`
+      `${powerWords[2]} ${nicheKeyword} - ${styleModifier} ${businessPrefix}`,
+      `Professional ${nicheKeyword} ${powerWords[0]} Kit`,
+      `${params.storeName} Exclusive ${nicheKeyword} ${styleModifier}`,
+      `Premium ${nicheKeyword} ${powerWords[1]} System`
     ];
 
     const title = titleTemplates[params.productIndex % titleTemplates.length];
@@ -78,19 +81,26 @@ export class EnhancedProductGenerator {
     const features = this.generateFeatures(params, nicheConfig);
     const socialProof = this.getSocialProof(params.productIndex);
     const guarantee = this.getGuarantee(params.businessType);
+    const businessTone = this.getBusinessTone(params.businessType);
+    const styleTone = this.getStyleTone(params.storeStyle);
 
-    return `${emoji} **${urgency} ${emoji}**
+    // Apply custom information if provided
+    const customSection = params.customInfo ? `\n✨ **${params.storeName} Special Features:** ${params.customInfo}\n` : '';
+
+    return `${emoji} **${urgency} - ${params.storeName} Exclusive!** ${emoji}
+
+${businessTone} ${styleTone}
 
 🎯 **Perfect for ${params.targetAudience}** who demand ${this.getQualityLevel(params.storeStyle)} quality!
 
-${this.getEmotionalHook(params.niche, variation, params.themeColor)}
+${this.getEmotionalHook(params.niche, variation, params.themeColor, params.storeName)}
 
 🏆 **Why This ${params.niche} Solution Dominates:**
 ${features.map(f => `• ✅ ${f}`).join('\n')}
 
-💎 **Transform Your Life:**
+💎 **Transform Your ${params.niche} Experience:**
 ${benefits.map(b => `🔹 ${b}`).join('\n')}
-
+${customSection}
 📊 **${socialProof}**
 ⭐ ${(4.2 + Math.random() * 0.8).toFixed(1)}/5 stars | ${(500 + params.productIndex * 100).toLocaleString()}+ satisfied customers
 
@@ -98,26 +108,77 @@ ${this.getCallToAction(params.businessType, params.storeStyle)}
 
 🛡️ **${guarantee}** - Your satisfaction guaranteed!
 
-${params.customInfo ? `\n✨ **Special Features:** ${params.customInfo}` : ''}`;
+🎨 **${params.storeName} Brand Promise:** We specialize in ${params.niche} products that match your ${params.storeStyle} lifestyle perfectly.`;
   }
 
   private static generateWorkingImages(niche: string, index: number): string[] {
-    // Generate 6-8 real working images from Unsplash
-    const baseUrls = [
-      'https://images.unsplash.com/photo-1560472354-b33ff0c44a43',
-      'https://images.unsplash.com/photo-1523275335684-37898b6baf30', 
-      'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f',
-      'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d',
-      'https://images.unsplash.com/photo-1542291026-7eec264c27ff',
-      'https://images.unsplash.com/photo-1505740420928-5e560c06d30e',
-      'https://images.unsplash.com/photo-1572635196237-14b3f281503f',
-      'https://images.unsplash.com/photo-1503602642458-232111445657'
-    ];
+    // Real working image URLs from Unsplash based on niche
+    const nicheImageLibrary = {
+      beauty: [
+        'https://images.unsplash.com/photo-1596462502278-27bfdc403348',
+        'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9',
+        'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b',
+        'https://images.unsplash.com/photo-1487412912498-0447578fcca8',
+        'https://images.unsplash.com/photo-1560472354-b33ff0c44a43',
+        'https://images.unsplash.com/photo-1588614959060-4d144f28b207'
+      ],
+      pets: [
+        'https://images.unsplash.com/photo-1601758228041-f3b2795255f1',
+        'https://images.unsplash.com/photo-1583337130417-3346a1be7dee',
+        'https://images.unsplash.com/photo-1587300003388-59208cc962cb',
+        'https://images.unsplash.com/photo-1548199973-03cce0bbc87b',
+        'https://images.unsplash.com/photo-1592194996308-7b43878e84a6',
+        'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e'
+      ],
+      tech: [
+        'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1',
+        'https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb',
+        'https://images.unsplash.com/photo-1583394838336-acd977736f90',
+        'https://images.unsplash.com/photo-1560472354-b33ff0c44a43',
+        'https://images.unsplash.com/photo-1581833971358-2c8b550f87b3',
+        'https://images.unsplash.com/photo-1542291026-7eec264c27ff'
+      ],
+      fitness: [
+        'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b',
+        'https://images.unsplash.com/photo-1434596922112-19c563067271',
+        'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61',
+        'https://images.unsplash.com/photo-1571902943202-507ec2618e8f',
+        'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b',
+        'https://images.unsplash.com/photo-1598971639058-fab3c3109a00'
+      ],
+      kitchen: [
+        'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136',
+        'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b',
+        'https://images.unsplash.com/photo-1556909042-f6aa4b57cc02',
+        'https://images.unsplash.com/photo-1571197102211-d770383d1d16',
+        'https://images.unsplash.com/photo-1574781330855-d2a8944a2b8d',
+        'https://images.unsplash.com/photo-1565814329452-e1efa11c5b89'
+      ],
+      fashion: [
+        'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab',
+        'https://images.unsplash.com/photo-1553062407-98eeb64c6a62',
+        'https://images.unsplash.com/photo-1544966503-7cc5ac882d5f',
+        'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77',
+        'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f',
+        'https://images.unsplash.com/photo-1445205170230-053b83016050'
+      ]
+    };
 
-    return baseUrls.map((url, i) => {
-      const variation = (index * 8 + i) % 1000;
-      return `${url}?w=800&h=600&fit=crop&auto=format&q=80&random=${variation}`;
-    });
+    const nicheImages = nicheImageLibrary[niche.toLowerCase() as keyof typeof nicheImageLibrary] 
+      || nicheImageLibrary.tech;
+
+    // Generate 6-8 unique images per product with variations
+    const images = [];
+    const baseIndex = (index * 2) % nicheImages.length;
+    
+    for (let i = 0; i < 6; i++) {
+      const imageIndex = (baseIndex + i) % nicheImages.length;
+      const variation = (index * 100 + i * 50) % 1000;
+      images.push(`${nicheImages[imageIndex]}?w=800&h=600&fit=crop&auto=format&q=80&random=${variation}`);
+    }
+    
+    console.log(`📸 Generated ${images.length} unique images for ${niche} product ${index + 1}`);
+    return images;
   }
 
   private static calculateSmartPrice(
@@ -131,6 +192,11 @@ ${params.customInfo ? `\n✨ **Special Features:** ${params.customInfo}` : ''}`;
     const businessMultiplier = this.getBusinessMultiplier(params.businessType);
     
     let finalPrice = basePrice * styleMultiplier * businessMultiplier;
+    
+    // Add some randomization to ensure uniqueness
+    const randomFactor = 0.9 + (Math.random() * 0.2); // 0.9 to 1.1
+    finalPrice *= randomFactor;
+    
     finalPrice = Math.max(minPrice, Math.min(maxPrice, finalPrice));
     
     return Math.floor(finalPrice) + 0.99;
@@ -154,7 +220,7 @@ ${params.customInfo ? `\n✨ **Special Features:** ${params.customInfo}` : ''}`;
         price: Math.round(basePrice * priceMultiplier * 100) / 100,
         option1: variant.option1,
         option2: variant.option2,
-        sku: `${params.niche.toUpperCase()}-${params.productIndex + 1}-${i + 1}`,
+        sku: `${params.niche.toUpperCase()}-${params.storeName.replace(/\s+/g, '').toUpperCase()}-${params.productIndex + 1}-${i + 1}`,
         inventory_quantity: 100,
         weight: variant.weight || 1.0
       });
@@ -174,7 +240,7 @@ ${params.customInfo ? `\n✨ **Special Features:** ${params.customInfo}` : ''}`;
       'trendy': ['Trendy', 'Stylish', 'Hot']
     };
     
-    return styleWords[style] || ['Quality', 'Premium', 'Professional'];
+    return styleWords[style.toLowerCase()] || ['Quality', 'Premium', 'Professional'];
   }
 
   private static getBusinessPrefix(businessType: string): string {
@@ -187,7 +253,7 @@ ${params.customInfo ? `\n✨ **Special Features:** ${params.customInfo}` : ''}`;
       'marketplace': 'Top Rated'
     };
     
-    return prefixes[businessType] || 'Premium';
+    return prefixes[businessType.toLowerCase()] || 'Premium';
   }
 
   private static getStyleModifier(style: string): string {
@@ -200,7 +266,33 @@ ${params.customInfo ? `\n✨ **Special Features:** ${params.customInfo}` : ''}`;
       'trendy': 'Trendy'
     };
     
-    return modifiers[style] || 'Premium';
+    return modifiers[style.toLowerCase()] || 'Premium';
+  }
+
+  private static getBusinessTone(businessType: string): string {
+    const tones = {
+      'e-commerce': 'Transform your online shopping experience with this must-have item.',
+      'dropshipping': 'Discover the latest trending product that\'s taking the market by storm.',
+      'retail': 'Add this customer favorite to your collection today.',
+      'wholesale': 'Perfect for bulk orders and business customers.',
+      'subscription': 'This month\'s featured item in our curated collection.',
+      'marketplace': 'Join thousands of satisfied marketplace buyers.'
+    };
+    
+    return tones[businessType.toLowerCase()] || 'Experience the difference with this premium product.';
+  }
+
+  private static getStyleTone(style: string): string {
+    const tones = {
+      'modern': 'Sleek, contemporary design meets cutting-edge functionality.',
+      'luxury': 'Indulge in the finest quality with this exclusive luxury piece.',
+      'fun': 'Bright, colorful, and designed to bring joy to your daily routine.',
+      'professional': 'Engineered for professionals who demand excellence.',
+      'rustic': 'Embrace natural beauty with this authentic, handcrafted quality.',
+      'trendy': 'Stay ahead of the curve with this fashion-forward essential.'
+    };
+    
+    return tones[style.toLowerCase()] || 'Designed with your lifestyle in mind.';
   }
 
   private static getVariantTypes(niche: string): any[] {
@@ -219,46 +311,60 @@ ${params.customInfo ? `\n✨ **Special Features:** ${params.customInfo}` : ''}`;
         { name: 'Small', option1: 'Size', option2: 'S', weight: 0.3 },
         { name: 'Medium', option1: 'Size', option2: 'M', weight: 0.4 },
         { name: 'Large', option1: 'Size', option2: 'L', weight: 0.5 }
+      ],
+      'tech': [
+        { name: 'Basic Model', option1: 'Type', option2: 'Basic', weight: 0.8 },
+        { name: 'Pro Version', option1: 'Type', option2: 'Pro', weight: 1.2 },
+        { name: 'Ultimate Edition', option1: 'Type', option2: 'Ultimate', weight: 1.5 }
+      ],
+      'fitness': [
+        { name: 'Light Resistance', option1: 'Resistance', option2: 'Light', weight: 0.8 },
+        { name: 'Medium Resistance', option1: 'Resistance', option2: 'Medium', weight: 1.0 },
+        { name: 'Heavy Resistance', option1: 'Resistance', option2: 'Heavy', weight: 1.2 }
       ]
     };
     
-    return variants[niche] || [
+    return variants[niche.toLowerCase()] || [
       { name: 'Standard', option1: 'Type', option2: 'Standard', weight: 1.0 },
       { name: 'Premium', option1: 'Type', option2: 'Premium', weight: 1.2 },
       { name: 'Deluxe', option1: 'Type', option2: 'Deluxe', weight: 1.5 }
     ];
   }
 
-  // ... Additional helper methods for emotions, social proof, etc.
+  // Additional helper methods
   private static getNicheEmoji(niche: string): string {
     const emojis = {
       'beauty': '✨', 'pets': '🐾', 'fitness': '💪', 'tech': '📱',
       'fashion': '👗', 'baby': '👶', 'kitchen': '🍳', 'gaming': '🎮',
       'home': '🏠', 'automotive': '🚗'
     };
-    return emojis[niche] || '⭐';
+    return emojis[niche.toLowerCase()] || '⭐';
   }
 
   private static getUrgencyTrigger(index: number): string {
     const triggers = [
       'LIMITED TIME DEAL', 'TRENDING NOW', 'CUSTOMER FAVORITE',
-      'ALMOST SOLD OUT', 'EXCLUSIVE OFFER', 'BESTSELLER ALERT'
+      'ALMOST SOLD OUT', 'EXCLUSIVE OFFER', 'BESTSELLER ALERT',
+      'NEW ARRIVAL', 'STAFF PICK'
     ];
     return triggers[index % triggers.length];
   }
 
-  private static getEmotionalHook(niche: string, variation: string, themeColor: string): string {
-    return `🚀 Transform your ${niche} experience with this ${variation} innovation that matches your ${themeColor} style perfectly!`;
+  private static getEmotionalHook(niche: string, variation: string, themeColor: string, storeName: string): string {
+    return `🚀 Transform your ${niche} experience with this ${variation} innovation from ${storeName}. Designed to match your unique style and exceed your expectations!`;
   }
 
   private static generateFeatures(params: ProductGenerationParams, nicheConfig: any): string[] {
     const nicheFeatures = {
       'beauty': ['Dermatologist tested formula', 'Long-lasting 12hr wear', 'Hypoallergenic ingredients', 'Professional salon quality'],
       'pets': ['Vet-approved safety', 'Durable chew-resistant material', 'Easy-clean surface', 'Comfort-first design'],
-      'fitness': ['Gym-grade durability', 'Ergonomic grip design', 'Adjustable resistance levels', 'Professional trainer approved']
+      'fitness': ['Gym-grade durability', 'Ergonomic grip design', 'Adjustable resistance levels', 'Professional trainer approved'],
+      'tech': ['Latest technology integration', 'User-friendly interface', 'Fast processing speed', 'Compatible with all devices'],
+      'kitchen': ['Food-grade materials', 'Dishwasher safe', 'Space-saving design', 'Professional chef quality'],
+      'fashion': ['Premium fabric blend', 'Comfortable all-day wear', 'Versatile styling options', 'Durable construction']
     };
     
-    const features = nicheFeatures[params.niche] || ['Premium quality materials', 'Professional grade construction', 'Easy to use design', 'Guaranteed performance'];
+    const features = nicheFeatures[params.niche.toLowerCase()] || ['Premium quality materials', 'Professional grade construction', 'Easy to use design', 'Guaranteed performance'];
     return features.slice(0, 4);
   }
 
@@ -266,10 +372,13 @@ ${params.customInfo ? `\n✨ **Special Features:** ${params.customInfo}` : ''}`;
     const nicheBenefits = {
       'beauty': ['Achieve glowing, radiant skin instantly', 'Boost confidence with professional results', 'Save money vs salon treatments'],
       'pets': ['Keep your pet happy and healthy', 'Strengthen the bond with your furry friend', 'Peace of mind with safe materials'],
-      'fitness': ['Build strength and endurance quickly', 'Achieve your fitness goals faster', 'Work out comfortably at home']
+      'fitness': ['Build strength and endurance quickly', 'Achieve your fitness goals faster', 'Work out comfortably at home'],
+      'tech': ['Increase productivity and efficiency', 'Stay connected and organized', 'Future-proof your setup'],
+      'kitchen': ['Cook like a professional chef', 'Save time in meal preparation', 'Enjoy healthier home-cooked meals'],
+      'fashion': ['Express your unique style', 'Feel confident and comfortable', 'Make a lasting impression']
     };
     
-    const benefits = nicheBenefits[params.niche] || ['Get professional results at home', 'Save time and money', 'Achieve amazing results quickly'];
+    const benefits = nicheBenefits[params.niche.toLowerCase()] || ['Get professional results at home', 'Save time and money', 'Achieve amazing results quickly'];
     return benefits.slice(0, 3);
   }
 
@@ -278,7 +387,7 @@ ${params.customInfo ? `\n✨ **Special Features:** ${params.customInfo}` : ''}`;
       'luxury': 1.4, 'modern': 1.1, 'professional': 1.2,
       'fun': 0.9, 'rustic': 1.0, 'trendy': 1.15
     };
-    return multipliers[style] || 1.0;
+    return multipliers[style.toLowerCase()] || 1.0;
   }
 
   private static getBusinessMultiplier(businessType: string): number {
@@ -286,15 +395,16 @@ ${params.customInfo ? `\n✨ **Special Features:** ${params.customInfo}` : ''}`;
       'luxury': 1.3, 'wholesale': 0.8, 'subscription': 1.1,
       'dropshipping': 1.0, 'retail': 1.05, 'marketplace': 0.95
     };
-    return multipliers[businessType] || 1.0;
+    return multipliers[businessType.toLowerCase()] || 1.0;
   }
 
   private static generateTargetedTags(params: ProductGenerationParams, nicheConfig: any): string {
     const baseTags = [params.niche, params.businessType, params.storeStyle, 'bestseller'];
     const nicheKeywords = nicheConfig.keywords.slice(0, 3);
     const audienceTags = params.targetAudience.split(' ').slice(0, 2);
+    const storeTag = params.storeName.replace(/\s+/g, '-').toLowerCase();
     
-    return [...baseTags, ...nicheKeywords, ...audienceTags].join(', ');
+    return [...baseTags, ...nicheKeywords, ...audienceTags, storeTag].join(', ');
   }
 
   private static generateSEOTitle(params: ProductGenerationParams, nicheConfig: any): string {
@@ -307,7 +417,9 @@ ${params.customInfo ? `\n✨ **Special Features:** ${params.customInfo}` : ''}`;
       'Trusted by thousands of satisfied customers worldwide',
       'Featured in top industry publications and blogs', 
       'Recommended by professionals and influencers',
-      'Winner of multiple quality excellence awards'
+      'Winner of multiple quality excellence awards',
+      'Customer choice award winner 2024',
+      'Verified by independent quality testing'
     ];
     return proofs[index % proofs.length];
   }
@@ -321,7 +433,7 @@ ${params.customInfo ? `\n✨ **Special Features:** ${params.customInfo}` : ''}`;
       'subscription': 'Cancel Anytime Guarantee',
       'marketplace': 'Marketplace Buyer Protection'
     };
-    return guarantees[businessType] || '30-Day Satisfaction Guarantee';
+    return guarantees[businessType.toLowerCase()] || '30-Day Satisfaction Guarantee';
   }
 
   private static getQualityLevel(style: string): string {
@@ -329,7 +441,7 @@ ${params.customInfo ? `\n✨ **Special Features:** ${params.customInfo}` : ''}`;
       'luxury': 'luxury', 'modern': 'professional', 'professional': 'expert',
       'fun': 'outstanding', 'rustic': 'authentic', 'trendy': 'premium'
     };
-    return levels[style] || 'premium';
+    return levels[style.toLowerCase()] || 'premium';
   }
 
   private static getCallToAction(businessType: string, style: string): string {
@@ -340,6 +452,6 @@ ${params.customInfo ? `\n✨ **Special Features:** ${params.customInfo}` : ''}`;
       'fun': '🎉 **Join the Fun** - Don\'t miss out!',
       'trendy': '✨ **Stay Ahead of Trends** - Order now!'
     };
-    return ctas[style] || '🛒 **Order Now** - Transform your experience!';
+    return ctas[style.toLowerCase()] || '🛒 **Order Now** - Transform your experience!';
   }
 }
