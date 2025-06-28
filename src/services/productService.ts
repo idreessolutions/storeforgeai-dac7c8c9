@@ -60,34 +60,28 @@ export const generateWinningProducts = async (
       try {
         console.log(`🚨 PROCESSING PRODUCT ${i + 1}/10: "${product.title}" with real images`);
 
-        // Generate business model and store style specific content
-        const businessContent = EnhancedProductGenerator.generateBusinessModelContent(
-          businessType, 
-          product.title, 
-          niche
-        );
-        
-        const storeStyleData = EnhancedProductGenerator.generateStoreStyleContent(
-          storeStyle, 
-          product.title
-        );
-
-        // Generate smart variations based on niche
-        const smartVariations = EnhancedProductGenerator.generateSmartVariations(
-          product.title,
+        // Generate unique product using the updated method
+        const enhancedProduct = EnhancedProductGenerator.generateUniqueProduct({
           niche,
-          product.price || 29.99
-        );
+          storeName,
+          targetAudience,
+          businessType,
+          storeStyle,
+          themeColor,
+          customInfo,
+          productIndex: i
+        });
 
-        // Get trust signals
-        const trustSignals = EnhancedProductGenerator.generateTrustSignals(niche);
-
-        // Enhanced product with real AliExpress images
-        const enhancedProduct = {
+        // Merge with original product data
+        const finalProduct = {
           ...product,
-          description: `${businessContent.description}\n\n${trustSignals.join('\n')}\n\n🚚 **Fast & Free Shipping** | 🔒 **Secure Checkout** | 📞 **24/7 Support**`,
-          images: RealAliExpressImageService.getRealProductImages(niche, i, product.title),
-          variants: smartVariations.length > 0 ? smartVariations : product.variants,
+          title: enhancedProduct.title,
+          description: enhancedProduct.description,
+          price: enhancedProduct.price,
+          images: enhancedProduct.images,
+          variants: enhancedProduct.variants,
+          tags: enhancedProduct.tags,
+          seoTitle: enhancedProduct.seoTitle,
           category: niche,
           businessModel: businessType,
           storeStyle: storeStyle,
@@ -100,7 +94,7 @@ export const generateWinningProducts = async (
           }
         };
 
-        console.log(`📸 REAL IMAGES ASSIGNED: ${enhancedProduct.images.length} real AliExpress images for product ${i + 1}`);
+        console.log(`📸 REAL IMAGES ASSIGNED: ${finalProduct.images.length} real AliExpress images for product ${i + 1}`);
 
         // Upload to Shopify with all customizations
         const { data: uploadResult, error: uploadError } = await supabase.functions.invoke('add-shopify-product', {
@@ -108,7 +102,7 @@ export const generateWinningProducts = async (
             shopifyUrl,
             accessToken,
             themeColor,
-            product: enhancedProduct,
+            product: finalProduct,
             storeName,
             targetAudience,
             storeStyle,
