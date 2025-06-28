@@ -10,6 +10,7 @@ import ProductsStep from "./ProductsStep";
 import MentorshipStep from "./MentorshipStep";
 import LaunchStep from "./LaunchStep";
 import GetStartedStep from "./GetStartedStep";
+import VisionSelectionStep from "./VisionSelectionStep";
 import { FormData } from "./StoreBuilderLogic";
 
 interface StepRendererProps {
@@ -29,15 +30,28 @@ const StepRenderer = ({
   onNext,
   validateCurrentStep
 }: StepRendererProps) => {
-  // CRITICAL FIX: Enforce proper 9-step system (0-8, where 0 is Get Started and 8 is Launch)
+  // UPDATED: Now 9 steps total (0-8, with new Vision step as 0, Get Started as 1)
   const maxSteps = 8; // Step 8 is Launch
   
-  console.log(`🛠️ STEP RENDERER CRITICAL FIX: Processing step ${currentStep} (max: ${maxSteps})`);
-  console.log(`📊 Available steps: Get Started (0), Store Details (1), Color (2), Shopify (3), API (4), Trial (5), Products (6), Mentorship (7), Launch (8)`);
+  console.log(`🛠️ STEP RENDERER: Processing step ${currentStep} (max: ${maxSteps})`);
+  console.log(`📊 Available steps: Vision (0), Get Started (1), Store Details (2), Color (3), Shopify (4), API (5), Trial (6), Products (7), Mentorship (8), Launch (9)`);
   
-  // CRITICAL FIX: Properly handle all steps including Launch (step 8)
+  // UPDATED: Handle new Vision Selection step as step 0
   switch (currentStep) {
     case 0:
+      console.log('🎯 Rendering: Vision Selection Step');
+      return (
+        <VisionSelectionStep 
+          formData={{ 
+            storeVision: formData.storeVision,
+            primaryGoal: formData.primaryGoal 
+          }}
+          handleInputChange={handleInputChange}
+          onNext={onNext}
+        />
+      );
+      
+    case 1:
       console.log('🚀 Rendering: Get Started Step');
       return (
         <GetStartedStep 
@@ -47,7 +61,7 @@ const StepRenderer = ({
         />
       );
       
-    case 1:
+    case 2:
       console.log('📝 Rendering: Store Details Step');
       return (
         <StoreDetailsStep 
@@ -56,7 +70,7 @@ const StepRenderer = ({
         />
       );
       
-    case 2:
+    case 3:
       console.log('🎨 Rendering: Color Selection Step');
       return (
         <ColorSelectionStep 
@@ -65,7 +79,7 @@ const StepRenderer = ({
         />
       );
       
-    case 3:
+    case 4:
       console.log('🛍️ Rendering: Shopify Setup Step');
       return (
         <ShopifySetupStep 
@@ -77,7 +91,7 @@ const StepRenderer = ({
         />
       );
       
-    case 4:
+    case 5:
       console.log('🔑 Rendering: API Config Step');
       return (
         <APIConfigStep 
@@ -89,7 +103,7 @@ const StepRenderer = ({
         />
       );
       
-    case 5:
+    case 6:
       console.log('⚡ Rendering: Activate Trial Step');
       return (
         <ActivateTrialStep 
@@ -101,7 +115,7 @@ const StepRenderer = ({
         />
       );
       
-    case 6:
+    case 7:
       console.log('📦 Rendering: Products Step');
       return (
         <ProductsStep 
@@ -121,7 +135,7 @@ const StepRenderer = ({
         />
       );
       
-    case 7:
+    case 8:
       console.log('🎓 Rendering: Mentorship Step');
       return (
         <MentorshipStep 
@@ -130,8 +144,8 @@ const StepRenderer = ({
         />
       );
       
-    case 8:
-      console.log('🚀 CRITICAL: Rendering Launch Step (Final Step)');
+    case 9:
+      console.log('🚀 FINAL: Rendering Launch Step');
       return (
         <LaunchStep 
           formData={{ shopifyUrl: formData.shopifyUrl }} 
@@ -139,13 +153,16 @@ const StepRenderer = ({
       );
       
     default:
-      // CRITICAL FIX: Fallback to Get Started for any invalid step
-      console.warn(`⚠️ Invalid step ${currentStep}, redirecting to Get Started`);
+      // CRITICAL FIX: Fallback to Vision Selection for any invalid step
+      console.warn(`⚠️ Invalid step ${currentStep}, redirecting to Vision Selection`);
       return (
-        <GetStartedStep 
-          onNext={onNext}
-          formData={{ themeColor: formData.selectedColor }}
+        <VisionSelectionStep 
+          formData={{ 
+            storeVision: formData.storeVision,
+            primaryGoal: formData.primaryGoal 
+          }}
           handleInputChange={handleInputChange}
+          onNext={onNext}
         />
       );
   }

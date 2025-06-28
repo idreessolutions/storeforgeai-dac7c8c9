@@ -36,7 +36,7 @@ const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps
     return patterns.some(pattern => pattern.test(url.trim()));
   };
 
-  // Auto-format URL function
+  // Auto-format URL function - Enhanced to show only .myshopify.com format
   const formatShopifyUrl = (inputUrl: string): string => {
     const url = inputUrl.trim();
     
@@ -108,8 +108,9 @@ const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps
       const formattedUrl = formatShopifyUrl(value);
       handleInputChange('shopifyUrl', formattedUrl);
       
-      if (formattedUrl !== value) {
-        toast.success("Store URL automatically formatted!", { duration: 2000 });
+      // Only show formatting message if URL was actually changed
+      if (formattedUrl !== value && formattedUrl.includes('.myshopify.com')) {
+        toast.success("Store URL formatted to standard format!", { duration: 2000 });
       }
     } else {
       handleInputChange('shopifyUrl', value);
@@ -120,44 +121,44 @@ const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-2 sm:p-4">
       <div className="max-w-4xl mx-auto pt-4 sm:pt-8">
         <Card className="bg-white shadow-2xl border-0">
-          <CardContent className="p-4 sm:p-8 lg:p-12">
+          <CardContent className="p-6 sm:p-8 lg:p-12">
             {/* Header */}
-            <div className="text-center mb-6 sm:mb-8">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
-                <Store className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10 text-white" />
+            <div className="text-center mb-8 sm:mb-10">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Store className="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 text-white" />
               </div>
-              <h1 className="text-xl sm:text-2xl lg:text-4xl font-bold text-gray-900 mb-2 sm:mb-4">Create Your Dream Store</h1>
-              <p className="text-base sm:text-lg lg:text-xl text-gray-600">Get started with your professional Shopify store</p>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">Create Your Dream Store</h1>
+              <p className="text-lg sm:text-xl text-gray-600">Get started with your professional Shopify store</p>
             </div>
 
-            {/* Instructions */}
-            <div className="mb-6 sm:mb-8">
-              <div className="bg-gray-100 rounded-xl p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
-                <p className="text-gray-800 font-medium mb-3 sm:mb-4 text-sm sm:text-base">
+            {/* Instructions - NO background, NO yellow box */}
+            <div className="mb-8 sm:mb-10">
+              <div className="p-6 sm:p-8 mb-6">
+                <p className="text-gray-800 font-medium mb-4 text-base sm:text-lg">
                   First you need to create a Shopify account before we start building your completely free store!
                 </p>
                 
-                <ul className="text-gray-700 space-y-2 sm:space-y-3 mb-3 sm:mb-4 text-xs sm:text-sm lg:text-base">
+                <ul className="text-gray-700 space-y-3 mb-6 text-sm sm:text-base">
                   <li className="flex items-start">
-                    <span className="mr-2 sm:mr-3 text-blue-600 font-bold">•</span>
+                    <span className="mr-3 text-blue-600 font-bold text-lg">•</span>
                     <span>Click the <strong>Create Account</strong> button below</span>
                   </li>
                   <li className="flex items-start">
-                    <span className="mr-2 sm:mr-3 text-blue-600 font-bold">•</span>
+                    <span className="mr-3 text-blue-600 font-bold text-lg">•</span>
                     <span>Complete the registration information to signup</span>
                   </li>
                   <li className="flex items-start">
-                    <span className="mr-2 sm:mr-3 text-blue-600 font-bold">•</span>
+                    <span className="mr-3 text-blue-600 font-bold text-lg">•</span>
                     <span>Return to this tab and paste your store URL below</span>
                   </li>
                   <li className="flex items-start">
-                    <span className="mr-2 sm:mr-3 text-blue-600 font-bold">•</span>
+                    <span className="mr-3 text-blue-600 font-bold text-lg">•</span>
                     <span>Click the next button</span>
                   </li>
                 </ul>
 
-                <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-2 sm:p-3">
-                  <p className="text-yellow-800 font-medium text-xs sm:text-sm lg:text-base">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-red-800 font-medium text-sm sm:text-base">
                     🟨 Remember to return to this tab to continue creating your store.
                   </p>
                 </div>
@@ -165,17 +166,17 @@ const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps
             </div>
 
             {/* Store URL Input */}
-            <div className="mb-6 sm:mb-8">
-              <Label htmlFor="shopifyUrl" className="block text-gray-700 font-semibold text-sm sm:text-base lg:text-lg mb-2 sm:mb-3">
+            <div className="mb-8 sm:mb-10">
+              <Label htmlFor="shopifyUrl" className="block text-gray-700 font-semibold text-base sm:text-lg mb-3">
                 Store URL
               </Label>
               <Input
                 id="shopifyUrl"
                 type="text"
-                placeholder="mystore.myshopify.com or admin.shopify.com/store/mystore"
+                placeholder="p7vdbh-fh.myshopify.com"
                 value={formData.shopifyUrl}
                 onChange={(e) => handleStoreUrlChange(e.target.value)}
-                className={`w-full h-10 sm:h-12 lg:h-14 text-sm sm:text-base lg:text-lg border-2 rounded-xl transition-colors ${
+                className={`w-full h-12 sm:h-14 text-base sm:text-lg border-2 rounded-xl transition-colors ${
                   isValidUrl 
                     ? 'border-green-500 focus:border-green-600' 
                     : 'border-gray-300 focus:border-blue-500'
@@ -188,7 +189,7 @@ const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps
               <Button
                 onClick={handleCreateAccount}
                 disabled={hasClickedCreate}
-                className={`w-full h-10 sm:h-12 lg:h-16 text-base sm:text-lg lg:text-xl font-bold rounded-xl transition-all transform hover:scale-105 ${
+                className={`w-full h-12 sm:h-14 text-base sm:text-lg font-bold rounded-xl transition-all transform hover:scale-105 ${
                   canProceed 
                     ? 'bg-green-600 hover:bg-green-700' 
                     : hasClickedCreate 
@@ -198,17 +199,17 @@ const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps
               >
                 {canProceed ? (
                   <>
-                    <CheckCircle className="mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
+                    <CheckCircle className="mr-3 h-5 w-5" />
                     Account Created Successfully - Continue
                   </>
                 ) : hasClickedCreate ? (
                   <>
-                    <Timer className="mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
+                    <Timer className="mr-3 h-5 w-5" />
                     Please complete signup and return ({countdown}s)
                   </>
                 ) : (
                   <>
-                    <ExternalLink className="mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
+                    <ExternalLink className="mr-3 h-5 w-5" />
                     Create Account
                   </>
                 )}

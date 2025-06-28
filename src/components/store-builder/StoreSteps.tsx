@@ -1,54 +1,73 @@
 
-import { 
-  Store, 
-  Palette, 
-  ShoppingBag, 
-  Settings, 
-  Zap, 
-  Package, 
-  Users, 
-  Rocket 
-} from "lucide-react";
-
 export const storeSteps = [
   {
-    title: "Store Details",
-    description: "Tell us about your business",
-    icon: Store
+    id: 0,
+    title: "Vision",
+    subtitle: "Define your goals",
+    icon: "target",
+    description: "Set your store vision and primary goals"
   },
   {
-    title: "Choose Color", 
-    description: "Select theme colors",
-    icon: Palette
+    id: 1,
+    title: "Get Started", 
+    subtitle: "Choose your path",
+    icon: "rocket",
+    description: "Begin your store building journey"
   },
   {
+    id: 2,
     title: "Create Store",
-    description: "Setup Shopify store", 
-    icon: ShoppingBag
+    subtitle: "Store details",
+    icon: "store",
+    description: "Define your store identity and niche"
   },
   {
+    id: 3,
+    title: "Choose Color",
+    subtitle: "Pick theme",
+    icon: "palette",
+    description: "Select your brand colors and aesthetic"
+  },
+  {
+    id: 4,
+    title: "Shopify Setup",
+    subtitle: "Create account",
+    icon: "shopping-bag",
+    description: "Set up your Shopify store account"
+  },
+  {
+    id: 5,
     title: "API Config",
-    description: "Configure app access",
-    icon: Settings
+    subtitle: "Connect API",
+    icon: "key",
+    description: "Configure secure API access"
   },
   {
+    id: 6,
     title: "Activate Trial",
-    description: "Choose your plan",
-    icon: Zap
+    subtitle: "Start plan",
+    icon: "zap",
+    description: "Activate your Shopify trial"
   },
   {
+    id: 7,
     title: "Products",
-    description: "Add winning products",
-    icon: Package
+    subtitle: "Add winning products",
+    icon: "package",
+    description: "Generate and add products to your store"
   },
   {
+    id: 8,
     title: "Mentorship",
-    description: "Get 1-on-1 support", 
-    icon: Users
+    subtitle: "Get 1-on-1 support",
+    icon: "users",
+    description: "Optional mentorship and guidance"
   },
   {
+    id: 9,
     title: "Launch",
-    description: "View your store",
-    icon: Rocket
+    subtitle: "Your store is ready",
+    icon: "crown",
+    description: "Congratulations! Your store is live"
   }
 ];
