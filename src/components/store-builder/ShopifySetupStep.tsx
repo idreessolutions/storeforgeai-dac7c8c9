@@ -157,9 +157,6 @@ const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps
                 onChange={(e) => handleStoreUrlChange(e.target.value)}
                 className="w-full h-14 text-lg border-2 border-gray-300 rounded-xl focus:border-blue-500 transition-colors"
               />
-              {formData.shopifyUrl && (
-                <p className="text-sm text-green-600 mt-2">✅ Store URL detected and formatted</p>
-              )}
             </div>
 
             {/* Create Account Button */}
