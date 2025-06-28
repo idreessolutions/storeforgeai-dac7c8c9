@@ -65,7 +65,12 @@ const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps
     const isValid = hasClickedCreate && canProceed && isValidUrl;
     (window as any).validateShopifySetup = () => isValid;
     console.log('Shopify validation state:', { hasClickedCreate, canProceed, isValidUrl, isValid });
-  }, [hasClickedCreate, canProceed, isValidUrl]);
+    
+    // Also mark as created via affiliate when validation is complete
+    if (isValid && !formData.createdViaAffiliate) {
+      handleInputChange('createdViaAffiliate', true);
+    }
+  }, [hasClickedCreate, canProceed, isValidUrl, formData.createdViaAffiliate, handleInputChange]);
 
   const handleCreateAccount = () => {
     if (!hasClickedCreate) {
@@ -176,12 +181,6 @@ const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps
                     : 'border-gray-300 focus:border-blue-500'
                 }`}
               />
-              {isValidUrl && (
-                <p className="text-green-600 text-sm mt-2 flex items-center">
-                  <CheckCircle className="h-4 w-4 mr-1" />
-                  Valid Shopify store URL detected
-                </p>
-              )}
             </div>
 
             {/* Create Account Button */}
