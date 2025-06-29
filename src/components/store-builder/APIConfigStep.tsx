@@ -22,7 +22,7 @@ interface APIConfigStepProps {
     shopifyUrl: string;
   };
   handleInputChange: (field: string, value: string) => void;
-  onNext?: () => void; // Add onNext prop
+  onNext?: () => void;
 }
 
 const APIConfigStep = ({ formData, handleInputChange, onNext }: APIConfigStepProps) => {
@@ -63,7 +63,7 @@ const APIConfigStep = ({ formData, handleInputChange, onNext }: APIConfigStepPro
       
       setIsValidToken(isValid);
       
-      // CRITICAL FIX: Store validation state globally for navigation
+      // CRITICAL FIX: Store validation state globally for navigation - SIMPLIFIED
       (window as any).validateAPIConfig = () => {
         console.log(`🌐 Global validation check: ${isValid}`);
         return isValid;
@@ -126,16 +126,6 @@ const APIConfigStep = ({ formData, handleInputChange, onNext }: APIConfigStepPro
       
       window.open(developmentUrl, '_blank');
       toast.success("Opening Shopify Apps development settings...", { duration: 2000 });
-    }
-  };
-
-  // CRITICAL FIX: Handle Next button click when token is valid
-  const handleNextClick = () => {
-    if (isValidToken && onNext) {
-      console.log('🚀 NEXT: Valid token confirmed, proceeding to next step');
-      onNext();
-    } else if (!isValidToken) {
-      setShowInvalidTokenDialog(true);
     }
   };
 
@@ -209,7 +199,7 @@ const APIConfigStep = ({ formData, handleInputChange, onNext }: APIConfigStepPro
                   </div>
                   <div className="flex items-start">
                     <span className="mr-3 text-blue-600 font-bold">11.</span>
-                    <span>Click the <strong>Next Step</strong> button to continue</span>
+                    <span>Click the <strong>Next</strong> button at the bottom to continue</span>
                   </div>
                 </div>
 
@@ -227,7 +217,7 @@ const APIConfigStep = ({ formData, handleInputChange, onNext }: APIConfigStepPro
               </div>
             </div>
 
-            {/* Access Token Input - FIXED with example placeholder and autofocus */}
+            {/* Access Token Input */}
             <div className="mb-8">
               <Label htmlFor="accessToken" className="block text-gray-700 font-semibold text-base sm:text-lg mb-3">
                 Access Token
@@ -266,29 +256,29 @@ const APIConfigStep = ({ formData, handleInputChange, onNext }: APIConfigStepPro
               )}
             </div>
 
-            {/* Action Buttons */}
+            {/* Action Buttons - FIXED: Only one button now */}
             <div className="text-center space-y-4">
               <Button
                 onClick={openShopifyApps}
-                className="w-full h-12 sm:h-14 bg-green-600 hover:bg-green-700 text-white text-base sm:text-lg font-semibold rounded-xl mb-4"
+                className={`w-full h-12 sm:h-14 text-base sm:text-lg font-semibold rounded-xl mb-4 transition-all ${
+                  isValidToken 
+                    ? 'bg-gray-400 hover:bg-gray-500 text-gray-700' 
+                    : 'bg-green-600 hover:bg-green-700 text-white'
+                }`}
                 disabled={!formData.shopifyUrl}
               >
                 <ExternalLink className="mr-2 h-5 w-5" />
-                Access Shopify Apps
+                {isValidToken ? '✅ Shopify Apps (Configured)' : 'Access Shopify Apps'}
               </Button>
 
-              {/* CRITICAL FIX: Next button that activates when token is valid */}
-              <Button
-                onClick={handleNextClick}
-                disabled={!isValidToken}
-                className={`w-full h-12 sm:h-14 text-base sm:text-lg font-semibold rounded-xl transition-all ${
-                  isValidToken 
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                {isValidToken ? '✅ Next Step' : '🔒 Enter Valid Token to Continue'}
-              </Button>
+              {/* Status Message */}
+              {isValidToken && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <p className="text-green-800 font-medium text-center">
+                    🎉 API Configuration Complete! Click "Next" at the bottom to continue.
+                  </p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

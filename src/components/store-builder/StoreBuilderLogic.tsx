@@ -81,17 +81,19 @@ export const useStoreBuilderLogic = () => {
         break;
       case 4: // Shopify Setup
         if (!formData.shopifyUrl.trim()) missingFields.push("Shopify URL");
-        if (!formData.createdViaAffiliate) missingFields.push("Account Creation");
+        // REMOVED: createdViaAffiliate check as it's not explicitly shown to user
         if (typeof (window as any).validateShopifySetup === 'function') {
           const isValid = (window as any).validateShopifySetup();
           if (!isValid) missingFields.push("Complete Account Setup");
         }
         break;
-      case 5: // API Config
+      case 5: // API Config - SIMPLIFIED validation
         if (!formData.accessToken.trim()) missingFields.push("Access Token");
+        // CRITICAL FIX: Only check API validation function
         if (typeof (window as any).validateAPIConfig === 'function') {
           const isValid = (window as any).validateAPIConfig();
-          if (!isValid) missingFields.push("Complete API Setup");
+          console.log('🔍 API Config validation result:', isValid);
+          if (!isValid) missingFields.push("Valid Access Token");
         }
         break;
       case 6: // Activate Trial
