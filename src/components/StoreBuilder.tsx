@@ -29,9 +29,9 @@ const StoreBuilder = ({ onBack, onViewAutomation }: StoreBuilderProps) => {
     return validation.isValid;
   };
 
-  // FIXED: Correct total steps to 9 (steps 0-8, displayed as 1-9)
-  const totalSteps = 9; // 9 total steps: Vision(0), Store Details(1), Color(2), Shopify(3), API(4), Trial(5), Products(6), Mentorship(7), Launch(8)
-  const displayCurrentStep = currentStep === 0 ? 1 : currentStep + 1; // Convert 0-based to 1-based for display
+  // FIXED: Total steps is 9, currentStep is now 1-9
+  const totalSteps = 9;
+  const displayCurrentStep = currentStep; // currentStep is now 1-9
 
   console.log('StoreBuilder - currentStep:', currentStep, 'totalSteps:', totalSteps, 'displayCurrentStep:', displayCurrentStep);
 
@@ -45,8 +45,8 @@ const StoreBuilder = ({ onBack, onViewAutomation }: StoreBuilderProps) => {
         onViewAutomation={onViewAutomation}
       />
 
-      {/* Step Navigation Component - show for steps 1-9 (not for step 0 vision) */}
-      {currentStep > 0 && currentStep <= 8 && (
+      {/* Step Navigation Component - show for steps 2-9 */}
+      {currentStep >= 2 && currentStep <= 9 && (
         <StepNavigation steps={storeSteps} currentStep={currentStep} />
       )}
 
@@ -61,8 +61,8 @@ const StoreBuilder = ({ onBack, onViewAutomation }: StoreBuilderProps) => {
           validateCurrentStep={validateCurrentStep}
         />
 
-        {/* Navigation Component - show for steps 1-8 (not for step 0 or final step 8) */}
-        {currentStep > 0 && currentStep < 8 && (
+        {/* Navigation Component - show for steps 1-8 (not for final step 9) */}
+        {currentStep >= 1 && currentStep < 9 && (
           <Navigation 
             currentStep={displayCurrentStep} 
             totalSteps={totalSteps} 

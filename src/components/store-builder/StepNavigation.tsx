@@ -15,15 +15,15 @@ interface StepNavigationProps {
 }
 
 const StepNavigation = ({ steps, currentStep }: StepNavigationProps) => {
-  // Hide navigation for step 0 (Vision Selection)
-  if (currentStep === 0) {
+  // FIXED: Show navigation for steps 2-9, hide for step 1 (Create Your Dream Store)
+  if (currentStep === 1) {
     return null;
   }
   
-  // FIXED: Show correct step numbers - display steps 1-9 (total 9 steps)
   const totalSteps = 9;
-  const displayStep = currentStep; // currentStep is already 1-8, no need to adjust
-  const stepsToShow = steps.slice(1, 10); // Show steps 1-9 (exclude Vision at index 0)
+  const displayStep = currentStep;
+  // FIXED: Show steps 2-9 in navigation (exclude step 1 which is Create Your Dream Store)
+  const stepsToShow = steps.slice(1, 9); // Show steps 2-9
   
   console.log(`🛠️ STEP NAV: Displaying step ${displayStep} of ${totalSteps} (current: ${currentStep})`);
   
@@ -36,7 +36,7 @@ const StepNavigation = ({ steps, currentStep }: StepNavigationProps) => {
             Step {displayStep} of {totalSteps}
           </h2>
           <p className="text-sm text-gray-600 mt-1">
-            {displayStep === 8 ? '🎉 Your Store is Live!' : '🚀 Building Your Dream Store'}
+            {displayStep === 9 ? '🎉 Your Store is Live!' : '🚀 Building Your Dream Store'}
           </p>
         </div>
         
@@ -45,17 +45,17 @@ const StepNavigation = ({ steps, currentStep }: StepNavigationProps) => {
           <div className="absolute top-1/2 left-0 right-0 h-1 bg-gradient-to-r from-gray-200 via-blue-200 to-purple-200 rounded-full -translate-y-1/2 z-0"></div>
           <div 
             className="absolute top-1/2 left-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full -translate-y-1/2 z-10 transition-all duration-700"
-            style={{ width: `${Math.max(0, ((displayStep - 1) / (totalSteps - 1)) * 100)}%` }}
+            style={{ width: `${Math.max(0, ((displayStep - 2) / (totalSteps - 2)) * 100)}%` }}
           ></div>
           
           {stepsToShow.map((step, index) => {
-            const stepNumber = index + 1; // Steps 1-8
+            const stepNumber = index + 2; // Steps 2-9
             const isActive = stepNumber === displayStep;
             const isCompleted = stepNumber < displayStep;
             const isUpcoming = stepNumber > displayStep;
             
-            // Special styling for Launch step (step 8)
-            const isLaunchStep = stepNumber === 8;
+            // Special styling for Launch step (step 9)
+            const isLaunchStep = stepNumber === 9;
             
             return (
               <div key={stepNumber} className="relative z-20 flex flex-col items-center">

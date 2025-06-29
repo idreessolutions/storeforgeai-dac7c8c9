@@ -31,36 +31,28 @@ const StepRenderer = ({
 }: StepRendererProps) => {
   const renderCurrentStep = () => {
     switch (currentStep) {
-      case 0: // Vision Selection
-        return (
-          <VisionSelectionStep
-            formData={formData}
-            handleInputChange={handleInputChange}
-            onNext={onNext}
-          />
-        );
-      case 1: // Store Details
+      case 1: // Create Your Dream Store (Store Details)
         return (
           <StoreDetailsStep
             formData={formData}
             onInputChange={handleInputChange}
           />
         );
-      case 2: // Theme Color
+      case 2: // Store Identity (Color Selection)
         return (
           <ColorSelectionStep
             formData={formData}
             handleInputChange={handleInputChange}
           />
         );
-      case 3: // Shopify Setup
+      case 3: // Theme Color (Shopify Setup)
         return (
           <ShopifySetupStep
             formData={formData}
             handleInputChange={handleInputChange}
           />
         );
-      case 4: // API Config
+      case 4: // Shopify Setup (API Config)
         return (
           <APIConfigStep
             formData={formData}
@@ -68,34 +60,34 @@ const StepRenderer = ({
             onNext={onNext}
           />
         );
-      case 5: // Activate Trial - FIXED: Now shows correct component
+      case 5: // API Config (Activate Trial)
         return (
           <ActivateTrialStep
             formData={formData}
             handleInputChange={handleInputChange}
           />
         );
-      case 6: // Products
+      case 6: // Activate Trial (Products)
         return (
           <WinningProductsStep
             formData={formData}
             handleInputChange={handleInputChange}
           />
         );
-      case 7: // Mentorship
+      case 7: // Products (Mentorship)
         return (
           <MentorshipStep
             formData={formData}
             handleInputChange={handleInputChange}
           />
         );
-      case 8: // Launch
+      case 8: // Mentorship (Launch)
         return (
           <LaunchStep
             formData={formData}
           />
         );
-      case 9: // Store Summary (final completion)
+      case 9: // Launch Summary (Final completion)
         return (
           <StoreSummaryStep
             formData={formData}
@@ -103,10 +95,9 @@ const StepRenderer = ({
         );
       default:
         return (
-          <VisionSelectionStep
+          <StoreDetailsStep
             formData={formData}
-            handleInputChange={handleInputChange}
-            onNext={onNext}
+            onInputChange={handleInputChange}
           />
         );
     }

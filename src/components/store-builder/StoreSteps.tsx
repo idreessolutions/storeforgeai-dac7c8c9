@@ -9,22 +9,15 @@ export interface StoreStep {
 
 export const storeSteps: StoreStep[] = [
   {
-    id: 0,
-    title: "Store Vision",
-    subtitle: "Define your goals",
-    description: "Define your goals",
+    id: 1,
+    title: "Create Your Dream Store",
+    subtitle: "Name and details",
+    description: "Store setup",
     icon: "✨"
   },
   {
-    id: 1,
-    title: "Store Identity",
-    subtitle: "Name and details",
-    description: "Name and details",
-    icon: "🏪"
-  },
-  {
     id: 2,
-    title: "Theme Color",
+    title: "Store Identity",
     subtitle: "Choose your color",
     description: "Choose your color",
     icon: "🎨"

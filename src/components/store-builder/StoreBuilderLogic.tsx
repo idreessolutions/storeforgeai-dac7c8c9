@@ -24,7 +24,8 @@ export interface FormData {
 
 export const useStoreBuilderLogic = () => {
   const { toast } = useToast();
-  const [currentStep, setCurrentStep] = useState(0); // Start at 0 (Vision Selection)
+  // FIXED: Start at step 1 (Create Your Dream Store) instead of step 0 (Vision)
+  const [currentStep, setCurrentStep] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     storeName: "",
@@ -63,52 +64,50 @@ export const useStoreBuilderLogic = () => {
     const missingFields: string[] = [];
 
     switch (step) {
-      case 0: // Vision Selection
-        console.log('Vision step validation - allowing progression with defaults');
-        return { isValid: true, missingFields: [] };
-      case 1: // Store Details
+      case 1: // Create Your Dream Store (Store Details)
         if (!formData.storeName.trim()) missingFields.push("Store Name");
         if (!formData.niche.trim()) missingFields.push("Niche");
         if (!formData.targetAudience.trim()) missingFields.push("Target Audience");
         if (!formData.businessType.trim()) missingFields.push("Business Type");
         if (!formData.storeStyle.trim()) missingFields.push("Store Style");
         break;
-      case 2: // Color Selection
+      case 2: // Store Identity (Color Selection)
         if (!formData.selectedColor.trim()) missingFields.push("Theme Color");
         break;
-      case 3: // Shopify Setup
+      case 3: // Theme Color (Shopify Setup)
         if (!formData.shopifyUrl.trim()) missingFields.push("Shopify URL");
         if (typeof (window as any).validateShopifySetup === 'function') {
           const isValid = (window as any).validateShopifySetup();
           if (!isValid) missingFields.push("Complete Account Setup");
         }
         break;
-      case 4: // API Config
+      case 4: // Shopify Setup (API Config)
         if (!formData.accessToken.trim()) missingFields.push("Access Token");
-        // Check for the correct API validation function
         if (typeof (window as any).validateAPIConfig === 'function') {
           const isValid = (window as any).validateAPIConfig();
           console.log('🔍 API Config validation result for step 4:', isValid);
           if (!isValid) missingFields.push("Valid Access Token");
         } else {
           console.log('🚨 validateAPIConfig function not found on window');
-          // Fallback validation - check token format
           const shopifyTokenPattern = /^shpat_[A-Za-z0-9_-]{32,}$/;
           const isValidToken = shopifyTokenPattern.test(formData.accessToken.trim());
           console.log('🔍 Fallback token validation:', isValidToken);
           if (!isValidToken) missingFields.push("Valid Access Token");
         }
         break;
-      case 5: // Activate Trial
+      case 5: // API Config (Activate Trial)
         if (!formData.planActivated) missingFields.push("Plan Activation");
         break;
-      case 6: // Products
+      case 6: // Activate Trial (Products)
         if (!formData.productsAdded) missingFields.push("Products");
         break;
-      case 7: // Mentorship
+      case 7: // Products (Mentorship)
         // No validation needed - optional step
         break;
-      case 8: // Launch
+      case 8: // Mentorship (Launch)
+        // Final step - always valid
+        break;
+      case 9: // Launch Summary
         // Final step - always valid
         break;
     }
@@ -156,13 +155,6 @@ export const useStoreBuilderLogic = () => {
   const handleNextStep = useCallback(async () => {
     console.log('🚀 Next step clicked, current step:', currentStep);
     
-    // Special handling for Vision Step (step 0) - always allow progression
-    if (currentStep === 0) {
-      console.log('✅ VISION STEP: Moving to Store Details (step 1) - defaults will be set if needed');
-      setCurrentStep(1);
-      return;
-    }
-
     const validation = validateCurrentStep(currentStep);
     if (!validation.isValid) {
       console.log('❌ Validation failed:', validation.missingFields);
@@ -179,13 +171,13 @@ export const useStoreBuilderLogic = () => {
     try {
       await saveSessionData(currentStep + 1);
 
-      // FIXED: Updated to handle correct maximum step (8, which is step 9 in total - 0-8)
-      if (currentStep < 8) { // Max step is 8 (Launch)
+      // FIXED: Updated to handle correct maximum step (9)
+      if (currentStep < 9) {
         const nextStep = currentStep + 1;
         console.log(`✅ NAVIGATION: Moving to step ${nextStep}`);
         setCurrentStep(nextStep);
       } else {
-        console.log('🚨 Cannot proceed beyond Launch step (8)');
+        console.log('🚨 Cannot proceed beyond Launch step (9)');
       }
 
     } catch (error) {
@@ -207,9 +199,6 @@ export const useStoreBuilderLogic = () => {
       const prevStep = currentStep - 1;
       console.log(`✅ Moving back to step ${prevStep}`);
       setCurrentStep(prevStep);
-    } else if (currentStep === 1) {
-      console.log('✅ Moving back to Vision Selection (step 0)');
-      setCurrentStep(0);
     }
   }, [currentStep]);
 

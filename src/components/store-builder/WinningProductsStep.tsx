@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Package, CheckCircle, XCircle, RefreshCw, Star, Users, Camera, Sparkles, Image, Zap, Crown, Wand2 } from "lucide-react";
+import { Loader2, Package, CheckCircle, XCircle, RefreshCw, Star, Users, Camera, Sparkles, Image, Zap, Crown, Wand2, AlertCircle, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -42,6 +42,7 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
   const [hasStarted, setHasStarted] = useState(false);
   const [currentPhase, setCurrentPhase] = useState('');
   const [generatedCount, setGeneratedCount] = useState(0);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const sessionId = localStorage.getItem('storeBuilderSessionId') || 'default';
   const niche = formData.niche || 'Products';
@@ -63,20 +64,28 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
 
   const generateProducts = async () => {
     if (!formData.shopifyUrl || !formData.accessToken) {
-      toast.error('Missing Shopify store URL or access token');
+      const errorMsg = 'Missing Shopify store URL or access token';
+      setErrorMessage(errorMsg);
+      toast.error(errorMsg);
       return;
     }
+
+    console.log('🚀 Starting product generation...');
+    console.log('📋 Form data:', {
+      shopifyUrl: formData.shopifyUrl,
+      niche: formData.niche,
+      hasAccessToken: !!formData.accessToken
+    });
 
     setIsGenerating(true);
     setHasStarted(true);
     setProgress(0);
     setResults([]);
     setGeneratedCount(0);
+    setErrorMessage('');
     setCurrentPhase('Initializing AI product generation...');
 
     try {
-      console.log(`🚨 STARTING ENHANCED PRODUCT GENERATION with DALL-E for ${formData.niche?.toUpperCase()} niche`);
-      
       const requestData = {
         productCount: 10,
         niche: formData.niche || 'general',
@@ -98,12 +107,12 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
         wordCount: 600
       };
 
-      console.log('🎯 ENHANCED REQUEST with DALL-E:', requestData);
+      console.log('📤 Sending request to Supabase Edge Function:', requestData);
 
       // Enhanced progress simulation with phases
       const progressInterval = setInterval(() => {
         setProgress(prev => {
-          const newProgress = prev + Math.random() * 6;
+          const newProgress = prev + Math.random() * 4;
           
           // Update phases based on progress
           if (newProgress < 15) {
@@ -126,7 +135,7 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
           }
           return newProgress;
         });
-      }, 1500);
+      }, 2000);
 
       // Simulate product generation count
       const countInterval = setInterval(() => {
@@ -136,8 +145,10 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
           }
           return prev;
         });
-      }, 3000);
+      }, 4000);
 
+      // FIXED: Use proper Supabase client method instead of direct fetch
+      console.log('🔄 Calling add-shopify-product edge function...');
       const { data, error } = await supabase.functions.invoke('add-shopify-product', {
         body: requestData
       });
@@ -145,12 +156,15 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
       clearInterval(progressInterval);
       clearInterval(countInterval);
 
+      console.log('📨 Edge Function Response:', { data, error });
+
       if (error) {
-        console.error('❌ Enhanced generation failed:', error);
-        throw new Error(error.message);
+        console.error('❌ Edge Function Error:', error);
+        throw new Error(error.message || 'Edge Function call failed');
       }
 
       if (!data?.success) {
+        console.error('❌ Generation failed:', data);
         throw new Error(data?.error || 'Product generation failed');
       }
 
@@ -168,13 +182,14 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
         duration: 5000,
       });
 
-      // Store generation data in Supabase
+      // Store generation data
       await storeGenerationData(data);
 
     } catch (error: any) {
       console.error('❌ Product generation error:', error);
       setProgress(0);
       setCurrentPhase('❌ Generation failed');
+      setErrorMessage(error.message || 'Unknown error occurred');
       
       toast.error(`Failed to generate products: ${error.message}`, {
         duration: 8000,
@@ -213,6 +228,7 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
     setProgress(0);
     setGeneratedCount(0);
     setCurrentPhase('');
+    setErrorMessage('');
     handleInputChange('productsAdded', false);
     generateProducts();
   };
@@ -246,6 +262,16 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
                 Install premium theme + add 10 trending {nicheCapitalized} products with DALL-E images to attract {formData.targetAudience || 'customers'} with winning products
               </p>
             </div>
+
+            {/* Error Display */}
+            {errorMessage && (
+              <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-center">
+                  <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
+                  <span className="text-red-800 font-medium">Error: {errorMessage}</span>
+                </div>
+              </div>
+            )}
 
             {!hasStarted && (
               <>
@@ -284,27 +310,27 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
                     <h4 className="text-lg font-bold text-gray-900 mb-4">✨ What You Get:</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div className="flex items-center space-x-3">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
                         <span className="text-gray-700">10 trending {nicheCapitalized} products</span>
                       </div>
                       <div className="flex items-center space-x-3">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
                         <span className="text-gray-700">6-8 DALL-E generated images per product</span>
                       </div>
                       <div className="flex items-center space-x-3">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
                         <span className="text-gray-700">Rich 500-800 word SEO descriptions</span>
                       </div>
                       <div className="flex items-center space-x-3">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
                         <span className="text-gray-700">Multiple product variations</span>
                       </div>
                       <div className="flex items-center space-x-3">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
                         <span className="text-gray-700">Smart pricing ($15-$80 range)</span>
                       </div>
                       <div className="flex items-center space-x-3">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
                         <span className="text-gray-700">Emoji-rich engaging content</span>
                       </div>
                     </div>
@@ -327,6 +353,7 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
                       <div className="flex items-center justify-center">
                         <Wand2 className="mr-3 h-6 w-6" />
                         Generate 10 AI Products with DALL-E Images
+                        <ArrowRight className="ml-3 h-6 w-6" />
                       </div>
                     )}
                   </Button>
@@ -366,15 +393,15 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
 
                   {/* AI Process Steps */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                    <div className={`flex items-center p-3 rounded-lg ${progress > 20 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                    <div className={`flex items-center p-3 rounded-lg transition-all duration-300 ${progress > 20 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
                       <Crown className={`h-5 w-5 mr-2 ${progress > 20 ? 'animate-spin' : ''}`} />
                       <span className="text-sm font-medium">Finding Winners</span>
                     </div>
-                    <div className={`flex items-center p-3 rounded-lg ${progress > 50 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'}`}>
+                    <div className={`flex items-center p-3 rounded-lg transition-all duration-300 ${progress > 50 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'}`}>
                       <Camera className={`h-5 w-5 mr-2 ${progress > 50 ? 'animate-pulse' : ''}`} />
                       <span className="text-sm font-medium">DALL-E Images</span>
                     </div>
-                    <div className={`flex items-center p-3 rounded-lg ${progress > 80 ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-600'}`}>
+                    <div className={`flex items-center p-3 rounded-lg transition-all duration-300 ${progress > 80 ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-600'}`}>
                       <Zap className={`h-5 w-5 mr-2 ${progress > 80 ? 'animate-bounce' : ''}`} />
                       <span className="text-sm font-medium">Uploading Store</span>
                     </div>
@@ -389,7 +416,7 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
                     </h3>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                       {placeholderProducts.slice(0, generatedCount).map((product, index) => (
-                        <Card key={index} className="border shadow-sm hover:shadow-md transition-shadow">
+                        <Card key={index} className="border shadow-sm hover:shadow-md transition-shadow animate-fade-in">
                           <CardContent className="p-3">
                             <div className="bg-gradient-to-br from-gray-100 to-gray-200 h-24 rounded mb-2 flex items-center justify-center">
                               <Image className="h-8 w-8 text-gray-400" />
@@ -436,14 +463,14 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
                 )}
 
                 {/* Retry Button */}
-                {!isGenerating && getFailureCount() > 0 && (
+                {!isGenerating && (errorMessage || getFailureCount() > 0) && (
                   <div className="text-center mt-8">
                     <Button
                       onClick={retryGeneration}
                       className="px-8 py-3 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg"
                     >
                       <RefreshCw className="mr-2 h-5 w-5" />
-                      Retry Failed Products
+                      Retry Product Generation
                     </Button>
                   </div>
                 )}
