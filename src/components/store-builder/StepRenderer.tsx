@@ -33,7 +33,7 @@ const StepRenderer = ({
       return <VisionStep formData={formData} handleInputChange={handleInputChange} />;
     
     case 1:
-      return <GetStartedStep formData={formData} handleInputChange={handleInputChange} />;
+      return <GetStartedStep formData={formData} handleInputChange={handleInputChange} onNext={onNext} />;
     
     case 2:
       return <CreateStoreStep formData={formData} handleInputChange={handleInputChange} />;
