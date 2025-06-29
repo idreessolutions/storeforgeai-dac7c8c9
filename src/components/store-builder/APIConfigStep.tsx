@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Key, CheckCircle, AlertCircle, ExternalLink } from "lucide-react";
+import { Key, AlertCircle, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 interface APIConfigStepProps {
@@ -41,9 +41,8 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
     setIsValidToken(isValid);
     handleInputChange('accessToken', trimmedValue);
     
-    if (isValid) {
-      toast.success("Valid Shopify access token detected!", { duration: 2000 });
-    }
+    // Remove the success toast - we don't want any success messages
+    console.log('Token validation:', { isValid, token: trimmedValue });
   };
 
   const openShopifyApps = () => {
@@ -146,40 +145,33 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
               </div>
             </div>
 
-            {/* Access Token Input */}
+            {/* Access Token Input - FIXED: Always visible, no password type, proper styling */}
             <div className="mb-8">
               <Label htmlFor="accessToken" className="block text-gray-700 font-semibold text-base sm:text-lg mb-3">
                 Access Token
               </Label>
               <Input
                 id="accessToken"
-                type="password"
+                type="text"
                 placeholder="Ex: shpat_336469..."
                 value={formData.accessToken}
                 onChange={(e) => handleTokenChange(e.target.value)}
                 className={`w-full h-12 sm:h-14 text-base sm:text-lg border-2 rounded-xl transition-colors font-mono ${
                   isValidToken 
-                    ? 'border-green-500 focus:border-green-600' 
+                    ? 'border-green-500 focus:border-green-600 bg-white' 
                     : formData.accessToken && !isValidToken
-                      ? 'border-red-500 focus:border-red-600'
-                      : 'border-gray-300 focus:border-blue-500'
+                      ? 'border-red-500 focus:border-red-600 bg-white'
+                      : 'border-gray-300 focus:border-blue-500 bg-white'
                 }`}
               />
               
-              {/* Validation Messages */}
-              {formData.accessToken && (
+              {/* FIXED: Only show error messages, no success messages */}
+              {formData.accessToken && !isValidToken && (
                 <div className="mt-2">
-                  {isValidToken ? (
-                    <p className="text-green-600 text-sm flex items-center">
-                      <CheckCircle className="h-4 w-4 mr-1" />
-                      Valid Shopify Admin API access token
-                    </p>
-                  ) : (
-                    <p className="text-red-600 text-sm flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      Invalid token format. Should start with 'shpat_' followed by 32 characters
-                    </p>
-                  )}
+                  <p className="text-red-600 text-sm flex items-center">
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    Invalid token format. Should start with 'shpat_' followed by 32 characters
+                  </p>
                 </div>
               )}
             </div>
