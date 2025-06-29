@@ -1,4 +1,3 @@
-
 import React from "react";
 import VisionStep from "./VisionStep";
 import GetStartedStep from "./GetStartedStep";
@@ -30,7 +29,7 @@ const StepRenderer = ({
 }: StepRendererProps) => {
   switch (currentStep) {
     case 0:
-      return <VisionStep formData={formData} handleInputChange={handleInputChange} />;
+      return <VisionStep formData={formData} handleInputChange={handleInputChange} onNext={onNext} />;
     
     case 1:
       return <GetStartedStep formData={formData} handleInputChange={handleInputChange} onNext={onNext} />;
@@ -60,7 +59,7 @@ const StepRenderer = ({
       return <LaunchStep formData={formData} />;
     
     default:
-      return <VisionStep formData={formData} handleInputChange={handleInputChange} />;
+      return <VisionStep formData={formData} handleInputChange={handleInputChange} onNext={onNext} />;
   }
 };
 

@@ -6,12 +6,13 @@ import { FormData } from "./StoreBuilderLogic";
 interface VisionStepProps {
   formData: FormData;
   handleInputChange: (field: string, value: string) => void;
+  onNext: () => void; // Add the missing onNext prop
 }
 
-const VisionStep = ({ formData, handleInputChange }: VisionStepProps) => {
+const VisionStep = ({ formData, handleInputChange, onNext }: VisionStepProps) => {
   const handleNext = () => {
-    // This will be handled by the parent StepRenderer navigation
-    console.log("Vision step completed");
+    console.log("Vision step completed - calling parent onNext");
+    onNext(); // Call the actual parent navigation function
   };
 
   return (
