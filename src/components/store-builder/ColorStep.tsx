@@ -1,12 +1,10 @@
 
 import React from "react";
 import ColorSelectionStep from "./ColorSelectionStep";
+import { FormData } from "./StoreBuilderLogic";
 
 interface ColorStepProps {
-  formData: {
-    selectedColor?: string;
-    themeColor?: string;
-  };
+  formData: FormData;
   handleInputChange: (field: string, value: string) => void;
 }
 

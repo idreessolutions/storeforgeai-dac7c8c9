@@ -1,12 +1,10 @@
 
 import React from "react";
 import VisionSelectionStep from "./VisionSelectionStep";
+import { FormData } from "./StoreBuilderLogic";
 
 interface VisionStepProps {
-  formData: {
-    storeVision?: string;
-    primaryGoal?: string;
-  };
+  formData: FormData;
   handleInputChange: (field: string, value: string) => void;
 }
 

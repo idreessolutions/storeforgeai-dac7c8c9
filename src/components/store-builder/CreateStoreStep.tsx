@@ -1,15 +1,10 @@
 
 import React from "react";
 import StoreDetailsStep from "./StoreDetailsStep";
+import { FormData } from "./StoreBuilderLogic";
 
 interface CreateStoreStepProps {
-  formData: {
-    storeName?: string;
-    niche?: string;
-    targetAudience?: string;
-    businessType?: string;
-    storeStyle?: string;
-  };
+  formData: FormData;
   handleInputChange: (field: string, value: string) => void;
 }
 
@@ -17,7 +12,7 @@ const CreateStoreStep = ({ formData, handleInputChange }: CreateStoreStepProps) 
   return (
     <StoreDetailsStep 
       formData={formData}
-      handleInputChange={handleInputChange}
+      onInputChange={handleInputChange}
     />
   );
 };
