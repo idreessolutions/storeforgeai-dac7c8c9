@@ -6,7 +6,7 @@ interface Step {
   id: number;
   title: string;
   description: string;
-  icon: React.ElementType;
+  icon: string; // Changed to string to match StoreStep
 }
 
 interface StepNavigationProps {
@@ -55,7 +55,6 @@ const StepNavigation = ({ steps, currentStep }: StepNavigationProps) => {
             const isActive = stepNumber === displayStep;
             const isCompleted = stepNumber < displayStep;
             const isUpcoming = stepNumber > displayStep;
-            const IconComponent = step.icon;
             
             // Special styling for Launch step (step 9)
             const isLaunchStep = stepNumber === 9;
@@ -73,7 +72,7 @@ const StepNavigation = ({ steps, currentStep }: StepNavigationProps) => {
                     <CheckCircle className="h-8 w-8 text-white" />
                   ) : isActive ? (
                     <div className="relative">
-                      <IconComponent className="h-8 w-8 text-white" />
+                      <span className="text-2xl">{step.icon}</span>
                       {isLaunchStep ? (
                         <Star className="absolute -top-2 -right-2 h-4 w-4 text-yellow-300 animate-spin" />
                       ) : (
@@ -81,7 +80,7 @@ const StepNavigation = ({ steps, currentStep }: StepNavigationProps) => {
                       )}
                     </div>
                   ) : (
-                    <Circle className="h-8 w-8 text-white" />
+                    <span className="text-2xl opacity-50">{step.icon}</span>
                   )}
                 </div>
                 

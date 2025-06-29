@@ -86,7 +86,6 @@ const StepRenderer = ({
           <WinningProductsStep
             formData={formData}
             handleInputChange={handleInputChange}
-            onNext={onNext}
             validateCurrentStep={validateCurrentStep}
           />
         );
@@ -94,7 +93,6 @@ const StepRenderer = ({
         return (
           <LaunchStep
             formData={formData}
-            onNext={onNext}
             validateCurrentStep={validateCurrentStep}
           />
         );
