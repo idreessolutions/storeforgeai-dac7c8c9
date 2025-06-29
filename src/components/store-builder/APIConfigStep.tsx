@@ -256,19 +256,17 @@ const APIConfigStep = ({ formData, handleInputChange, onNext }: APIConfigStepPro
               )}
             </div>
 
-            {/* Action Button - Only show Access Shopify Apps when token is not valid */}
-            {!isValidToken && (
-              <div className="text-center">
-                <Button
-                  onClick={openShopifyApps}
-                  className="w-full h-12 sm:h-14 text-base sm:text-lg font-semibold rounded-xl bg-green-600 hover:bg-green-700 text-white transition-all"
-                  disabled={!formData.shopifyUrl}
-                >
-                  <ExternalLink className="mr-2 h-5 w-5" />
-                  Access Shopify Apps
-                </Button>
-              </div>
-            )}
+            {/* Action Button - Always show Access Shopify Apps button */}
+            <div className="text-center">
+              <Button
+                onClick={openShopifyApps}
+                className="w-full h-12 sm:h-14 text-base sm:text-lg font-semibold rounded-xl bg-green-600 hover:bg-green-700 text-white transition-all"
+                disabled={!formData.shopifyUrl}
+              >
+                <ExternalLink className="mr-2 h-5 w-5" />
+                Access Shopify Apps
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
