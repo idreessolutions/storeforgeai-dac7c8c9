@@ -22,9 +22,10 @@ interface APIConfigStepProps {
     shopifyUrl: string;
   };
   handleInputChange: (field: string, value: string) => void;
+  onNext?: () => void; // Add onNext prop
 }
 
-const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
+const APIConfigStep = ({ formData, handleInputChange, onNext }: APIConfigStepProps) => {
   const [isValidToken, setIsValidToken] = useState(false);
   const [showInvalidTokenDialog, setShowInvalidTokenDialog] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -62,7 +63,7 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
       
       setIsValidToken(isValid);
       
-      // CRITICAL: Store validation state globally for navigation - FIXED
+      // CRITICAL FIX: Store validation state globally for navigation
       (window as any).validateAPIConfig = () => {
         console.log(`🌐 Global validation check: ${isValid}`);
         return isValid;
@@ -125,6 +126,16 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
       
       window.open(developmentUrl, '_blank');
       toast.success("Opening Shopify Apps development settings...", { duration: 2000 });
+    }
+  };
+
+  // CRITICAL FIX: Handle Next button click when token is valid
+  const handleNextClick = () => {
+    if (isValidToken && onNext) {
+      console.log('🚀 NEXT: Valid token confirmed, proceeding to next step');
+      onNext();
+    } else if (!isValidToken) {
+      setShowInvalidTokenDialog(true);
     }
   };
 
@@ -256,7 +267,7 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
             </div>
 
             {/* Action Buttons */}
-            <div className="text-center">
+            <div className="text-center space-y-4">
               <Button
                 onClick={openShopifyApps}
                 className="w-full h-12 sm:h-14 bg-green-600 hover:bg-green-700 text-white text-base sm:text-lg font-semibold rounded-xl mb-4"
@@ -264,6 +275,19 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
               >
                 <ExternalLink className="mr-2 h-5 w-5" />
                 Access Shopify Apps
+              </Button>
+
+              {/* CRITICAL FIX: Next button that activates when token is valid */}
+              <Button
+                onClick={handleNextClick}
+                disabled={!isValidToken}
+                className={`w-full h-12 sm:h-14 text-base sm:text-lg font-semibold rounded-xl transition-all ${
+                  isValidToken 
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                {isValidToken ? '✅ Next Step' : '🔒 Enter Valid Token to Continue'}
               </Button>
             </div>
           </CardContent>

@@ -59,13 +59,20 @@ export const storeSteps: StoreStep[] = [
   },
   {
     id: 7,
+    title: "Mentorship",
+    subtitle: "1-on-1 guidance",
+    description: "Get expert help",
+    icon: "👨‍🏫"
+  },
+  {
+    id: 8,
     title: "Launch",
     subtitle: "Launch your store",
     description: "Launch your store",
     icon: "🚀"
   },
   {
-    id: 8,
+    id: 9,
     title: "Your Store is Live",
     subtitle: "Launch complete",
     description: "Launch complete",

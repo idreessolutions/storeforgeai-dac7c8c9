@@ -29,8 +29,8 @@ const StoreBuilder = ({ onBack, onViewAutomation }: StoreBuilderProps) => {
     return validation.isValid;
   };
 
-  // FIXED: Updated step limit to handle correct flow (0-8)
-  const maxSteps = storeSteps.length - 1; // This will be 8 (0-8)
+  // FIXED: Updated step limit to handle correct flow (0-9) with Mentorship step
+  const maxSteps = storeSteps.length - 1; // This will be 9 (0-9)
   const displayCurrentStep = Math.min(currentStep, maxSteps);
 
   console.log('StoreBuilder - currentStep:', currentStep, 'maxSteps:', maxSteps, 'displayCurrentStep:', displayCurrentStep);
@@ -45,7 +45,7 @@ const StoreBuilder = ({ onBack, onViewAutomation }: StoreBuilderProps) => {
         onViewAutomation={onViewAutomation}
       />
 
-      {/* Step Navigation Component - show for steps 1-8 (not for step 0 vision) */}
+      {/* Step Navigation Component - show for steps 1-9 (not for step 0 vision) */}
       {displayCurrentStep > 0 && displayCurrentStep <= maxSteps && (
         <StepNavigation steps={storeSteps} currentStep={displayCurrentStep} />
       )}
@@ -61,7 +61,7 @@ const StoreBuilder = ({ onBack, onViewAutomation }: StoreBuilderProps) => {
           validateCurrentStep={validateCurrentStep}
         />
 
-        {/* Navigation Component - show for steps 1-7 (not for step 0 or final step 8) */}
+        {/* Navigation Component - show for steps 1-8 (not for step 0 or final step 9) */}
         {displayCurrentStep > 0 && displayCurrentStep < maxSteps && (
           <Navigation 
             currentStep={displayCurrentStep} 
