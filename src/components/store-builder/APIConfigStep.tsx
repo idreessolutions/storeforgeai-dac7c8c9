@@ -43,6 +43,8 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
     const isValid = validateAccessToken(token);
     setIsValidToken(isValid);
     
+    console.log(`🔑 API Token validation: ${isValid ? 'VALID' : 'INVALID'} (Length: ${token.length})`);
+    
     // Store validation state globally for navigation
     (window as any).validateAPIConfig = () => isValid;
   }, [formData.accessToken]);
@@ -174,6 +176,9 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
                       : 'border-gray-300 focus:border-blue-500 bg-white'
                 }`}
               />
+              {isValidToken && (
+                <p className="text-green-600 text-sm mt-2 font-medium">✅ Valid access token detected</p>
+              )}
             </div>
 
             {/* Action Buttons */}
@@ -191,7 +196,7 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
         </Card>
       </div>
 
-      {/* Modern Invalid Token Dialog */}
+      {/* Invalid Token Dialog */}
       <AlertDialog open={showInvalidTokenDialog} onOpenChange={setShowInvalidTokenDialog}>
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>

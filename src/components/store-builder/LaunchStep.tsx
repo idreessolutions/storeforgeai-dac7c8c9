@@ -24,9 +24,11 @@ const LaunchStep = ({ formData }: LaunchStepProps) => {
       '#8B5CF6': 'Purple',
       '#F59E0B': 'Amber',
       '#EF4444': 'Red',
-      '#EC4899': 'Pink'
+      '#EC4899': 'Pink',
+      '#6366F1': 'Indigo',
+      '#F97316': 'Orange'
     };
-    return colorMap[color] || 'Blue';
+    return colorMap[color] || 'Custom Color';
   };
 
   const openLiveStore = () => {
@@ -88,7 +90,7 @@ const LaunchStep = ({ formData }: LaunchStepProps) => {
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-600 mb-1">Niche</label>
                     <div className="text-lg font-semibold text-gray-900 capitalize">
-                      {formData.niche || 'General'}
+                      {formData.niche?.replace(/-/g, ' ') || 'General'}
                     </div>
                   </div>
                 </div>
@@ -128,7 +130,7 @@ const LaunchStep = ({ formData }: LaunchStepProps) => {
                 <div className="space-y-3">
                   <div className="flex items-center">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span>10 winning {formData.niche || 'products'} with real images</span>
+                    <span>10 winning {formData.niche?.replace(/-/g, ' ') || 'products'} with real images</span>
                   </div>
                   <div className="flex items-center">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
@@ -147,7 +149,7 @@ const LaunchStep = ({ formData }: LaunchStepProps) => {
                 <div className="space-y-3">
                   <div className="flex items-center">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span>Product variants and options</span>
+                    <span>Product variants and options (2-4 per product)</span>
                   </div>
                   <div className="flex items-center">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
@@ -159,7 +161,7 @@ const LaunchStep = ({ formData }: LaunchStepProps) => {
                   </div>
                   <div className="flex items-center">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span>Mobile-responsive design</span>
+                    <span>{getColorName(formData.themeColor || '#3B82F6')} theme applied</span>
                   </div>
                 </div>
               </div>
@@ -176,7 +178,7 @@ const LaunchStep = ({ formData }: LaunchStepProps) => {
               </Button>
               
               <p className="text-gray-600 text-sm mt-4">
-                Your store is now live and ready to start accepting orders!
+                Your {formData.storeName || 'store'} is now live and ready to start accepting orders!
               </p>
             </div>
           </CardContent>

@@ -16,7 +16,7 @@ interface VisionSelectionStepProps {
 }
 
 const VisionSelectionStep = ({ formData, handleInputChange, onNext }: VisionSelectionStepProps) => {
-  // Fix: Use primaryGoal consistently (not mainGoal)
+  // Use primaryGoal consistently throughout
   const canProceed = formData.storeVision && formData.primaryGoal;
 
   console.log('VisionSelectionStep - formData:', formData);
@@ -35,7 +35,13 @@ const VisionSelectionStep = ({ formData, handleInputChange, onNext }: VisionSele
   const handleContinue = () => {
     console.log('Continue button clicked, canProceed:', canProceed);
     if (canProceed) {
+      console.log('✅ VISION STEP: Calling onNext to advance to next step');
       onNext();
+    } else {
+      console.log('❌ VISION STEP: Cannot proceed - missing data:', {
+        storeVision: formData.storeVision,
+        primaryGoal: formData.primaryGoal
+      });
     }
   };
 
