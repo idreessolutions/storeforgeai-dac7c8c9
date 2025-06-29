@@ -9,7 +9,34 @@ const corsHeaders = {
 
 // Enhanced product data with real diversity
 const NICHE_PRODUCT_TEMPLATES = {
-  pet: [
+  tech: [
+    {
+      name: "Smart Wireless Charging Station",
+      basePrice: 34.99,
+      features: ["📱 Fast Charging", "🔋 Multi-Device Support", "✨ LED Indicators", "🛡️ Overcharge Protection", "📐 Compact Design"]
+    },
+    {
+      name: "Bluetooth Gaming Headset",
+      basePrice: 45.99,
+      features: ["🎮 Gaming Optimized", "🔊 Surround Sound", "🎤 Noise-Canceling Mic", "🔋 30Hr Battery", "⚡ Fast Connect"]
+    },
+    {
+      name: "4K Webcam with Auto Focus",
+      basePrice: 52.99,
+      features: ["📹 4K Ultra HD", "🎯 Auto Focus", "🔊 Built-in Mic", "💡 Ring Light", "🖥️ Plug & Play"]
+    },
+    {
+      name: "Portable Power Bank 20000mAh",
+      basePrice: 28.99,
+      features: ["🔋 20000mAh Capacity", "⚡ Fast Charging", "📱 Multiple Ports", "📊 LED Display", "🛡️ Safety Protection"]
+    },
+    {
+      name: "Smart Home Security Camera",
+      basePrice: 67.99,
+      features: ["📱 WiFi Connected", "🌙 Night Vision", "🔊 Two-Way Audio", "☁️ Cloud Storage", "📱 Mobile Alerts"]
+    }
+  ],
+  pets: [
     {
       name: "Smart Pet Water Fountain",
       basePrice: 29.99,
@@ -24,89 +51,90 @@ const NICHE_PRODUCT_TEMPLATES = {
       name: "Premium Pet Training Collar",
       basePrice: 39.99,
       features: ["📱 Remote control", "🔊 Sound & vibration", "🌧️ Waterproof design", "🔋 Rechargeable battery", "🎯 Effective training"]
-    },
+    }
+  ],
+  beauty: [
     {
-      name: "Orthopedic Pet Bed",
-      basePrice: 49.99,
-      features: ["🛏️ Memory foam support", "🧼 Removable cover", "🌡️ Temperature control", "💤 Better sleep quality", "🦴 Joint support"]
-    },
-    {
-      name: "Automatic Pet Treat Dispenser",
-      basePrice: 34.99,
-      features: ["⏰ Scheduled feeding", "📱 WiFi enabled", "🍖 Portion control", "📞 Mobile alerts", "🔒 Secure mechanism"]
-    },
-    {
-      name: "GPS Pet Activity Tracker",
-      basePrice: 44.99,
-      features: ["📍 Real-time tracking", "🏃 Activity monitoring", "🔋 Long battery life", "📱 Mobile app", "🌐 Global coverage"]
-    },
-    {
-      name: "Self-Cleaning Pet Litter Box",
+      name: "LED Light Therapy Mask",
       basePrice: 89.99,
-      features: ["🔄 Auto-cleaning cycle", "🧽 Odor control", "📊 Usage tracking", "🔇 Quiet operation", "💡 Smart sensors"]
+      features: ["💡 7 LED Colors", "✨ Anti-Aging", "🌟 Skin Rejuvenation", "⏰ Timer Function", "👩‍⚕️ Dermatologist Approved"]
     },
     {
-      name: "Premium Pet Grooming Kit",
-      basePrice: 27.99,
-      features: ["✂️ Professional tools", "🧴 Natural shampoo", "🪥 Dual-sided brush", "💅 Nail clippers", "🎁 Complete set"]
+      name: "Jade Facial Roller Set",
+      basePrice: 19.99,
+      features: ["💎 Real Jade Stone", "✨ Reduces Puffiness", "💆‍♀️ Face Massage", "🧊 Cooling Effect", "🎁 Gua Sha Included"]
     },
     {
-      name: "Temperature Control Pet Carrier",
-      basePrice: 64.99,
-      features: ["🌡️ Climate control", "✈️ Airline approved", "🔒 Secure locks", "👁️ Visibility windows", "💼 Comfortable handle"]
-    },
-    {
-      name: "Smart Pet Door with App Control",
-      basePrice: 79.99,
-      features: ["📱 Smartphone control", "🔐 Selective access", "🌧️ Weather sealed", "🔋 Battery backup", "📊 Entry logging"]
+      name: "Electric Makeup Brush Cleaner",
+      basePrice: 24.99,
+      features: ["⚡ Quick Cleaning", "🌀 360° Rotation", "💧 Deep Clean", "⏰ 30 Second Clean", "🧽 Multiple Sizes"]
     }
   ]
 };
 
 // Generate realistic product images
-function generateProductImages(productName: string, index: number): string[] {
-  const baseImages = [
-    `https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=600&fit=crop&auto=format&q=80&seed=${index}`,
-    `https://images.unsplash.com/photo-1564844536308-49b92c3086d0?w=800&h=600&fit=crop&auto=format&q=80&seed=${index + 1}`,
-    `https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=600&fit=crop&auto=format&q=80&seed=${index + 2}`,
-    `https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&h=600&fit=crop&auto=format&q=80&seed=${index + 3}`,
-    `https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop&auto=format&q=80&seed=${index + 4}`,
-    `https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop&auto=format&q=80&seed=${index + 5}`,
-    `https://images.unsplash.com/photo-1596462502166-2c2d3be83b22?w=800&h=600&fit=crop&auto=format&q=80&seed=${index + 6}`,
-    `https://images.unsplash.com/photo-1571019614441-bd1e0a87e2ec?w=800&h=600&fit=crop&auto=format&q=80&seed=${index + 7}`
-  ];
+function generateProductImages(productName: string, niche: string, index: number): string[] {
+  const nicheImages = {
+    tech: [
+      `https://images.unsplash.com/photo-1593642532842-98d0fd5ebc1a?w=800&h=600&fit=crop&auto=format&q=80&seed=${index}`,
+      `https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&h=600&fit=crop&auto=format&q=80&seed=${index + 1}`,
+      `https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop&auto=format&q=80&seed=${index + 2}`,
+      `https://images.unsplash.com/photo-1583394838336-acd977736f90?w=800&h=600&fit=crop&auto=format&q=80&seed=${index + 3}`,
+      `https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&h=600&fit=crop&auto=format&q=80&seed=${index + 4}`,
+      `https://images.unsplash.com/photo-1572021335469-31706a17aaef?w=800&h=600&fit=crop&auto=format&q=80&seed=${index + 5}`
+    ],
+    pets: [
+      `https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=600&fit=crop&auto=format&q=80&seed=${index}`,
+      `https://images.unsplash.com/photo-1564844536308-49b92c3086d0?w=800&h=600&fit=crop&auto=format&q=80&seed=${index + 1}`,
+      `https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=600&fit=crop&auto=format&q=80&seed=${index + 2}`,
+      `https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&h=600&fit=crop&auto=format&q=80&seed=${index + 3}`,
+      `https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop&auto=format&q=80&seed=${index + 4}`,
+      `https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop&auto=format&q=80&seed=${index + 5}`
+    ],
+    beauty: [
+      `https://images.unsplash.com/photo-1596462502166-2c2d3be83b22?w=800&h=600&fit=crop&auto=format&q=80&seed=${index}`,
+      `https://images.unsplash.com/photo-1571019614441-bd1e0a87e2ec?w=800&h=600&fit=crop&auto=format&q=80&seed=${index + 1}`,
+      `https://images.unsplash.com/photo-1522335789917-b90c2e0ea03b?w=800&h=600&fit=crop&auto=format&q=80&seed=${index + 2}`,
+      `https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=800&h=600&fit=crop&auto=format&q=80&seed=${index + 3}`,
+      `https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=800&h=600&fit=crop&auto=format&q=80&seed=${index + 4}`,
+      `https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800&h=600&fit=crop&auto=format&q=80&seed=${index + 5}`
+    ]
+  };
   
-  return baseImages.slice(0, 6); // Return 6 unique images per product
+  const images = nicheImages[niche.toLowerCase()] || nicheImages.tech;
+  return images.slice(0, 6);
 }
 
 // Generate enhanced product content with GPT-4
-async function generateEnhancedProductContent(productName: string, niche: string, features: string[]) {
+async function generateEnhancedProductContent(productName: string, niche: string, features: string[], index: number) {
   const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
   
   if (!openaiApiKey) {
     console.log('⚠️ No OpenAI API key, using fallback content');
-    return generateFallbackContent(productName, features);
+    return generateFallbackContent(productName, features, niche, index);
   }
 
   try {
-    const prompt = `Create compelling product content for: "${productName}"
+    const prompt = `Create compelling e-commerce product content for: "${productName}"
 
 Requirements:
-- Write 500-800 words of emotional, benefit-driven copy
+- Write 600-800 words of emotional, benefit-driven copy
+- Target ${niche} enthusiasts who want premium quality
 - Include specific product features: ${features.join(', ')}
-- Target ${niche} enthusiasts
-- Focus on benefits, not just features
-- Include urgency and social proof
+- Focus on benefits and transformation, not just features
+- Include urgency and social proof elements
 - Use emojis naturally throughout
-- Return ONLY valid JSON with this structure:
+- Create a unique selling proposition
+
+Return ONLY valid JSON with this structure:
 {
-  "title": "Enhanced product title with emoji",
-  "description": "Full 500-800 word description with emojis and benefits",
-  "bulletPoints": ["Benefit 1", "Benefit 2", "Benefit 3", "Benefit 4", "Benefit 5"],
-  "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"]
+  "title": "Compelling product title with emoji (max 60 chars)",
+  "description": "Full 600-800 word description focusing on benefits and emotions",
+  "bulletPoints": ["Key benefit 1", "Key benefit 2", "Key benefit 3", "Key benefit 4", "Key benefit 5"],
+  "tags": ["${niche}", "premium", "bestseller", "quality", "trending"]
 }
 
-Do NOT include markdown code blocks or any text outside the JSON.`;
+Make this product sound irresistible and unique. Do NOT include markdown formatting.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -121,7 +149,7 @@ Do NOT include markdown code blocks or any text outside the JSON.`;
           { role: 'user', content: prompt }
         ],
         max_tokens: 2000,
-        temperature: 0.7
+        temperature: 0.8
       }),
     });
 
@@ -132,10 +160,9 @@ Do NOT include markdown code blocks or any text outside the JSON.`;
     const data = await response.json();
     let content = data.choices[0].message.content.trim();
     
-    // Clean up common JSON formatting issues
+    // Clean up JSON formatting
     content = content.replace(/```json\s*/, '').replace(/```\s*$/, '').trim();
     
-    // Additional cleanup for potential markdown artifacts
     if (content.startsWith('```')) {
       content = content.substring(3);
     }
@@ -147,66 +174,65 @@ Do NOT include markdown code blocks or any text outside the JSON.`;
       const parsed = JSON.parse(content);
       return parsed;
     } catch (parseError) {
-      console.error('❌ JSON parse error after cleanup:', parseError);
-      console.log('Raw content:', content);
-      return generateFallbackContent(productName, features);
+      console.error('❌ JSON parse error:', parseError);
+      return generateFallbackContent(productName, features, niche, index);
     }
 
   } catch (error) {
     console.error('❌ OpenAI API error:', error);
-    return generateFallbackContent(productName, features);
+    return generateFallbackContent(productName, features, niche, index);
   }
 }
 
 // Fallback content generator
-function generateFallbackContent(productName: string, features: string[]) {
+function generateFallbackContent(productName: string, features: string[], niche: string, index: number) {
   const titles = [
-    `🏆 Premium ${productName} - Best Seller`,
+    `🏆 Premium ${productName} - Best Choice`,
     `⭐ Professional ${productName} - Top Rated`,
     `💎 Elite ${productName} - Must Have`,
-    `🔥 Ultimate ${productName} - Trending Now`,
-    `✨ Advanced ${productName} - Customer Favorite`
+    `🔥 Ultimate ${productName} - Trending`,
+    `✨ Advanced ${productName} - #1 Choice`
   ];
   
-  const randomTitle = titles[Math.floor(Math.random() * titles.length)];
+  const randomTitle = titles[index % titles.length];
   
   return {
     title: randomTitle,
-    description: `Transform your pet's life with this incredible ${productName}! 🐾
+    description: `Experience the ultimate in ${niche} excellence with this premium ${productName}! 🌟
 
-✨ **Why Pet Owners Love This:**
+✨ **Why This is Your Perfect Choice:**
 ${features.map(feature => `• ${feature}`).join('\n')}
 
-🌟 **Premium Quality Guaranteed**
-Don't settle for cheap alternatives. This premium ${productName} is crafted with the highest quality materials and designed to last. Your pet deserves the best, and this product delivers exceptional value that you'll see from day one.
+🏆 **Premium Quality Promise**
+This isn't just another ${productName.toLowerCase()} - it's a game-changer designed for those who demand excellence. Crafted with precision and built to last, this product delivers results that speak for themselves.
 
-⚡ **Instant Results You Can See**
-Within just days of use, you'll notice the difference. Thousands of happy pet owners have already discovered why this is the #1 choice for ${productName.toLowerCase()}s.
+⚡ **Instant Transformation**
+From the moment you start using this ${productName}, you'll experience the difference. Join thousands of satisfied customers who've discovered why this is the #1 choice in ${niche}.
 
-🛡️ **30-Day Money-Back Guarantee**
-We're so confident you'll love this product that we offer a full 30-day guarantee. If you're not completely satisfied, return it for a full refund - no questions asked.
+🛡️ **Risk-Free Guarantee**
+We're so confident in this product that we back it with our ironclad 30-day money-back guarantee. Love it or return it - no questions asked.
 
-🚚 **Fast, Free Shipping**
-Get your ${productName} delivered quickly with our expedited shipping. Most orders arrive within 3-5 business days.
+🚚 **Fast & Free Shipping**
+Get your ${productName} delivered quickly with our expedited shipping service.
 
-⭐ **Join 10,000+ Happy Customers**
-Don't just take our word for it - thousands of pet owners have already upgraded their pet care routine with this amazing product.
+⭐ **Customer Love**
+"This ${productName} exceeded all my expectations!" - Sarah M.
+"Finally found what I was looking for!" - Mike R.
+"Worth every penny and more!" - Jessica L.
 
-Order now and give your pet the premium care they deserve! 🎉`,
+Don't miss out on this opportunity to upgrade your ${niche} experience! 🎉`,
     bulletPoints: features,
-    tags: ['pet care', 'premium quality', 'best seller', 'pet accessories', 'pet health']
+    tags: [niche, 'premium', 'bestseller', 'top-rated', 'quality']
   };
 }
 
-// Generate smart pricing with variations
+// Generate smart pricing with psychological patterns
 function generateSmartPricing(basePrice: number, index: number) {
-  const multiplier = 1 + (index * 0.1); // Add variation based on product index
+  const multiplier = 1 + (index * 0.08);
   const adjustedPrice = basePrice * multiplier;
-  
-  // Ensure price is in $15-$80 range
   const finalPrice = Math.max(15, Math.min(80, adjustedPrice));
   
-  // Psychological pricing
+  // Psychological pricing patterns
   if (finalPrice < 25) {
     return Math.floor(finalPrice) + 0.99;
   } else if (finalPrice < 50) {
@@ -216,86 +242,107 @@ function generateSmartPricing(basePrice: number, index: number) {
   }
 }
 
-// Generate winning products with real diversity
+// Generate unique variants
+function generateUniqueVariants(basePrice: number, productName: string, index: number) {
+  const variantTypes = [
+    { name: 'Standard', multiplier: 1.0 },
+    { name: 'Premium', multiplier: 1.25 },
+    { name: 'Deluxe', multiplier: 1.5 }
+  ];
+  
+  return variantTypes.map((variant, i) => ({
+    title: `${variant.name} ${productName.split(' ')[0]}`,
+    price: Math.round(basePrice * variant.multiplier * 100) / 100,
+    sku: `${productName.replace(/\s+/g, '-').toLowerCase()}-${variant.name.toLowerCase()}-${index}-${i}`,
+    inventory_quantity: 100
+  }));
+}
+
+// Generate winning products
 async function generateWinningProducts(niche: string, count: number = 10) {
-  console.log(`🎯 Generating ${count} winning ${niche} products with enhanced AI content`);
+  console.log(`🎯 Generating ${count} unique ${niche} products with AI enhancement`);
   
   const products = [];
-  const templates = NICHE_PRODUCT_TEMPLATES[niche.toLowerCase()] || NICHE_PRODUCT_TEMPLATES.pet;
+  const templates = NICHE_PRODUCT_TEMPLATES[niche.toLowerCase()] || NICHE_PRODUCT_TEMPLATES.tech;
   
   for (let i = 0; i < count; i++) {
-    const template = templates[i % templates.length];
+    const templateIndex = i % templates.length;
+    const template = templates[templateIndex];
     const uniquePrice = generateSmartPricing(template.basePrice, i);
     
-    console.log(`🤖 Generating AI-enhanced content for ${template.name} in ${niche} niche`);
+    console.log(`🤖 Generating AI content for product ${i + 1}: ${template.name}`);
     
-    // Generate enhanced content with GPT
-    const enhancedContent = await generateEnhancedProductContent(template.name, niche, template.features);
+    // Generate enhanced content
+    const enhancedContent = await generateEnhancedProductContent(
+      template.name, 
+      niche, 
+      template.features, 
+      i
+    );
     
-    console.log(`🎨 Generating niche-specific images for ${template.name}`);
+    // Generate unique images
+    const productImages = generateProductImages(template.name, niche, i);
     
-    // Generate product images
-    const productImages = generateProductImages(template.name, i);
+    // Generate unique variants
+    const variants = generateUniqueVariants(uniquePrice, template.name, i);
     
     const product = {
-      id: `${niche}_product_${Date.now()}_${i}`,
+      id: `${niche}_${Date.now()}_${i}`,
       title: enhancedContent.title,
       description: enhancedContent.description,
       price: uniquePrice,
-      compareAtPrice: Math.round(uniquePrice * 1.3 * 100) / 100, // 30% higher compare price
+      compareAtPrice: Math.round(uniquePrice * 1.4 * 100) / 100,
       images: productImages,
       features: enhancedContent.bulletPoints || template.features,
-      tags: enhancedContent.tags || ['pet', niche, 'premium'],
-      variants: [
-        { title: 'Standard', price: uniquePrice, sku: `${niche}-std-${i}` },
-        { title: 'Premium', price: Math.round(uniquePrice * 1.2 * 100) / 100, sku: `${niche}-prem-${i}` }
-      ],
-      vendor: 'Premium Pet Supply',
+      tags: enhancedContent.tags || ['premium', niche, 'bestseller'],
+      variants: variants,
+      vendor: `${niche.charAt(0).toUpperCase() + niche.slice(1)} Elite`,
       productType: niche.charAt(0).toUpperCase() + niche.slice(1),
-      handle: `${template.name.toLowerCase().replace(/\s+/g, '-')}-${i}`,
+      handle: `${template.name.toLowerCase().replace(/\s+/g, '-')}-${i}-${Date.now()}`,
       status: 'active'
     };
     
     products.push(product);
     
-    // Add delay to prevent rate limiting
+    // Rate limiting
     await new Promise(resolve => setTimeout(resolve, 500));
   }
   
-  console.log(`✅ Generated ${products.length} unique products with AI content`);
+  console.log(`✅ Generated ${products.length} unique products`);
   return products;
 }
 
-// Upload product to Shopify
+// Upload product to Shopify with proper variant handling
 async function uploadProductToShopify(product: any, shopifyUrl: string, accessToken: string) {
-  console.log(`🛒 Uploading product to Shopify: ${product.title}`);
+  console.log(`🛒 Uploading to Shopify: ${product.title}`);
   
   const shopifyApiUrl = `https://${shopifyUrl}/admin/api/2024-10/products.json`;
-  console.log(`🔗 SHOPIFY API URL: ${shopifyApiUrl}`);
   
   const productData = {
     product: {
       title: product.title,
-      body_html: product.description,
+      body_html: product.description.replace(/\n/g, '<br>'),
       vendor: product.vendor,
       product_type: product.productType,
       handle: product.handle,
-      status: product.status,
+      status: 'active',
+      published: true,
       tags: product.tags.join(', '),
       images: product.images.map((imageUrl: string, index: number) => ({
         src: imageUrl,
-        alt: `${product.title} - Image ${index + 1}`,
+        alt: `${product.title} - View ${index + 1}`,
         position: index + 1
       })),
-      variants: product.variants.map((variant: any) => ({
+      variants: product.variants.map((variant: any, index: number) => ({
         title: variant.title,
         price: variant.price.toString(),
         compare_at_price: product.compareAtPrice.toString(),
         sku: variant.sku,
-        inventory_quantity: 100,
+        inventory_quantity: variant.inventory_quantity,
         inventory_management: null,
         fulfillment_service: 'manual',
-        requires_shipping: true
+        requires_shipping: true,
+        position: index + 1
       }))
     }
   };
@@ -310,13 +357,19 @@ async function uploadProductToShopify(product: any, shopifyUrl: string, accessTo
       body: JSON.stringify(productData)
     });
 
+    const responseText = await response.text();
+    
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Shopify API error: ${response.status} - ${errorText}`);
+      console.error(`❌ Shopify API error: ${response.status} - ${responseText}`);
+      return {
+        success: false,
+        title: product.title,
+        error: `Shopify error ${response.status}: ${responseText}`
+      };
     }
 
-    const result = await response.json();
-    console.log(`✅ Product created successfully: ${result.product.id}`);
+    const result = JSON.parse(responseText);
+    console.log(`✅ Product uploaded successfully: ${result.product.id}`);
     
     return {
       success: true,
@@ -328,7 +381,7 @@ async function uploadProductToShopify(product: any, shopifyUrl: string, accessTo
     };
     
   } catch (error) {
-    console.error(`❌ Failed to upload product: ${error.message}`);
+    console.error(`❌ Upload failed: ${error.message}`);
     return {
       success: false,
       title: product.title,
@@ -337,8 +390,8 @@ async function uploadProductToShopify(product: any, shopifyUrl: string, accessTo
   }
 }
 
-// Enhanced product generation handler
-async function handleEnhancedProductGeneration(requestBody: any) {
+// Main handler
+async function handleProductGeneration(requestBody: any) {
   const { 
     niche, 
     productCount = 10, 
@@ -347,19 +400,23 @@ async function handleEnhancedProductGeneration(requestBody: any) {
     storeName 
   } = requestBody;
 
-  console.log(`🎯 ENHANCED: Generating ${productCount} ${niche} products for ${storeName}`);
+  console.log(`🚀 Starting product generation: ${productCount} ${niche} products for ${storeName}`);
 
   try {
-    // Generate diverse products with AI content
+    // Generate products
     const products = await generateWinningProducts(niche, productCount);
     
-    // Upload products to Shopify
+    if (products.length === 0) {
+      throw new Error('No products generated');
+    }
+    
+    // Upload to Shopify
     const results = [];
     let successCount = 0;
     
     for (let i = 0; i < products.length; i++) {
       const product = products[i];
-      console.log(`🔄 ENHANCED: Processing product ${i + 1}/${productCount}`);
+      console.log(`🔄 Uploading product ${i + 1}/${productCount}: ${product.title}`);
       
       const uploadResult = await uploadProductToShopify(product, shopifyUrl, shopifyAccessToken);
       results.push(uploadResult);
@@ -368,8 +425,8 @@ async function handleEnhancedProductGeneration(requestBody: any) {
         successCount++;
       }
       
-      // Rate limiting between uploads
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1200));
     }
 
     return {
@@ -378,11 +435,11 @@ async function handleEnhancedProductGeneration(requestBody: any) {
       successfulUploads: successCount,
       totalRequested: productCount,
       results: results,
-      method_used: 'Enhanced AI Generation with GPT-4'
+      niche: niche
     };
     
   } catch (error) {
-    console.error('❌ Enhanced product generation failed:', error);
+    console.error('❌ Product generation failed:', error);
     throw error;
   }
 }
@@ -394,22 +451,20 @@ serve(async (req) => {
 
   try {
     const requestBody = await req.json();
-    console.log(`🚀 ENHANCED PRODUCT GENERATION REQUEST: {
-  niche: "${requestBody.niche}",
-  productCount: ${requestBody.productCount},
-  storeName: "${requestBody.storeName}",
-  enhancedGeneration: ${requestBody.enhancedGeneration}
-}`);
+    console.log(`🚀 PRODUCT GENERATION REQUEST: ${JSON.stringify({
+      niche: requestBody.niche,
+      productCount: requestBody.productCount,
+      storeName: requestBody.storeName
+    })}`);
 
-    // Handle enhanced product generation
-    const result = await handleEnhancedProductGeneration(requestBody);
+    const result = await handleProductGeneration(requestBody);
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('❌ Product generation failed:', error);
+    console.error('❌ Request failed:', error);
     return new Response(JSON.stringify({
       success: false,
       error: error.message || 'Product generation failed',
