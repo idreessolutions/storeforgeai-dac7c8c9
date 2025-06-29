@@ -14,7 +14,7 @@ import StoreSummaryStep from "./StoreSummaryStep";
 interface StepRendererProps {
   currentStep: number;
   formData: any;
-  handleInputChange: (field: string, value: string) => void;
+  handleInputChange: (field: string, value: string | boolean) => void;
   isGenerating: boolean;
   onNext: () => void;
   validateCurrentStep: (step: number) => { isValid: boolean; message?: string };
@@ -31,12 +31,18 @@ const StepRenderer = ({
   const renderCurrentStep = () => {
     switch (currentStep) {
       case 0:
-        return <GetStartedStep />;
+        return (
+          <GetStartedStep 
+            onNext={onNext}
+            formData={formData}
+            handleInputChange={handleInputChange}
+          />
+        );
       case 1:
         return (
           <StoreDetailsStep
             formData={formData}
-            handleInputChange={handleInputChange}
+            onInputChange={handleInputChange}
           />
         );
       case 2:
@@ -44,6 +50,7 @@ const StepRenderer = ({
           <VisionSelectionStep
             formData={formData}
             handleInputChange={handleInputChange}
+            onNext={onNext}
           />
         );
       case 3:
@@ -71,7 +78,7 @@ const StepRenderer = ({
         return (
           <CreateStoreStep
             formData={formData}
-            handleInputChange={handleInputChange}
+            handleInputChange={(field: string, value: boolean) => handleInputChange(field, value)}
           />
         );
       case 7:
@@ -88,7 +95,6 @@ const StepRenderer = ({
         return (
           <LaunchStep
             formData={formData}
-            handleInputChange={handleInputChange}
             isGenerating={isGenerating}
             onNext={onNext}
             validateCurrentStep={validateCurrentStep}
@@ -101,7 +107,13 @@ const StepRenderer = ({
           />
         );
       default:
-        return <GetStartedStep />;
+        return (
+          <GetStartedStep 
+            onNext={onNext}
+            formData={formData}
+            handleInputChange={handleInputChange}
+          />
+        );
     }
   };
 
