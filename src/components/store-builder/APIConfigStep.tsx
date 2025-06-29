@@ -53,7 +53,7 @@ const APIConfigStep = ({ formData, handleInputChange, onNext }: APIConfigStepPro
     return isValid;
   };
 
-  // Real-time validation with proper state management
+  // CRITICAL FIX: Real-time validation with immediate global function update
   useEffect(() => {
     const validateWithDelay = setTimeout(() => {
       const token = formData.accessToken.trim();
@@ -63,7 +63,7 @@ const APIConfigStep = ({ formData, handleInputChange, onNext }: APIConfigStepPro
       
       setIsValidToken(isValid);
       
-      // Store validation state globally for navigation
+      // FIXED: Store validation state globally for navigation - IMMEDIATE UPDATE
       (window as any).validateAPIConfig = () => {
         console.log(`🌐 Global validation check: ${isValid}`);
         return isValid;
@@ -73,29 +73,29 @@ const APIConfigStep = ({ formData, handleInputChange, onNext }: APIConfigStepPro
       if (isValid && showInvalidTokenDialog) {
         setShowInvalidTokenDialog(false);
       }
-    }, 200);
+    }, 100); // Reduced delay for faster response
 
     return () => clearTimeout(validateWithDelay);
   }, [formData.accessToken, showInvalidTokenDialog]);
 
-  // Handle both typing and pasting with immediate validation
+  // CRITICAL FIX: Immediate validation on input change
   const handleTokenChange = (value: string) => {
     const trimmedValue = value.trim();
     console.log(`📝 Token input changed: ${trimmedValue.substring(0, 10)}...`);
     handleInputChange('accessToken', trimmedValue);
     
-    // Immediate validation for typing
+    // IMMEDIATE validation for typing
     const isValid = validateAccessToken(trimmedValue);
     setIsValidToken(isValid);
     
-    // Update global validation immediately
+    // FIXED: Update global validation IMMEDIATELY
     (window as any).validateAPIConfig = () => {
       console.log(`🌐 Immediate validation check: ${isValid}`);
       return isValid;
     };
   };
 
-  // Handle paste events properly with immediate validation
+  // CRITICAL FIX: Handle paste events with immediate validation
   const handleTokenPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     const pastedText = e.clipboardData.getData('text').trim();
     
@@ -104,14 +104,14 @@ const APIConfigStep = ({ formData, handleInputChange, onNext }: APIConfigStepPro
     // Immediately update the form data
     handleInputChange('accessToken', pastedText);
     
-    // Force immediate validation after paste
+    // FIXED: Force immediate validation after paste
     setTimeout(() => {
       const isValid = validateAccessToken(pastedText);
       console.log(`🔄 POST-PASTE validation: ${isValid ? 'VALID' : 'INVALID'}`);
       
       setIsValidToken(isValid);
       
-      // Store validation globally immediately
+      // FIXED: Store validation globally IMMEDIATELY
       (window as any).validateAPIConfig = () => {
         console.log(`🌐 Post-paste validation check: ${isValid}`);
         return isValid;

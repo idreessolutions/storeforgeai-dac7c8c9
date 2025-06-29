@@ -62,8 +62,7 @@ export const useStoreBuilderLogic = () => {
     const missingFields: string[] = [];
 
     switch (step) {
-      case 0: // Vision Selection - FIXED: More lenient validation
-        // Allow progression even without selections - defaults will be set
+      case 0: // Vision Selection
         console.log('Vision step validation - allowing progression with defaults');
         return { isValid: true, missingFields: [] };
       case 1: // Store Details
@@ -83,15 +82,20 @@ export const useStoreBuilderLogic = () => {
           if (!isValid) missingFields.push("Complete Account Setup");
         }
         break;
-      case 4: // API Config - FIXED: Correct step number validation
+      case 4: // API Config - CRITICAL FIX: Correct validation for step 4
         if (!formData.accessToken.trim()) missingFields.push("Access Token");
-        // CRITICAL FIX: Check API validation function for the correct step
+        // FIXED: Check for the correct API validation function
         if (typeof (window as any).validateAPIConfig === 'function') {
           const isValid = (window as any).validateAPIConfig();
           console.log('🔍 API Config validation result for step 4:', isValid);
           if (!isValid) missingFields.push("Valid Access Token");
         } else {
           console.log('🚨 validateAPIConfig function not found on window');
+          // Fallback validation - check token format
+          const shopifyTokenPattern = /^shpat_[A-Za-z0-9_-]{32,}$/;
+          const isValidToken = shopifyTokenPattern.test(formData.accessToken.trim());
+          console.log('🔍 Fallback token validation:', isValidToken);
+          if (!isValidToken) missingFields.push("Valid Access Token");
         }
         break;
       case 5: // Activate Trial

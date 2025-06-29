@@ -6,7 +6,7 @@ import VisionSelectionStep from "./VisionSelectionStep";
 import ColorSelectionStep from "./ColorSelectionStep";
 import ShopifySetupStep from "./ShopifySetupStep";
 import APIConfigStep from "./APIConfigStep";
-import CreateStoreStep from "./CreateStoreStep";
+import ActivateTrialStep from "./ActivateTrialStep";
 import WinningProductsStep from "./WinningProductsStep";
 import LaunchStep from "./LaunchStep";
 import StoreSummaryStep from "./StoreSummaryStep";
@@ -60,7 +60,7 @@ const StepRenderer = ({
             handleInputChange={handleInputChange}
           />
         );
-      case 4: // API Config - FIXED: Correct step number
+      case 4: // API Config
         return (
           <APIConfigStep
             formData={formData}
@@ -68,9 +68,9 @@ const StepRenderer = ({
             onNext={onNext}
           />
         );
-      case 5: // Activate Trial
+      case 5: // Activate Trial - FIXED: Now shows correct component
         return (
-          <CreateStoreStep
+          <ActivateTrialStep
             formData={formData}
             handleInputChange={handleInputChange}
           />
