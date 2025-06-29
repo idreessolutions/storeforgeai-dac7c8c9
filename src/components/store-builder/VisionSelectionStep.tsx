@@ -16,7 +16,28 @@ interface VisionSelectionStepProps {
 }
 
 const VisionSelectionStep = ({ formData, handleInputChange, onNext }: VisionSelectionStepProps) => {
+  // Fix: Use primaryGoal consistently (not mainGoal)
   const canProceed = formData.storeVision && formData.primaryGoal;
+
+  console.log('VisionSelectionStep - formData:', formData);
+  console.log('VisionSelectionStep - canProceed:', canProceed);
+
+  const handleVisionChange = (value: string) => {
+    console.log('Vision changed to:', value);
+    handleInputChange('storeVision', value);
+  };
+
+  const handleGoalChange = (value: string) => {
+    console.log('Goal changed to:', value);
+    handleInputChange('primaryGoal', value);
+  };
+
+  const handleContinue = () => {
+    console.log('Continue button clicked, canProceed:', canProceed);
+    if (canProceed) {
+      onNext();
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 sm:p-6">
@@ -50,7 +71,7 @@ const VisionSelectionStep = ({ formData, handleInputChange, onNext }: VisionSele
                 <CardContent>
                   <RadioGroup 
                     value={formData.storeVision || ""} 
-                    onValueChange={(value) => handleInputChange('storeVision', value)}
+                    onValueChange={handleVisionChange}
                     className="space-y-4"
                   >
                     <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-50 transition-colors">
@@ -94,7 +115,7 @@ const VisionSelectionStep = ({ formData, handleInputChange, onNext }: VisionSele
                 <CardContent>
                   <RadioGroup 
                     value={formData.primaryGoal || ""} 
-                    onValueChange={(value) => handleInputChange('primaryGoal', value)}
+                    onValueChange={handleGoalChange}
                     className="space-y-4"
                   >
                     <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-purple-50 transition-colors">
@@ -129,7 +150,7 @@ const VisionSelectionStep = ({ formData, handleInputChange, onNext }: VisionSele
             {/* Next Button */}
             <div className="text-center">
               <Button
-                onClick={onNext}
+                onClick={handleContinue}
                 disabled={!canProceed}
                 className={`w-full sm:w-auto px-12 py-4 text-lg font-bold rounded-xl transition-all transform hover:scale-105 ${
                   canProceed 
