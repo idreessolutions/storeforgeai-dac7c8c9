@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,14 @@ interface APIConfigStepProps {
 const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
   const [isValidToken, setIsValidToken] = useState(false);
   const [showInvalidTokenDialog, setShowInvalidTokenDialog] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus the input when component mounts
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
 
   // FIXED: Proper Shopify access token validation
   const validateAccessToken = (token: string): boolean => {
@@ -44,15 +52,21 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
     return isValid;
   };
 
-  // CRITICAL FIX: Real-time validation with debounced checking
+  // CRITICAL FIX: Real-time validation with proper state management
   useEffect(() => {
     const validateWithDelay = setTimeout(() => {
       const token = formData.accessToken.trim();
       const isValid = validateAccessToken(token);
+      
+      console.log(`🔄 Validation update: ${isValid ? 'VALID' : 'INVALID'} token`);
+      
       setIsValidToken(isValid);
       
-      // CRITICAL: Store validation state globally for navigation
-      (window as any).validateAPIConfig = () => isValid;
+      // CRITICAL: Store validation state globally for navigation - FIXED
+      (window as any).validateAPIConfig = () => {
+        console.log(`🌐 Global validation check: ${isValid}`);
+        return isValid;
+      };
       
       // Clear invalid dialog if token becomes valid
       if (isValid && showInvalidTokenDialog) {
@@ -66,26 +80,42 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
   // FIXED: Handle both typing and pasting with immediate validation
   const handleTokenChange = (value: string) => {
     const trimmedValue = value.trim();
+    console.log(`📝 Token input changed: ${trimmedValue.substring(0, 10)}...`);
     handleInputChange('accessToken', trimmedValue);
+    
+    // Immediate validation for typing
+    const isValid = validateAccessToken(trimmedValue);
+    setIsValidToken(isValid);
+    
+    // Update global validation immediately
+    (window as any).validateAPIConfig = () => {
+      console.log(`🌐 Immediate validation check: ${isValid}`);
+      return isValid;
+    };
   };
 
-  // CRITICAL FIX: Handle paste events properly
+  // CRITICAL FIX: Handle paste events properly with immediate validation
   const handleTokenPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     const pastedText = e.clipboardData.getData('text').trim();
+    
+    console.log(`📋 Token pasted: ${pastedText.substring(0, 10)}...`);
     
     // Immediately update the form data
     handleInputChange('accessToken', pastedText);
     
-    // Force immediate validation after paste
+    // Force immediate validation after paste with short delay
     setTimeout(() => {
       const isValid = validateAccessToken(pastedText);
+      console.log(`🔄 POST-PASTE validation: ${isValid ? 'VALID' : 'INVALID'}`);
+      
       setIsValidToken(isValid);
       
-      // Store validation globally
-      (window as any).validateAPIConfig = () => isValid;
-      
-      console.log(`🔑 PASTE VALIDATION: ${isValid ? 'VALID' : 'INVALID'} token pasted`);
-    }, 100);
+      // Store validation globally immediately
+      (window as any).validateAPIConfig = () => {
+        console.log(`🌐 Post-paste validation check: ${isValid}`);
+        return isValid;
+      };
+    }, 50); // Very short delay to ensure state update
   };
 
   const openShopifyApps = () => {
@@ -186,15 +216,16 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
               </div>
             </div>
 
-            {/* Access Token Input - FIXED */}
+            {/* Access Token Input - FIXED with auto-focus and placeholder */}
             <div className="mb-8">
               <Label htmlFor="accessToken" className="block text-gray-700 font-semibold text-base sm:text-lg mb-3">
                 Access Token
               </Label>
               <Input
+                ref={inputRef}
                 id="accessToken"
                 type="text"
-                placeholder="Ex: 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3833448"
+                placeholder="Ex: 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3833448"
                 value={formData.accessToken}
                 onChange={(e) => handleTokenChange(e.target.value)}
                 onPaste={handleTokenPaste}
@@ -207,10 +238,20 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
                 }`}
               />
               {isValidToken && (
-                <p className="text-green-600 text-sm mt-2 font-medium">✅ Valid access token detected - Ready to proceed!</p>
+                <div className="flex items-center mt-2">
+                  <div className="w-4 h-4 bg-green-500 rounded-full mr-2 flex items-center justify-center">
+                    <span className="text-white text-xs">✓</span>
+                  </div>
+                  <p className="text-green-600 text-sm font-medium">Valid access token detected - Ready to proceed!</p>
+                </div>
               )}
               {formData.accessToken && !isValidToken && (
-                <p className="text-red-600 text-sm mt-2 font-medium">❌ Invalid token format - Please check your token</p>
+                <div className="flex items-center mt-2">
+                  <div className="w-4 h-4 bg-red-500 rounded-full mr-2 flex items-center justify-center">
+                    <span className="text-white text-xs">✗</span>
+                  </div>
+                  <p className="text-red-600 text-sm font-medium">Invalid token format - Please check your token</p>
+                </div>
               )}
             </div>
 
