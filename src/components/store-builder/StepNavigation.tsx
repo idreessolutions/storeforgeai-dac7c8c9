@@ -3,6 +3,7 @@ import React from "react";
 import { CheckCircle, Circle, Crown, Sparkles, Star, Zap } from "lucide-react";
 
 interface Step {
+  id: number;
   title: string;
   description: string;
   icon: React.ElementType;
