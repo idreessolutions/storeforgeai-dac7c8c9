@@ -34,8 +34,7 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
     
     const trimmedToken = token.trim();
     
-    // FIXED: More flexible Shopify token validation regex
-    // Accepts shpat_ followed by 32+ alphanumeric characters (including underscores and hyphens)
+    // FIXED: Accept any valid shpat_ token with 32+ characters (more flexible)
     const shopifyTokenPattern = /^shpat_[A-Za-z0-9_-]{32,}$/;
     
     const isValid = shopifyTokenPattern.test(trimmedToken);
@@ -45,47 +44,39 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
     return isValid;
   };
 
-  // CRITICAL FIX: Real-time validation with immediate button activation
+  // CRITICAL FIX: Real-time validation with debounced checking
   useEffect(() => {
-    const token = formData.accessToken.trim();
-    const isValid = validateAccessToken(token);
-    setIsValidToken(isValid);
-    
-    // CRITICAL: Store validation state globally for navigation
-    (window as any).validateAPIConfig = () => isValid;
-    
-    // Clear invalid dialog if token becomes valid
-    if (isValid && showInvalidTokenDialog) {
-      setShowInvalidTokenDialog(false);
-    }
+    const validateWithDelay = setTimeout(() => {
+      const token = formData.accessToken.trim();
+      const isValid = validateAccessToken(token);
+      setIsValidToken(isValid);
+      
+      // CRITICAL: Store validation state globally for navigation
+      (window as any).validateAPIConfig = () => isValid;
+      
+      // Clear invalid dialog if token becomes valid
+      if (isValid && showInvalidTokenDialog) {
+        setShowInvalidTokenDialog(false);
+      }
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(validateWithDelay);
   }, [formData.accessToken, showInvalidTokenDialog]);
 
   // FIXED: Handle both typing and pasting with immediate validation
   const handleTokenChange = (value: string) => {
     const trimmedValue = value.trim();
     handleInputChange('accessToken', trimmedValue);
-    
-    // Immediate validation for better UX
-    const isValid = validateAccessToken(trimmedValue);
-    
-    // Only show error dialog if substantial input that looks like a token attempt but is invalid
-    if (trimmedValue.length > 15 && trimmedValue.toLowerCase().startsWith('shp') && !isValid) {
-      setTimeout(() => {
-        if (!validateAccessToken(formData.accessToken.trim())) {
-          setShowInvalidTokenDialog(true);
-        }
-      }, 300);
-    }
   };
 
-  // CRITICAL FIX: Immediate paste validation and button activation
+  // CRITICAL FIX: Handle paste events properly
   const handleTokenPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     const pastedText = e.clipboardData.getData('text').trim();
     
     // Immediately update the form data
     handleInputChange('accessToken', pastedText);
     
-    // Immediate validation after paste
+    // Force immediate validation after paste
     setTimeout(() => {
       const isValid = validateAccessToken(pastedText);
       setIsValidToken(isValid);
@@ -93,17 +84,14 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
       // Store validation globally
       (window as any).validateAPIConfig = () => isValid;
       
-      // Show error dialog only if invalid and looks like a token attempt
-      if (!isValid && pastedText.length > 10 && pastedText.toLowerCase().startsWith('shp')) {
-        setShowInvalidTokenDialog(true);
-      }
-    }, 50);
+      console.log(`🔑 PASTE VALIDATION: ${isValid ? 'VALID' : 'INVALID'} token pasted`);
+    }, 100);
   };
 
   const openShopifyApps = () => {
     if (formData.shopifyUrl) {
-      const storeName = formData.shopifyUrl.replace('.myshopify.com', '');
-      const developmentUrl = `https://admin.shopify.com/store/${storeName}/settings/apps/development?link_source=search`;
+      const storeName = formData.shopifyUrl.replace('.myshopify.com', '').replace('https://', '').replace('http://', '');
+      const developmentUrl = `https://admin.shopify.com/store/${storeName}/settings/apps/development`;
       
       window.open(developmentUrl, '_blank');
       toast.success("Opening Shopify Apps development settings...", { duration: 2000 });
