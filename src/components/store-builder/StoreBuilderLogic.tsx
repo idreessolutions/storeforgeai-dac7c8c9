@@ -1,5 +1,4 @@
 
-
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -64,9 +63,9 @@ export const useStoreBuilderLogic = () => {
     const missingFields: string[] = [];
 
     switch (step) {
-      case 0: // Vision Selection
-        if (!formData.storeVision.trim()) missingFields.push("Store Vision");
-        if (!formData.primaryGoal.trim()) missingFields.push("Primary Goal");
+      case 0: // Vision Selection - FIXED: Proper validation
+        if (!formData.storeVision?.trim()) missingFields.push("Store Vision");
+        if (!formData.primaryGoal?.trim()) missingFields.push("Primary Goal");
         break;
       case 1: // Get Started - always valid
         return { isValid: true, missingFields: [] };
@@ -80,18 +79,16 @@ export const useStoreBuilderLogic = () => {
       case 3: // Color Selection
         if (!formData.selectedColor.trim()) missingFields.push("Theme Color");
         break;
-      case 4: // Shopify Setup - ENHANCED VALIDATION
+      case 4: // Shopify Setup
         if (!formData.shopifyUrl.trim()) missingFields.push("Shopify URL");
         if (!formData.createdViaAffiliate) missingFields.push("Account Creation");
-        // Check if the validation function exists and call it
         if (typeof (window as any).validateShopifySetup === 'function') {
           const isValid = (window as any).validateShopifySetup();
           if (!isValid) missingFields.push("Complete Account Setup");
         }
         break;
-      case 5: // API Config - ENHANCED VALIDATION
+      case 5: // API Config
         if (!formData.accessToken.trim()) missingFields.push("Access Token");
-        // Check if the validation function exists and call it
         if (typeof (window as any).validateAPIConfig === 'function') {
           const isValid = (window as any).validateAPIConfig();
           if (!isValid) missingFields.push("Complete API Setup");
@@ -150,16 +147,31 @@ export const useStoreBuilderLogic = () => {
   }, [formData, sessionId]);
 
   const handleNextStep = useCallback(async () => {
-    console.log('🚀 ENHANCED: Next step clicked, current step:', currentStep);
+    console.log('🚀 FIXED: Next step clicked, current step:', currentStep);
     
+    // FIXED: Special handling for Vision Step (step 0)
     if (currentStep === 0) {
-      // From Vision Selection to Get Started (step 1)
+      const validation = validateCurrentStep(0);
+      console.log('Vision validation:', validation);
+      
+      if (!validation.isValid) {
+        toast({
+          title: "Please complete your vision",
+          description: `Missing: ${validation.missingFields.join(", ")}`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // FIXED: Direct navigation from Vision to Get Started
+      console.log('✅ VISION COMPLETED: Moving to Get Started (step 1)');
       setCurrentStep(1);
       return;
     }
 
     if (currentStep === 1) {
       // From Get Started to Store Details (step 2)
+      console.log('✅ GET STARTED COMPLETED: Moving to Store Details (step 2)');
       setCurrentStep(2);
       return;
     }
@@ -177,13 +189,11 @@ export const useStoreBuilderLogic = () => {
     setIsGenerating(true);
 
     try {
-      // ENHANCED: Always save session data before moving to next step
       await saveSessionData(currentStep + 1);
 
-      // ENHANCED: Move to next step with proper limits
-      if (currentStep < 9) { // Allow up to step 9 (Launch)
+      if (currentStep < 9) {
         const nextStep = currentStep + 1;
-        console.log(`✅ ENHANCED: Moving to step ${nextStep}`);
+        console.log(`✅ NAVIGATION: Moving to step ${nextStep}`);
         
         if (nextStep === 9) {
           console.log('🎉 REACHED FINAL STEP: Launch step (9)');
@@ -191,7 +201,7 @@ export const useStoreBuilderLogic = () => {
         
         setCurrentStep(nextStep);
       } else {
-        console.log('🚨 ENHANCED: Cannot proceed beyond Launch step (9)');
+        console.log('🚨 Cannot proceed beyond Launch step (9)');
       }
 
     } catch (error) {
@@ -207,19 +217,17 @@ export const useStoreBuilderLogic = () => {
   }, [currentStep, validateCurrentStep, saveSessionData, toast]);
 
   const handlePrevStep = useCallback(() => {
-    console.log('🔙 ENHANCED: Previous step clicked, current step:', currentStep);
+    console.log('🔙 Previous step clicked, current step:', currentStep);
     
-    if (currentStep > 2) { // Can go back to step 2 (Store Details) minimum
+    if (currentStep > 2) {
       const prevStep = currentStep - 1;
-      console.log(`✅ ENHANCED: Moving back to step ${prevStep}`);
+      console.log(`✅ Moving back to step ${prevStep}`);
       setCurrentStep(prevStep);
     } else if (currentStep === 2) {
-      // From Store Details back to Get Started
-      console.log('✅ ENHANCED: Moving back to Get Started (step 1)');
+      console.log('✅ Moving back to Get Started (step 1)');
       setCurrentStep(1);
     } else if (currentStep === 1) {
-      // From Get Started back to Vision Selection
-      console.log('✅ ENHANCED: Moving back to Vision Selection (step 0)');
+      console.log('✅ Moving back to Vision Selection (step 0)');
       setCurrentStep(0);
     }
   }, [currentStep]);

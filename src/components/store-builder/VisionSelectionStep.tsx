@@ -16,7 +16,7 @@ interface VisionSelectionStepProps {
 }
 
 const VisionSelectionStep = ({ formData, handleInputChange, onNext }: VisionSelectionStepProps) => {
-  // Use primaryGoal consistently throughout
+  // FIXED: Use consistent field names and validation
   const canProceed = formData.storeVision && formData.primaryGoal;
 
   console.log('VisionSelectionStep - formData:', formData);
@@ -153,7 +153,7 @@ const VisionSelectionStep = ({ formData, handleInputChange, onNext }: VisionSele
               </Card>
             </div>
 
-            {/* Next Button */}
+            {/* Next Button - FIXED */}
             <div className="text-center">
               <Button
                 onClick={handleContinue}
