@@ -1,4 +1,5 @@
 
+
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -37,6 +38,7 @@ export const useStoreBuilderLogic = () => {
     accessToken: "",
     planActivated: false,
     selectedColor: "#3B82F6",
+    themeColor: "#3B82F6",
     productsAdded: false,
     mentorshipRequested: false,
     createdViaAffiliate: false,
