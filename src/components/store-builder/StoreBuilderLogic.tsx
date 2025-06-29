@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +14,7 @@ export interface FormData {
   accessToken: string;
   planActivated: boolean;
   selectedColor: string;
+  themeColor: string;
   productsAdded: boolean;
   mentorshipRequested: boolean;
   createdViaAffiliate: boolean;
