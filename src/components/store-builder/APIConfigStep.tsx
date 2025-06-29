@@ -63,7 +63,7 @@ const APIConfigStep = ({ formData, handleInputChange, onNext }: APIConfigStepPro
       
       setIsValidToken(isValid);
       
-      // CRITICAL FIX: Store validation state globally for navigation - SIMPLIFIED
+      // Store validation state globally for navigation
       (window as any).validateAPIConfig = () => {
         console.log(`🌐 Global validation check: ${isValid}`);
         return isValid;
@@ -88,7 +88,7 @@ const APIConfigStep = ({ formData, handleInputChange, onNext }: APIConfigStepPro
     const isValid = validateAccessToken(trimmedValue);
     setIsValidToken(isValid);
     
-    // Update global validation immediately - CRITICAL FIX
+    // Update global validation immediately
     (window as any).validateAPIConfig = () => {
       console.log(`🌐 Immediate validation check: ${isValid}`);
       return isValid;
@@ -111,7 +111,7 @@ const APIConfigStep = ({ formData, handleInputChange, onNext }: APIConfigStepPro
       
       setIsValidToken(isValid);
       
-      // Store validation globally immediately - CRITICAL FIX
+      // Store validation globally immediately
       (window as any).validateAPIConfig = () => {
         console.log(`🌐 Post-paste validation check: ${isValid}`);
         return isValid;
@@ -256,30 +256,19 @@ const APIConfigStep = ({ formData, handleInputChange, onNext }: APIConfigStepPro
               )}
             </div>
 
-            {/* Action Buttons - FIXED: Only one button now */}
-            <div className="text-center space-y-4">
-              <Button
-                onClick={openShopifyApps}
-                className={`w-full h-12 sm:h-14 text-base sm:text-lg font-semibold rounded-xl mb-4 transition-all ${
-                  isValidToken 
-                    ? 'bg-gray-400 hover:bg-gray-500 text-gray-700' 
-                    : 'bg-green-600 hover:bg-green-700 text-white'
-                }`}
-                disabled={!formData.shopifyUrl}
-              >
-                <ExternalLink className="mr-2 h-5 w-5" />
-                {isValidToken ? '✅ Shopify Apps (Configured)' : 'Access Shopify Apps'}
-              </Button>
-
-              {/* Status Message */}
-              {isValidToken && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <p className="text-green-800 font-medium text-center">
-                    🎉 API Configuration Complete! Click "Next" at the bottom to continue.
-                  </p>
-                </div>
-              )}
-            </div>
+            {/* Action Button - Only show Access Shopify Apps when token is not valid */}
+            {!isValidToken && (
+              <div className="text-center">
+                <Button
+                  onClick={openShopifyApps}
+                  className="w-full h-12 sm:h-14 text-base sm:text-lg font-semibold rounded-xl bg-green-600 hover:bg-green-700 text-white transition-all"
+                  disabled={!formData.shopifyUrl}
+                >
+                  <ExternalLink className="mr-2 h-5 w-5" />
+                  Access Shopify Apps
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
