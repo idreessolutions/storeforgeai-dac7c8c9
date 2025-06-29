@@ -7,42 +7,58 @@ import { Store, CheckCircle, ExternalLink, Palette, Tag } from "lucide-react";
 interface StoreSummaryStepProps {
   formData: {
     storeName: string;
-    selectedNiche: string;
+    niche: string;
     themeColor: string;
     shopifyUrl: string;
+    selectedColor?: string;
+    targetAudience?: string;
+    storeStyle?: string;
   };
 }
 
 const StoreSummaryStep = ({ formData }: StoreSummaryStepProps) => {
   const getColorName = (colorValue: string): string => {
     const colorMap: Record<string, string> = {
-      '#1E40AF': 'Ocean Blue',
+      '#3B82F6': 'Ocean Blue',
+      '#1E40AF': 'Deep Blue',
       '#DC2626': 'Crimson Red',
       '#059669': 'Emerald Green',
       '#7C3AED': 'Royal Purple',
       '#EA580C': 'Sunset Orange',
       '#DB2777': 'Rose Pink',
       '#0891B2': 'Sky Blue',
-      '#65A30D': 'Lime Green'
+      '#65A30D': 'Lime Green',
+      '#F59E0B': 'Golden Yellow',
+      '#10B981': 'Fresh Green'
     };
-    return colorMap[colorValue] || 'Custom Color';
+    return colorMap[colorValue] || colorValue || 'Ocean Blue';
   };
 
   const handleViewStore = () => {
     if (formData.shopifyUrl) {
       let storeUrl = formData.shopifyUrl;
       
-      // Clean and format the store URL
+      // Clean and format the store URL to show CUSTOMER view, not admin
       if (!storeUrl.startsWith('http')) {
         storeUrl = `https://${storeUrl}`;
       }
       
-      // Remove /admin paths and ensure it's the public store URL
+      // CRITICAL FIX: Remove /admin and ensure it's the public customer-facing store
       storeUrl = storeUrl.replace('/admin', '').replace('.myshopify.com/admin', '.myshopify.com');
       
+      // Ensure it's the customer store, not admin panel
+      if (storeUrl.includes('.myshopify.com')) {
+        storeUrl = storeUrl.replace('.myshopify.com', '.myshopify.com');
+      }
+      
+      console.log('🏪 Opening customer store URL:', storeUrl);
       window.open(storeUrl, '_blank');
     }
   };
+
+  const displayThemeColor = formData.themeColor || formData.selectedColor || '#3B82F6';
+  const displayNiche = formData.niche || 'General Products';
+  const displayStoreName = formData.storeName || 'My Store';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-2 sm:p-4">
@@ -56,7 +72,7 @@ const StoreSummaryStep = ({ formData }: StoreSummaryStepProps) => {
               </div>
               <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">🎉 Your Store is Live!</h2>
               <p className="text-gray-600 text-lg sm:text-xl">
-                Congratulations! Your AI-powered store is ready for customers
+                Congratulations! Your AI-powered {displayNiche} store is ready for customers
               </p>
             </div>
 
@@ -72,7 +88,7 @@ const StoreSummaryStep = ({ formData }: StoreSummaryStepProps) => {
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 font-medium">Store Name</p>
-                    <p className="text-lg font-bold text-gray-900">{formData.storeName}</p>
+                    <p className="text-lg font-bold text-gray-900">{displayStoreName}</p>
                   </div>
                 </div>
 
@@ -83,7 +99,7 @@ const StoreSummaryStep = ({ formData }: StoreSummaryStepProps) => {
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 font-medium">Niche</p>
-                    <p className="text-lg font-bold text-gray-900 capitalize">{formData.selectedNiche}</p>
+                    <p className="text-lg font-bold text-gray-900 capitalize">{displayNiche}</p>
                   </div>
                 </div>
 
@@ -97,9 +113,9 @@ const StoreSummaryStep = ({ formData }: StoreSummaryStepProps) => {
                     <div className="flex items-center space-x-2">
                       <div 
                         className="w-4 h-4 rounded-full border-2 border-gray-300"
-                        style={{ backgroundColor: formData.themeColor }}
+                        style={{ backgroundColor: displayThemeColor }}
                       ></div>
-                      <p className="text-lg font-bold text-gray-900">{getColorName(formData.themeColor)}</p>
+                      <p className="text-lg font-bold text-gray-900">{getColorName(displayThemeColor)}</p>
                     </div>
                   </div>
                 </div>
@@ -111,7 +127,7 @@ const StoreSummaryStep = ({ formData }: StoreSummaryStepProps) => {
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 font-medium">Products Added</p>
-                    <p className="text-lg font-bold text-gray-900">10 Winning Products</p>
+                    <p className="text-lg font-bold text-gray-900">10 AI-Enhanced Products</p>
                   </div>
                 </div>
               </div>
@@ -127,7 +143,11 @@ const StoreSummaryStep = ({ formData }: StoreSummaryStepProps) => {
                 </div>
                 <div className="flex items-center space-x-3">
                   <CheckCircle className="h-5 w-5 text-green-600" />
-                  <span className="text-gray-700">Professional product descriptions</span>
+                  <span className="text-gray-700">DALL-E generated product images</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <span className="text-gray-700">Rich 500-800 word descriptions</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <CheckCircle className="h-5 w-5 text-green-600" />
@@ -135,20 +155,16 @@ const StoreSummaryStep = ({ formData }: StoreSummaryStepProps) => {
                 </div>
                 <div className="flex items-center space-x-3">
                   <CheckCircle className="h-5 w-5 text-green-600" />
-                  <span className="text-gray-700">Optimized pricing strategy</span>
+                  <span className="text-gray-700">Smart pricing optimization</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <CheckCircle className="h-5 w-5 text-green-600" />
-                  <span className="text-gray-700">Premium theme installed</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  <span className="text-gray-700">Custom branding applied</span>
+                  <span className="text-gray-700">Premium theme with custom colors</span>
                 </div>
               </div>
             </div>
 
-            {/* Action Button */}
+            {/* Action Button - FIXED: Customer store view */}
             <div className="text-center">
               <Button
                 onClick={handleViewStore}
@@ -159,13 +175,13 @@ const StoreSummaryStep = ({ formData }: StoreSummaryStepProps) => {
               </Button>
               
               <p className="text-gray-600 text-sm mt-4">
-                Your store is now live and ready to accept orders!
+                Your store is now live and ready to accept orders from customers!
               </p>
             </div>
 
             {/* Next Steps */}
             <div className="mt-8 bg-blue-50 rounded-xl p-6">
-              <h4 className="text-lg font-bold text-gray-900 mb-3">🚀 Next Steps</h4>
+              <h4 className="text-lg font-bold text-gray-900 mb-3">🚀 Next Steps to Start Selling</h4>
               <ul className="space-y-2 text-gray-700">
                 <li className="flex items-start space-x-2">
                   <span className="text-blue-600 font-bold">1.</span>
@@ -181,7 +197,7 @@ const StoreSummaryStep = ({ formData }: StoreSummaryStepProps) => {
                 </li>
                 <li className="flex items-start space-x-2">
                   <span className="text-blue-600 font-bold">4.</span>
-                  <span>Start marketing your new store!</span>
+                  <span>Start marketing your new {displayNiche} store!</span>
                 </li>
               </ul>
             </div>

@@ -30,22 +30,7 @@ const StepRenderer = ({
 }: StepRendererProps) => {
   const renderCurrentStep = () => {
     switch (currentStep) {
-      case 0:
-        return (
-          <GetStartedStep 
-            onNext={onNext}
-            formData={formData}
-            handleInputChange={handleInputChange}
-          />
-        );
-      case 1:
-        return (
-          <StoreDetailsStep
-            formData={formData}
-            onInputChange={handleInputChange}
-          />
-        );
-      case 2:
+      case 0: // FIXED: Vision Selection is now Step 0 (first step)
         return (
           <VisionSelectionStep
             formData={formData}
@@ -53,48 +38,55 @@ const StepRenderer = ({
             onNext={onNext}
           />
         );
-      case 3:
+      case 1: // Store Details 
+        return (
+          <StoreDetailsStep
+            formData={formData}
+            onInputChange={handleInputChange}
+          />
+        );
+      case 2: // Theme Color
         return (
           <ColorSelectionStep
             formData={formData}
             handleInputChange={handleInputChange}
           />
         );
-      case 4:
+      case 3: // Shopify Setup
         return (
           <ShopifySetupStep
             formData={formData}
             handleInputChange={handleInputChange}
           />
         );
-      case 5:
+      case 4: // API Config
         return (
           <APIConfigStep
             formData={formData}
             handleInputChange={handleInputChange}
           />
         );
-      case 6:
+      case 5: // Activate Trial
         return (
           <CreateStoreStep
             formData={formData}
-            handleInputChange={handleInputChange}
+            handleInputChange={(field: string, value: string | boolean) => handleInputChange(field, value)}
           />
         );
-      case 7:
+      case 6: // Products
         return (
           <WinningProductsStep
             formData={formData}
-            handleInputChange={handleInputChange}
+            handleInputChange={(field: string, value: boolean) => handleInputChange(field, value)}
           />
         );
-      case 8:
+      case 7: // Launch
         return (
           <LaunchStep
             formData={formData}
           />
         );
-      case 9:
+      case 8: // Store Summary
         return (
           <StoreSummaryStep
             formData={formData}
@@ -102,10 +94,10 @@ const StepRenderer = ({
         );
       default:
         return (
-          <GetStartedStep 
-            onNext={onNext}
+          <VisionSelectionStep
             formData={formData}
             handleInputChange={handleInputChange}
+            onNext={onNext}
           />
         );
     }

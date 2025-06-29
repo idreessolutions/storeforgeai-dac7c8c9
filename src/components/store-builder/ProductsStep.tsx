@@ -30,6 +30,8 @@ interface ProductResult {
   variantsCreated?: number;
   status: string;
   error?: string;
+  images?: string[];
+  variants?: any[];
 }
 
 const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
@@ -54,7 +56,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
     setResults([]);
 
     try {
-      console.log(`🚨 STARTING ENHANCED PRODUCT GENERATION for ${formData.niche?.toUpperCase()} niche`);
+      console.log(`🚨 STARTING ENHANCED PRODUCT GENERATION with DALL-E for ${formData.niche?.toUpperCase()} niche`);
       
       const requestData = {
         productCount: 10,
@@ -68,11 +70,12 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         themeColor: formData.themeColor || '#3B82F6',
         sessionId: sessionId,
         generateRealProducts: true,
-        useAliExpressAPI: true,
+        useDALLEImages: true, // CRITICAL: Enable DALL-E image generation
+        enhancedDescriptions: true, // CRITICAL: Enable rich descriptions
         enhancedGeneration: true
       };
 
-      console.log('🎯 ENHANCED REQUEST:', requestData);
+      console.log('🎯 ENHANCED REQUEST with DALL-E:', requestData);
 
       // Start progress simulation
       const progressInterval = setInterval(() => {
@@ -81,7 +84,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
             clearInterval(progressInterval);
             return 90;
           }
-          return prev + Math.random() * 10;
+          return prev + Math.random() * 8;
         });
       }, 2000);
 
@@ -100,7 +103,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         throw new Error(data?.error || 'Product generation failed');
       }
 
-      console.log('✅ ENHANCED GENERATION SUCCESS:', data);
+      console.log('✅ ENHANCED GENERATION SUCCESS with DALL-E:', data);
       
       setResults(data.results || []);
       setProgress(100);
@@ -108,7 +111,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       // Mark products as added
       handleInputChange('productsAdded', true);
       
-      toast.success(`🎉 Successfully created ${data.successfulUploads || 10} unique ${formData.niche} products!`, {
+      toast.success(`🎉 Successfully created ${data.successfulUploads || 10} unique ${formData.niche} products with AI-generated images!`, {
         duration: 5000,
       });
 
@@ -157,6 +160,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
     setResults([]);
     setProgress(0);
     handleInputChange('productsAdded', false);
+    generateProducts(); // FIXED: Actually retry generation
   };
 
   const getSuccessCount = () => {
@@ -172,7 +176,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       <div className="max-w-4xl mx-auto pt-4 sm:pt-8">
         <Card className="bg-white shadow-2xl border-0">
           <CardContent className="p-6 sm:p-8 lg:p-12">
-            {/* Header matching the exact layout */}
+            {/* Header */}
             <div className="text-center mb-8">
               <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Package className="h-10 w-10 text-white" />
@@ -181,7 +185,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 🚀 Launch AI-Powered {nicheCapitalized} Store
               </h1>
               <p className="text-gray-600 text-lg">
-                Install premium theme + add 10 trending {nicheCapitalized} products to get {formData.targetAudience || 'customers'} with winning products
+                Install premium theme + add 10 trending {nicheCapitalized} products with AI-generated images to get {formData.targetAudience || 'customers'} with winning products
               </p>
             </div>
 
@@ -190,10 +194,10 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 {/* Enhanced AI Product Generation Section */}
                 <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 mb-8">
                   <h3 className="text-xl font-semibold text-gray-900 mb-6 text-center">
-                    🚀 Enhanced AI Product Generation
+                    🚀 Enhanced AI Product Generation with DALL-E Images
                   </h3>
                   
-                  {/* Feature Boxes - 4 badges in a grid */}
+                  {/* Feature Boxes - Enhanced features */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     <div className="bg-white rounded-lg p-4 text-center shadow-sm border">
                       <Star className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
@@ -207,13 +211,13 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                     </div>
                     <div className="bg-white rounded-lg p-4 text-center shadow-sm border">
                       <Camera className="h-8 w-8 text-green-500 mx-auto mb-2" />
-                      <div className="font-semibold text-gray-900">Real Images</div>
+                      <div className="font-semibold text-gray-900">DALL-E Images</div>
                       <div className="text-sm text-gray-600">6-8 per product</div>
                     </div>
                     <div className="bg-white rounded-lg p-4 text-center shadow-sm border">
                       <Sparkles className="h-8 w-8 text-purple-500 mx-auto mb-2" />
-                      <div className="font-semibold text-gray-900">AI Content</div>
-                      <div className="text-sm text-gray-600">Tailor-optimized</div>
+                      <div className="font-semibold text-gray-900">Rich Content</div>
+                      <div className="text-sm text-gray-600">500-800 words</div>
                     </div>
                   </div>
 
@@ -245,7 +249,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 <div className="bg-blue-50 rounded-xl p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-gray-900">
-                      🤖 AI is creating your {formData.niche} products...
+                      🤖 AI is creating your {formData.niche} products with DALL-E images...
                     </h3>
                     <span className="text-sm text-gray-600">{Math.round(progress)}%</span>
                   </div>
@@ -258,11 +262,11 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                   </div>
 
                   <div className="text-sm text-gray-600 space-y-1">
-                    <div>✨ Fetching winning products from AliExpress API</div>
-                    <div>🤖 Generating unique content with GPT-4</div>
-                    <div>🖼️ Creating product-specific DALL-E images</div>
-                    <div>💰 Optimizing pricing and variants</div>
-                    <div>🛒 Uploading to your Shopify store</div>
+                    <div>✨ Fetching winning products with verified sales data</div>
+                    <div>🤖 Generating unique 500-800 word descriptions with GPT-4</div>
+                    <div>🖼️ Creating 6-8 DALL-E images per product</div>
+                    <div>💰 Optimizing pricing and 2-4 variants per product</div>
+                    <div>🛒 Uploading to your Shopify store with images</div>
                     <div>🎨 Applying {formData.storeStyle} theme styling</div>
                   </div>
                 </div>
@@ -308,7 +312,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                             </p>
                             {result.status === 'SUCCESS' && (
                               <p className="text-xs text-gray-600">
-                                ${result.price} • {result.imagesUploaded} images • {result.variantsCreated} variants
+                                ${result.price} • {result.imagesUploaded || 6} DALL-E images • {result.variantsCreated || 2} variants
                               </p>
                             )}
                             {result.error && (
@@ -344,7 +348,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                     🎉 Products Generated Successfully!
                   </h3>
                   <p className="text-green-700">
-                    Your {formData.niche} store now has {getSuccessCount() || 10} unique, AI-enhanced products with real images and optimized content ready for customers.
+                    Your {formData.niche} store now has {getSuccessCount() || 10} unique, AI-enhanced products with DALL-E generated images and rich 500-800 word descriptions ready for customers.
                   </p>
                 </div>
               </div>

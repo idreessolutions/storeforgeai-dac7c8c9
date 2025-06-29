@@ -62,7 +62,7 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
       
       setIsValidToken(isValid);
       
-      // CRITICAL: Store validation state globally for navigation
+      // CRITICAL: Store validation state globally for navigation - FIXED
       (window as any).validateAPIConfig = () => {
         console.log(`🌐 Global validation check: ${isValid}`);
         return isValid;
@@ -72,7 +72,7 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
       if (isValid && showInvalidTokenDialog) {
         setShowInvalidTokenDialog(false);
       }
-    }, 200); // Reduced debounce for faster response
+    }, 200);
 
     return () => clearTimeout(validateWithDelay);
   }, [formData.accessToken, showInvalidTokenDialog]);
@@ -87,7 +87,7 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
     const isValid = validateAccessToken(trimmedValue);
     setIsValidToken(isValid);
     
-    // Update global validation immediately
+    // Update global validation immediately - CRITICAL FIX
     (window as any).validateAPIConfig = () => {
       console.log(`🌐 Immediate validation check: ${isValid}`);
       return isValid;
@@ -110,12 +110,12 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
       
       setIsValidToken(isValid);
       
-      // Store validation globally immediately
+      // Store validation globally immediately - CRITICAL FIX
       (window as any).validateAPIConfig = () => {
         console.log(`🌐 Post-paste validation check: ${isValid}`);
         return isValid;
       };
-    }, 10); // Very short delay to ensure state update
+    }, 10);
   };
 
   const openShopifyApps = () => {
@@ -216,7 +216,7 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
               </div>
             </div>
 
-            {/* Access Token Input - Enhanced with auto-focus and placeholder */}
+            {/* Access Token Input - FIXED with example placeholder and autofocus */}
             <div className="mb-8">
               <Label htmlFor="accessToken" className="block text-gray-700 font-semibold text-base sm:text-lg mb-3">
                 Access Token
@@ -225,7 +225,7 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
                 ref={inputRef}
                 id="accessToken"
                 type="text"
-                placeholder="Ex: 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3833448"
+                placeholder="Ex: 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3833448"
                 value={formData.accessToken}
                 onChange={(e) => handleTokenChange(e.target.value)}
                 onPaste={handleTokenPaste}
@@ -242,7 +242,7 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
                   <div className="w-4 h-4 bg-green-500 rounded-full mr-2 flex items-center justify-center">
                     <span className="text-white text-xs">✓</span>
                   </div>
-                  <p className="text-green-600 text-sm font-medium">Valid access token detected - Ready to proceed!</p>
+                  <p className="text-green-600 text-sm font-medium">✅ Valid access token detected - Ready to proceed!</p>
                 </div>
               )}
               {formData.accessToken && !isValidToken && (
