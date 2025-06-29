@@ -86,14 +86,12 @@ const StepRenderer = ({
           <WinningProductsStep
             formData={formData}
             handleInputChange={handleInputChange}
-            validateCurrentStep={validateCurrentStep}
           />
         );
       case 8:
         return (
           <LaunchStep
             formData={formData}
-            validateCurrentStep={validateCurrentStep}
           />
         );
       case 9:
