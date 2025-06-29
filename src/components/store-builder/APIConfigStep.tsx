@@ -32,34 +32,33 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
   const validateAccessToken = (token: string): boolean => {
     if (!token) return false;
     
-    // More flexible pattern for Shopify access tokens
-    // They start with shpat_ or shpca_ and are followed by alphanumeric characters
-    const shopifyTokenPattern = /^shp[a-z]{2}_[A-Za-z0-9]{20,}$/;
+    // Shopify token pattern: starts with shpat_ or shpca_ followed by 32+ alphanumeric characters
+    const shopifyTokenPattern = /^shp[at]_[A-Za-z0-9]{32,}$/;
     return shopifyTokenPattern.test(token.trim());
   };
 
-  // Store validation state on window for StoreBuilderLogic to access
+  // Real-time validation on token change
   useEffect(() => {
-    const isValid = isValidToken && formData.accessToken.trim().length > 0;
+    const token = formData.accessToken.trim();
+    const isValid = validateAccessToken(token);
+    setIsValidToken(isValid);
+    
+    // Store validation state globally for navigation
     (window as any).validateAPIConfig = () => isValid;
-  }, [isValidToken, formData.accessToken]);
+  }, [formData.accessToken]);
 
   const handleTokenChange = (value: string) => {
     const trimmedValue = value.trim();
-    const isValid = validateAccessToken(trimmedValue);
-    
-    setIsValidToken(isValid);
     handleInputChange('accessToken', trimmedValue);
     
-    // Show modern popup dialog for invalid tokens (only if user has typed something and it's invalid)
-    if (trimmedValue.length > 0 && !isValid && trimmedValue.startsWith('shp')) {
+    // Show invalid token popup if user has entered something that looks like a token but is invalid
+    if (trimmedValue.length > 10 && trimmedValue.startsWith('shp') && !validateAccessToken(trimmedValue)) {
       setShowInvalidTokenDialog(true);
     }
   };
 
   const openShopifyApps = () => {
     if (formData.shopifyUrl) {
-      // Extract store name from URL and create the development apps URL
       const storeName = formData.shopifyUrl.replace('.myshopify.com', '');
       const developmentUrl = `https://admin.shopify.com/store/${storeName}/settings/apps/development?link_source=search`;
       
@@ -84,7 +83,7 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
               </p>
             </div>
 
-            {/* Main Instructions - Light Grey Background */}
+            {/* Main Instructions */}
             <div className="mb-8">
               <div className="bg-gray-100 rounded-xl p-6 sm:p-8 mb-6">
                 <p className="text-gray-800 font-medium mb-4 text-base sm:text-lg">
@@ -148,7 +147,6 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
                   </p>
                 </div>
 
-                {/* Highlighted Return Message - Yellow Background */}
                 <div className="bg-yellow-200 border border-yellow-400 rounded-lg p-3">
                   <p className="text-yellow-900 font-medium text-sm sm:text-base">
                     Remember to return to this tab to continue creating your store.
@@ -157,7 +155,7 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
               </div>
             </div>
 
-            {/* Access Token Input - Always visible and editable */}
+            {/* Access Token Input */}
             <div className="mb-8">
               <Label htmlFor="accessToken" className="block text-gray-700 font-semibold text-base sm:text-lg mb-3">
                 Access Token
@@ -165,7 +163,7 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
               <Input
                 id="accessToken"
                 type="text"
-                placeholder="Ex: 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8"
+                placeholder="Ex: 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3833448"
                 value={formData.accessToken}
                 onChange={(e) => handleTokenChange(e.target.value)}
                 className={`w-full h-12 sm:h-14 text-base sm:text-lg border-2 rounded-xl transition-colors font-mono ${
@@ -199,7 +197,7 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
           <AlertDialogHeader>
             <AlertDialogTitle>Invalid Access Token</AlertDialogTitle>
             <AlertDialogDescription>
-              Please enter a valid Shopify Admin API access token. The token should start with 'shpat_' followed by alphanumeric characters.
+              Please enter a valid Shopify Admin API access token. The token should start with 'shpat_' followed by 32+ alphanumeric characters.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

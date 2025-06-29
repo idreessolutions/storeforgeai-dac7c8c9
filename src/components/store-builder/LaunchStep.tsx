@@ -1,187 +1,186 @@
 
 import React from "react";
-import { CheckCircle, ExternalLink, Crown, Sparkles, Zap, Star } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Crown, ExternalLink, CheckCircle } from "lucide-react";
 
 interface LaunchStepProps {
   formData: {
-    shopifyUrl?: string;
     storeName?: string;
-    selectedColor?: string;
     niche?: string;
+    themeColor?: string;
+    shopifyUrl?: string;
+    targetAudience?: string;
+    businessType?: string;
+    storeStyle?: string;
   };
 }
 
 const LaunchStep = ({ formData }: LaunchStepProps) => {
-  const cleanShopifyUrl = formData.shopifyUrl?.replace(/\/$/, '') || '';
-  const storeUrl = cleanShopifyUrl.includes('myshopify.com') 
-    ? cleanShopifyUrl 
-    : `https://${cleanShopifyUrl}.myshopify.com`;
+  const getColorName = (color: string) => {
+    const colorMap: { [key: string]: string } = {
+      '#3B82F6': 'Royal Blue',
+      '#10B981': 'Emerald Green',
+      '#8B5CF6': 'Purple',
+      '#F59E0B': 'Amber',
+      '#EF4444': 'Red',
+      '#EC4899': 'Pink'
+    };
+    return colorMap[color] || 'Blue';
+  };
+
+  const openLiveStore = () => {
+    if (formData.shopifyUrl) {
+      const storeUrl = formData.shopifyUrl.startsWith('http') 
+        ? formData.shopifyUrl 
+        : `https://${formData.shopifyUrl}`;
+      window.open(storeUrl, '_blank');
+    }
+  };
 
   return (
-    <div className="max-w-4xl mx-auto text-center space-y-8">
-      {/* Hero Section */}
-      <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-green-400 via-blue-500 to-purple-600 rounded-3xl blur-xl opacity-20 animate-pulse"></div>
-        <div className="relative bg-white rounded-3xl p-12 shadow-2xl border border-green-200">
-          {/* Success Icon */}
-          <div className="flex justify-center mb-6">
-            <div className="relative">
-              <div className="w-24 h-24 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center shadow-2xl">
-                <CheckCircle className="h-12 w-12 text-white" />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-2 sm:p-4">
+      <div className="max-w-4xl mx-auto pt-4 sm:pt-8">
+        <Card className="bg-white shadow-2xl border-0">
+          <CardContent className="p-6 sm:p-8 lg:p-12">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Crown className="h-10 w-10 text-white" />
               </div>
-              <div className="absolute -top-2 -right-2">
-                <Crown className="h-8 w-8 text-yellow-500 animate-bounce" />
-              </div>
-              <div className="absolute -bottom-2 -left-2">
-                <Star className="h-6 w-6 text-purple-500 animate-spin" />
-              </div>
-            </div>
-          </div>
-
-          {/* Main Title */}
-          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
-            🎉 Your Store is LIVE!
-          </h1>
-          
-          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Congratulations! Your professional dropshipping store is now ready to accept orders and start generating revenue.
-          </p>
-        </div>
-      </div>
-
-      {/* Store Details */}
-      <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl p-8 shadow-lg">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center justify-center gap-3">
-          <Sparkles className="h-6 w-6 text-blue-500" />
-          Your Store Details
-        </h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white rounded-xl p-6 shadow-md">
-            <h3 className="font-semibold text-gray-700 mb-2">Store Name</h3>
-            <p className="text-lg font-bold" style={{ color: formData.selectedColor || '#3B82F6' }}>
-              {formData.storeName || 'Your Amazing Store'}
-            </p>
-          </div>
-          
-          <div className="bg-white rounded-xl p-6 shadow-md">
-            <h3 className="font-semibold text-gray-700 mb-2">Niche</h3>
-            <p className="text-lg font-bold text-gray-800">
-              {formData.niche || 'General'}
-            </p>
-          </div>
-          
-          <div className="bg-white rounded-xl p-6 shadow-md">
-            <h3 className="font-semibold text-gray-700 mb-2">Theme Color</h3>
-            <div className="flex items-center gap-3">
-              <div 
-                className="w-8 h-8 rounded-full border-2 border-gray-300" 
-                style={{ backgroundColor: formData.selectedColor || '#3B82F6' }}
-              ></div>
-              <p className="text-lg font-bold text-gray-800">
-                {formData.selectedColor || '#3B82F6'}
+              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+                🎉 Your Store is LIVE!
+              </h1>
+              <p className="text-gray-600 text-lg mb-8">
+                Congratulations! Your professional dropshipping store is now ready to accept orders and start generating revenue.
               </p>
             </div>
-          </div>
-          
-          <div className="bg-white rounded-xl p-6 shadow-md">
-            <h3 className="font-semibold text-gray-700 mb-2">Status</h3>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-              <p className="text-lg font-bold text-green-600">Live & Ready</p>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-        <a
-          href={storeUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group flex items-center gap-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
-        >
-          <ExternalLink className="h-5 w-5 group-hover:rotate-12 transition-transform" />
-          View Your Live Store
-        </a>
-        
-        <a
-          href={`${storeUrl}/admin`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group flex items-center gap-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
-        >
-          <Zap className="h-5 w-5 group-hover:rotate-12 transition-transform" />
-          Access Admin Panel
-        </a>
-      </div>
+            {/* Success Message */}
+            <div className="bg-green-50 border border-green-200 rounded-xl p-6 mb-8">
+              <div className="flex items-center mb-4">
+                <CheckCircle className="h-8 w-8 text-green-500 mr-3" />
+                <h3 className="text-xl font-semibold text-green-900">
+                  Setup Complete!
+                </h3>
+              </div>
+              <p className="text-green-800 text-base">
+                Your store has been successfully created with premium products, professional theme, and optimized settings. Everything is configured and ready for customers.
+              </p>
+            </div>
 
-      {/* Success Checklist */}
-      <div className="bg-white rounded-2xl p-8 shadow-lg">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center justify-center gap-3">
-          <CheckCircle className="h-6 w-6 text-green-500" />
-          What We've Set Up For You
-        </h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[
-            '✅ Professional Shopify theme installed',
-            '✅ Custom color scheme applied',
-            '✅ 10 winning products with real images',
-            '✅ Product variations and pricing set',
-            '✅ Store name and branding configured',
-            '✅ Niche-specific product descriptions',
-            '✅ Mobile-responsive design',
-            '✅ Ready to accept payments'
-          ].map((item, index) => (
-            <div key={index} className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-gray-700">{item}</span>
+            {/* Store Details */}
+            <div className="bg-gray-50 rounded-xl p-6 mb-8">
+              <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                <Crown className="h-5 w-5 mr-2 text-purple-600" />
+                Your Store Details
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-600 mb-1">Store Name</label>
+                    <div className="text-lg font-semibold text-gray-900">
+                      {formData.storeName || 'Your Amazing Store'}
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-600 mb-1">Niche</label>
+                    <div className="text-lg font-semibold text-gray-900 capitalize">
+                      {formData.niche || 'General'}
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-600 mb-1">Theme Color</label>
+                    <div className="flex items-center">
+                      <div 
+                        className="w-6 h-6 rounded-full mr-3 border-2 border-gray-300"
+                        style={{ backgroundColor: formData.themeColor || '#3B82F6' }}
+                      ></div>
+                      <span className="text-lg font-semibold text-gray-900">
+                        {getColorName(formData.themeColor || '#3B82F6')}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-600 mb-1">Status</label>
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                      <span className="text-lg font-semibold text-green-600">Live & Ready</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Next Steps */}
-      <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-8 shadow-lg">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">🚀 Next Steps to Success</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="text-center">
-            <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-white font-bold text-xl">1</span>
+            {/* What We've Set Up */}
+            <div className="bg-blue-50 rounded-xl p-6 mb-8">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                ✅ What We've Set Up For You
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <div className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                    <span>10 winning {formData.niche || 'products'} with real images</span>
+                  </div>
+                  <div className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                    <span>Professional Refresh theme installed</span>
+                  </div>
+                  <div className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                    <span>SEO-optimized product descriptions</span>
+                  </div>
+                  <div className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                    <span>Smart pricing ($15-$80 range)</span>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                    <span>Product variants and options</span>
+                  </div>
+                  <div className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                    <span>Store policies and pages</span>
+                  </div>
+                  <div className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                    <span>Payment and shipping setup</span>
+                  </div>
+                  <div className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
+                    <span>Mobile-responsive design</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <h3 className="font-semibold mb-2">Customize Further</h3>
-            <p className="text-sm text-gray-600">Add your logo, adjust settings, and personalize your store</p>
-          </div>
-          
-          <div className="text-center">
-            <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-white font-bold text-xl">2</span>
-            </div>
-            <h3 className="font-semibold mb-2">Set Up Payments</h3>
-            <p className="text-sm text-gray-600">Configure Shopify Payments or your preferred payment gateway</p>
-          </div>
-          
-          <div className="text-center">
-            <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-white font-bold text-xl">3</span>
-            </div>
-            <h3 className="font-semibold mb-2">Start Marketing</h3>
-            <p className="text-sm text-gray-600">Launch ads, create social media content, and drive traffic</p>
-          </div>
-        </div>
-      </div>
 
-      {/* Footer Message */}
-      <div className="text-center">
-        <p className="text-lg text-gray-600 mb-4">
-          🎊 Your journey to e-commerce success starts now!
-        </p>
-        <p className="text-sm text-gray-500">
-          Need help? Contact our support team anytime.
-        </p>
+            {/* Action Button */}
+            <div className="text-center">
+              <Button
+                onClick={openLiveStore}
+                className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-lg font-semibold rounded-xl"
+              >
+                <ExternalLink className="mr-2 h-5 w-5" />
+                View Your Live Store
+              </Button>
+              
+              <p className="text-gray-600 text-sm mt-4">
+                Your store is now live and ready to start accepting orders!
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
