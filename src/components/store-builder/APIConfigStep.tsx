@@ -28,35 +28,70 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
   const [isValidToken, setIsValidToken] = useState(false);
   const [showInvalidTokenDialog, setShowInvalidTokenDialog] = useState(false);
 
-  // Enhanced Shopify access token validation
+  // Enhanced Shopify access token validation - FIXED REGEX
   const validateAccessToken = (token: string): boolean => {
     if (!token) return false;
     
-    // Shopify token pattern: starts with shpat_ or shpca_ followed by 32+ alphanumeric characters
-    const shopifyTokenPattern = /^shp[at]_[A-Za-z0-9]{32,}$/;
-    return shopifyTokenPattern.test(token.trim());
+    // FIXED: Proper Shopify token validation - more flexible pattern
+    // Shopify tokens can start with shpat_, shpca_, or other variations
+    // and have 32+ alphanumeric characters (including underscores and hyphens)
+    const shopifyTokenPattern = /^shp[a-z]{2}_[A-Za-z0-9_-]{32,}$/;
+    
+    // Also accept the older format that might not have underscores
+    const legacyTokenPattern = /^shp[a-z]{2}[A-Za-z0-9]{32,}$/;
+    
+    const trimmedToken = token.trim();
+    const isValid = shopifyTokenPattern.test(trimmedToken) || legacyTokenPattern.test(trimmedToken);
+    
+    console.log(`🔑 Token validation: ${isValid ? 'VALID' : 'INVALID'} (Length: ${trimmedToken.length})`);
+    console.log(`🔍 Token format check: starts with 'shp', length: ${trimmedToken.length}`);
+    
+    return isValid;
   };
 
-  // Real-time validation on token change
+  // Real-time validation on token change - INCLUDING PASTE EVENTS
   useEffect(() => {
     const token = formData.accessToken.trim();
     const isValid = validateAccessToken(token);
     setIsValidToken(isValid);
     
-    console.log(`🔑 API Token validation: ${isValid ? 'VALID' : 'INVALID'} (Length: ${token.length})`);
-    
-    // Store validation state globally for navigation
+    // Store validation state globally for navigation - CRITICAL FIX
     (window as any).validateAPIConfig = () => isValid;
-  }, [formData.accessToken]);
+    
+    // Clear any previous invalid token dialogs if token becomes valid
+    if (isValid && showInvalidTokenDialog) {
+      setShowInvalidTokenDialog(false);
+    }
+  }, [formData.accessToken, showInvalidTokenDialog]);
 
   const handleTokenChange = (value: string) => {
     const trimmedValue = value.trim();
     handleInputChange('accessToken', trimmedValue);
     
-    // Show invalid token popup if user has entered something that looks like a token but is invalid
-    if (trimmedValue.length > 10 && trimmedValue.startsWith('shp') && !validateAccessToken(trimmedValue)) {
-      setShowInvalidTokenDialog(true);
+    // FIXED: Only show invalid token popup if user has entered something substantial 
+    // that looks like a token attempt but is invalid
+    if (trimmedValue.length > 15 && trimmedValue.toLowerCase().startsWith('shp') && !validateAccessToken(trimmedValue)) {
+      // Delay showing the dialog slightly to avoid showing it while user is still typing
+      setTimeout(() => {
+        if (!validateAccessToken(formData.accessToken.trim())) {
+          setShowInvalidTokenDialog(true);
+        }
+      }, 500);
     }
+  };
+
+  // Handle paste events specifically to immediately validate
+  const handleTokenPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const pastedText = e.clipboardData.getData('text').trim();
+    handleInputChange('accessToken', pastedText);
+    
+    // Immediate validation after paste
+    setTimeout(() => {
+      const isValid = validateAccessToken(pastedText);
+      if (!isValid && pastedText.length > 10) {
+        setShowInvalidTokenDialog(true);
+      }
+    }, 100);
   };
 
   const openShopifyApps = () => {
@@ -168,6 +203,7 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
                 placeholder="Ex: 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3833448"
                 value={formData.accessToken}
                 onChange={(e) => handleTokenChange(e.target.value)}
+                onPaste={handleTokenPaste}
                 className={`w-full h-12 sm:h-14 text-base sm:text-lg border-2 rounded-xl transition-colors font-mono ${
                   isValidToken 
                     ? 'border-green-500 focus:border-green-600 bg-white' 
@@ -177,7 +213,10 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
                 }`}
               />
               {isValidToken && (
-                <p className="text-green-600 text-sm mt-2 font-medium">✅ Valid access token detected</p>
+                <p className="text-green-600 text-sm mt-2 font-medium">✅ Valid access token detected - Ready to proceed!</p>
+              )}
+              {formData.accessToken && !isValidToken && (
+                <p className="text-red-600 text-sm mt-2 font-medium">❌ Invalid token format - Please check your token</p>
               )}
             </div>
 
@@ -203,6 +242,8 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
             <AlertDialogTitle>Invalid Access Token</AlertDialogTitle>
             <AlertDialogDescription>
               Please enter a valid Shopify Admin API access token. The token should start with 'shpat_' followed by 32+ alphanumeric characters.
+              <br /><br />
+              <strong>Example format:</strong> shpat_1234567890abcdef1234567890abcdef12345678
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
