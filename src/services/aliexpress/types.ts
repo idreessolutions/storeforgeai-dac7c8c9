@@ -23,6 +23,8 @@ export interface AliExpressProduct {
     quality_score?: number;
     guaranteed_generation?: boolean;
     emergency_generation?: boolean;
+    real_api_product?: boolean;
+    api_source?: string;
   };
 }
 

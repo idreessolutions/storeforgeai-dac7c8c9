@@ -1,4 +1,3 @@
-
 import { AliExpressProduct, AliExpressApiResponse } from './types';
 import { AliExpressRealApiClient } from './realApiClient';
 import { ProductGenerator } from './productGenerator';
