@@ -78,7 +78,7 @@ const StepRenderer = ({
         return (
           <CreateStoreStep
             formData={formData}
-            handleInputChange={(field: string, value: boolean) => handleInputChange(field, value)}
+            handleInputChange={handleInputChange}
           />
         );
       case 7:
