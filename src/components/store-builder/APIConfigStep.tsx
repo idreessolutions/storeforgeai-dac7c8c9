@@ -18,12 +18,13 @@ interface APIConfigStepProps {
 const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
   const [isValidToken, setIsValidToken] = useState(false);
 
-  // Validate Shopify access token format
+  // Enhanced Shopify access token validation
   const validateAccessToken = (token: string): boolean => {
     if (!token) return false;
     
-    // Shopify access tokens start with shpat_ and are followed by 32 characters
-    const shopifyTokenPattern = /^shp[a-z]{2}_[a-f0-9]{32}$/;
+    // More flexible pattern for Shopify access tokens
+    // They start with shpat_ or shpca_ and are followed by alphanumeric characters
+    const shopifyTokenPattern = /^shp[a-z]{2}_[A-Za-z0-9]{20,}$/;
     return shopifyTokenPattern.test(token.trim());
   };
 
@@ -31,18 +32,26 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
   useEffect(() => {
     const isValid = isValidToken && formData.accessToken.trim().length > 0;
     (window as any).validateAPIConfig = () => isValid;
-    console.log('API Config validation state:', { isValidToken, hasToken: !!formData.accessToken.trim(), isValid });
+    console.log('API Config validation state updated:', { 
+      isValidToken, 
+      hasToken: !!formData.accessToken.trim(), 
+      finalValidation: isValid,
+      token: formData.accessToken.substring(0, 10) + '...' // Log first 10 chars for debugging
+    });
   }, [isValidToken, formData.accessToken]);
 
   const handleTokenChange = (value: string) => {
     const trimmedValue = value.trim();
     const isValid = validateAccessToken(trimmedValue);
     
+    console.log('Token validation in progress:', { 
+      token: trimmedValue.substring(0, 10) + '...', 
+      isValid,
+      pattern: /^shp[a-z]{2}_[A-Za-z0-9]{20,}$/.test(trimmedValue)
+    });
+    
     setIsValidToken(isValid);
     handleInputChange('accessToken', trimmedValue);
-    
-    // Remove the success toast - we don't want any success messages
-    console.log('Token validation:', { isValid, token: trimmedValue });
   };
 
   const openShopifyApps = () => {
@@ -145,7 +154,7 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
               </div>
             </div>
 
-            {/* Access Token Input - FIXED: Always visible, no password type, proper styling */}
+            {/* Access Token Input - Always visible and editable */}
             <div className="mb-8">
               <Label htmlFor="accessToken" className="block text-gray-700 font-semibold text-base sm:text-lg mb-3">
                 Access Token
@@ -153,7 +162,7 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
               <Input
                 id="accessToken"
                 type="text"
-                placeholder="Ex: shpat_336469..."
+                placeholder="Ex: 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8"
                 value={formData.accessToken}
                 onChange={(e) => handleTokenChange(e.target.value)}
                 className={`w-full h-12 sm:h-14 text-base sm:text-lg border-2 rounded-xl transition-colors font-mono ${
@@ -165,13 +174,20 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
                 }`}
               />
               
-              {/* FIXED: Only show error messages, no success messages */}
+              {/* Only show error messages for invalid tokens */}
               {formData.accessToken && !isValidToken && (
                 <div className="mt-2">
                   <p className="text-red-600 text-sm flex items-center">
                     <AlertCircle className="h-4 w-4 mr-1" />
-                    Invalid token format. Should start with 'shpat_' followed by 32 characters
+                    Invalid token format. Should start with 'shpat_' or 'shpca_' followed by alphanumeric characters
                   </p>
+                </div>
+              )}
+
+              {/* Debug info - remove this in production */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="mt-2 text-xs text-gray-500">
+                  Debug: Token valid = {isValidToken.toString()}, Length = {formData.accessToken.length}
                 </div>
               )}
             </div>
