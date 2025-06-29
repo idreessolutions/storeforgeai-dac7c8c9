@@ -4,8 +4,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Key, AlertCircle, ExternalLink } from "lucide-react";
+import { Key, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 
 interface APIConfigStepProps {
   formData: {
@@ -17,6 +26,7 @@ interface APIConfigStepProps {
 
 const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
   const [isValidToken, setIsValidToken] = useState(false);
+  const [showInvalidTokenDialog, setShowInvalidTokenDialog] = useState(false);
 
   // Enhanced Shopify access token validation
   const validateAccessToken = (token: string): boolean => {
@@ -32,26 +42,19 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
   useEffect(() => {
     const isValid = isValidToken && formData.accessToken.trim().length > 0;
     (window as any).validateAPIConfig = () => isValid;
-    console.log('API Config validation state updated:', { 
-      isValidToken, 
-      hasToken: !!formData.accessToken.trim(), 
-      finalValidation: isValid,
-      token: formData.accessToken.substring(0, 10) + '...' // Log first 10 chars for debugging
-    });
   }, [isValidToken, formData.accessToken]);
 
   const handleTokenChange = (value: string) => {
     const trimmedValue = value.trim();
     const isValid = validateAccessToken(trimmedValue);
     
-    console.log('Token validation in progress:', { 
-      token: trimmedValue.substring(0, 10) + '...', 
-      isValid,
-      pattern: /^shp[a-z]{2}_[A-Za-z0-9]{20,}$/.test(trimmedValue)
-    });
-    
     setIsValidToken(isValid);
     handleInputChange('accessToken', trimmedValue);
+    
+    // Show modern popup dialog for invalid tokens (only if user has typed something and it's invalid)
+    if (trimmedValue.length > 0 && !isValid && trimmedValue.startsWith('shp')) {
+      setShowInvalidTokenDialog(true);
+    }
   };
 
   const openShopifyApps = () => {
@@ -173,23 +176,6 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
                       : 'border-gray-300 focus:border-blue-500 bg-white'
                 }`}
               />
-              
-              {/* Only show error messages for invalid tokens */}
-              {formData.accessToken && !isValidToken && (
-                <div className="mt-2">
-                  <p className="text-red-600 text-sm flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    Invalid token format. Should start with 'shpat_' or 'shpca_' followed by alphanumeric characters
-                  </p>
-                </div>
-              )}
-
-              {/* Debug info - remove this in production */}
-              {process.env.NODE_ENV === 'development' && (
-                <div className="mt-2 text-xs text-gray-500">
-                  Debug: Token valid = {isValidToken.toString()}, Length = {formData.accessToken.length}
-                </div>
-              )}
             </div>
 
             {/* Action Buttons */}
@@ -206,6 +192,23 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modern Invalid Token Dialog */}
+      <AlertDialog open={showInvalidTokenDialog} onOpenChange={setShowInvalidTokenDialog}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Invalid Access Token</AlertDialogTitle>
+            <AlertDialogDescription>
+              Please enter a valid Shopify Admin API access token. The token should start with 'shpat_' followed by alphanumeric characters.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowInvalidTokenDialog(false)}>
+              OK
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
