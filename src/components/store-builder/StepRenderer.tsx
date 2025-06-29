@@ -10,7 +10,7 @@ import CreateStoreStep from "./CreateStoreStep";
 import WinningProductsStep from "./WinningProductsStep";
 import LaunchStep from "./LaunchStep";
 import StoreSummaryStep from "./StoreSummaryStep";
-import MentorshipStep from "./MentorshipStep"; // Add Mentorship step
+import MentorshipStep from "./MentorshipStep";
 
 interface StepRendererProps {
   currentStep: number;
@@ -31,7 +31,7 @@ const StepRenderer = ({
 }: StepRendererProps) => {
   const renderCurrentStep = () => {
     switch (currentStep) {
-      case 0: // Vision Selection (Step 1)
+      case 0: // Vision Selection
         return (
           <VisionSelectionStep
             formData={formData}
@@ -39,63 +39,63 @@ const StepRenderer = ({
             onNext={onNext}
           />
         );
-      case 1: // Store Details (Step 2)
+      case 1: // Store Details
         return (
           <StoreDetailsStep
             formData={formData}
             onInputChange={handleInputChange}
           />
         );
-      case 2: // Theme Color (Step 3)
+      case 2: // Theme Color
         return (
           <ColorSelectionStep
             formData={formData}
             handleInputChange={handleInputChange}
           />
         );
-      case 3: // Shopify Setup (Step 4)
+      case 3: // Shopify Setup
         return (
           <ShopifySetupStep
             formData={formData}
             handleInputChange={handleInputChange}
           />
         );
-      case 4: // API Config (Step 5)
+      case 4: // API Config - FIXED: Correct step number
         return (
           <APIConfigStep
             formData={formData}
             handleInputChange={handleInputChange}
-            onNext={onNext} // CRITICAL FIX: Pass onNext to enable Next button
+            onNext={onNext}
           />
         );
-      case 5: // Activate Trial (Step 6)
+      case 5: // Activate Trial
         return (
           <CreateStoreStep
             formData={formData}
             handleInputChange={handleInputChange}
           />
         );
-      case 6: // Products (Step 7)
+      case 6: // Products
         return (
           <WinningProductsStep
             formData={formData}
             handleInputChange={handleInputChange}
           />
         );
-      case 7: // Mentorship (Step 8) - NEW
+      case 7: // Mentorship
         return (
           <MentorshipStep
             formData={formData}
             handleInputChange={handleInputChange}
           />
         );
-      case 8: // Launch (Step 9)
+      case 8: // Launch
         return (
           <LaunchStep
             formData={formData}
           />
         );
-      case 9: // Store Summary (Step 10)
+      case 9: // Store Summary (final completion)
         return (
           <StoreSummaryStep
             formData={formData}
