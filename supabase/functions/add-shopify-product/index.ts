@@ -73,8 +73,13 @@ async function handleEnhancedProductGeneration(requestData: any) {
     throw new Error('Shopify URL and access token are required');
   }
 
-  // Generate winning products
-  const winningProducts = await generateWinningProducts(niche, productCount);
+  // Generate winning products with enhanced content
+  const winningProducts = await generateWinningProducts(niche, productCount, {
+    storeName,
+    targetAudience,
+    businessType,
+    storeStyle
+  });
   
   const results = [];
   let successfulUploads = 0;
@@ -135,8 +140,8 @@ async function handleEnhancedProductGeneration(requestData: any) {
   });
 }
 
-async function generateWinningProducts(niche: string, count: number): Promise<ProductData[]> {
-  console.log(`🎯 Generating ${count} winning ${niche} products with real AliExpress integration`);
+async function generateWinningProducts(niche: string, count: number, storeConfig: any): Promise<ProductData[]> {
+  console.log(`🎯 Generating ${count} winning ${niche} products with enhanced AI content`);
   
   const products: ProductData[] = [];
   
@@ -147,16 +152,19 @@ async function generateWinningProducts(niche: string, count: number): Promise<Pr
     const productTemplate = nicheData.templates[i % nicheData.templates.length];
     const basePrice = generateSmartPrice(niche, i);
     
+    // Generate AI-powered product content
+    const enhancedContent = await generateEnhancedProductContent(productTemplate.name, niche, storeConfig, i);
+    
     const product: ProductData = {
       itemId: `enhanced_${niche}_${Date.now()}_${i}`,
-      title: generateWinningTitle(productTemplate.name, niche, i),
+      title: enhancedContent.title,
       price: basePrice,
-      rating: 4.2 + (Math.random() * 0.8), // 4.2-5.0
-      orders: 150 + (i * 50) + Math.floor(Math.random() * 500),
-      features: productTemplate.features,
-      imageUrl: nicheData.images[i % nicheData.images.length],
-      images: generateProductImages(niche, i),
-      variants: generateSmartVariants(basePrice, niche),
+      rating: 4.3 + (Math.random() * 0.7), // 4.3-5.0
+      orders: 200 + (i * 75) + Math.floor(Math.random() * 500),
+      features: enhancedContent.features,
+      imageUrl: enhancedContent.mainImage,
+      images: enhancedContent.images,
+      variants: generateSmartVariants(basePrice, niche, enhancedContent.images),
       category: niche
     };
     
@@ -166,30 +174,178 @@ async function generateWinningProducts(niche: string, count: number): Promise<Pr
   return products;
 }
 
+async function generateEnhancedProductContent(baseName: string, niche: string, storeConfig: any, index: number) {
+  console.log(`🤖 Generating AI-enhanced content for ${baseName} in ${niche} niche`);
+  
+  const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+  
+  let enhancedTitle = baseName;
+  let enhancedFeatures = getDefaultFeatures(niche);
+  
+  if (openAIApiKey) {
+    try {
+      // Generate enhanced product content with OpenAI
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: `You are an expert copywriter specializing in ${niche} products for ${storeConfig.storeStyle} stores targeting ${storeConfig.targetAudience}. Create compelling, conversion-focused product content.`
+            },
+            {
+              role: 'user',
+              content: `Create a compelling product title and 5 key features for a ${baseName} in the ${niche} niche. The store style is ${storeConfig.storeStyle} and targets ${storeConfig.targetAudience}. Make it emotional and conversion-focused. Return as JSON with "title" and "features" array.`
+            }
+          ],
+          temperature: 0.8,
+          max_tokens: 500
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const content = JSON.parse(data.choices[0].message.content);
+        enhancedTitle = content.title;
+        enhancedFeatures = content.features;
+        console.log(`✅ AI content generated for ${baseName}`);
+      }
+    } catch (error) {
+      console.warn(`⚠️ AI content generation failed, using defaults:`, error);
+    }
+  }
+
+  // Generate niche-specific images using DALL-E
+  const images = await generateProductImages(enhancedTitle, niche, index);
+  
+  return {
+    title: enhancedTitle,
+    features: enhancedFeatures,
+    mainImage: images[0],
+    images: images
+  };
+}
+
+async function generateProductImages(productTitle: string, niche: string, index: number): Promise<string[]> {
+  console.log(`🎨 Generating niche-specific images for ${productTitle}`);
+  
+  const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+  const images: string[] = [];
+  
+  if (openAIApiKey) {
+    try {
+      // Generate main product image
+      const response = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-image-1',
+          prompt: `Professional product photography of ${productTitle.toLowerCase()}, ${niche} product, clean white background, high quality, commercial photography, bright lighting, detailed, realistic`,
+          n: 1,
+          size: '1024x1024',
+          quality: 'high'
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.data && data.data[0] && data.data[0].b64_json) {
+          images.push(`data:image/png;base64,${data.data[0].b64_json}`);
+          console.log(`✅ Generated AI image for ${productTitle}`);
+        }
+      }
+    } catch (error) {
+      console.warn(`⚠️ AI image generation failed:`, error);
+    }
+  }
+
+  // Fill remaining slots with high-quality stock images
+  const stockImages = getStockImages(niche, index);
+  images.push(...stockImages.slice(0, 7 - images.length));
+  
+  // Ensure we have at least 8 images
+  while (images.length < 8) {
+    images.push(stockImages[images.length % stockImages.length]);
+  }
+  
+  return images.slice(0, 8);
+}
+
+function getStockImages(niche: string, index: number): string[] {
+  const imageLibrary: Record<string, string[]> = {
+    'pets': [
+      'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&h=600&fit=crop'
+    ],
+    'beauty': [
+      'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1487412912498-0447578fcca8?w=800&h=600&fit=crop'
+    ],
+    'fitness': [
+      'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1434596922112-19c563067271?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=800&h=600&fit=crop'
+    ]
+  };
+  
+  const images = imageLibrary[niche.toLowerCase()] || imageLibrary.pets;
+  const startIndex = (index * 2) % images.length;
+  const selectedImages = [];
+  
+  for (let i = 0; i < 8; i++) {
+    const imageIndex = (startIndex + i) % images.length;
+    selectedImages.push(images[imageIndex]);
+  }
+  
+  return selectedImages;
+}
+
+function getDefaultFeatures(niche: string): string[] {
+  const featureLibrary: Record<string, string[]> = {
+    'pets': ['🐕 Pet-Safe Materials', '✅ Vet Recommended', '💪 Durable Design', '🧼 Easy Cleaning', '❤️ Pet Comfort'],
+    'beauty': ['✨ Dermatologist Tested', '💄 Professional Quality', '⏰ Long-Lasting', '🌿 Natural Ingredients', '💎 Premium Formula'],
+    'fitness': ['💪 Professional Grade', '🏋️ Gym Quality', '⚡ High Performance', '🎯 Effective Results', '🔥 Fat Burning'],
+    'kitchen': ['🍳 Professional Grade', '👨‍🍳 Chef Quality', '🧽 Easy Cleaning', '⭐ Restaurant Standard', '🔥 Heat Resistant'],
+    'home': ['🏠 Premium Materials', '✨ Stylish Design', '🔧 Easy Setup', '💎 Quality Finish', '🎨 Modern Style']
+  };
+  
+  return featureLibrary[niche.toLowerCase()] || featureLibrary.pets;
+}
+
 function getNicheData(niche: string) {
   const nicheDatabase = {
-    'arts-crafts': {
-      templates: [
-        { name: 'Premium Art Supply Kit', features: ['🎨 Professional Quality', '🖌️ Complete Set', '💼 Portable Case', '🌟 Beginner Friendly', '📚 Tutorial Guide'] },
-        { name: 'Digital Drawing Tablet', features: ['✏️ Pressure Sensitive', '📱 Wireless Connection', '🔋 Long Battery Life', '🎨 Creative Software', '👨‍🎨 Artist Approved'] },
-        { name: 'Craft Storage Organizer', features: ['📦 Multiple Compartments', '🔒 Secure Closure', '🎨 Clear Visibility', '💪 Durable Build', '🏠 Space Saving'] }
-      ],
-      images: [
-        'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=800&h=800&fit=crop',
-        'https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?w=800&h=800&fit=crop',
-        'https://images.unsplash.com/photo-1452860606245-08befc0ff44b?w=800&h=800&fit=crop'
-      ]
-    },
-    pets: {
+    'pets': {
       templates: [
         { name: 'Premium Pet Training Collar', features: ['🐕 Adjustable Fit', '💧 Waterproof Design', '🔋 Long Battery Life', '📱 Smart App Control', '🛡️ Safe & Humane'] },
         { name: 'Interactive Pet Puzzle Feeder', features: ['🧠 Mental Stimulation', '🐕 Slow Feeding Design', '🧽 Easy to Clean', '💪 Durable Materials', '🎯 Reduces Anxiety'] },
         { name: 'Luxury Pet Bed Memory Foam', features: ['🛏️ Orthopedic Support', '🧼 Removable Cover', '🦠 Anti-Bacterial', '🌡️ Temperature Regulating', '💤 Better Sleep Quality'] }
-      ],
-      images: [
-        'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=800&fit=crop',
-        'https://images.unsplash.com/photo-1564844536308-49b92c3086d0?w=800&h=800&fit=crop',
-        'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=800&fit=crop'
+      ]
+    },
+    'beauty': {
+      templates: [
+        { name: 'Professional Skincare Serum', features: ['✨ Anti-Aging Formula', '🌿 Natural Ingredients', '💧 Deep Hydration', '🔬 Clinically Tested', '⚡ Fast Results'] },
+        { name: 'Luxury Makeup Brush Set', features: ['💄 Professional Quality', '🌟 Synthetic Bristles', '💼 Travel Case Included', '🎨 Perfect Application', '💎 Premium Handle'] },
+        { name: 'Advanced Hair Treatment', features: ['💇‍♀️ Salon Quality', '🌿 Nourishing Formula', '✨ Instant Results', '🔒 Color Safe', '💪 Strengthening'] }
+      ]
+    },
+    'fitness': {
+      templates: [
+        { name: 'Smart Fitness Tracker Band', features: ['⌚ Heart Rate Monitor', '📱 App Integration', '🔋 7-Day Battery', '💧 Waterproof Design', '📊 Detailed Analytics'] },
+        { name: 'Premium Resistance Bands Set', features: ['💪 Multiple Resistance Levels', '🏋️ Gym Quality', '🎒 Portable Design', '📚 Workout Guide', '🔒 Safe Grip Handles'] },
+        { name: 'Professional Yoga Mat', features: ['🧘‍♀️ Non-Slip Surface', '🌿 Eco-Friendly Material', '💪 Extra Thick Cushioning', '🧼 Easy to Clean', '📏 Perfect Size'] }
       ]
     }
   };
@@ -197,27 +353,15 @@ function getNicheData(niche: string) {
   return nicheDatabase[niche.toLowerCase() as keyof typeof nicheDatabase] || nicheDatabase.pets;
 }
 
-function generateWinningTitle(baseName: string, niche: string, index: number): string {
-  const powerWords = ['Premium', 'Professional', 'Ultimate', 'Advanced', 'Smart', 'Elite'];
-  const urgencyWords = ['Bestseller', 'Top Rated', 'Must-Have', 'Trending', '#1 Choice'];
-  const emojis = ['⭐', '🏆', '💎', '🔥', '✨'];
-  
-  const powerWord = powerWords[index % powerWords.length];
-  const urgency = urgencyWords[index % urgencyWords.length];
-  const emoji = emojis[index % emojis.length];
-  
-  return `${emoji} ${powerWord} ${baseName} - ${urgency}`;
-}
-
 function generateSmartPrice(niche: string, index: number): number {
   const priceRanges: Record<string, [number, number]> = {
-    'arts-crafts': [18, 75],
-    pets: [18, 65],
-    beauty: [15, 70],
-    fitness: [20, 75],
-    kitchen: [12, 55],
-    home: [16, 68],
-    tech: [25, 80]
+    'pets': [18, 65],
+    'beauty': [15, 70], 
+    'fitness': [18, 75],
+    'kitchen': [12, 55],
+    'home': [15, 68],
+    'tech': [25, 80],
+    'fashion': [12, 60]
   };
   
   const [min, max] = priceRanges[niche.toLowerCase()] || [15, 60];
@@ -233,29 +377,7 @@ function generateSmartPrice(niche: string, index: number): number {
   else return Math.floor(finalPrice) + 0.99;
 }
 
-function generateProductImages(niche: string, index: number): string[] {
-  const baseImages = [
-    'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=800&h=800&fit=crop',
-    'https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?w=800&h=800&fit=crop',
-    'https://images.unsplash.com/photo-1452860606245-08befc0ff44b?w=800&h=800&fit=crop',
-    'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=800&fit=crop',
-    'https://images.unsplash.com/photo-1564844536308-49b92c3086d0?w=800&h=800&fit=crop',
-    'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=800&fit=crop'
-  ];
-  
-  // Return 6-8 images per product, starting from different indices
-  const startIndex = (index * 2) % baseImages.length;
-  const selectedImages = [];
-  
-  for (let i = 0; i < 6; i++) {
-    const imageIndex = (startIndex + i) % baseImages.length;
-    selectedImages.push(baseImages[imageIndex]);
-  }
-  
-  return selectedImages;
-}
-
-function generateSmartVariants(basePrice: number, niche: string): Array<{title: string; price: number; color?: string; size?: string}> {
+function generateSmartVariants(basePrice: number, niche: string, images: string[]): Array<{title: string; price: number; color?: string; size?: string}> {
   const variants = [
     {
       title: 'Standard',
@@ -275,7 +397,7 @@ function generateSmartVariants(basePrice: number, niche: string): Array<{title: 
   ];
   
   // Add fourth variant for some niches
-  if (['arts-crafts', 'beauty', 'fitness', 'pets'].includes(niche.toLowerCase())) {
+  if (['pets', 'beauty', 'fitness'].includes(niche.toLowerCase())) {
     variants.push({
       title: 'Professional',
       price: Math.round((basePrice * 1.6) * 100) / 100,
@@ -439,17 +561,6 @@ async function uploadProductImage(
 
 async function generateEnhancedDescription(product: ProductData, storeConfig: any): Promise<string> {
   const { niche, targetAudience, businessType, storeStyle } = storeConfig;
-  
-  // Generate tone based on store style
-  const toneMap: Record<string, string> = {
-    'fun-colorful': 'playful and energetic',
-    'minimalist-clean': 'clean and sophisticated',
-    'luxury-premium': 'elegant and premium',
-    'vintage-retro': 'nostalgic and charming',
-    'modern-tech': 'innovative and cutting-edge'
-  };
-  
-  const tone = toneMap[storeStyle] || 'professional and friendly';
   
   return `
 <div class="product-description">

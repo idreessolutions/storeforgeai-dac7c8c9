@@ -1,15 +1,70 @@
 
-import { Target, Sparkles, Store, Palette, ShoppingBag, Key, Zap, Package, Users, Crown } from "lucide-react";
+export interface StoreStep {
+  id: number;
+  title: string;
+  subtitle: string;
+  icon: string;
+}
 
-export const storeSteps = [
-  { id: 0, title: "Vision", description: "Define your store vision", icon: Target },
-  { id: 1, title: "Get Started", description: "Welcome to store creation", icon: Sparkles },
-  { id: 2, title: "Store Identity", description: "Name and details", icon: Store },
-  { id: 3, title: "Theme Color", description: "Choose your color", icon: Palette },
-  { id: 4, title: "Shopify Setup", description: "Connect your store", icon: ShoppingBag },
-  { id: 5, title: "API Config", description: "Configure access", icon: Key },
-  { id: 6, title: "Activate Trial", description: "Start your trial", icon: Zap },
-  { id: 7, title: "Products", description: "Add winning products", icon: Package },
-  { id: 8, title: "Mentorship", description: "Get expert help", icon: Users },
-  { id: 9, title: "Your Store Is Live!", description: "Launch complete", icon: Crown },
+export const storeSteps: StoreStep[] = [
+  {
+    id: 0,
+    title: "Get Started",
+    subtitle: "Welcome to store creation",
+    icon: "🚀"
+  },
+  {
+    id: 1,
+    title: "Store Identity",
+    subtitle: "Name and details",
+    icon: "🏪"
+  },
+  {
+    id: 2,
+    title: "Store Vision",
+    subtitle: "Choose your design",
+    icon: "🎨"
+  },
+  {
+    id: 3,
+    title: "Theme Color",
+    subtitle: "Choose your color",
+    icon: "🎨"
+  },
+  {
+    id: 4,
+    title: "Shopify Setup",
+    subtitle: "Connect your store",
+    icon: "🛒"
+  },
+  {
+    id: 5,
+    title: "API Config",
+    subtitle: "Configure access",
+    icon: "🔑"
+  },
+  {
+    id: 6,
+    title: "Activate Trial",
+    subtitle: "Start your trial",
+    icon: "✨"
+  },
+  {
+    id: 7,
+    title: "Products",
+    subtitle: "Add winning products",
+    icon: "📦"
+  },
+  {
+    id: 8,
+    title: "Launch",
+    subtitle: "Launch your store",
+    icon: "🚀"
+  },
+  {
+    id: 9,
+    title: "Your Store is Live",
+    subtitle: "Launch complete",
+    icon: "🎉"
+  }
 ];

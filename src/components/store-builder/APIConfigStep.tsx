@@ -36,13 +36,13 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
     }
   }, []);
 
-  // FIXED: Proper Shopify access token validation
+  // Enhanced Shopify access token validation
   const validateAccessToken = (token: string): boolean => {
     if (!token) return false;
     
     const trimmedToken = token.trim();
     
-    // FIXED: Accept any valid shpat_ token with 32+ characters (more flexible)
+    // More flexible validation for Shopify tokens
     const shopifyTokenPattern = /^shpat_[A-Za-z0-9_-]{32,}$/;
     
     const isValid = shopifyTokenPattern.test(trimmedToken);
@@ -52,7 +52,7 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
     return isValid;
   };
 
-  // CRITICAL FIX: Real-time validation with proper state management
+  // Real-time validation with proper state management
   useEffect(() => {
     const validateWithDelay = setTimeout(() => {
       const token = formData.accessToken.trim();
@@ -62,7 +62,7 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
       
       setIsValidToken(isValid);
       
-      // CRITICAL: Store validation state globally for navigation - FIXED
+      // CRITICAL: Store validation state globally for navigation
       (window as any).validateAPIConfig = () => {
         console.log(`🌐 Global validation check: ${isValid}`);
         return isValid;
@@ -72,12 +72,12 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
       if (isValid && showInvalidTokenDialog) {
         setShowInvalidTokenDialog(false);
       }
-    }, 300); // 300ms debounce
+    }, 200); // Reduced debounce for faster response
 
     return () => clearTimeout(validateWithDelay);
   }, [formData.accessToken, showInvalidTokenDialog]);
 
-  // FIXED: Handle both typing and pasting with immediate validation
+  // Handle both typing and pasting with immediate validation
   const handleTokenChange = (value: string) => {
     const trimmedValue = value.trim();
     console.log(`📝 Token input changed: ${trimmedValue.substring(0, 10)}...`);
@@ -94,7 +94,7 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
     };
   };
 
-  // CRITICAL FIX: Handle paste events properly with immediate validation
+  // Handle paste events properly with immediate validation
   const handleTokenPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     const pastedText = e.clipboardData.getData('text').trim();
     
@@ -103,7 +103,7 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
     // Immediately update the form data
     handleInputChange('accessToken', pastedText);
     
-    // Force immediate validation after paste with short delay
+    // Force immediate validation after paste
     setTimeout(() => {
       const isValid = validateAccessToken(pastedText);
       console.log(`🔄 POST-PASTE validation: ${isValid ? 'VALID' : 'INVALID'}`);
@@ -115,7 +115,7 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
         console.log(`🌐 Post-paste validation check: ${isValid}`);
         return isValid;
       };
-    }, 50); // Very short delay to ensure state update
+    }, 10); // Very short delay to ensure state update
   };
 
   const openShopifyApps = () => {
@@ -216,7 +216,7 @@ const APIConfigStep = ({ formData, handleInputChange }: APIConfigStepProps) => {
               </div>
             </div>
 
-            {/* Access Token Input - FIXED with auto-focus and placeholder */}
+            {/* Access Token Input - Enhanced with auto-focus and placeholder */}
             <div className="mb-8">
               <Label htmlFor="accessToken" className="block text-gray-700 font-semibold text-base sm:text-lg mb-3">
                 Access Token
