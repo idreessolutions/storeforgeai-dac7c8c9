@@ -8,6 +8,7 @@ interface LaunchStepProps {
   formData: {
     storeName?: string;
     niche?: string;
+    selectedColor?: string;
     themeColor?: string;
     shopifyUrl?: string;
     targetAudience?: string;
@@ -33,12 +34,33 @@ const LaunchStep = ({ formData }: LaunchStepProps) => {
 
   const openLiveStore = () => {
     if (formData.shopifyUrl) {
-      const storeUrl = formData.shopifyUrl.startsWith('http') 
-        ? formData.shopifyUrl 
-        : `https://${formData.shopifyUrl}`;
+      // Ensure we're opening the customer-facing store, not admin
+      let storeUrl = formData.shopifyUrl;
+      
+      // Remove any admin paths and ensure it's the customer store URL
+      if (storeUrl.includes('/admin')) {
+        storeUrl = storeUrl.split('/admin')[0];
+      }
+      
+      // Add https if not already present
+      if (!storeUrl.startsWith('http')) {
+        storeUrl = `https://${storeUrl}`;
+      }
+      
+      // Ensure it ends with the customer store format
+      if (storeUrl.includes('.myshopify.com') && !storeUrl.endsWith('/')) {
+        storeUrl = storeUrl + '/';
+      }
+      
+      console.log('Opening live store URL:', storeUrl);
       window.open(storeUrl, '_blank');
+    } else {
+      console.warn('No Shopify URL provided');
     }
   };
+
+  // Use selectedColor or themeColor, whichever is available
+  const displayColor = formData.selectedColor || formData.themeColor || '#3B82F6';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-2 sm:p-4">
@@ -93,6 +115,13 @@ const LaunchStep = ({ formData }: LaunchStepProps) => {
                       {formData.niche?.replace(/-/g, ' ') || 'General'}
                     </div>
                   </div>
+
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-600 mb-1">Store URL</label>
+                    <div className="text-sm text-blue-600 break-all">
+                      {formData.shopifyUrl || 'Not configured'}
+                    </div>
+                  </div>
                 </div>
                 
                 <div>
@@ -101,10 +130,10 @@ const LaunchStep = ({ formData }: LaunchStepProps) => {
                     <div className="flex items-center">
                       <div 
                         className="w-6 h-6 rounded-full mr-3 border-2 border-gray-300"
-                        style={{ backgroundColor: formData.themeColor || '#3B82F6' }}
+                        style={{ backgroundColor: displayColor }}
                       ></div>
                       <span className="text-lg font-semibold text-gray-900">
-                        {getColorName(formData.themeColor || '#3B82F6')}
+                        {getColorName(displayColor)}
                       </span>
                     </div>
                   </div>
@@ -116,6 +145,15 @@ const LaunchStep = ({ formData }: LaunchStepProps) => {
                       <span className="text-lg font-semibold text-green-600">Live & Ready</span>
                     </div>
                   </div>
+
+                  {formData.businessType && (
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Business Type</label>
+                      <div className="text-lg font-semibold text-gray-900 capitalize">
+                        {formData.businessType.replace(/-/g, ' ')}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -161,7 +199,7 @@ const LaunchStep = ({ formData }: LaunchStepProps) => {
                   </div>
                   <div className="flex items-center">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                    <span>{getColorName(formData.themeColor || '#3B82F6')} theme applied</span>
+                    <span>{getColorName(displayColor)} theme applied</span>
                   </div>
                 </div>
               </div>
@@ -171,14 +209,18 @@ const LaunchStep = ({ formData }: LaunchStepProps) => {
             <div className="text-center">
               <Button
                 onClick={openLiveStore}
-                className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-lg font-semibold rounded-xl"
+                disabled={!formData.shopifyUrl}
+                className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-lg font-semibold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ExternalLink className="mr-2 h-5 w-5" />
                 View Your Live Store
               </Button>
               
               <p className="text-gray-600 text-sm mt-4">
-                Your {formData.storeName || 'store'} is now live and ready to start accepting orders!
+                {formData.shopifyUrl ? 
+                  `Your ${formData.storeName || 'store'} is now live and ready to start accepting orders!` :
+                  'Please configure your Shopify URL to view your live store.'
+                }
               </p>
             </div>
           </CardContent>

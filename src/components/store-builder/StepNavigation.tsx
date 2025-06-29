@@ -15,30 +15,30 @@ interface StepNavigationProps {
 }
 
 const StepNavigation = ({ steps, currentStep }: StepNavigationProps) => {
-  // ENHANCED: Hide navigation for step 0 (Get Started)
+  // Hide navigation for step 0 (Vision Selection)
   if (currentStep === 0) {
     return null;
   }
   
-  // ENHANCED: Proper 8-step display (steps 1-8, excluding Get Started)
-  const maxAllowedStep = 8; // ENHANCED: Allow step 8 (Launch)
+  // Updated to allow step 9 (Launch step)
+  const maxAllowedStep = 9; // Allow step 9 (Launch)
   const displayStep = Math.min(currentStep, maxAllowedStep);
-  const totalSteps = 8; // ENHANCED: Always show 8 steps (including Launch)
-  const stepsToShow = steps.slice(1, 9); // Show steps 1-8 only (exclude Get Started at index 0)
+  const totalSteps = 9; // Show 9 steps total (including Launch)
+  const stepsToShow = steps.slice(1, 10); // Show steps 1-9 (exclude Vision at index 0)
   
-  console.log(`🛠️ ENHANCED STEP NAV: Displaying step ${displayStep} of ${totalSteps} (current: ${currentStep})`);
+  console.log(`🛠️ STEP NAV: Displaying step ${displayStep} of ${totalSteps} (current: ${currentStep})`);
   console.log(`📊 Steps available:`, stepsToShow.map(s => s.title));
   
   return (
     <nav className="bg-gradient-to-r from-white via-blue-50 to-indigo-50 py-8 px-6 shadow-lg border-b border-blue-100">
       <div className="max-w-6xl mx-auto">
-        {/* ENHANCED: Progress Header */}
+        {/* Progress Header */}
         <div className="text-center mb-6">
           <h2 className="text-xl font-bold text-gray-800">
             Step {displayStep} of {totalSteps}
           </h2>
           <p className="text-sm text-gray-600 mt-1">
-            {displayStep === 8 ? '🎉 Launch Your Store!' : '🚀 Building Your Dream Store'}
+            {displayStep === 9 ? '🎉 Your Store is Live!' : '🚀 Building Your Dream Store'}
           </p>
         </div>
         
@@ -51,14 +51,14 @@ const StepNavigation = ({ steps, currentStep }: StepNavigationProps) => {
           ></div>
           
           {stepsToShow.map((step, index) => {
-            const stepNumber = index + 1; // Steps 1-8
+            const stepNumber = index + 1; // Steps 1-9
             const isActive = stepNumber === displayStep;
             const isCompleted = stepNumber < displayStep;
             const isUpcoming = stepNumber > displayStep;
             const IconComponent = step.icon;
             
-            // ENHANCED: Special styling for Launch step (step 8)
-            const isLaunchStep = stepNumber === 8;
+            // Special styling for Launch step (step 9)
+            const isLaunchStep = stepNumber === 9;
             
             return (
               <div key={stepNumber} className="relative z-20 flex flex-col items-center">
@@ -118,7 +118,7 @@ const StepNavigation = ({ steps, currentStep }: StepNavigationProps) => {
                   </>
                 )}
 
-                {/* ENHANCED: Special decorations for Launch step */}
+                {/* Special decorations for Launch step */}
                 {isActive && isLaunchStep && (
                   <>
                     <div className="absolute -top-6 left-1/2 transform -translate-x-1/2">

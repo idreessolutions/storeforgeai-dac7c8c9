@@ -29,9 +29,11 @@ const StoreBuilder = ({ onBack, onViewAutomation }: StoreBuilderProps) => {
     return validation.isValid;
   };
 
-  // Strict step limit to prevent UI bugs
-  const maxSteps = storeSteps.length - 1; // Subtract 1 because we start from 0
+  // Updated step limit to allow step 9 (Launch)
+  const maxSteps = storeSteps.length - 1; // This will be 9 (0-9)
   const displayCurrentStep = Math.min(currentStep, maxSteps);
+
+  console.log('StoreBuilder - currentStep:', currentStep, 'maxSteps:', maxSteps, 'displayCurrentStep:', displayCurrentStep);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
@@ -43,7 +45,7 @@ const StoreBuilder = ({ onBack, onViewAutomation }: StoreBuilderProps) => {
         onViewAutomation={onViewAutomation}
       />
 
-      {/* Step Navigation Component - only show if not on step 0 and within limits */}
+      {/* Step Navigation Component - show for steps 1-9 */}
       {displayCurrentStep > 0 && displayCurrentStep <= maxSteps && (
         <StepNavigation steps={storeSteps} currentStep={displayCurrentStep} />
       )}
@@ -59,8 +61,8 @@ const StoreBuilder = ({ onBack, onViewAutomation }: StoreBuilderProps) => {
           validateCurrentStep={validateCurrentStep}
         />
 
-        {/* Navigation Component - only show if not on step 0 and within limits */}
-        {displayCurrentStep > 0 && displayCurrentStep <= maxSteps && (
+        {/* Navigation Component - show for steps 1-8 (not for step 0 or step 9) */}
+        {displayCurrentStep > 0 && displayCurrentStep < maxSteps && (
           <Navigation 
             currentStep={displayCurrentStep} 
             totalSteps={maxSteps} 
