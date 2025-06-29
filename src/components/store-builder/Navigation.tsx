@@ -20,10 +20,9 @@ const Navigation = ({
   onNext, 
   validateCurrentStep 
 }: NavigationProps) => {
-  // Strictly limit to totalSteps - don't allow beyond step 8
+  // FIXED: Handle step 9 correctly (currentStep can be up to 9)
   const isLastStep = currentStep >= totalSteps;
   const canGoNext = !isGenerating && validateCurrentStep() && currentStep < totalSteps;
-  const displayStep = Math.min(currentStep, totalSteps);
   
   // Don't allow navigation beyond the final step
   const handleNext = () => {
@@ -47,12 +46,12 @@ const Navigation = ({
       <div className="flex items-center space-x-3 text-sm text-gray-500">
         <Crown className="h-4 w-4 text-yellow-500" />
         <span className="font-medium">
-          Step {displayStep} of {totalSteps}
+          Step {currentStep} of {totalSteps}
         </span>
         <div className="w-24 bg-gray-200 rounded-full h-2">
           <div 
             className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-500"
-            style={{ width: `${Math.min((displayStep / totalSteps) * 100, 100)}%` }}
+            style={{ width: `${Math.min((currentStep / totalSteps) * 100, 100)}%` }}
           ></div>
         </div>
       </div>

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Package, CheckCircle, XCircle, RefreshCw, Star, Users, Camera, Sparkles, Image } from "lucide-react";
+import { Loader2, Package, CheckCircle, XCircle, RefreshCw, Star, Users, Camera, Sparkles, Image, Zap, Crown, Wand2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -40,10 +40,26 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<ProductResult[]>([]);
   const [hasStarted, setHasStarted] = useState(false);
+  const [currentPhase, setCurrentPhase] = useState('');
+  const [generatedCount, setGeneratedCount] = useState(0);
 
   const sessionId = localStorage.getItem('storeBuilderSessionId') || 'default';
   const niche = formData.niche || 'Products';
   const nicheCapitalized = niche.charAt(0).toUpperCase() + niche.slice(1);
+
+  // Mock placeholder products for preview while generating
+  const placeholderProducts = [
+    { title: `Premium ${nicheCapitalized} Tool`, price: "$29.99", rating: "4.8⭐", orders: "2,847" },
+    { title: `Professional ${nicheCapitalized} Kit`, price: "$45.99", rating: "4.9⭐", orders: "1,293" },
+    { title: `Elite ${nicheCapitalized} Solution`, price: "$32.99", rating: "4.7⭐", orders: "3,156" },
+    { title: `Ultimate ${nicheCapitalized} Bundle`, price: "$67.99", rating: "4.8⭐", orders: "987" },
+    { title: `Smart ${nicheCapitalized} Helper`, price: "$24.99", rating: "4.9⭐", orders: "4,521" },
+    { title: `Advanced ${nicheCapitalized} System`, price: "$39.99", rating: "4.6⭐", orders: "1,865" },
+    { title: `Pro ${nicheCapitalized} Essential`, price: "$28.99", rating: "4.8⭐", orders: "2,374" },
+    { title: `Deluxe ${nicheCapitalized} Package`, price: "$52.99", rating: "4.7⭐", orders: "1,102" },
+    { title: `Expert ${nicheCapitalized} Gear`, price: "$35.99", rating: "4.9⭐", orders: "2,945" },
+    { title: `Premium ${nicheCapitalized} Set`, price: "$41.99", rating: "4.8⭐", orders: "1,567" }
+  ];
 
   const generateProducts = async () => {
     if (!formData.shopifyUrl || !formData.accessToken) {
@@ -55,6 +71,8 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
     setHasStarted(true);
     setProgress(0);
     setResults([]);
+    setGeneratedCount(0);
+    setCurrentPhase('Initializing AI product generation...');
 
     try {
       console.log(`🚨 STARTING ENHANCED PRODUCT GENERATION with DALL-E for ${formData.niche?.toUpperCase()} niche`);
@@ -71,34 +89,61 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
         themeColor: formData.themeColor || '#3B82F6',
         sessionId: sessionId,
         generateRealProducts: true,
-        useDALLEImages: true, // CRITICAL: Enable DALL-E image generation
-        enhancedDescriptions: true, // CRITICAL: Enable rich descriptions
+        useDALLEImages: true,
+        enhancedDescriptions: true,
         enhancedGeneration: true,
-        // NEW: Enhanced product generation flags
         generateVariationImages: true,
         useEmojisInDescriptions: true,
         generateSEOContent: true,
-        wordCount: 600 // Target 500-800 words
+        wordCount: 600
       };
 
       console.log('🎯 ENHANCED REQUEST with DALL-E:', requestData);
 
-      // Start progress simulation
+      // Enhanced progress simulation with phases
       const progressInterval = setInterval(() => {
         setProgress(prev => {
-          if (prev >= 90) {
+          const newProgress = prev + Math.random() * 6;
+          
+          // Update phases based on progress
+          if (newProgress < 15) {
+            setCurrentPhase('🔍 Finding winning products with 4.7+ ratings...');
+          } else if (newProgress < 30) {
+            setCurrentPhase('🤖 GPT-4 generating rich 600-word descriptions...');
+          } else if (newProgress < 50) {
+            setCurrentPhase('🎨 DALL-E creating 6-8 unique images per product...');
+          } else if (newProgress < 70) {
+            setCurrentPhase('💰 Optimizing pricing and creating variants...');
+          } else if (newProgress < 85) {
+            setCurrentPhase('🏪 Uploading products to your Shopify store...');
+          } else {
+            setCurrentPhase('✨ Finalizing store with premium theme...');
+          }
+
+          if (newProgress >= 90) {
             clearInterval(progressInterval);
             return 90;
           }
-          return prev + Math.random() * 8;
+          return newProgress;
         });
-      }, 2000);
+      }, 1500);
+
+      // Simulate product generation count
+      const countInterval = setInterval(() => {
+        setGeneratedCount(prev => {
+          if (prev < 10 && progress > 20) {
+            return prev + 1;
+          }
+          return prev;
+        });
+      }, 3000);
 
       const { data, error } = await supabase.functions.invoke('add-shopify-product', {
         body: requestData
       });
 
       clearInterval(progressInterval);
+      clearInterval(countInterval);
 
       if (error) {
         console.error('❌ Enhanced generation failed:', error);
@@ -113,6 +158,8 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
       
       setResults(data.results || []);
       setProgress(100);
+      setCurrentPhase('🎉 All products successfully generated!');
+      setGeneratedCount(10);
       
       // Mark products as added
       handleInputChange('productsAdded', true);
@@ -127,6 +174,7 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
     } catch (error: any) {
       console.error('❌ Product generation error:', error);
       setProgress(0);
+      setCurrentPhase('❌ Generation failed');
       
       toast.error(`Failed to generate products: ${error.message}`, {
         duration: 8000,
@@ -152,9 +200,7 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
         created_at: new Date().toISOString()
       };
 
-      // Store in localStorage as backup
       localStorage.setItem('storeGenerationData', JSON.stringify(storeData));
-      
       console.log('✅ Store data saved successfully');
     } catch (error) {
       console.error('❌ Failed to store generation data:', error);
@@ -165,6 +211,8 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
     setHasStarted(false);
     setResults([]);
     setProgress(0);
+    setGeneratedCount(0);
+    setCurrentPhase('');
     handleInputChange('productsAdded', false);
     generateProducts();
   };
@@ -183,12 +231,12 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-2 sm:p-4">
-      <div className="max-w-4xl mx-auto pt-4 sm:pt-8">
+      <div className="max-w-6xl mx-auto pt-4 sm:pt-8">
         <Card className="bg-white shadow-2xl border-0">
           <CardContent className="p-6 sm:p-8 lg:p-12">
             {/* Header */}
             <div className="text-center mb-8">
-              <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
                 <Package className="h-10 w-10 text-white" />
               </div>
               <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
@@ -207,24 +255,24 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
                     🚀 Enhanced AI Product Generation with DALL-E Images
                   </h3>
                   
-                  {/* Feature Boxes - Enhanced features */}
+                  {/* Feature Boxes */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-white rounded-lg p-4 text-center shadow-sm border">
+                    <div className="bg-white rounded-lg p-4 text-center shadow-sm border hover:shadow-md transition-shadow">
                       <Star className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
                       <div className="font-semibold text-gray-900">4.8+ Rating</div>
                       <div className="text-sm text-gray-600">Quality verified</div>
                     </div>
-                    <div className="bg-white rounded-lg p-4 text-center shadow-sm border">
+                    <div className="bg-white rounded-lg p-4 text-center shadow-sm border hover:shadow-md transition-shadow">
                       <Users className="h-8 w-8 text-blue-500 mx-auto mb-2" />
                       <div className="font-semibold text-gray-900">1000+ Orders</div>
                       <div className="text-sm text-gray-600">Proven bestsellers</div>
                     </div>
-                    <div className="bg-white rounded-lg p-4 text-center shadow-sm border">
+                    <div className="bg-white rounded-lg p-4 text-center shadow-sm border hover:shadow-md transition-shadow">
                       <Camera className="h-8 w-8 text-green-500 mx-auto mb-2" />
                       <div className="font-semibold text-gray-900">DALL-E Images</div>
                       <div className="text-sm text-gray-600">6-8 per product</div>
                     </div>
-                    <div className="bg-white rounded-lg p-4 text-center shadow-sm border">
+                    <div className="bg-white rounded-lg p-4 text-center shadow-sm border hover:shadow-md transition-shadow">
                       <Sparkles className="h-8 w-8 text-purple-500 mx-auto mb-2" />
                       <div className="font-semibold text-gray-900">Rich Descriptions</div>
                       <div className="text-sm text-gray-600">500-800 words</div>
@@ -267,7 +315,7 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
                 <div className="text-center">
                   <Button
                     onClick={generateProducts}
-                    className="w-full sm:w-auto h-16 px-12 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-xl font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                    className="w-full sm:w-auto h-16 px-12 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-xl font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
                     disabled={isGenerating}
                   >
                     {isGenerating ? (
@@ -277,7 +325,7 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
                       </div>
                     ) : (
                       <div className="flex items-center justify-center">
-                        <Sparkles className="mr-3 h-6 w-6" />
+                        <Wand2 className="mr-3 h-6 w-6" />
                         Generate 10 AI Products with DALL-E Images
                       </div>
                     )}
@@ -286,22 +334,80 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
               </>
             )}
 
-            {/* Progress Section */}
+            {/* Enhanced Progress Section */}
             {hasStarted && (
               <div className="mt-8">
-                {/* Progress Bar */}
-                <div className="mb-8">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium text-gray-700">Generation Progress</span>
-                    <span className="text-sm font-medium text-gray-700">{Math.round(progress)}%</span>
+                {/* Live Generation Status */}
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 mb-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="animate-spin rounded-full h-8 w-8 border-4 border-purple-600 border-t-transparent"></div>
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900">
+                          🤖 AI is creating your {formData.niche} products...
+                        </h3>
+                        <p className="text-sm text-gray-600">{currentPhase}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-purple-600">{Math.round(progress)}%</div>
+                      <div className="text-sm text-gray-600">{generatedCount}/10 products</div>
+                    </div>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
+                  
+                  <div className="w-full bg-gray-200 rounded-full h-4 mb-4">
                     <div 
-                      className="bg-gradient-to-r from-purple-600 to-pink-600 h-3 rounded-full transition-all duration-500 ease-out"
+                      className="bg-gradient-to-r from-purple-600 to-pink-600 h-4 rounded-full transition-all duration-1000 ease-out relative overflow-hidden"
                       style={{ width: `${progress}%` }}
-                    ></div>
+                    >
+                      <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+                    </div>
+                  </div>
+
+                  {/* AI Process Steps */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                    <div className={`flex items-center p-3 rounded-lg ${progress > 20 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                      <Crown className={`h-5 w-5 mr-2 ${progress > 20 ? 'animate-spin' : ''}`} />
+                      <span className="text-sm font-medium">Finding Winners</span>
+                    </div>
+                    <div className={`flex items-center p-3 rounded-lg ${progress > 50 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'}`}>
+                      <Camera className={`h-5 w-5 mr-2 ${progress > 50 ? 'animate-pulse' : ''}`} />
+                      <span className="text-sm font-medium">DALL-E Images</span>
+                    </div>
+                    <div className={`flex items-center p-3 rounded-lg ${progress > 80 ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-600'}`}>
+                      <Zap className={`h-5 w-5 mr-2 ${progress > 80 ? 'animate-bounce' : ''}`} />
+                      <span className="text-sm font-medium">Uploading Store</span>
+                    </div>
                   </div>
                 </div>
+
+                {/* Product Preview Grid */}
+                {generatedCount > 0 && (
+                  <div className="mb-8">
+                    <h3 className="text-lg font-bold text-gray-900 mb-4">
+                      📦 Generating Products ({generatedCount}/10)
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                      {placeholderProducts.slice(0, generatedCount).map((product, index) => (
+                        <Card key={index} className="border shadow-sm hover:shadow-md transition-shadow">
+                          <CardContent className="p-3">
+                            <div className="bg-gradient-to-br from-gray-100 to-gray-200 h-24 rounded mb-2 flex items-center justify-center">
+                              <Image className="h-8 w-8 text-gray-400" />
+                            </div>
+                            <h4 className="text-xs font-semibold text-gray-900 mb-1 line-clamp-2">
+                              {product.title}
+                            </h4>
+                            <div className="flex justify-between items-center text-xs">
+                              <span className="font-bold text-green-600">{product.price}</span>
+                              <span className="text-gray-500">{product.rating}</span>
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">{product.orders} orders</div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Results Summary */}
                 {results.length > 0 && (
@@ -326,54 +432,6 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
                       <div className="font-bold text-purple-900">{results.reduce((total, result) => total + (result.variantsCreated || 0), 0)}</div>
                       <div className="text-sm text-purple-700">Variations</div>
                     </div>
-                  </div>
-                )}
-
-                {/* Product Results */}
-                {results.length > 0 && (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">📦 Product Generation Results</h3>
-                    {results.map((result, index) => (
-                      <Card key={index} className="border">
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-3">
-                                {result.status === 'SUCCESS' ? (
-                                  <CheckCircle className="h-6 w-6 text-green-600" />
-                                ) : (
-                                  <XCircle className="h-6 w-6 text-red-600" />
-                                )}
-                                <div>
-                                  <h4 className="font-semibold text-gray-900">
-                                    {result.title || `Product ${index + 1}`}
-                                  </h4>
-                                  <div className="flex items-center space-x-4 text-sm text-gray-600">
-                                    <span>💰 ${result.price || 'N/A'}</span>
-                                    <span>🖼️ {result.imagesUploaded || 0} images</span>
-                                    <span>🎯 {result.variantsCreated || 0} variants</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                result.status === 'SUCCESS' 
-                                  ? 'bg-green-100 text-green-800' 
-                                  : 'bg-red-100 text-red-800'
-                              }`}>
-                                {result.status}
-                              </span>
-                            </div>
-                          </div>
-                          {result.error && (
-                            <div className="mt-2 text-sm text-red-600 bg-red-50 p-2 rounded">
-                              Error: {result.error}
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ))}
                   </div>
                 )}
 

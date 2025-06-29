@@ -29,11 +29,11 @@ const StoreBuilder = ({ onBack, onViewAutomation }: StoreBuilderProps) => {
     return validation.isValid;
   };
 
-  // FIXED: Updated step limit to handle correct flow (0-8) with proper step mapping
-  const maxSteps = 8; // 0-8 = 9 total steps
-  const displayCurrentStep = Math.min(currentStep, maxSteps);
+  // FIXED: Correct total steps to 9 (steps 0-8, displayed as 1-9)
+  const totalSteps = 9; // 9 total steps: Vision(0), Store Details(1), Color(2), Shopify(3), API(4), Trial(5), Products(6), Mentorship(7), Launch(8)
+  const displayCurrentStep = currentStep === 0 ? 1 : currentStep + 1; // Convert 0-based to 1-based for display
 
-  console.log('StoreBuilder - currentStep:', currentStep, 'maxSteps:', maxSteps, 'displayCurrentStep:', displayCurrentStep);
+  console.log('StoreBuilder - currentStep:', currentStep, 'totalSteps:', totalSteps, 'displayCurrentStep:', displayCurrentStep);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
@@ -41,19 +41,19 @@ const StoreBuilder = ({ onBack, onViewAutomation }: StoreBuilderProps) => {
       <Header 
         onBack={onBack} 
         currentStep={displayCurrentStep} 
-        totalSteps={maxSteps}
+        totalSteps={totalSteps}
         onViewAutomation={onViewAutomation}
       />
 
-      {/* Step Navigation Component - show for steps 1-8 (not for step 0 vision) */}
-      {displayCurrentStep > 0 && displayCurrentStep <= maxSteps && (
-        <StepNavigation steps={storeSteps} currentStep={displayCurrentStep} />
+      {/* Step Navigation Component - show for steps 1-9 (not for step 0 vision) */}
+      {currentStep > 0 && currentStep <= 8 && (
+        <StepNavigation steps={storeSteps} currentStep={currentStep} />
       )}
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-6 py-12 lg:px-8">
         <StepRenderer
-          currentStep={displayCurrentStep}
+          currentStep={currentStep}
           formData={formData}
           handleInputChange={handleInputChange}
           isGenerating={isGenerating}
@@ -61,11 +61,11 @@ const StoreBuilder = ({ onBack, onViewAutomation }: StoreBuilderProps) => {
           validateCurrentStep={validateCurrentStep}
         />
 
-        {/* Navigation Component - show for steps 1-7 (not for step 0 or final step 8) */}
-        {displayCurrentStep > 0 && displayCurrentStep < maxSteps && (
+        {/* Navigation Component - show for steps 1-8 (not for step 0 or final step 8) */}
+        {currentStep > 0 && currentStep < 8 && (
           <Navigation 
             currentStep={displayCurrentStep} 
-            totalSteps={maxSteps} 
+            totalSteps={totalSteps} 
             isGenerating={isGenerating}
             onPrevious={handlePrevStep}
             onNext={handleNextStep}

@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -82,9 +83,9 @@ export const useStoreBuilderLogic = () => {
           if (!isValid) missingFields.push("Complete Account Setup");
         }
         break;
-      case 4: // API Config - CRITICAL FIX: Correct validation for step 4
+      case 4: // API Config
         if (!formData.accessToken.trim()) missingFields.push("Access Token");
-        // FIXED: Check for the correct API validation function
+        // Check for the correct API validation function
         if (typeof (window as any).validateAPIConfig === 'function') {
           const isValid = (window as any).validateAPIConfig();
           console.log('🔍 API Config validation result for step 4:', isValid);
@@ -153,9 +154,9 @@ export const useStoreBuilderLogic = () => {
   }, [formData, sessionId]);
 
   const handleNextStep = useCallback(async () => {
-    console.log('🚀 FIXED: Next step clicked, current step:', currentStep);
+    console.log('🚀 Next step clicked, current step:', currentStep);
     
-    // FIXED: Special handling for Vision Step (step 0) - always allow progression
+    // Special handling for Vision Step (step 0) - always allow progression
     if (currentStep === 0) {
       console.log('✅ VISION STEP: Moving to Store Details (step 1) - defaults will be set if needed');
       setCurrentStep(1);
@@ -178,6 +179,7 @@ export const useStoreBuilderLogic = () => {
     try {
       await saveSessionData(currentStep + 1);
 
+      // FIXED: Updated to handle correct maximum step (8, which is step 9 in total - 0-8)
       if (currentStep < 8) { // Max step is 8 (Launch)
         const nextStep = currentStep + 1;
         console.log(`✅ NAVIGATION: Moving to step ${nextStep}`);

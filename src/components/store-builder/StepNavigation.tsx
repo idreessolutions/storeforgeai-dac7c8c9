@@ -6,7 +6,7 @@ interface Step {
   id: number;
   title: string;
   description: string;
-  icon: string; // Changed to string to match StoreStep
+  icon: string;
 }
 
 interface StepNavigationProps {
@@ -20,14 +20,12 @@ const StepNavigation = ({ steps, currentStep }: StepNavigationProps) => {
     return null;
   }
   
-  // Updated to allow step 9 (Launch step)
-  const maxAllowedStep = 9; // Allow step 9 (Launch)
-  const displayStep = Math.min(currentStep, maxAllowedStep);
-  const totalSteps = 9; // Show 9 steps total (including Launch)
+  // FIXED: Show correct step numbers - display steps 1-9 (total 9 steps)
+  const totalSteps = 9;
+  const displayStep = currentStep; // currentStep is already 1-8, no need to adjust
   const stepsToShow = steps.slice(1, 10); // Show steps 1-9 (exclude Vision at index 0)
   
   console.log(`🛠️ STEP NAV: Displaying step ${displayStep} of ${totalSteps} (current: ${currentStep})`);
-  console.log(`📊 Steps available:`, stepsToShow.map(s => s.title));
   
   return (
     <nav className="bg-gradient-to-r from-white via-blue-50 to-indigo-50 py-8 px-6 shadow-lg border-b border-blue-100">
@@ -38,7 +36,7 @@ const StepNavigation = ({ steps, currentStep }: StepNavigationProps) => {
             Step {displayStep} of {totalSteps}
           </h2>
           <p className="text-sm text-gray-600 mt-1">
-            {displayStep === 9 ? '🎉 Your Store is Live!' : '🚀 Building Your Dream Store'}
+            {displayStep === 8 ? '🎉 Your Store is Live!' : '🚀 Building Your Dream Store'}
           </p>
         </div>
         
@@ -51,13 +49,13 @@ const StepNavigation = ({ steps, currentStep }: StepNavigationProps) => {
           ></div>
           
           {stepsToShow.map((step, index) => {
-            const stepNumber = index + 1; // Steps 1-9
+            const stepNumber = index + 1; // Steps 1-8
             const isActive = stepNumber === displayStep;
             const isCompleted = stepNumber < displayStep;
             const isUpcoming = stepNumber > displayStep;
             
-            // Special styling for Launch step (step 9)
-            const isLaunchStep = stepNumber === 9;
+            // Special styling for Launch step (step 8)
+            const isLaunchStep = stepNumber === 8;
             
             return (
               <div key={stepNumber} className="relative z-20 flex flex-col items-center">
