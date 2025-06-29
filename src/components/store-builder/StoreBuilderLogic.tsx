@@ -63,10 +63,10 @@ export const useStoreBuilderLogic = () => {
     const missingFields: string[] = [];
 
     switch (step) {
-      case 0: // Vision Selection - FIXED: Proper validation
-        if (!formData.storeVision?.trim()) missingFields.push("Store Vision");
-        if (!formData.primaryGoal?.trim()) missingFields.push("Primary Goal");
-        break;
+      case 0: // Vision Selection - FIXED: More lenient validation
+        // Allow progression even without selections - defaults will be set
+        console.log('Vision step validation - allowing progression with defaults');
+        return { isValid: true, missingFields: [] };
       case 1: // Get Started - always valid
         return { isValid: true, missingFields: [] };
       case 2: // Store Details
@@ -114,7 +114,7 @@ export const useStoreBuilderLogic = () => {
   const saveSessionData = useCallback(async (stepToSave: number) => {
     try {
       const sessionData = {
-        session_id: sessionId, // FIXED: Add the missing session_id field
+        session_id: sessionId,
         completed_steps: stepToSave,
         niche: formData.niche,
         target_audience: formData.targetAudience,
@@ -149,22 +149,9 @@ export const useStoreBuilderLogic = () => {
   const handleNextStep = useCallback(async () => {
     console.log('🚀 FIXED: Next step clicked, current step:', currentStep);
     
-    // FIXED: Special handling for Vision Step (step 0)
+    // FIXED: Special handling for Vision Step (step 0) - always allow progression
     if (currentStep === 0) {
-      const validation = validateCurrentStep(0);
-      console.log('Vision validation:', validation);
-      
-      if (!validation.isValid) {
-        toast({
-          title: "Please complete your vision",
-          description: `Missing: ${validation.missingFields.join(", ")}`,
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // FIXED: Direct navigation from Vision to Get Started
-      console.log('✅ VISION COMPLETED: Moving to Get Started (step 1)');
+      console.log('✅ VISION STEP: Moving to Get Started (step 1) - defaults will be set if needed');
       setCurrentStep(1);
       return;
     }

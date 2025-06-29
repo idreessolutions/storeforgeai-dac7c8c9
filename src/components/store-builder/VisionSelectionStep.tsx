@@ -16,11 +16,26 @@ interface VisionSelectionStepProps {
 }
 
 const VisionSelectionStep = ({ formData, handleInputChange, onNext }: VisionSelectionStepProps) => {
-  // FIXED: Use consistent field names and validation
-  const canProceed = formData.storeVision && formData.primaryGoal;
-
-  console.log('VisionSelectionStep - formData:', formData);
-  console.log('VisionSelectionStep - canProceed:', canProceed);
+  // Allow progression with default values if nothing is selected
+  const handleContinue = () => {
+    console.log('Continue button clicked');
+    
+    // Set default values if none selected
+    if (!formData.storeVision) {
+      console.log('Setting default store vision');
+      handleInputChange('storeVision', 'side-hustle');
+    }
+    if (!formData.primaryGoal) {
+      console.log('Setting default primary goal');
+      handleInputChange('primaryGoal', 'quick-revenue');
+    }
+    
+    // Small delay to ensure state updates
+    setTimeout(() => {
+      console.log('✅ VISION STEP: Calling onNext to advance to next step');
+      onNext();
+    }, 100);
+  };
 
   const handleVisionChange = (value: string) => {
     console.log('Vision changed to:', value);
@@ -32,18 +47,7 @@ const VisionSelectionStep = ({ formData, handleInputChange, onNext }: VisionSele
     handleInputChange('primaryGoal', value);
   };
 
-  const handleContinue = () => {
-    console.log('Continue button clicked, canProceed:', canProceed);
-    if (canProceed) {
-      console.log('✅ VISION STEP: Calling onNext to advance to next step');
-      onNext();
-    } else {
-      console.log('❌ VISION STEP: Cannot proceed - missing data:', {
-        storeVision: formData.storeVision,
-        primaryGoal: formData.primaryGoal
-      });
-    }
-  };
+  console.log('VisionSelectionStep - formData:', formData);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 sm:p-6">
@@ -60,6 +64,9 @@ const VisionSelectionStep = ({ formData, handleInputChange, onNext }: VisionSele
               </h1>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
                 Let's start by understanding your goals so we can create the perfect store tailored to your vision.
+              </p>
+              <p className="text-sm text-gray-500 mt-4">
+                Skip this step if you prefer - we'll use smart defaults to get you started quickly!
               </p>
             </div>
 
@@ -153,20 +160,18 @@ const VisionSelectionStep = ({ formData, handleInputChange, onNext }: VisionSele
               </Card>
             </div>
 
-            {/* Next Button - FIXED */}
+            {/* Continue Button - Always enabled */}
             <div className="text-center">
               <Button
                 onClick={handleContinue}
-                disabled={!canProceed}
-                className={`w-full sm:w-auto px-12 py-4 text-lg font-bold rounded-xl transition-all transform hover:scale-105 ${
-                  canProceed 
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg' 
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
+                className="w-full sm:w-auto px-12 py-4 text-lg font-bold rounded-xl transition-all transform hover:scale-105 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg"
               >
                 <Zap className="mr-3 h-5 w-5" />
                 Continue to Store Creation
               </Button>
+              <p className="text-sm text-gray-500 mt-3">
+                We'll use smart defaults if you skip any selections
+              </p>
             </div>
           </CardContent>
         </Card>
