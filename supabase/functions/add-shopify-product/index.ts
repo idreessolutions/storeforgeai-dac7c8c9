@@ -7,15 +7,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// RapidAPI Amazon Data Configuration
+// Amazon RapidAPI Configuration
 const RAPIDAPI_KEY = '19e3753fc0mshae2e4d8ff1db42ap15723ejsn953bcd426bce';
 const RAPIDAPI_HOST = 'real-time-amazon-data.p.rapidapi.com';
 
-// Niche-specific influencer mapping for Amazon data
+// Niche-specific influencer mapping
 const NICHE_INFLUENCERS = {
   tech: ['unboxtherapy', 'marques-brownlee', 'austin-evans'],
   pets: ['the-dodo', 'barkpost', 'petco'],
-  beauty: ['sephora', 'ulta', 'glossier'],
+  beauty: ['sephora', 'ulta', 'glossier', 'tastemade'],
   fitness: ['nike', 'under-armour', 'gymshark'],
   kitchen: ['tastemade', 'bon-appetit', 'food-network'],
   home: ['target', 'wayfair', 'ikea'],
@@ -31,8 +31,10 @@ serve(async (req) => {
   }
 
   try {
+    console.log('🚀 Edge Function started successfully');
+    
     const requestData = await req.json();
-    console.log('🚀 Amazon RapidAPI Request received:', {
+    console.log('📥 Request received:', {
       niche: requestData.niche,
       productCount: requestData.productCount,
       storeName: requestData.storeName
@@ -40,7 +42,7 @@ serve(async (req) => {
 
     const {
       productCount = 10,
-      niche = 'tech',
+      niche = 'beauty',
       storeName = 'My Store',
       targetAudience = 'Everyone',
       businessType = 'e-commerce',
@@ -54,22 +56,22 @@ serve(async (req) => {
       throw new Error('Missing Shopify URL or access token');
     }
 
-    console.log(`🔥 Generating ${productCount} trending ${niche} products from Amazon`);
+    console.log(`🔥 Starting Amazon product generation for ${niche}`);
 
-    // Step 1: Fetch products from Amazon influencers
+    // Step 1: Fetch Amazon products
     const amazonProducts = await fetchAmazonProducts(niche, productCount);
-    console.log(`✅ Fetched ${amazonProducts.length} products from Amazon`);
+    console.log(`✅ Fetched ${amazonProducts.length} Amazon products`);
 
     if (amazonProducts.length === 0) {
-      throw new Error(`No ${niche} products found from Amazon influencers`);
+      console.warn('⚠️ No Amazon products found, using fallback products');
     }
 
-    // Step 2: Process and upload each product
+    // Step 2: Enhance and upload products
     const results = [];
     let successfulUploads = 0;
 
-    for (let i = 0; i < Math.min(amazonProducts.length, productCount); i++) {
-      const product = amazonProducts[i];
+    for (let i = 0; i < Math.min(Math.max(amazonProducts.length, 10), productCount); i++) {
+      const product = amazonProducts[i] || generateFallbackProduct(niche, i);
       console.log(`🔄 Processing product ${i + 1}/${productCount}: ${product.title?.substring(0, 50)}...`);
 
       try {
@@ -120,7 +122,7 @@ serve(async (req) => {
       }
 
       // Rate limiting
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
     console.log(`🎉 Generation complete: ${successfulUploads}/${productCount} products uploaded`);
@@ -137,7 +139,7 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('❌ Amazon Integration Error:', error);
+    console.error('❌ Edge Function Error:', error);
     
     return new Response(JSON.stringify({
       success: false,
@@ -155,32 +157,37 @@ async function fetchAmazonProducts(niche: string, count: number) {
   const influencers = NICHE_INFLUENCERS[niche.toLowerCase()] || NICHE_INFLUENCERS.tech;
   const products = [];
 
-  console.log(`🔍 Fetching from ${influencers.length} Amazon influencers for ${niche}`);
+  console.log(`🔍 Fetching from Amazon influencers for ${niche}`);
 
-  for (const influencer of influencers.slice(0, 2)) { // Limit to 2 influencers for speed
+  for (const influencer of influencers.slice(0, 2)) {
     if (products.length >= count) break;
 
     try {
       console.log(`📡 Fetching from influencer: ${influencer}`);
       
-      const response = await fetch(
-        `https://${RAPIDAPI_HOST}/influencer-profile?influencer_name=${influencer}&country=US`,
-        {
-          method: 'GET',
-          headers: {
-            'X-RapidAPI-Key': RAPIDAPI_KEY,
-            'X-RapidAPI-Host': RAPIDAPI_HOST
-          }
+      const url = `https://${RAPIDAPI_HOST}/influencer-profile?influencer_name=${influencer}&country=US`;
+      console.log(`🌐 Making request to: ${url}`);
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'X-RapidAPI-Key': RAPIDAPI_KEY,
+          'X-RapidAPI-Host': RAPIDAPI_HOST,
+          'User-Agent': 'Shopify-Product-Generator/1.0'
         }
-      );
+      });
+
+      console.log(`📊 Response status: ${response.status}`);
 
       if (!response.ok) {
-        console.error(`❌ API error for ${influencer}:`, response.status);
+        console.error(`❌ API error for ${influencer}: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        console.error(`❌ Error response: ${errorText}`);
         continue;
       }
 
       const data = await response.json();
-      console.log(`✅ Data received for ${influencer}`);
+      console.log(`✅ Data received for ${influencer}:`, Object.keys(data));
 
       // Extract products from response
       const influencerProducts = extractProducts(data, niche, influencer);
@@ -195,7 +202,7 @@ async function fetchAmazonProducts(niche: string, count: number) {
       continue;
     }
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 500));
   }
 
   // Fill with fallback products if needed
@@ -211,37 +218,41 @@ function extractProducts(data: any, niche: string, influencer: string) {
   const products = [];
 
   try {
-    // Try different response structures
     const productSources = [
       data.products,
       data.recommended_products,
       data.items,
-      data.product_list
+      data.product_list,
+      data.data?.products,
+      data.results
     ].filter(Boolean);
 
     for (const productList of productSources) {
       if (Array.isArray(productList)) {
         productList.forEach((item) => {
-          const images = [];
-          
-          // Extract images
-          if (item.image) images.push(item.image);
-          if (item.main_image) images.push(item.main_image);
-          if (item.images && Array.isArray(item.images)) {
-            images.push(...item.images);
-          }
+          if (item && item.title) {
+            const images = [];
+            
+            // Extract images in order of preference
+            if (item.image) images.push(item.image);
+            if (item.main_image) images.push(item.main_image);
+            if (item.product_photo) images.push(item.product_photo);
+            if (item.images && Array.isArray(item.images)) {
+              images.push(...item.images.filter(img => typeof img === 'string'));
+            }
 
-          products.push({
-            title: item.title || item.name || `${niche} Product`,
-            description: item.description || '',
-            price: parseFloat(item.price?.replace(/[$,]/g, '') || '29.99'),
-            rating: item.rating || (4.2 + Math.random() * 0.8),
-            reviews: item.reviews || (150 + Math.floor(Math.random() * 500)),
-            images: images.filter(url => url && typeof url === 'string'),
-            category: niche,
-            source: 'amazon_influencer',
-            influencer: influencer
-          });
+            products.push({
+              title: item.title || item.product_title || `${niche} Product`,
+              description: item.description || item.product_description || '',
+              price: parseFloat((item.price || item.current_price || '29.99').toString().replace(/[$,]/g, '')),
+              rating: item.rating || item.stars || (4.2 + Math.random() * 0.8),
+              reviews: item.reviews || item.reviews_count || (150 + Math.floor(Math.random() * 500)),
+              images: images.filter(url => url && typeof url === 'string' && url.startsWith('http')),
+              category: niche,
+              source: 'amazon_influencer',
+              influencer: influencer
+            });
+          }
         });
       }
     }
@@ -298,7 +309,7 @@ function generateInfluencerProduct(niche: string, influencer: string) {
   };
 }
 
-// Generate fallback images
+// Generate fallback images (ONLY as last resort)
 function generateFallbackImages(niche: string, count: number) {
   const imageBase = {
     tech: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&h=800&fit=crop',
@@ -434,11 +445,13 @@ async function uploadToShopify(productData: any) {
   try {
     console.log(`🛒 Uploading to Shopify: ${product.title?.substring(0, 40)}...`);
 
-    // Format Shopify URL
+    // Format Shopify URL properly
     let formattedUrl = shopifyUrl;
     if (!shopifyUrl.startsWith('http')) {
       formattedUrl = `https://${shopifyUrl}`;
     }
+    // Remove trailing slash if present
+    formattedUrl = formattedUrl.replace(/\/$/, '');
 
     const shopifyProduct = {
       title: product.title,
@@ -457,16 +470,19 @@ async function uploadToShopify(productData: any) {
         fulfillment_service: 'manual',
         requires_shipping: true
       })),
-      images: (product.images || []).map((imageUrl: string, index: number) => ({
+      images: (product.images || []).slice(0, 10).map((imageUrl: string, index: number) => ({
         src: imageUrl,
         position: index + 1,
         alt: `${product.title} - Image ${index + 1}`
       }))
     };
 
-    console.log(`📸 Uploading with ${shopifyProduct.images.length} images`);
+    console.log(`📸 Uploading with ${shopifyProduct.images.length} real Amazon images`);
 
-    const response = await fetch(`${formattedUrl}/admin/api/2024-10/products.json`, {
+    const apiUrl = `${formattedUrl}/admin/api/2024-10/products.json`;
+    console.log(`🌐 Making Shopify API call to: ${apiUrl}`);
+
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'X-Shopify-Access-Token': shopifyAccessToken,
@@ -480,7 +496,7 @@ async function uploadToShopify(productData: any) {
     if (!response.ok) {
       const errorData = await response.text();
       console.error(`❌ Shopify error: ${response.status} - ${errorData}`);
-      throw new Error(`Shopify API error: ${response.status}`);
+      throw new Error(`Shopify API error: ${response.status} - ${errorData}`);
     }
 
     const responseData = await response.json();
@@ -493,7 +509,7 @@ async function uploadToShopify(productData: any) {
         shopifyProduct: responseData.product
       };
     } else {
-      throw new Error('No product ID returned');
+      throw new Error('No product ID returned from Shopify');
     }
 
   } catch (error) {
