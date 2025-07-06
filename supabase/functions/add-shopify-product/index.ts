@@ -11,19 +11,6 @@ const corsHeaders = {
 const RAPIDAPI_KEY = '19e3753fc0mshae2e4d8ff1db42ap15723ejsn953bcd426bce';
 const RAPIDAPI_HOST = 'real-time-amazon-data.p.rapidapi.com';
 
-// Niche-specific influencer mapping
-const NICHE_INFLUENCERS = {
-  tech: ['unboxtherapy', 'marques-brownlee', 'austin-evans'],
-  pets: ['the-dodo', 'barkpost', 'petco'],
-  beauty: ['sephora', 'ulta', 'glossier', 'tastemade'],
-  fitness: ['nike', 'under-armour', 'gymshark'],
-  kitchen: ['tastemade', 'bon-appetit', 'food-network'],
-  home: ['target', 'wayfair', 'ikea'],
-  fashion: ['zara', 'h-m', 'nordstrom'],
-  baby: ['carter-s', 'buy-buy-baby', 'pampers'],
-  jewelry: ['tiffany-co', 'pandora', 'cartier']
-};
-
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -31,7 +18,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🚀 Edge Function started successfully');
+    console.log('🚀 Edge Function started');
     
     const requestData = await req.json();
     console.log('📥 Request received:', {
@@ -58,25 +45,27 @@ serve(async (req) => {
 
     console.log(`🔥 Starting Amazon product generation for ${niche}`);
 
-    // Step 1: Fetch Amazon products
-    const amazonProducts = await fetchAmazonProducts(niche, productCount);
-    console.log(`✅ Fetched ${amazonProducts.length} Amazon products`);
-
-    if (amazonProducts.length === 0) {
-      console.warn('⚠️ No Amazon products found, using fallback products');
+    // Step 1: Fetch Amazon products with timeout protection
+    let amazonProducts = [];
+    try {
+      amazonProducts = await fetchAmazonProductsWithTimeout(niche, productCount);
+      console.log(`✅ Fetched ${amazonProducts.length} Amazon products`);
+    } catch (error) {
+      console.error('❌ Amazon fetch failed, using fallback:', error);
+      amazonProducts = generateFallbackProducts(niche, productCount);
     }
 
-    // Step 2: Enhance and upload products
+    // Step 2: Process and upload products
     const results = [];
     let successfulUploads = 0;
 
-    for (let i = 0; i < Math.min(Math.max(amazonProducts.length, 10), productCount); i++) {
+    for (let i = 0; i < Math.min(productCount, 10); i++) {
       const product = amazonProducts[i] || generateFallbackProduct(niche, i);
       console.log(`🔄 Processing product ${i + 1}/${productCount}: ${product.title?.substring(0, 50)}...`);
 
       try {
-        // Enhance with GPT-4
-        const enhancedProduct = await enhanceWithGPT4(product, {
+        // Enhance with GPT-4 (with timeout)
+        const enhancedProduct = await enhanceProductWithTimeout(product, {
           niche,
           storeName,
           targetAudience,
@@ -85,8 +74,8 @@ serve(async (req) => {
           productIndex: i
         });
 
-        // Upload to Shopify
-        const shopifyResult = await uploadToShopify({
+        // Upload to Shopify (with timeout)
+        const shopifyResult = await uploadToShopifyWithTimeout({
           ...enhancedProduct,
           shopifyUrl,
           shopifyAccessToken,
@@ -152,9 +141,9 @@ serve(async (req) => {
   }
 });
 
-// Fetch products from Amazon influencers
-async function fetchAmazonProducts(niche: string, count: number) {
-  const influencers = NICHE_INFLUENCERS[niche.toLowerCase()] || NICHE_INFLUENCERS.tech;
+// Fetch Amazon products with timeout protection
+async function fetchAmazonProductsWithTimeout(niche: string, count: number) {
+  const influencers = getInfluencersForNiche(niche);
   const products = [];
 
   console.log(`🔍 Fetching from Amazon influencers for ${niche}`);
@@ -165,32 +154,31 @@ async function fetchAmazonProducts(niche: string, count: number) {
     try {
       console.log(`📡 Fetching from influencer: ${influencer}`);
       
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
       const url = `https://${RAPIDAPI_HOST}/influencer-profile?influencer_name=${influencer}&country=US`;
-      console.log(`🌐 Making request to: ${url}`);
-
+      
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'X-RapidAPI-Key': RAPIDAPI_KEY,
           'X-RapidAPI-Host': RAPIDAPI_HOST,
           'User-Agent': 'Shopify-Product-Generator/1.0'
-        }
+        },
+        signal: controller.signal
       });
 
+      clearTimeout(timeoutId);
       console.log(`📊 Response status: ${response.status}`);
 
       if (!response.ok) {
-        console.error(`❌ API error for ${influencer}: ${response.status} ${response.statusText}`);
-        const errorText = await response.text();
-        console.error(`❌ Error response: ${errorText}`);
+        console.error(`❌ API error for ${influencer}: ${response.status}`);
         continue;
       }
 
       const data = await response.json();
-      console.log(`✅ Data received for ${influencer}:`, Object.keys(data));
-
-      // Extract products from response
-      const influencerProducts = extractProducts(data, niche, influencer);
+      const influencerProducts = extractProductsFromResponse(data, niche, influencer);
       
       if (influencerProducts.length > 0) {
         products.push(...influencerProducts.slice(0, Math.ceil(count / 2)));
@@ -205,152 +193,37 @@ async function fetchAmazonProducts(niche: string, count: number) {
     await new Promise(resolve => setTimeout(resolve, 500));
   }
 
-  // Fill with fallback products if needed
-  while (products.length < count) {
-    products.push(generateFallbackProduct(niche, products.length));
-  }
-
   return products.slice(0, count);
 }
 
-// Extract products from Amazon API response
-function extractProducts(data: any, niche: string, influencer: string) {
-  const products = [];
-
-  try {
-    const productSources = [
-      data.products,
-      data.recommended_products,
-      data.items,
-      data.product_list,
-      data.data?.products,
-      data.results
-    ].filter(Boolean);
-
-    for (const productList of productSources) {
-      if (Array.isArray(productList)) {
-        productList.forEach((item) => {
-          if (item && item.title) {
-            const images = [];
-            
-            // Extract images in order of preference
-            if (item.image) images.push(item.image);
-            if (item.main_image) images.push(item.main_image);
-            if (item.product_photo) images.push(item.product_photo);
-            if (item.images && Array.isArray(item.images)) {
-              images.push(...item.images.filter(img => typeof img === 'string'));
-            }
-
-            products.push({
-              title: item.title || item.product_title || `${niche} Product`,
-              description: item.description || item.product_description || '',
-              price: parseFloat((item.price || item.current_price || '29.99').toString().replace(/[$,]/g, '')),
-              rating: item.rating || item.stars || (4.2 + Math.random() * 0.8),
-              reviews: item.reviews || item.reviews_count || (150 + Math.floor(Math.random() * 500)),
-              images: images.filter(url => url && typeof url === 'string' && url.startsWith('http')),
-              category: niche,
-              source: 'amazon_influencer',
-              influencer: influencer
-            });
-          }
-        });
-      }
-    }
-  } catch (error) {
-    console.error('Error extracting products:', error);
-  }
-
-  // If no products found, create one based on influencer
-  if (products.length === 0) {
-    products.push(generateInfluencerProduct(niche, influencer));
-  }
-
-  return products;
-}
-
-// Generate fallback product
-function generateFallbackProduct(niche: string, index: number) {
-  const nicheProducts = {
-    tech: ['Wireless Charging Station', 'Bluetooth Headset', '4K Webcam', 'Power Bank'],
-    pets: ['Smart Pet Fountain', 'Interactive Feeder', 'Training Collar', 'Litter Box'],
-    beauty: ['LED Face Mask', 'Facial Roller', 'Brush Cleaner', 'Skincare Fridge'],
-    fitness: ['Resistance Bands', 'Yoga Mat', 'Body Scale', 'Foam Roller'],
-    kitchen: ['Air Fryer', 'Coffee Maker', 'Knife Set', 'Utensil Set'],
-    home: ['LED Lights', 'Diffuser', 'Organizer Set', 'Bath Mat']
-  };
-
-  const products = nicheProducts[niche.toLowerCase()] || nicheProducts.tech;
-  const productName = products[index % products.length];
-
-  return {
-    title: `Premium ${productName} - Trending`,
-    description: `High-quality ${niche} product with excellent customer reviews`,
-    price: 20 + Math.random() * 40,
-    rating: 4.3 + Math.random() * 0.6,
-    reviews: 200 + Math.floor(Math.random() * 800),
-    images: generateFallbackImages(niche, 4),
-    category: niche,
-    source: 'fallback'
-  };
-}
-
-// Generate influencer-based product
-function generateInfluencerProduct(niche: string, influencer: string) {
-  return {
-    title: `${niche} Essential - ${influencer} Recommended`,
-    description: `Premium ${niche} product recommended by ${influencer}`,
-    price: 25 + Math.random() * 35,
-    rating: 4.4 + Math.random() * 0.5,
-    reviews: 300 + Math.floor(Math.random() * 700),
-    images: generateFallbackImages(niche, 4),
-    category: niche,
-    source: 'influencer_based',
-    influencer: influencer
-  };
-}
-
-// Generate fallback images (ONLY as last resort)
-function generateFallbackImages(niche: string, count: number) {
-  const imageBase = {
-    tech: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&h=800&fit=crop',
-    pets: 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=800&h=800&fit=crop',
-    beauty: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800&h=800&fit=crop',
-    fitness: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=800&fit=crop',
-    kitchen: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=800&fit=crop',
-    home: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&h=800&fit=crop'
-  };
-
-  const baseUrl = imageBase[niche.toLowerCase()] || imageBase.tech;
-  return Array.from({ length: count }, (_, i) => `${baseUrl}&seed=${i}`);
-}
-
-// Enhanced GPT-4 product enhancement
-async function enhanceWithGPT4(product: any, config: any) {
+// Enhanced product processing with timeout
+async function enhanceProductWithTimeout(product: any, config: any) {
   const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
   
   if (!openaiApiKey) {
-    console.log('⚠️ No OpenAI key, using fallback enhancement');
-    return generateEnhancedFallback(product, config);
+    console.log('⚠️ No OpenAI key, using enhanced fallback');
+    return generateEnhancedProduct(product, config);
   }
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
     const prompt = `Create winning e-commerce content for this ${config.niche} product:
 
 Original: ${product.title}
 Price: $${product.price}
-Rating: ${product.rating}/5 (${product.reviews} reviews)
 
 Requirements:
 - Emotional title (50-65 chars) for ${config.targetAudience}
-- Rich description (600-800 words) with benefits and social proof
+- Rich description (600-800 words) with benefits
 - Smart pricing ($15-$80 range)
 - 3 product variations
-- ${config.storeStyle} tone
 
 Return JSON:
 {
   "title": "Emotional title with benefit",
-  "description": "Rich HTML description with benefits and social proof",
+  "description": "Rich HTML description with benefits",
   "price": 29.99,
   "variations": [
     {"name": "Standard", "price": 29.99, "sku": "STD-001"},
@@ -375,7 +248,10 @@ Return JSON:
         temperature: 0.8,
         max_tokens: 1500
       }),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`GPT-4 API error: ${response.status}`);
@@ -384,7 +260,6 @@ Return JSON:
     const data = await response.json();
     let content = data.choices[0].message.content.trim();
     
-    // Clean JSON
     content = content.replace(/^```json\s*/, '').replace(/\s*```$/, '');
     const enhanced = JSON.parse(content);
 
@@ -395,62 +270,27 @@ Return JSON:
       price: Math.min(80, Math.max(15, enhanced.price)),
       variations: enhanced.variations,
       tags: enhanced.tags,
-      images: product.images || generateFallbackImages(config.niche, 6)
+      images: product.images || generateProductImages(config.niche, 6)
     };
 
   } catch (error) {
     console.error('GPT-4 enhancement error:', error);
-    return generateEnhancedFallback(product, config);
+    return generateEnhancedProduct(product, config);
   }
 }
 
-// Enhanced fallback
-function generateEnhancedFallback(product: any, config: any) {
-  const price = Math.max(15, Math.min(60, product.price * 1.5));
-  const finalPrice = Math.floor(price) + 0.99;
-
-  return {
-    ...product,
-    title: `Premium ${product.title.substring(0, 40)} for ${config.targetAudience}`,
-    description: `
-<h2>🌟 Transform Your ${config.niche} Experience!</h2>
-<p><strong>Join ${product.reviews}+ satisfied customers who love this premium ${config.niche} solution!</strong></p>
-<div class="rating">⭐⭐⭐⭐⭐ ${product.rating}/5 Stars</div>
-<h3>✨ Why Customers Choose This:</h3>
-<ul>
-<li>🔥 Premium Quality Materials</li>
-<li>⚡ Instant Results</li>
-<li>💪 Professional Performance</li>
-<li>🛡️ Safety Certified</li>
-<li>📱 Modern Design</li>
-<li>💎 Bestseller Status</li>
-</ul>
-<p><strong>Perfect for ${config.targetAudience}</strong> - Order now and see why thousands choose us!</p>
-    `,
-    price: finalPrice,
-    variations: [
-      { name: 'Standard', price: finalPrice, sku: `STD-${Date.now()}` },
-      { name: 'Premium', price: Math.round(finalPrice * 1.3), sku: `PREM-${Date.now()}` },
-      { name: 'Deluxe', price: Math.round(finalPrice * 1.6), sku: `DLX-${Date.now()}` }
-    ],
-    tags: [config.niche, 'premium', 'trending'],
-    images: product.images || generateFallbackImages(config.niche, 6)
-  };
-}
-
-// Upload to Shopify
-async function uploadToShopify(productData: any) {
+// Upload to Shopify with timeout protection
+async function uploadToShopifyWithTimeout(productData: any) {
   const { shopifyUrl, shopifyAccessToken, ...product } = productData;
 
   try {
     console.log(`🛒 Uploading to Shopify: ${product.title?.substring(0, 40)}...`);
 
-    // Format Shopify URL properly
+    // Format Shopify URL properly - CRITICAL FIX
     let formattedUrl = shopifyUrl;
     if (!shopifyUrl.startsWith('http')) {
       formattedUrl = `https://${shopifyUrl}`;
     }
-    // Remove trailing slash if present
     formattedUrl = formattedUrl.replace(/\/$/, '');
 
     const shopifyProduct = {
@@ -477,10 +317,14 @@ async function uploadToShopify(productData: any) {
       }))
     };
 
-    console.log(`📸 Uploading with ${shopifyProduct.images.length} real Amazon images`);
+    console.log(`📸 Uploading with ${shopifyProduct.images.length} images`);
 
+    // CRITICAL: Use correct API version and timeout
     const apiUrl = `${formattedUrl}/admin/api/2024-10/products.json`;
     console.log(`🌐 Making Shopify API call to: ${apiUrl}`);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
 
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -489,8 +333,10 @@ async function uploadToShopify(productData: any) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ product: shopifyProduct }),
+      signal: controller.signal
     });
 
+    clearTimeout(timeoutId);
     console.log(`🔍 Shopify response: ${response.status}`);
 
     if (!response.ok) {
@@ -519,4 +365,164 @@ async function uploadToShopify(productData: any) {
       error: error.message
     };
   }
+}
+
+// Helper functions
+function getInfluencersForNiche(niche: string): string[] {
+  const nicheInfluencers = {
+    beauty: ['sephora', 'ulta', 'glossier', 'tastemade'],
+    pets: ['the-dodo', 'barkpost', 'petco'],
+    tech: ['unboxtherapy', 'marques-brownlee', 'austin-evans'],
+    fitness: ['nike', 'under-armour', 'gymshark'],
+    kitchen: ['tastemade', 'bon-appetit', 'food-network'],
+    home: ['target', 'wayfair', 'ikea']
+  };
+  
+  return nicheInfluencers[niche.toLowerCase()] || nicheInfluencers.tech;
+}
+
+function extractProductsFromResponse(data: any, niche: string, influencer: string) {
+  const products = [];
+
+  try {
+    const productSources = [
+      data.products,
+      data.recommended_products,
+      data.items,
+      data.product_list,
+      data.data?.products,
+      data.results
+    ].filter(Boolean);
+
+    for (const productList of productSources) {
+      if (Array.isArray(productList)) {
+        productList.forEach((item) => {
+          if (item && item.title) {
+            const images = [];
+            
+            if (item.image) images.push(item.image);
+            if (item.main_image) images.push(item.main_image);
+            if (item.product_photo) images.push(item.product_photo);
+            if (item.images && Array.isArray(item.images)) {
+              images.push(...item.images.filter(img => typeof img === 'string'));
+            }
+
+            products.push({
+              title: item.title || item.product_title || `${niche} Product`,
+              description: item.description || item.product_description || '',
+              price: parseFloat((item.price || item.current_price || '29.99').toString().replace(/[$,]/g, '')),
+              rating: item.rating || item.stars || (4.2 + Math.random() * 0.8),
+              reviews: item.reviews || item.reviews_count || (150 + Math.floor(Math.random() * 500)),
+              images: images.filter(url => url && typeof url === 'string' && url.startsWith('http')),
+              category: niche,
+              source: 'amazon_influencer',
+              influencer: influencer
+            });
+          }
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error extracting products:', error);
+  }
+
+  if (products.length === 0) {
+    products.push(generateInfluencerProduct(niche, influencer));
+  }
+
+  return products;
+}
+
+function generateFallbackProducts(niche: string, count: number) {
+  const products = [];
+  for (let i = 0; i < count; i++) {
+    products.push(generateFallbackProduct(niche, i));
+  }
+  return products;
+}
+
+function generateFallbackProduct(niche: string, index: number) {
+  const nicheProducts = {
+    beauty: ['LED Face Mask', 'Facial Roller', 'Brush Cleaner', 'Skincare Fridge'],
+    pets: ['Smart Pet Fountain', 'Interactive Feeder', 'Training Collar', 'Litter Box'],
+    tech: ['Wireless Charger', 'Bluetooth Headset', '4K Webcam', 'Power Bank'],
+    fitness: ['Resistance Bands', 'Yoga Mat', 'Body Scale', 'Foam Roller'],
+    kitchen: ['Air Fryer', 'Coffee Maker', 'Knife Set', 'Utensil Set'],
+    home: ['LED Lights', 'Diffuser', 'Organizer Set', 'Bath Mat']
+  };
+
+  const products = nicheProducts[niche.toLowerCase()] || nicheProducts.tech;
+  const productName = products[index % products.length];
+
+  return {
+    title: `Premium ${productName} - Trending`,
+    description: `High-quality ${niche} product with excellent customer reviews`,
+    price: 20 + Math.random() * 40,
+    rating: 4.3 + Math.random() * 0.6,
+    reviews: 200 + Math.floor(Math.random() * 800),
+    images: generateProductImages(niche, 4),
+    category: niche,
+    source: 'fallback'
+  };
+}
+
+function generateInfluencerProduct(niche: string, influencer: string) {
+  return {
+    title: `${niche} Essential - ${influencer} Recommended`,
+    description: `Premium ${niche} product recommended by ${influencer}`,
+    price: 25 + Math.random() * 35,
+    rating: 4.4 + Math.random() * 0.5,
+    reviews: 300 + Math.floor(Math.random() * 700),
+    images: generateProductImages(niche, 4),
+    category: niche,
+    source: 'influencer_based',
+    influencer: influencer
+  };
+}
+
+function generateEnhancedProduct(product: any, config: any) {
+  const price = Math.max(15, Math.min(60, product.price * 1.5));
+  const finalPrice = Math.floor(price) + 0.99;
+
+  return {
+    ...product,
+    title: `Premium ${product.title.substring(0, 40)} for ${config.targetAudience}`,
+    description: `
+<h2>🌟 Transform Your ${config.niche} Experience!</h2>
+<p><strong>Join ${product.reviews}+ satisfied customers who love this premium ${config.niche} solution!</strong></p>
+<div class="rating">⭐⭐⭐⭐⭐ ${product.rating}/5 Stars</div>
+<h3>✨ Why Customers Choose This:</h3>
+<ul>
+<li>🔥 Premium Quality Materials</li>
+<li>⚡ Instant Results</li>
+<li>💪 Professional Performance</li>
+<li>🛡️ Safety Certified</li>
+<li>📱 Modern Design</li>
+<li>💎 Bestseller Status</li>
+</ul>
+<p><strong>Perfect for ${config.targetAudience}</strong> - Order now and see why thousands choose us!</p>
+    `,
+    price: finalPrice,
+    variations: [
+      { name: 'Standard', price: finalPrice, sku: `STD-${Date.now()}` },
+      { name: 'Premium', price: Math.round(finalPrice * 1.3), sku: `PREM-${Date.now()}` },
+      { name: 'Deluxe', price: Math.round(finalPrice * 1.6), sku: `DLX-${Date.now()}` }
+    ],
+    tags: [config.niche, 'premium', 'trending'],
+    images: product.images || generateProductImages(config.niche, 6)
+  };
+}
+
+function generateProductImages(niche: string, count: number) {
+  const imageBase = {
+    beauty: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800&h=800&fit=crop',
+    pets: 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=800&h=800&fit=crop',
+    tech: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&h=800&fit=crop',
+    fitness: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=800&fit=crop',
+    kitchen: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=800&fit=crop',
+    home: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&h=800&fit=crop'
+  };
+
+  const baseUrl = imageBase[niche.toLowerCase()] || imageBase.tech;
+  return Array.from({ length: count }, (_, i) => `${baseUrl}&seed=${i}`);
 }
