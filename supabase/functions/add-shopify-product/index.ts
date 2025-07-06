@@ -112,7 +112,7 @@ serve(async (req) => {
             title: enhancedProduct.title,
             error: shopifyResult.error || 'Shopify upload failed'
           });
-          console.error(`❌ FAILED: Product ${i + 1} upload failed`);
+          console.error(`❌ FAILED: Product ${i + 1} upload failed: ${shopifyResult.error}`);
         }
 
       } catch (error) {
@@ -672,12 +672,20 @@ function generateHighQualityFallbackImages(niche: string, count: number) {
   return result;
 }
 
-// Upload enhanced product to Shopify with proper formatting and REAL images
+// CRITICAL SHOPIFY UPLOAD FIX - Upload enhanced product to Shopify with proper URL formatting and REAL images
 async function uploadProductToShopify(productData: any) {
   const { shopifyUrl, shopifyAccessToken, ...product } = productData;
 
   try {
-    console.log(`🛒 Uploading to Shopify with REAL IMAGES: ${product.title?.substring(0, 40)}...`);
+    console.log(`🛒 CRITICAL FIX: Uploading to Shopify with REAL IMAGES: ${product.title?.substring(0, 40)}...`);
+
+    // CRITICAL FIX: Ensure proper URL formatting with https://
+    let formattedShopifyUrl = shopifyUrl;
+    if (!shopifyUrl.startsWith('http://') && !shopifyUrl.startsWith('https://')) {
+      formattedShopifyUrl = `https://${shopifyUrl}`;
+    }
+
+    console.log(`🔧 FIXED SHOPIFY URL: ${formattedShopifyUrl}`);
 
     // Create the Shopify product payload with real images
     const shopifyProduct = {
@@ -687,13 +695,15 @@ async function uploadProductToShopify(productData: any) {
       product_type: product.niche || 'General',
       tags: (product.tags || []).join(', '),
       published: true,
+      status: 'active',
       variants: (product.variations || []).map((variant: any, index: number) => ({
         title: variant.name || `Variant ${index + 1}`,
         price: variant.price?.toString() || product.price?.toString() || '29.99',
         sku: variant.sku || `${product.niche?.toUpperCase()}-${Date.now()}-${index}`,
         inventory_policy: 'continue',
         inventory_management: null,
-        fulfillment_service: 'manual'
+        fulfillment_service: 'manual',
+        requires_shipping: true
       })),
       images: (product.images || []).map((imageUrl: string, index: number) => ({
         src: imageUrl, // Using REAL API images here
@@ -703,9 +713,10 @@ async function uploadProductToShopify(productData: any) {
     };
 
     console.log(`📸 REAL IMAGES UPLOAD: Using ${shopifyProduct.images.length} authentic product images`);
+    console.log(`🔧 API URL: ${formattedShopifyUrl}/admin/api/2024-10/products.json`);
 
-    // Upload to Shopify via API
-    const shopifyResponse = await fetch(`${shopifyUrl}/admin/api/2023-10/products.json`, {
+    // CRITICAL FIX: Upload to Shopify with proper URL and latest API version
+    const shopifyResponse = await fetch(`${formattedShopifyUrl}/admin/api/2024-10/products.json`, {
       method: 'POST',
       headers: {
         'X-Shopify-Access-Token': shopifyAccessToken,
@@ -714,15 +725,18 @@ async function uploadProductToShopify(productData: any) {
       body: JSON.stringify({ product: shopifyProduct }),
     });
 
+    console.log(`🔍 SHOPIFY RESPONSE STATUS: ${shopifyResponse.status}`);
+
     if (!shopifyResponse.ok) {
       const errorData = await shopifyResponse.text();
-      throw new Error(`Shopify API error: ${shopifyResponse.status} - ${errorData}`);
+      console.error(`❌ SHOPIFY API ERROR: ${shopifyResponse.status} - ${errorData}`);
+      throw new Error(`Shopify API error: ${shopifyResponse.status} - ${errorData.substring(0, 200)}`);
     }
 
     const responseData = await shopifyResponse.json();
     
     if (responseData.product && responseData.product.id) {
-      console.log(`✅ Shopify upload successful with REAL IMAGES: Product ID ${responseData.product.id}`);
+      console.log(`✅ SHOPIFY UPLOAD SUCCESS: Product ID ${responseData.product.id} with ${shopifyProduct.images.length} real images`);
       return {
         success: true,
         productId: responseData.product.id,
@@ -733,7 +747,7 @@ async function uploadProductToShopify(productData: any) {
     }
 
   } catch (error) {
-    console.error('❌ Shopify upload error:', error);
+    console.error('❌ SHOPIFY UPLOAD ERROR:', error);
     return {
       success: false,
       error: error.message
