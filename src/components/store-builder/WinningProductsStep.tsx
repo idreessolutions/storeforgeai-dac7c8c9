@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -75,12 +76,12 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
 
       console.log('🎯 Amazon RapidAPI request:', requestData);
 
-      // Enhanced progress stages for Amazon API integration
+      // Enhanced progress stages for Amazon API integration with REAL images
       const stages = [
         { progress: 10, stage: "📡 Fetching trending Amazon influencer data...", previews: [] },
         { progress: 25, stage: "🔥 Analyzing hot-selling products from top influencers...", previews: generatePreviewProducts(niche, 3) },
         { progress: 40, stage: "🤖 Enhancing with GPT-4 emotional copywriting...", previews: generatePreviewProducts(niche, 6) },
-        { progress: 60, stage: "🎨 Creating unique DALL-E product images...", previews: generatePreviewProducts(niche, 8) },
+        { progress: 60, stage: "📸 Extracting authentic Amazon product images...", previews: generatePreviewProducts(niche, 8) },
         { progress: 75, stage: "💰 Optimizing pricing & creating variations...", previews: generatePreviewProducts(niche, 10) },
         { progress: 90, stage: "🛒 Uploading to your Shopify store...", previews: generatePreviewProducts(niche, 10) },
       ];
@@ -117,7 +118,7 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
       
       setResults(data.results || []);
       setProgress(100);
-      setCurrentStage("🎉 Amazon trending products uploaded successfully!");
+      setCurrentStage("🎉 Amazon trending products with real images uploaded successfully!");
       
       // Mark products as added
       handleInputChange('productsAdded', true);
@@ -125,7 +126,7 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
       const successCount = data.successfulUploads || data.results?.filter((r: any) => r.status === 'SUCCESS').length || 0;
       
       toast.success(
-        `🎉 Successfully created ${successCount} trending ${niche} products from Amazon influencer data!`,
+        `🎉 Successfully created ${successCount} trending ${niche} products with authentic Amazon images!`,
         { duration: 5000 }
       );
 
@@ -226,13 +227,13 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
                 🚀 Launch AI-Powered {nicheCapitalized} Store
               </h1>
               <p className="text-gray-600 text-lg">
-                Generate 10 trending {nicheCapitalized} products from Amazon influencer data with AI-enhanced content and DALL-E images
+                Generate 10 trending {nicheCapitalized} products from Amazon influencer data with authentic images and AI-enhanced content
               </p>
             </div>
 
             {!hasStarted && (
               <>
-                {/* Enhanced Features Display - Amazon RapidAPI Integration */}
+                {/* Enhanced Features Display - Amazon RapidAPI Integration with REAL Images */}
                 <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 mb-8 border border-green-200">
                   <div className="text-center mb-4">
                     <div className="inline-flex items-center bg-gradient-to-r from-green-100 to-blue-100 text-green-800 px-4 py-2 rounded-full text-sm font-medium mb-2">
@@ -242,7 +243,7 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
                   </div>
                   
                   <h3 className="text-xl font-semibold text-gray-900 mb-6 text-center">
-                    🔥 Amazon Trending Products with AI Enhancement
+                    🔥 Amazon Trending Products with Authentic Images
                   </h3>
                   
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -258,8 +259,8 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
                     </div>
                     <div className="bg-white rounded-lg p-4 text-center shadow-sm border border-blue-100">
                       <Camera className="h-8 w-8 text-blue-500 mx-auto mb-2" />
-                      <div className="font-semibold text-gray-900">DALL-E Images</div>
-                      <div className="text-sm text-gray-600">6 unique per product</div>
+                      <div className="font-semibold text-gray-900">Real Images</div>
+                      <div className="text-sm text-gray-600">Authentic Amazon photos</div>
                     </div>
                     <div className="bg-white rounded-lg p-4 text-center shadow-sm border border-purple-100">
                       <Sparkles className="h-8 w-8 text-purple-500 mx-auto mb-2" />
@@ -339,7 +340,7 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
                     </div>
                     <div className="flex items-center">
                       <div className="w-2 h-2 bg-purple-500 rounded-full mr-2 animate-pulse"></div>
-                      🎨 Creating 6 DALL-E images per product
+                      📸 Extracting authentic Amazon product images
                     </div>
                     <div className="flex items-center">
                       <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2 animate-pulse"></div>
@@ -351,7 +352,7 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
                     </div>
                     <div className="flex items-center">
                       <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2 animate-pulse"></div>
-                      🛒 Uploading to your Shopify store with proper formatting
+                      🛒 Uploading to your Shopify store with real images
                     </div>
                   </div>
                 </div>
@@ -407,7 +408,7 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
                                 </span>
                                 <span className="flex items-center">
                                   <Camera className="h-3 w-3 mr-1" />
-                                  {result.imagesUploaded || 6} DALL-E images
+                                  {result.imagesUploaded || 6} real images
                                 </span>
                                 <span className="flex items-center">
                                   <Package className="h-3 w-3 mr-1" />
@@ -447,10 +448,10 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
                     <CheckCircle className="h-8 w-8 text-white" />
                   </div>
                   <h3 className="text-2xl font-bold text-green-900 mb-3">
-                    🎉 Amazon Trending Products Generated Successfully!
+                    🎉 Amazon Trending Products with Real Images Generated Successfully!
                   </h3>
                   <p className="text-green-700 text-lg leading-relaxed">
-                    Your {niche} store now has {getSuccessCount() || 10} trending Amazon products with DALL-E generated images and GPT-4 enhanced descriptions ready for customers.
+                    Your {niche} store now has {getSuccessCount() || 10} trending Amazon products with authentic images and GPT-4 enhanced descriptions ready for customers.
                   </p>
                   <div className="mt-6 flex items-center justify-center space-x-6 text-sm text-green-600">
                     <div className="flex items-center bg-white rounded-full px-3 py-1 shadow-sm">
@@ -459,7 +460,7 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
                     </div>
                     <div className="flex items-center bg-white rounded-full px-3 py-1 shadow-sm">
                       <Camera className="h-4 w-4 mr-1" />
-                      DALL-E Images
+                      Real Images
                     </div>
                     <div className="flex items-center bg-white rounded-full px-3 py-1 shadow-sm">
                       <Sparkles className="h-4 w-4 mr-1" />

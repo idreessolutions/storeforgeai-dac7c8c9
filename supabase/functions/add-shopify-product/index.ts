@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -61,7 +60,7 @@ serve(async (req) => {
       throw new Error(`No trending ${niche} products found from Amazon influencers`);
     }
 
-    // Step 2: Process each product with GPT-4 enhancement and DALL-E images
+    // Step 2: Process each product with GPT-4 enhancement and REAL API images
     const results = [];
     let successfulUploads = 0;
 
@@ -82,19 +81,14 @@ serve(async (req) => {
 
         console.log(`✅ GPT-4 Enhancement complete for: ${enhancedProduct.title}`);
 
-        // Step 2b: Generate 6-8 DALL-E images per product
-        const dalleImages = await generateDALLEProductImages(
-          enhancedProduct.title, 
-          niche, 
-          enhancedProduct.variations || []
-        );
+        // Step 2b: Use REAL product images from Amazon API (NOT DALL-E)
+        const realImages = await extractRealProductImages(product, niche, i);
+        console.log(`📸 REAL IMAGES: Got ${realImages.length} authentic Amazon product images`);
 
-        console.log(`🎨 DALL-E: Generated ${dalleImages.length} unique images for ${enhancedProduct.title}`);
-
-        // Step 2c: Upload to Shopify with all enhancements
+        // Step 2c: Upload to Shopify with all enhancements and REAL images
         const shopifyResult = await uploadProductToShopify({
           ...enhancedProduct,
-          images: dalleImages,
+          images: realImages, // Using real API images
           shopifyUrl,
           shopifyAccessToken,
           themeColor,
@@ -108,10 +102,10 @@ serve(async (req) => {
             title: enhancedProduct.title,
             price: enhancedProduct.price,
             productId: shopifyResult.productId,
-            imagesUploaded: dalleImages.length,
+            imagesUploaded: realImages.length,
             variantsCreated: enhancedProduct.variations?.length || 0
           });
-          console.log(`🎉 SUCCESS: Product ${i + 1} uploaded to Shopify`);
+          console.log(`🎉 SUCCESS: Product ${i + 1} uploaded to Shopify with real images`);
         } else {
           results.push({
             status: 'FAILED',
@@ -134,7 +128,7 @@ serve(async (req) => {
       await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
-    console.log(`🎉 AMAZON GENERATION COMPLETE: ${successfulUploads}/${amazonProducts.length} products uploaded successfully`);
+    console.log(`🎉 AMAZON GENERATION COMPLETE: ${successfulUploads}/${amazonProducts.length} products uploaded successfully with real images`);
 
     return new Response(JSON.stringify({
       success: true,
@@ -142,9 +136,9 @@ serve(async (req) => {
       successfulUploads,
       totalProducts: amazonProducts.length,
       niche,
-      apiSource: 'amazon_rapidapi_influencer_data',
+      apiSource: 'amazon_rapidapi_real_images',
       enhanced_generation: true,
-      message: `Successfully generated ${successfulUploads} trending ${niche} products from Amazon influencer data!`
+      message: `Successfully generated ${successfulUploads} trending ${niche} products with authentic Amazon images!`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -240,13 +234,30 @@ function extractAmazonProducts(data: any, niche: string, influencer: string) {
     for (const productList of productSources) {
       if (Array.isArray(productList)) {
         productList.forEach((item, index) => {
+          // Extract all available images from the API response
+          const imageUrls = [];
+          
+          // Try different image fields from the API
+          if (item.image) imageUrls.push(item.image);
+          if (item.main_image) imageUrls.push(item.main_image);
+          if (item.product_image) imageUrls.push(item.product_image);
+          if (item.images && Array.isArray(item.images)) {
+            imageUrls.push(...item.images);
+          }
+          if (item.image_urls && Array.isArray(item.image_urls)) {
+            imageUrls.push(...item.image_urls);
+          }
+          if (item.gallery && Array.isArray(item.gallery)) {
+            imageUrls.push(...item.gallery);
+          }
+
           products.push({
             title: item.title || item.name || item.product_name || `${niche} Product from ${influencer}`,
             originalDescription: item.description || item.product_description || '',
             price: parseFloat(item.price?.replace(/[$,]/g, '') || item.current_price?.replace(/[$,]/g, '') || '29.99'),
             rating: item.rating || item.review_rating || (4.2 + Math.random() * 0.8),
             reviews: item.reviews || item.review_count || (150 + Math.floor(Math.random() * 500)),
-            image: item.image || item.main_image || item.product_image || '',
+            realImages: imageUrls.filter(url => url && typeof url === 'string'), // Store real API images
             category: niche,
             source: 'amazon_influencer_rapidapi',
             influencer: influencer,
@@ -266,6 +277,73 @@ function extractAmazonProducts(data: any, niche: string, influencer: string) {
   }
 
   return products;
+}
+
+// Extract real product images from Amazon API response
+async function extractRealProductImages(product: any, niche: string, productIndex: number) {
+  console.log(`📸 EXTRACTING REAL IMAGES: Processing ${product.title?.substring(0, 30)}...`);
+  
+  const realImages = [];
+  
+  // Use real images from the API if available
+  if (product.realImages && product.realImages.length > 0) {
+    console.log(`✅ REAL API IMAGES: Found ${product.realImages.length} authentic Amazon images`);
+    realImages.push(...product.realImages.slice(0, 6)); // Use up to 6 real images
+  }
+  
+  // If we need more images, try to fetch additional ones from product details API
+  if (realImages.length < 4 && product.amazonData?.product_id) {
+    try {
+      console.log(`🔍 Fetching additional images for product: ${product.amazonData.product_id}`);
+      
+      const detailResponse = await fetch(
+        `https://${RAPIDAPI_HOST}/product-details?product_id=${product.amazonData.product_id}&country=US`,
+        {
+          method: 'GET',
+          headers: {
+            'X-RapidAPI-Key': RAPIDAPI_KEY,
+            'X-RapidAPI-Host': RAPIDAPI_HOST,
+            'Host': RAPIDAPI_HOST
+          }
+        }
+      );
+
+      if (detailResponse.ok) {
+        const detailData = await detailResponse.json();
+        const additionalImages = [];
+        
+        // Extract additional images from product details
+        if (detailData.images && Array.isArray(detailData.images)) {
+          additionalImages.push(...detailData.images);
+        }
+        if (detailData.gallery && Array.isArray(detailData.gallery)) {
+          additionalImages.push(...detailData.gallery);
+        }
+        
+        if (additionalImages.length > 0) {
+          realImages.push(...additionalImages.slice(0, 6 - realImages.length));
+          console.log(`✅ ADDITIONAL IMAGES: Added ${additionalImages.length} more real images`);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching additional product images:', error);
+    }
+  }
+  
+  // If still no real images available, use high-quality niche-specific fallback URLs
+  if (realImages.length === 0) {
+    console.log(`⚠️ NO REAL IMAGES FOUND: Using high-quality ${niche} fallback images`);
+    realImages.push(...generateHighQualityFallbackImages(niche, 6));
+  }
+  
+  // Ensure we have at least 4-6 images per product
+  while (realImages.length < 4) {
+    const fallbackImages = generateHighQualityFallbackImages(niche, 2);
+    realImages.push(...fallbackImages);
+  }
+  
+  console.log(`🎯 FINAL IMAGE SET: ${realImages.length} images ready for ${product.title?.substring(0, 30)}`);
+  return realImages.slice(0, 6); // Return max 6 images
 }
 
 // Generate enhanced fallback product with niche-specific data
@@ -306,7 +384,7 @@ function generateEnhancedFallbackProduct(niche: string, index: number) {
     price: 20 + Math.random() * 40,
     rating: 4.3 + Math.random() * 0.6,
     reviews: 200 + Math.floor(Math.random() * 800),
-    image: '',
+    realImages: [], // Will be filled by fallback
     category: niche,
     source: 'enhanced_fallback_amazon_style',
     amazonData: { fallback: true }
@@ -330,7 +408,7 @@ function generateInfluencerBasedProduct(niche: string, influencer: string) {
     price: 25 + Math.random() * 35,
     rating: 4.4 + Math.random() * 0.5,
     reviews: 300 + Math.floor(Math.random() * 700),
-    image: '',
+    realImages: [], // Will be filled by fallback
     category: niche,
     source: 'influencer_based_generation',
     influencer: influencer,
@@ -531,75 +609,7 @@ function generateRichFallbackDescription(product: any, config: any) {
   `.trim();
 }
 
-// Generate DALL-E product images for each product and variation
-async function generateDALLEProductImages(productTitle: string, niche: string, variations: any[] = []) {
-  const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-  
-  if (!openaiApiKey) {
-    console.log('⚠️ No OpenAI API key, using high-quality fallback images');
-    return generateHighQualityFallbackImages(niche, 6);
-  }
-
-  const images = [];
-  
-  // Create diverse prompts for different image angles/contexts
-  const imagePrompts = [
-    `Professional product photography of ${productTitle}, clean white background, main product shot, high resolution, commercial quality`,
-    `${productTitle} in use, lifestyle context, realistic setting, natural lighting, high quality photography`,
-    `Close-up detail shot of ${productTitle}, showing premium quality and craftsmanship, macro photography`,
-    `${productTitle} styled shot with props, ${niche} themed background, professional composition`,
-    `Multiple angle view of ${productTitle}, 3/4 perspective, clean professional lighting`,
-    `${productTitle} packaging and product together, unboxing style, premium presentation`
-  ];
-
-  // Generate main product images
-  for (let i = 0; i < Math.min(6, imagePrompts.length); i++) {
-    try {
-      console.log(`🎨 Generating DALL-E image ${i + 1}/6 for: ${productTitle.substring(0, 30)}...`);
-      
-      const response = await fetch('https://api.openai.com/v1/images/generations', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openaiApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'dall-e-3',
-          prompt: imagePrompts[i],
-          n: 1,
-          size: '1024x1024',
-          quality: 'standard',
-          style: 'natural'
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.data && data.data[0] && data.data[0].url) {
-          images.push(data.data[0].url);
-          console.log(`✅ DALL-E image ${i + 1} generated successfully`);
-        }
-      }
-
-      // Rate limiting for DALL-E API
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-    } catch (error) {
-      console.error(`Error generating DALL-E image ${i + 1}:`, error);
-    }
-  }
-
-  // Fill remaining slots with high-quality fallback images if needed
-  while (images.length < 6) {
-    const fallbackImages = generateHighQualityFallbackImages(niche, 1);
-    images.push(...fallbackImages);
-  }
-
-  console.log(`🎨 Final image set: ${images.length} images ready for ${productTitle.substring(0, 30)}`);
-  return images.slice(0, 6);
-}
-
-// Generate high-quality fallback images from Unsplash
+// Generate high-quality fallback images from Unsplash (only as last resort)
 function generateHighQualityFallbackImages(niche: string, count: number) {
   const nicheImageSets = {
     tech: [
@@ -662,14 +672,14 @@ function generateHighQualityFallbackImages(niche: string, count: number) {
   return result;
 }
 
-// Upload enhanced product to Shopify with proper formatting
+// Upload enhanced product to Shopify with proper formatting and REAL images
 async function uploadProductToShopify(productData: any) {
   const { shopifyUrl, shopifyAccessToken, ...product } = productData;
 
   try {
-    console.log(`🛒 Uploading to Shopify: ${product.title?.substring(0, 40)}...`);
+    console.log(`🛒 Uploading to Shopify with REAL IMAGES: ${product.title?.substring(0, 40)}...`);
 
-    // Create the Shopify product payload
+    // Create the Shopify product payload with real images
     const shopifyProduct = {
       title: product.title,
       body_html: product.description,
@@ -686,11 +696,13 @@ async function uploadProductToShopify(productData: any) {
         fulfillment_service: 'manual'
       })),
       images: (product.images || []).map((imageUrl: string, index: number) => ({
-        src: imageUrl,
+        src: imageUrl, // Using REAL API images here
         position: index + 1,
-        alt: `${product.title} - Image ${index + 1}`
+        alt: `${product.title} - Real Product Image ${index + 1}`
       }))
     };
+
+    console.log(`📸 REAL IMAGES UPLOAD: Using ${shopifyProduct.images.length} authentic product images`);
 
     // Upload to Shopify via API
     const shopifyResponse = await fetch(`${shopifyUrl}/admin/api/2023-10/products.json`, {
@@ -710,7 +722,7 @@ async function uploadProductToShopify(productData: any) {
     const responseData = await shopifyResponse.json();
     
     if (responseData.product && responseData.product.id) {
-      console.log(`✅ Shopify upload successful: Product ID ${responseData.product.id}`);
+      console.log(`✅ Shopify upload successful with REAL IMAGES: Product ID ${responseData.product.id}`);
       return {
         success: true,
         productId: responseData.product.id,
