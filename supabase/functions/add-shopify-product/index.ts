@@ -12,24 +12,28 @@ const RAPIDAPI_KEY = '19e3753fc0mshae2e4d8ff1db42ap15723ejsn953bcd426bce';
 const RAPIDAPI_HOST = 'real-time-amazon-data.p.rapidapi.com';
 
 serve(async (req) => {
+  console.log('🚀 Edge Function started - Method:', req.method);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('✅ CORS preflight handled');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('🚀 Edge Function started');
+    console.log('📥 Processing request...');
     
     const requestData = await req.json();
-    console.log('📥 Request received:', {
+    console.log('📋 Request data received:', {
       niche: requestData.niche,
       productCount: requestData.productCount,
-      storeName: requestData.storeName
+      shopifyUrl: requestData.shopifyUrl?.substring(0, 20) + '...',
+      hasAccessToken: !!requestData.shopifyAccessToken
     });
 
     const {
       productCount = 10,
-      niche = 'beauty',
+      niche = 'pets',
       storeName = 'My Store',
       targetAudience = 'Everyone',
       businessType = 'e-commerce',
@@ -43,29 +47,30 @@ serve(async (req) => {
       throw new Error('Missing Shopify URL or access token');
     }
 
-    console.log(`🔥 Starting Amazon product generation for ${niche}`);
+    console.log(`🎯 Starting Amazon product generation for ${niche}`);
 
-    // Step 1: Fetch Amazon products with timeout protection
+    // Step 1: Fetch Amazon products
     let amazonProducts = [];
     try {
-      amazonProducts = await fetchAmazonProductsWithTimeout(niche, productCount);
+      amazonProducts = await fetchAmazonProducts(niche, productCount);
       console.log(`✅ Fetched ${amazonProducts.length} Amazon products`);
     } catch (error) {
-      console.error('❌ Amazon fetch failed, using fallback:', error);
+      console.error('❌ Amazon fetch failed:', error);
       amazonProducts = generateFallbackProducts(niche, productCount);
+      console.log(`🔄 Using ${amazonProducts.length} fallback products`);
     }
 
     // Step 2: Process and upload products
     const results = [];
     let successfulUploads = 0;
 
-    for (let i = 0; i < Math.min(productCount, 10); i++) {
-      const product = amazonProducts[i] || generateFallbackProduct(niche, i);
+    for (let i = 0; i < Math.min(productCount, amazonProducts.length); i++) {
+      const product = amazonProducts[i];
       console.log(`🔄 Processing product ${i + 1}/${productCount}: ${product.title?.substring(0, 50)}...`);
 
       try {
-        // Enhance with GPT-4 (with timeout)
-        const enhancedProduct = await enhanceProductWithTimeout(product, {
+        // Enhance with GPT-4
+        const enhancedProduct = await enhanceProduct(product, {
           niche,
           storeName,
           targetAudience,
@@ -74,8 +79,8 @@ serve(async (req) => {
           productIndex: i
         });
 
-        // Upload to Shopify (with timeout)
-        const shopifyResult = await uploadToShopifyWithTimeout({
+        // Upload to Shopify
+        const shopifyResult = await uploadToShopify({
           ...enhancedProduct,
           shopifyUrl,
           shopifyAccessToken,
@@ -141,21 +146,18 @@ serve(async (req) => {
   }
 });
 
-// Fetch Amazon products with timeout protection
-async function fetchAmazonProductsWithTimeout(niche: string, count: number) {
+// Fetch Amazon products with proper error handling
+async function fetchAmazonProducts(niche: string, count: number) {
   const influencers = getInfluencersForNiche(niche);
   const products = [];
 
-  console.log(`🔍 Fetching from Amazon influencers for ${niche}`);
+  console.log(`🔍 Fetching from Amazon influencers for ${niche}:`, influencers);
 
   for (const influencer of influencers.slice(0, 2)) {
     if (products.length >= count) break;
 
     try {
       console.log(`📡 Fetching from influencer: ${influencer}`);
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
       
       const url = `https://${RAPIDAPI_HOST}/influencer-profile?influencer_name=${influencer}&country=US`;
       
@@ -165,12 +167,10 @@ async function fetchAmazonProductsWithTimeout(niche: string, count: number) {
           'X-RapidAPI-Key': RAPIDAPI_KEY,
           'X-RapidAPI-Host': RAPIDAPI_HOST,
           'User-Agent': 'Shopify-Product-Generator/1.0'
-        },
-        signal: controller.signal
+        }
       });
 
-      clearTimeout(timeoutId);
-      console.log(`📊 Response status: ${response.status}`);
+      console.log(`📊 Response status for ${influencer}: ${response.status}`);
 
       if (!response.ok) {
         console.error(`❌ API error for ${influencer}: ${response.status}`);
@@ -196,8 +196,8 @@ async function fetchAmazonProductsWithTimeout(niche: string, count: number) {
   return products.slice(0, count);
 }
 
-// Enhanced product processing with timeout
-async function enhanceProductWithTimeout(product: any, config: any) {
+// Enhanced product processing
+async function enhanceProduct(product: any, config: any) {
   const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
   
   if (!openaiApiKey) {
@@ -206,9 +206,6 @@ async function enhanceProductWithTimeout(product: any, config: any) {
   }
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-
     const prompt = `Create winning e-commerce content for this ${config.niche} product:
 
 Original: ${product.title}
@@ -247,11 +244,8 @@ Return JSON:
         ],
         temperature: 0.8,
         max_tokens: 1500
-      }),
-      signal: controller.signal
+      })
     });
-
-    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`GPT-4 API error: ${response.status}`);
@@ -279,14 +273,14 @@ Return JSON:
   }
 }
 
-// Upload to Shopify with timeout protection
-async function uploadToShopifyWithTimeout(productData: any) {
+// Upload to Shopify with proper error handling
+async function uploadToShopify(productData: any) {
   const { shopifyUrl, shopifyAccessToken, ...product } = productData;
 
   try {
     console.log(`🛒 Uploading to Shopify: ${product.title?.substring(0, 40)}...`);
 
-    // Format Shopify URL properly - CRITICAL FIX
+    // Format Shopify URL properly
     let formattedUrl = shopifyUrl;
     if (!shopifyUrl.startsWith('http')) {
       formattedUrl = `https://${shopifyUrl}`;
@@ -319,12 +313,8 @@ async function uploadToShopifyWithTimeout(productData: any) {
 
     console.log(`📸 Uploading with ${shopifyProduct.images.length} images`);
 
-    // CRITICAL: Use correct API version and timeout
     const apiUrl = `${formattedUrl}/admin/api/2024-10/products.json`;
     console.log(`🌐 Making Shopify API call to: ${apiUrl}`);
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
 
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -332,11 +322,9 @@ async function uploadToShopifyWithTimeout(productData: any) {
         'X-Shopify-Access-Token': shopifyAccessToken,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ product: shopifyProduct }),
-      signal: controller.signal
+      body: JSON.stringify({ product: shopifyProduct })
     });
 
-    clearTimeout(timeoutId);
     console.log(`🔍 Shopify response: ${response.status}`);
 
     if (!response.ok) {
@@ -372,6 +360,7 @@ function getInfluencersForNiche(niche: string): string[] {
   const nicheInfluencers = {
     beauty: ['sephora', 'ulta', 'glossier', 'tastemade'],
     pets: ['the-dodo', 'barkpost', 'petco'],
+    pet: ['the-dodo', 'barkpost', 'petco'],
     tech: ['unboxtherapy', 'marques-brownlee', 'austin-evans'],
     fitness: ['nike', 'under-armour', 'gymshark'],
     kitchen: ['tastemade', 'bon-appetit', 'food-network'],
@@ -445,6 +434,7 @@ function generateFallbackProduct(niche: string, index: number) {
   const nicheProducts = {
     beauty: ['LED Face Mask', 'Facial Roller', 'Brush Cleaner', 'Skincare Fridge'],
     pets: ['Smart Pet Fountain', 'Interactive Feeder', 'Training Collar', 'Litter Box'],
+    pet: ['Smart Pet Fountain', 'Interactive Feeder', 'Training Collar', 'Litter Box'],
     tech: ['Wireless Charger', 'Bluetooth Headset', '4K Webcam', 'Power Bank'],
     fitness: ['Resistance Bands', 'Yoga Mat', 'Body Scale', 'Foam Roller'],
     kitchen: ['Air Fryer', 'Coffee Maker', 'Knife Set', 'Utensil Set'],
@@ -517,6 +507,7 @@ function generateProductImages(niche: string, count: number) {
   const imageBase = {
     beauty: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800&h=800&fit=crop',
     pets: 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=800&h=800&fit=crop',
+    pet: 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=800&h=800&fit=crop',
     tech: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&h=800&fit=crop',
     fitness: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=800&fit=crop',
     kitchen: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=800&fit=crop',
