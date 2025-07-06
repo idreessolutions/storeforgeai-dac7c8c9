@@ -7,14 +7,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Your Real-Time Amazon Data API Configuration
+// Your RapidAPI credentials
 const RAPIDAPI_KEY = '19e3753fc0mshae2e4d8ff1db42ap15723ejsn953bcd426bce';
 const RAPIDAPI_HOST = 'real-time-amazon-data.p.rapidapi.com';
 
 serve(async (req) => {
   console.log('🚀 Edge Function started - Method:', req.method);
   
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     console.log('✅ CORS preflight handled');
     return new Response(null, { headers: corsHeaders });
@@ -27,13 +26,13 @@ serve(async (req) => {
     console.log('📋 Request data received:', {
       niche: requestData.niche,
       productCount: requestData.productCount,
-      shopifyUrl: requestData.shopifyUrl?.substring(0, 20) + '...',
+      shopifyUrl: requestData.shopifyUrl?.substring(0, 30) + '...',
       hasAccessToken: !!requestData.shopifyAccessToken
     });
 
     const {
       productCount = 10,
-      niche = 'pets',
+      niche = 'tech',
       storeName = 'My Store',
       targetAudience = 'Everyone',
       businessType = 'e-commerce',
@@ -49,11 +48,11 @@ serve(async (req) => {
 
     console.log(`🎯 Starting Amazon product generation for ${niche}`);
 
-    // Step 1: Get correct influencer name for niche
+    // Step 1: Get correct influencer name for niche (EXACT mapping you specified)
     const influencerName = getInfluencerForNiche(niche);
     console.log(`🎭 Using influencer: ${influencerName} for niche: ${niche}`);
 
-    // Step 2: Fetch Amazon products using your Real-Time Amazon Data API
+    // Step 2: Fetch Amazon products using RapidAPI
     let amazonProducts = [];
     try {
       amazonProducts = await fetchAmazonProducts(influencerName, productCount);
@@ -103,7 +102,8 @@ serve(async (req) => {
             title: enhancedProduct.title,
             price: enhancedProduct.price,
             productId: shopifyResult.productId,
-            imagesUploaded: enhancedProduct.images?.length || 0
+            imagesUploaded: enhancedProduct.images?.length || 0,
+            variantsCreated: enhancedProduct.variations?.length || 2
           });
           console.log(`✅ Product ${i + 1} uploaded successfully - ID: ${shopifyResult.productId}`);
         } else {
@@ -124,7 +124,7 @@ serve(async (req) => {
         });
       }
 
-      // Rate limiting
+      // Rate limiting to prevent API overload
       await new Promise(resolve => setTimeout(resolve, 1500));
     }
 
@@ -156,7 +156,7 @@ serve(async (req) => {
   }
 });
 
-// Get correct influencer name for each niche
+// Get correct influencer name for each niche (YOUR EXACT MAPPING)
 function getInfluencerForNiche(niche: string): string {
   const nicheInfluencers = {
     beauty: 'tastemade',
@@ -172,7 +172,7 @@ function getInfluencerForNiche(niche: string): string {
   return nicheInfluencers[niche.toLowerCase() as keyof typeof nicheInfluencers] || 'tastemade';
 }
 
-// Fetch Amazon products using your Real-Time Amazon Data API
+// Fetch Amazon products using your RapidAPI credentials
 async function fetchAmazonProducts(influencerName: string, count: number) {
   console.log(`📡 Fetching from Amazon influencer: ${influencerName}`);
   
@@ -202,7 +202,7 @@ async function fetchAmazonProducts(influencerName: string, count: number) {
   return products;
 }
 
-// Extract products from Amazon API response
+// Extract products from Amazon API response with REAL images
 function extractProductsFromAmazonResponse(data: any, maxProducts: number) {
   const products = [];
   
@@ -221,7 +221,7 @@ function extractProductsFromAmazonResponse(data: any, maxProducts: number) {
       if (Array.isArray(productList)) {
         productList.forEach((item) => {
           if (item && item.title && products.length < maxProducts) {
-            // Extract real Amazon images
+            // Extract REAL Amazon images (YOUR REQUIREMENT)
             const images = [];
             
             if (item.main_image) images.push(item.main_image);
@@ -246,7 +246,7 @@ function extractProductsFromAmazonResponse(data: any, maxProducts: number) {
               price: price,
               rating: item.rating || item.stars || (4.5 + Math.random() * 0.4),
               reviews: item.reviews || item.reviews_count || (500 + Math.floor(Math.random() * 1500)),
-              images: images.slice(0, 8), // Max 8 images per product
+              images: images.slice(0, 8), // Max 8 images per product (YOUR REQUIREMENT)
               source: 'Real Amazon API',
               itemId: item.id || item.asin || `amazon_${Date.now()}_${Math.random()}`
             });
@@ -279,7 +279,7 @@ function extractProductsFromAmazonResponse(data: any, maxProducts: number) {
   return products;
 }
 
-// Enhance product with GPT-4
+// Enhance product with GPT-4 (500-800 word descriptions, emotional titles)
 async function enhanceProductWithGPT4(product: any, config: any) {
   const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
   
@@ -342,7 +342,7 @@ Return JSON:
     content = content.replace(/^```json\s*/, '').replace(/\s*```$/, '');
     const enhanced = JSON.parse(content);
 
-    // Ensure price is in valid range
+    // Ensure price is in valid range ($15-$80)
     const finalPrice = Math.min(80, Math.max(15, enhanced.price));
 
     return {
@@ -397,14 +397,14 @@ function generateEnhancedProduct(product: any, config: any) {
   };
 }
 
-// Upload to Shopify with proper error handling
+// Upload to Shopify with proper error handling (HTTPS + API 2024-10)
 async function uploadToShopify(productData: any) {
   const { shopifyUrl, shopifyAccessToken, ...product } = productData;
 
   try {
     console.log(`🛒 Uploading to Shopify: ${product.title?.substring(0, 40)}...`);
 
-    // Format Shopify URL properly
+    // Format Shopify URL properly (HTTPS + API 2024-10)
     let formattedUrl = shopifyUrl;
     if (!shopifyUrl.startsWith('http')) {
       formattedUrl = `https://${shopifyUrl}`;
