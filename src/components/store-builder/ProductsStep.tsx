@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, Package, CheckCircle, XCircle, RefreshCw, Star, Users, Camera, Sparkles } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { generateProducts } from "@/api/generate-products";
 import { toast } from "sonner";
 
 interface ProductsStepProps {
@@ -44,7 +44,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
   const niche = formData.niche || 'Products';
   const nicheCapitalized = niche.charAt(0).toUpperCase() + niche.slice(1);
 
-  const generateProducts = async () => {
+  const handleGenerateProducts = async () => {
     if (!formData.shopifyUrl || !formData.accessToken) {
       toast.error('Missing Shopify store URL or access token');
       return;
@@ -56,27 +56,8 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
     setResults([]);
 
     try {
-      console.log(`🚨 STARTING ENHANCED PRODUCT GENERATION with DALL-E for ${formData.niche?.toUpperCase()} niche`);
+      console.log(`🚀 STARTING ENHANCED PRODUCT GENERATION for ${formData.niche?.toUpperCase()} niche`);
       
-      const requestData = {
-        productCount: 10,
-        niche: formData.niche || 'general',
-        storeName: formData.storeName || 'My Store',
-        targetAudience: formData.targetAudience || 'Everyone',
-        businessType: formData.businessType || 'e-commerce',
-        storeStyle: formData.storeStyle || 'modern',
-        shopifyUrl: formData.shopifyUrl,
-        shopifyAccessToken: formData.accessToken,
-        themeColor: formData.themeColor || '#3B82F6',
-        sessionId: sessionId,
-        generateRealProducts: true,
-        useDALLEImages: true, // CRITICAL: Enable DALL-E image generation
-        enhancedDescriptions: true, // CRITICAL: Enable rich descriptions
-        enhancedGeneration: true
-      };
-
-      console.log('🎯 ENHANCED REQUEST with DALL-E:', requestData);
-
       // Start progress simulation
       const progressInterval = setInterval(() => {
         setProgress(prev => {
@@ -88,41 +69,49 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         });
       }, 2000);
 
-      const { data, error } = await supabase.functions.invoke('add-shopify-product', {
-        body: requestData
-      });
+      // Use the updated generateProducts function
+      const result = await generateProducts(
+        formData.shopifyUrl!,
+        formData.accessToken!,
+        formData.niche || 'tech',
+        formData.themeColor || '#3B82F6',
+        formData.targetAudience || 'Everyone',
+        formData.businessType || 'e-commerce',
+        formData.storeStyle || 'modern',
+        formData.customInfo || '',
+        formData.storeName || 'My Store'
+      );
 
       clearInterval(progressInterval);
 
-      if (error) {
-        console.error('❌ Enhanced generation failed:', error);
-        throw new Error(error.message);
+      if (!result.success) {
+        throw new Error(result.error || 'Product generation failed');
       }
 
-      if (!data?.success) {
-        throw new Error(data?.error || 'Product generation failed');
-      }
-
-      console.log('✅ ENHANCED GENERATION SUCCESS with DALL-E:', data);
+      console.log('✅ GENERATION SUCCESS:', result);
       
-      setResults(data.results || []);
+      setResults(result.results || []);
       setProgress(100);
       
       // Mark products as added
       handleInputChange('productsAdded', true);
       
-      toast.success(`🎉 Successfully created ${data.successfulUploads || 10} unique ${formData.niche} products with AI-generated images!`, {
+      toast.success(`🎉 Successfully created ${result.successfulUploads || 10} unique ${formData.niche} products with images!`, {
         duration: 5000,
       });
 
-      // Store generation data in Supabase
-      await storeGenerationData(data);
+      // Store generation data in localStorage
+      await storeGenerationData(result);
 
     } catch (error: any) {
       console.error('❌ Product generation error:', error);
       setProgress(0);
       
-      toast.error(`Failed to generate products: ${error.message}`, {
+      // Show detailed error message
+      const errorMessage = error.message || 'Unknown error occurred';
+      console.error('Full error details:', error);
+      
+      toast.error(`Failed to generate products: ${errorMessage}`, {
         duration: 8000,
       });
     } finally {
@@ -160,7 +149,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
     setResults([]);
     setProgress(0);
     handleInputChange('productsAdded', false);
-    generateProducts(); // FIXED: Actually retry generation
+    handleGenerateProducts();
   };
 
   const getSuccessCount = () => {
@@ -194,7 +183,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 {/* Enhanced AI Product Generation Section */}
                 <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 mb-8">
                   <h3 className="text-xl font-semibold text-gray-900 mb-6 text-center">
-                    🚀 Enhanced AI Product Generation with DALL-E Images
+                    🚀 Enhanced AI Product Generation with Real Amazon Images
                   </h3>
                   
                   {/* Feature Boxes - Enhanced features */}
@@ -211,8 +200,8 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                     </div>
                     <div className="bg-white rounded-lg p-4 text-center shadow-sm border">
                       <Camera className="h-8 w-8 text-green-500 mx-auto mb-2" />
-                      <div className="font-semibold text-gray-900">DALL-E Images</div>
-                      <div className="text-sm text-gray-600">6-8 per product</div>
+                      <div className="font-semibold text-gray-900">Real Images</div>
+                      <div className="text-sm text-gray-600">Amazon + Fallbacks</div>
                     </div>
                     <div className="bg-white rounded-lg p-4 text-center shadow-sm border">
                       <Sparkles className="h-8 w-8 text-purple-500 mx-auto mb-2" />
@@ -223,7 +212,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
 
                   <div className="text-center">
                     <Button
-                      onClick={generateProducts}
+                      onClick={handleGenerateProducts}
                       disabled={isGenerating}
                       className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-4 rounded-lg text-lg font-semibold h-auto"
                     >
@@ -249,7 +238,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 <div className="bg-blue-50 rounded-xl p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-gray-900">
-                      🤖 AI is creating your {formData.niche} products with DALL-E images...
+                      🤖 AI is creating your {formData.niche} products with real Amazon images...
                     </h3>
                     <span className="text-sm text-gray-600">{Math.round(progress)}%</span>
                   </div>
@@ -264,7 +253,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                   <div className="text-sm text-gray-600 space-y-1">
                     <div>✨ Fetching winning products with verified sales data</div>
                     <div>🤖 Generating unique 500-800 word descriptions with GPT-4</div>
-                    <div>🖼️ Creating 6-8 DALL-E images per product</div>
+                    <div>🖼️ Extracting real Amazon product images + fallbacks</div>
                     <div>💰 Optimizing pricing and 2-4 variants per product</div>
                     <div>🛒 Uploading to your Shopify store with images</div>
                     <div>🎨 Applying {formData.storeStyle} theme styling</div>
@@ -312,7 +301,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                             </p>
                             {result.status === 'SUCCESS' && (
                               <p className="text-xs text-gray-600">
-                                ${result.price} • {result.imagesUploaded || 6} DALL-E images • {result.variantsCreated || 2} variants
+                                ${result.price} • {result.imagesUploaded || 4} images • {result.variantsCreated || 3} variants
                               </p>
                             )}
                             {result.error && (
@@ -348,7 +337,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                     🎉 Products Generated Successfully!
                   </h3>
                   <p className="text-green-700">
-                    Your {formData.niche} store now has {getSuccessCount() || 10} unique, AI-enhanced products with DALL-E generated images and rich 500-800 word descriptions ready for customers.
+                    Your {formData.niche} store now has {getSuccessCount() || 10} unique, AI-enhanced products with real Amazon images and rich 500-800 word descriptions ready for customers.
                   </p>
                 </div>
               </div>

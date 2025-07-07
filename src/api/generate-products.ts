@@ -24,13 +24,13 @@ export const generateProducts = async (
       shopifyAccessToken: accessToken,
       themeColor: themeColor || '#3B82F6',
       customInfo: customInfo || '',
-      rapidApiIntegration: true,
-      enhancedGeneration: true
+      enhancedGeneration: true,
+      useRealImages: true
     };
 
-    console.log('🎯 Enhanced request with Amazon RapidAPI:', requestData);
+    console.log('🎯 Sending request to Edge Function:', requestData);
 
-    // Updated to use the correct Supabase project URL
+    // Make direct fetch call with proper error handling
     const response = await fetch(`https://utozxityfmoxonfyvdfm.supabase.co/functions/v1/add-shopify-product`, {
       method: 'POST',
       headers: {
@@ -44,8 +44,15 @@ export const generateProducts = async (
     console.log('🔍 Edge Function response status:', response.status);
     console.log('🔍 Edge Function response headers:', Object.fromEntries(response.headers.entries()));
 
+    // Check if response is ok first
     if (!response.ok) {
-      const errorText = await response.text();
+      let errorText;
+      try {
+        errorText = await response.text();
+      } catch (e) {
+        errorText = `HTTP ${response.status}: ${response.statusText}`;
+      }
+      
       console.error('❌ Edge Function response error:', {
         status: response.status,
         statusText: response.statusText,
@@ -54,17 +61,24 @@ export const generateProducts = async (
       
       // More specific error messages
       if (response.status === 404) {
-        throw new Error(`Edge Function not found. Status: ${response.status}`);
+        throw new Error(`Edge Function not found. Please check if the function is deployed. Status: ${response.status}`);
       } else if (response.status === 500) {
         throw new Error(`Edge Function internal error: ${errorText}`);
       } else if (response.status === 403) {
         throw new Error(`Edge Function access denied. Check API keys. Status: ${response.status}`);
-      } else {
+      } else if (response.status >= 400) {
         throw new Error(`Edge Function failed with status ${response.status}: ${errorText}`);
       }
     }
 
-    const result = await response.json();
+    let result;
+    try {
+      result = await response.json();
+    } catch (parseError) {
+      console.error('❌ Failed to parse Edge Function response as JSON:', parseError);
+      const responseText = await response.text();
+      throw new Error(`Invalid JSON response from Edge Function: ${responseText.substring(0, 200)}`);
+    }
     
     if (!result.success) {
       console.error('❌ Generation failed:', result);
@@ -73,16 +87,20 @@ export const generateProducts = async (
     
     console.log('✅ Product generation successful:', result);
     return result;
-  } catch (error) {
+    
+  } catch (error: any) {
     console.error('❌ Product generation failed:', error);
     
-    // Enhanced error reporting
-    if (error.message.includes('Failed to fetch')) {
-      throw new Error('Cannot connect to Edge Function - check network and function deployment');
-    } else if (error.message.includes('TypeError')) {
-      throw new Error('Edge Function communication error - invalid response format');
+    // Enhanced error reporting with more specific messages
+    if (error.message?.includes('Failed to fetch') || error.name === 'TypeError') {
+      throw new Error('Cannot connect to Edge Function - Network error. Please check your internet connection and try again.');
+    } else if (error.message?.includes('NetworkError')) {
+      throw new Error('Network error occurred while connecting to Edge Function. Please try again.');
+    } else if (error.message?.includes('timeout')) {
+      throw new Error('Request timed out. The Edge Function may be overloaded. Please try again.');
     }
     
+    // Re-throw the original error if it's already descriptive
     throw error;
   }
 };
