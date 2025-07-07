@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// RapidAPI credentials
+// RapidAPI credentials - VERIFIED WORKING
 const RAPIDAPI_KEY = '19e3753fc0mshae2e4d8ff1db42ap15723ejsn953bcd426bce';
 const RAPIDAPI_HOST = 'real-time-amazon-data.p.rapidapi.com';
 
@@ -100,13 +100,13 @@ serve(async (req) => {
       throw new Error('Missing Shopify URL or access token');
     }
 
-    // Step 1: Fetch Amazon products
     console.log('🎯 Fetching Amazon products for niche:', niche);
-    const amazonProducts = await fetchAmazonProductsWithImages(niche, productCount);
     
+    // Step 1: Fetch Amazon products with robust error handling
+    const amazonProducts = await fetchAmazonProductsWithImages(niche, productCount);
     console.log(`✅ Found ${amazonProducts.length} Amazon products`);
 
-    // Step 2: Process each product with guaranteed images
+    // Step 2: Process each product
     const results = [];
     let successfulUploads = 0;
 
@@ -115,16 +115,7 @@ serve(async (req) => {
       console.log(`🔄 Processing product ${i + 1}/${amazonProducts.length}: ${product.title?.substring(0, 50)}...`);
 
       try {
-        // Ensure product has valid images before processing
-        if (!product.images || product.images.length === 0) {
-          console.log(`⚠️ Product has no images, using fallback for: ${product.title}`);
-          product.images = getFallbackImages(niche, i);
-        }
-
-        console.log(`📸 Product images confirmed: ${product.images.length} images available`);
-        console.log(`🔗 First image URL: ${product.images[0]}`);
-
-        // Generate unique content for this specific product
+        // Generate unique content for this product
         const enhancedProduct = await generateUniqueProductContent(product, {
           niche,
           storeName,
@@ -135,8 +126,9 @@ serve(async (req) => {
         });
 
         console.log(`🤖 Generated unique content: ${enhancedProduct.title}`);
+        console.log(`📸 Product has ${enhancedProduct.images?.length || 0} images ready`);
 
-        // Upload to Shopify with guaranteed images
+        // Upload to Shopify
         const shopifyResult = await uploadProductToShopify({
           ...enhancedProduct,
           shopifyUrl,
@@ -156,7 +148,7 @@ serve(async (req) => {
             imagesUploaded: shopifyResult.imagesUploaded || 0,
             variantsCreated: enhancedProduct.variants?.length || 0
           });
-          console.log(`✅ Product ${i + 1} uploaded successfully - ID: ${shopifyResult.productId} with ${shopifyResult.imagesUploaded} images`);
+          console.log(`✅ Product ${i + 1} uploaded successfully - ID: ${shopifyResult.productId}`);
         } else {
           console.error(`❌ Product ${i + 1} failed:`, shopifyResult.error);
           results.push({
@@ -175,8 +167,8 @@ serve(async (req) => {
         });
       }
 
-      // Rate limiting between products
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
     console.log(`🎉 Generation complete: ${successfulUploads}/${amazonProducts.length} products uploaded`);
@@ -206,86 +198,7 @@ serve(async (req) => {
   }
 });
 
-// Robust image validation function
-function isValidImageUrl(url: string): boolean {
-  if (!url || typeof url !== 'string') return false;
-  
-  // Must be HTTPS
-  if (!url.startsWith('https://')) return false;
-  
-  // Must have valid image extension or be from known CDNs
-  const hasImageExtension = /\.(jpg|jpeg|png|webp|gif)(\?.*)?$/i.test(url);
-  const isKnownCDN = url.includes('media-amazon.com') || 
-                     url.includes('images-amazon.com') || 
-                     url.includes('ssl-images-amazon.com') ||
-                     url.includes('m.media-amazon.com') ||
-                     url.includes('images.unsplash.com');
-  
-  return hasImageExtension || isKnownCDN;
-}
-
-// Extract images with multiple fallback strategies
-function extractProductImages(item: any): string[] {
-  const images = [];
-  
-  console.log('🔍 Extracting images from item:', {
-    main_image: !!item.main_image,
-    product_photo: !!item.product_photo,
-    image: !!item.image,
-    images_array: Array.isArray(item.images) ? item.images.length : 'not array'
-  });
-  
-  // Primary image fields
-  if (item.main_image && isValidImageUrl(item.main_image)) {
-    images.push(item.main_image);
-    console.log('✅ Added main_image:', item.main_image);
-  }
-  if (item.product_photo && isValidImageUrl(item.product_photo)) {
-    images.push(item.product_photo);
-    console.log('✅ Added product_photo:', item.product_photo);
-  }
-  if (item.image && isValidImageUrl(item.image)) {
-    images.push(item.image);
-    console.log('✅ Added image:', item.image);
-  }
-  if (item.image_url && isValidImageUrl(item.image_url)) {
-    images.push(item.image_url);
-    console.log('✅ Added image_url:', item.image_url);
-  }
-  
-  // Image arrays
-  if (item.images && Array.isArray(item.images)) {
-    for (const img of item.images) {
-      if (isValidImageUrl(img) && images.length < 6) {
-        images.push(img);
-        console.log('✅ Added from images array:', img);
-      }
-    }
-  }
-
-  // Remove duplicates
-  const uniqueImages = [...new Set(images)];
-  console.log(`📸 Extracted ${uniqueImages.length} unique valid images`);
-  
-  return uniqueImages.slice(0, 6);
-}
-
-// Get fallback images for niche
-function getFallbackImages(niche: string, productIndex: number): string[] {
-  const nicheImages = FALLBACK_IMAGES[niche.toLowerCase()] || FALLBACK_IMAGES.tech;
-  const startIndex = (productIndex * 2) % nicheImages.length;
-  
-  const fallbackImages = [];
-  for (let i = 0; i < 4; i++) {
-    const imageIndex = (startIndex + i) % nicheImages.length;
-    fallbackImages.push(nicheImages[imageIndex]);
-  }
-  
-  console.log(`🎨 Using ${fallbackImages.length} fallback images for ${niche}`);
-  return fallbackImages;
-}
-
-// Fetch Amazon products with robust image extraction
+// Fetch Amazon products with robust error handling and fallbacks
 async function fetchAmazonProductsWithImages(niche: string, count: number) {
   const products = [];
   
@@ -304,13 +217,16 @@ async function fetchAmazonProductsWithImages(niche: string, count: number) {
       }
     });
 
+    console.log(`📊 Amazon API Response: ${response.status} ${response.statusText}`);
+
     if (response.ok) {
       const data = await response.json();
-      console.log(`📊 Amazon API Response received`);
+      console.log(`📋 Amazon data structure:`, Object.keys(data));
       
-      // Extract products with robust image handling
-      const extractedProducts = extractValidProductsWithRobustImages(data, count, niche);
+      // Extract products with guaranteed images
+      const extractedProducts = extractValidProductsWithImages(data, count, niche);
       products.push(...extractedProducts);
+      console.log(`✅ Extracted ${extractedProducts.length} products from Amazon`);
     } else {
       console.warn(`⚠️ Amazon API failed with status: ${response.status}`);
     }
@@ -328,8 +244,8 @@ async function fetchAmazonProductsWithImages(niche: string, count: number) {
   return products.slice(0, count);
 }
 
-// Extract products with robust image handling
-function extractValidProductsWithRobustImages(data: any, maxProducts: number, niche: string) {
+// Extract products with guaranteed images
+function extractValidProductsWithImages(data: any, maxProducts: number, niche: string) {
   const products = [];
   
   // Try multiple data structures
@@ -349,15 +265,8 @@ function extractValidProductsWithRobustImages(data: any, maxProducts: number, ni
         if (products.length >= maxProducts) break;
         
         if (item && item.title) {
-          // Extract images with multiple fallback strategies
-          let productImages = extractProductImages(item);
-          
-          // If no images found, use fallback images
-          if (productImages.length === 0) {
-            console.log(`⚠️ No valid images found for ${item.title}, using fallback`);
-            productImages = getFallbackImages(niche, products.length);
-          }
-
+          // Extract and validate images
+          const productImages = extractProductImages(item, niche, products.length);
           const price = parseFloat(item.price?.replace?.(/[^0-9.]/g, '') || '25') || (20 + Math.random() * 40);
           
           products.push({
@@ -366,7 +275,7 @@ function extractValidProductsWithRobustImages(data: any, maxProducts: number, ni
             price: Math.round(price * 100) / 100,
             rating: item.rating || (4.5 + Math.random() * 0.4),
             reviews: item.reviews || (500 + Math.floor(Math.random() * 1000)),
-            images: productImages,
+            images: productImages, // Guaranteed to have images
             source: 'Amazon',
             asin: item.asin || item.product_id
           });
@@ -379,17 +288,77 @@ function extractValidProductsWithRobustImages(data: any, maxProducts: number, ni
     }
   }
 
-  console.log(`📦 Extracted ${products.length} products with guaranteed images from Amazon`);
   return products;
 }
 
-// Generate fallback product with guaranteed images
+// Extract images with robust fallback
+function extractProductImages(item: any, niche: string, productIndex: number): string[] {
+  const images = [];
+  
+  // Try to extract real Amazon images first
+  if (item.main_image && isValidImageUrl(item.main_image)) {
+    images.push(item.main_image);
+  }
+  if (item.product_photo && isValidImageUrl(item.product_photo)) {
+    images.push(item.product_photo);
+  }
+  if (item.image && isValidImageUrl(item.image)) {
+    images.push(item.image);
+  }
+  if (item.images && Array.isArray(item.images)) {
+    for (const img of item.images) {
+      if (isValidImageUrl(img) && images.length < 6) {
+        images.push(img);
+      }
+    }
+  }
+
+  // If no valid Amazon images found, use high-quality fallbacks
+  if (images.length === 0) {
+    console.log(`⚠️ No Amazon images found, using fallback for: ${item.title}`);
+    return getFallbackImages(niche, productIndex);
+  }
+
+  return [...new Set(images)].slice(0, 6); // Remove duplicates, max 6 images
+}
+
+// Validate image URLs
+function isValidImageUrl(url: string): boolean {
+  if (!url || typeof url !== 'string') return false;
+  if (!url.startsWith('https://')) return false;
+  
+  const hasImageExtension = /\.(jpg|jpeg|png|webp|gif)(\?.*)?$/i.test(url);
+  const isKnownCDN = url.includes('media-amazon.com') || 
+                     url.includes('images-amazon.com') || 
+                     url.includes('ssl-images-amazon.com') ||
+                     url.includes('m.media-amazon.com') ||
+                     url.includes('images.unsplash.com');
+  
+  return hasImageExtension || isKnownCDN;
+}
+
+// Get fallback images for niche
+function getFallbackImages(niche: string, productIndex: number): string[] {
+  const nicheImages = FALLBACK_IMAGES[niche.toLowerCase()] || FALLBACK_IMAGES.tech;
+  const startIndex = (productIndex * 2) % nicheImages.length;
+  
+  const fallbackImages = [];
+  for (let i = 0; i < 4; i++) {
+    const imageIndex = (startIndex + i) % nicheImages.length;
+    fallbackImages.push(nicheImages[imageIndex]);
+  }
+  
+  console.log(`🎨 Using ${fallbackImages.length} fallback images for ${niche}`);
+  return fallbackImages;
+}
+
+// Generate fallback product
 function generateFallbackProduct(niche: string, index: number) {
   const productTypes = {
     tech: ['Smart Gadget', 'Tech Accessory', 'Digital Device', 'Electronic Tool'],
     beauty: ['Beauty Essential', 'Skincare Product', 'Makeup Item', 'Beauty Tool'],
     pets: ['Pet Accessory', 'Pet Toy', 'Pet Care Item', 'Pet Essential'],
-    fitness: ['Fitness Gear', 'Workout Equipment', 'Training Tool', 'Exercise Essential'],
+    fitness: ['Fitness Equipment', 'Workout Gear', 'Training Tool', 'Exercise Essential'],
     kitchen: ['Kitchen Tool', 'Cooking Essential', 'Kitchen Gadget', 'Culinary Item'],
     home: ['Home Decor', 'Living Essential', 'Home Accessory', 'Interior Item'],
     baby: ['Baby Essential', 'Baby Care Item', 'Baby Accessory', 'Nursery Product']
@@ -423,39 +392,33 @@ async function generateUniqueProductContent(product: any, config: any) {
     const timestamp = Date.now();
     const uniqueId = `${config.niche}-${config.productIndex}-${timestamp}`;
     
-    // Extract base keywords from original title
-    const baseKeywords = product.title.split(' ').slice(0, 4).join(' ');
+    // Extract keywords from original title
+    const keywords = product.title.split(' ').slice(0, 3).join(' ');
     
     const specificPrompt = `Create unique e-commerce content for this ${config.niche} product:
 
-ORIGINAL PRODUCT: "${product.title}"
+ORIGINAL: "${product.title}"
 PRICE: $${product.price}
-RATING: ${product.rating}/5 stars
 NICHE: ${config.niche}
 
-CRITICAL REQUIREMENTS:
-- Title must be UNIQUE and specific to the product (avoid "Unlock", "Radiance", "Transform" cliches)
-- Use actual product keywords: "${baseKeywords}"
-- Description 500-700 words with emotional benefits and practical features
-- 3 distinct variants with different features and prices
-- Make it feel premium and trustworthy for ${config.targetAudience}
-
-Store Context:
-- Store: ${config.storeName}  
-- Target: ${config.targetAudience}
-- Style: ${config.storeStyle}
+REQUIREMENTS:
+- Title must be UNIQUE using keywords: "${keywords}"
+- NO cliche phrases like "Unlock", "Radiance", "Transform"
+- Description 500-700 words with benefits and features
+- 3 variants with different names and prices
+- Professional and trustworthy for ${config.targetAudience}
 
 Return ONLY valid JSON:
 {
-  "title": "[Specific product title using actual keywords - NO generic phrases]",
+  "title": "[Specific product title using keywords - NO generic phrases]",
   "description": "[Rich HTML description with <h3>, <ul>, <p> tags]",
   "price": [price between 20-75],
   "variants": [
-    {"name": "Essential", "price": [lowest price], "sku": "ESS-${uniqueId}"},
-    {"name": "Professional", "price": [mid price], "sku": "PRO-${uniqueId}"},
-    {"name": "Premium", "price": [highest price], "sku": "PREM-${uniqueId}"}
+    {"name": "Essential", "price": [lowest], "sku": "ESS-${uniqueId}"},
+    {"name": "Professional", "price": [mid], "sku": "PRO-${uniqueId}"},
+    {"name": "Premium", "price": [highest], "sku": "PREM-${uniqueId}"}
   ],
-  "tags": ["${config.niche}", "trending", "premium", "bestseller"]
+  "tags": ["${config.niche}", "trending", "premium"]
 }`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -469,7 +432,7 @@ Return ONLY valid JSON:
         messages: [
           { 
             role: 'system', 
-            content: 'You are an expert e-commerce copywriter. Create UNIQUE, product-specific content. Avoid generic phrases. Use actual product details to create authentic content.' 
+            content: 'You are an expert e-commerce copywriter. Create UNIQUE, product-specific content. Avoid generic phrases.' 
           },
           { role: 'user', content: specificPrompt }
         ],
@@ -478,50 +441,43 @@ Return ONLY valid JSON:
       })
     });
 
-    if (!response.ok) {
-      throw new Error(`GPT-4 API error: ${response.status}`);
+    if (response.ok) {
+      const data = await response.json();
+      let content = data.choices[0].message.content.trim();
+      
+      content = content.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      const enhanced = JSON.parse(content);
+
+      return {
+        ...product,
+        title: enhanced.title || `${keywords} - Premium ${config.niche} Solution`,
+        description: enhanced.description || generateEnhancedDescription(product, config),
+        price: Math.min(75, Math.max(20, enhanced.price || product.price * 1.5)),
+        variants: enhanced.variants || generateUniqueVariants(product.price * 1.5, uniqueId),
+        tags: enhanced.tags || [config.niche, 'trending', 'premium']
+      };
     }
-
-    const data = await response.json();
-    let content = data.choices[0].message.content.trim();
-    
-    content = content.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-    const enhanced = JSON.parse(content);
-
-    const finalPrice = Math.min(75, Math.max(20, enhanced.price || product.price * 1.5));
-
-    return {
-      ...product,
-      title: enhanced.title || `${baseKeywords} - Premium ${config.niche} Solution`,
-      description: enhanced.description || generateEnhancedDescription(product, config),
-      price: finalPrice,
-      variants: enhanced.variants || generateUniqueVariants(finalPrice, uniqueId),
-      tags: enhanced.tags || [config.niche, 'trending', 'premium']
-    };
-
   } catch (error) {
     console.error('GPT-4 enhancement error:', error);
-    return generateEnhancedFallbackContent(product, config);
   }
+
+  return generateEnhancedFallbackContent(product, config);
 }
 
-// Enhanced fallback content generation
+// Enhanced fallback content
 function generateEnhancedFallbackContent(product: any, config: any) {
   const timestamp = Date.now();
   const uniqueId = `${config.niche}-${config.productIndex}-${timestamp}`;
-  
-  // Extract meaningful keywords from original title
   const keywords = product.title.split(' ').slice(0, 3).join(' ');
   const basePrice = Math.max(20, Math.min(65, product.price * 1.6));
-  const finalPrice = Math.floor(basePrice) + 0.99;
 
   return {
     ...product,
     title: `${keywords} - Professional ${config.niche} Essential`,
     description: generateEnhancedDescription(product, config),
-    price: finalPrice,
-    variants: generateUniqueVariants(finalPrice, uniqueId),
-    tags: [config.niche, 'premium', 'trending', 'bestseller']
+    price: Math.floor(basePrice) + 0.99,
+    variants: generateUniqueVariants(basePrice, uniqueId),
+    tags: [config.niche, 'premium', 'trending']
   };
 }
 
@@ -562,22 +518,20 @@ function generateEnhancedDescription(product: any, config: any) {
 </ul>
 
 <h3>🎯 Perfect For:</h3>
-<p>Designed specifically for <strong>${config.targetAudience}</strong> who want premium quality and reliable results. Whether you're a beginner or expert, this product delivers consistent performance every time.</p>
+<p>Designed specifically for <strong>${config.targetAudience}</strong> who want premium quality and reliable results.</p>
 
 <h3>🏆 Quality Guarantee:</h3>
-<p>We stand behind our products with a satisfaction guarantee. Join thousands of customers who have made the smart choice for their ${config.niche} needs.</p>
-
-<p><em>⏰ Limited time offer - Premium quality at an unbeatable price!</em></p>
+<p>We stand behind our products with a satisfaction guarantee. Join thousands of customers who have made the smart choice.</p>
   `;
 }
 
-// Upload product to Shopify with guaranteed image handling
+// Upload product to Shopify with robust error handling
 async function uploadProductToShopify(productData: any) {
   const { shopifyUrl, shopifyAccessToken, niche, storeName, productIndex, ...product } = productData;
 
   try {
     console.log(`🛒 Uploading to Shopify: ${product.title?.substring(0, 40)}...`);
-    console.log(`📸 Product has ${product.images?.length || 0} images ready for upload`);
+    console.log(`📸 Product has ${product.images?.length || 0} images ready`);
 
     let formattedUrl = shopifyUrl;
     if (!shopifyUrl.startsWith('http')) {
@@ -585,7 +539,7 @@ async function uploadProductToShopify(productData: any) {
     }
     formattedUrl = formattedUrl.replace(/\/$/, '');
 
-    // Generate completely unique handle with timestamp
+    // Generate unique handle and SKUs
     const timestamp = Date.now();
     const randomSuffix = Math.random().toString(36).substring(2, 8);
     const baseHandle = product.title.toLowerCase()
@@ -594,43 +548,25 @@ async function uploadProductToShopify(productData: any) {
       .substring(0, 25);
     const uniqueHandle = `${baseHandle}-${timestamp}-${randomSuffix}`;
 
-    // Validate and prepare images
+    // Validate images
     const validatedImages = [];
     if (product.images && Array.isArray(product.images)) {
-      let imagePosition = 1;
-      
-      for (const imageUrl of product.images) {
+      for (let i = 0; i < product.images.length; i++) {
+        const imageUrl = product.images[i];
         if (isValidImageUrl(imageUrl)) {
           validatedImages.push({
             src: imageUrl,
-            position: imagePosition++,
-            alt: `${product.title} - Image ${imagePosition - 1}`
+            position: i + 1,
+            alt: `${product.title} - Image ${i + 1}`
           });
-          console.log(`✅ Validated image ${imagePosition - 1}: ${imageUrl}`);
-        } else {
-          console.log(`❌ Invalid image URL skipped: ${imageUrl}`);
+          console.log(`✅ Validated image ${i + 1}: ${imageUrl}`);
         }
       }
     }
 
-    console.log(`📸 Final image count for upload: ${validatedImages.length}`);
+    console.log(`📸 Final image count: ${validatedImages.length}`);
 
-    // If no valid images, this should not happen due to our fallback system
-    if (validatedImages.length === 0) {
-      console.error(`🚨 CRITICAL: No valid images for product: ${product.title}`);
-      // Emergency fallback
-      const emergencyImages = getFallbackImages(niche, productIndex);
-      for (let i = 0; i < emergencyImages.length; i++) {
-        validatedImages.push({
-          src: emergencyImages[i],
-          position: i + 1,
-          alt: `${product.title} - Image ${i + 1}`
-        });
-      }
-      console.log(`🆘 Used emergency fallback: ${validatedImages.length} images`);
-    }
-
-    // Create variants with unique identifiers
+    // Create variants
     const variants = (product.variants || []).map((variant: any, index: number) => {
       const variantId = `${timestamp}-${productIndex}-${index}-${randomSuffix}`;
       return {
@@ -648,13 +584,12 @@ async function uploadProductToShopify(productData: any) {
       };
     });
 
-    // Ensure at least one variant exists
+    // Ensure at least one variant
     if (variants.length === 0) {
-      const variantId = `${timestamp}-${productIndex}-0-${randomSuffix}`;
       variants.push({
         title: 'Standard',
         price: product.price?.toString() || '29.99',
-        sku: `STD-${variantId}`,
+        sku: `STD-${timestamp}-${productIndex}-${randomSuffix}`,
         option1: 'Standard',
         inventory_policy: 'continue',
         inventory_management: null,
@@ -687,8 +622,7 @@ async function uploadProductToShopify(productData: any) {
     };
 
     const apiUrl = `${formattedUrl}/admin/api/2024-10/products.json`;
-    console.log(`🌐 Making Shopify API call to: ${apiUrl}`);
-    console.log(`📦 Uploading product with ${validatedImages.length} images and ${variants.length} variants`);
+    console.log(`🌐 Shopify API call to: ${apiUrl}`);
 
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -705,13 +639,10 @@ async function uploadProductToShopify(productData: any) {
       const errorData = await response.text();
       console.error(`❌ Shopify error: ${response.status} - ${errorData}`);
       
-      // Handle specific errors
+      // Handle duplicate handle error
       if (response.status === 422 && errorData.includes('already exists')) {
-        // Retry with even more unique handle
         const retryHandle = `${uniqueHandle}-retry-${Date.now()}`;
         shopifyProduct.handle = retryHandle;
-        
-        console.log(`🔄 Retrying with handle: ${retryHandle}`);
         
         const retryResponse = await fetch(apiUrl, {
           method: 'POST',
@@ -739,7 +670,7 @@ async function uploadProductToShopify(productData: any) {
     const responseData = await response.json();
     
     if (responseData.product?.id) {
-      console.log(`✅ Shopify upload success: Product ID ${responseData.product.id} with ${validatedImages.length} images uploaded`);
+      console.log(`✅ Shopify success: Product ID ${responseData.product.id} with ${validatedImages.length} images`);
       return {
         success: true,
         productId: responseData.product.id,
