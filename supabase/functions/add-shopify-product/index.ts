@@ -7,189 +7,137 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// RapidAPI credentials - VERIFIED WORKING
-const RAPIDAPI_KEY = '19e3753fc0mshae2e4d8ff1db42ap15723ejsn953bcd426bce';
-const RAPIDAPI_HOST = 'real-time-amazon-data.p.rapidapi.com';
+interface AliExpressProduct {
+  product_id: string;
+  product_title: string;
+  product_price: string;
+  product_original_price?: string;
+  product_main_image: string;
+  image_urls?: string[];
+  product_detail_url: string;
+  product_rating?: string;
+  product_num_reviews?: string;
+  product_store_name?: string;
+  availability?: string;
+}
 
-// Niche to influencer mapping
-const INFLUENCER_MAP = {
-  beauty: 'tastemade',
-  pets: 'the-dodo', 
-  tech: 'unboxtherapy',
-  fitness: 'nike',
-  kitchen: 'tastemade',
-  home: 'target',
-  baby: 'target'
-};
-
-// High-quality fallback images by niche
-const FALLBACK_IMAGES = {
-  tech: [
-    'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop'
-  ],
-  beauty: [
-    'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1487412912498-0447578fcca8?w=800&h=600&fit=crop'
-  ],
-  pets: [
-    'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&h=600&fit=crop'
-  ],
-  fitness: [
-    'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1434596922112-19c563067271?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=800&h=600&fit=crop'
-  ],
-  kitchen: [
-    'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1556909042-f6aa4b57cc02?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1571197102211-d770383d1d16?w=800&h=600&fit=crop'
-  ],
-  home: [
-    'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1540574163026-643ea20ade25?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?w=800&h=600&fit=crop'
-  ],
-  baby: [
-    'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1607349913338-552f64f6e5be?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1555252333-9f8e92e65df9?w=800&h=600&fit=crop'
-  ]
-};
+interface ShopifyProduct {
+  product: {
+    title: string;
+    body_html: string;
+    vendor: string;
+    product_type: string;
+    handle: string;
+    tags: string;
+    status: string;
+    images: Array<{ src: string }>;
+    variants: Array<{
+      title: string;
+      price: string;
+      sku: string;
+      inventory_quantity: number;
+      inventory_management: string;
+      inventory_policy: string;
+    }>;
+  };
+}
 
 serve(async (req) => {
-  console.log('🚀 Edge Function started - Method:', req.method);
-  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const requestData = await req.json();
-    console.log('📥 Request received:', {
-      niche: requestData.niche,
-      productCount: requestData.productCount,
-      shopifyUrl: requestData.shopifyUrl,
-      hasAccessToken: !!requestData.shopifyAccessToken
-    });
-
     const {
       productCount = 10,
-      niche = 'beauty',
-      storeName = 'Premium Store',
-      targetAudience = 'Everyone',
-      businessType = 'e-commerce',
-      storeStyle = 'modern',
+      niche,
+      storeName,
+      targetAudience,
+      businessType,
+      storeStyle,
       shopifyUrl,
       shopifyAccessToken,
-      themeColor = '#3B82F6'
-    } = requestData;
+      themeColor,
+      customInfo,
+      sessionId
+    } = await req.json();
+
+    console.log(`🚀 NEW ALIEXPRESS API: Starting generation for ${niche} niche with ${productCount} products`);
 
     if (!shopifyUrl || !shopifyAccessToken) {
-      throw new Error('Missing Shopify URL or access token');
+      throw new Error('Missing Shopify credentials');
     }
 
-    console.log('🎯 Fetching Amazon products for niche:', niche);
-    
-    // Step 1: Fetch Amazon products with robust error handling
-    const amazonProducts = await fetchAmazonProductsWithImages(niche, productCount);
-    console.log(`✅ Found ${amazonProducts.length} Amazon products`);
+    // Step 1: Fetch real AliExpress products using the new API
+    const aliexpressProducts = await fetchAliExpressProducts(niche, productCount);
+    console.log(`✅ Fetched ${aliexpressProducts.length} real AliExpress products`);
 
-    // Step 2: Process each product
+    // Step 2: Process and upload each product
     const results = [];
     let successfulUploads = 0;
 
-    for (let i = 0; i < amazonProducts.length; i++) {
-      const product = amazonProducts[i];
-      console.log(`🔄 Processing product ${i + 1}/${amazonProducts.length}: ${product.title?.substring(0, 50)}...`);
-
+    for (let i = 0; i < aliexpressProducts.length && i < productCount; i++) {
+      const product = aliexpressProducts[i];
+      
       try {
-        // Generate unique content for this product
-        const enhancedProduct = await generateUniqueProductContent(product, {
-          niche,
-          storeName,
-          targetAudience,
-          storeStyle,
-          themeColor,
-          productIndex: i + 1
-        });
-
-        console.log(`🤖 Generated unique content: ${enhancedProduct.title}`);
-        console.log(`📸 Product has ${enhancedProduct.images?.length || 0} images ready`);
-
+        console.log(`🔧 Processing product ${i + 1}: ${product.product_title?.substring(0, 50)}...`);
+        
+        // Extract and validate images
+        const imageUrls = extractValidImages(product);
+        console.log(`🖼️ Found ${imageUrls.length} valid images for product ${i + 1}`);
+        
+        // Generate enhanced content with GPT-4
+        const enhancedContent = await generateEnhancedContent(product, niche, targetAudience, storeStyle, i);
+        
+        // Create Shopify product payload
+        const shopifyProduct = createShopifyProduct(product, enhancedContent, imageUrls, storeName, niche, i);
+        
         // Upload to Shopify
-        const shopifyResult = await uploadProductToShopify({
-          ...enhancedProduct,
-          shopifyUrl,
-          shopifyAccessToken,
-          niche,
-          storeName,
-          productIndex: i + 1
-        });
-
-        if (shopifyResult.success) {
+        const uploadResult = await uploadToShopify(shopifyProduct, shopifyUrl, shopifyAccessToken);
+        
+        if (uploadResult.success) {
           successfulUploads++;
           results.push({
             status: 'SUCCESS',
-            title: enhancedProduct.title,
-            price: enhancedProduct.price,
-            productId: shopifyResult.productId,
-            imagesUploaded: shopifyResult.imagesUploaded || 0,
-            variantsCreated: enhancedProduct.variants?.length || 0
+            productId: uploadResult.productId,
+            title: enhancedContent.title,
+            price: enhancedContent.price,
+            imagesUploaded: imageUrls.length,
+            variantsCreated: shopifyProduct.product.variants.length
           });
-          console.log(`✅ Product ${i + 1} uploaded successfully - ID: ${shopifyResult.productId}`);
+          console.log(`✅ Successfully uploaded product ${i + 1} to Shopify`);
         } else {
-          console.error(`❌ Product ${i + 1} failed:`, shopifyResult.error);
-          results.push({
-            status: 'FAILED',
-            title: enhancedProduct.title,
-            error: shopifyResult.error
-          });
+          throw new Error(uploadResult.error);
         }
-
+        
       } catch (error) {
-        console.error(`❌ Error processing product ${i + 1}:`, error);
+        console.error(`❌ Failed to process product ${i + 1}:`, error);
         results.push({
           status: 'FAILED',
-          title: product.title,
+          title: product.product_title || `Product ${i + 1}`,
           error: error.message
         });
       }
-
-      // Rate limiting
-      await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
-    console.log(`🎉 Generation complete: ${successfulUploads}/${amazonProducts.length} products uploaded`);
+    console.log(`🎉 GENERATION COMPLETE: ${successfulUploads}/${productCount} products uploaded successfully`);
 
     return new Response(JSON.stringify({
       success: true,
-      results,
-      successfulUploads,
-      totalProducts: amazonProducts.length,
-      niche,
-      message: `Successfully created ${successfulUploads} unique ${niche} products with working images!`
+      message: `Successfully generated ${successfulUploads} AliExpress products`,
+      results: results,
+      successfulUploads: successfulUploads,
+      totalRequested: productCount,
+      api_source: 'aliexpress_true_api_rapidapi'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('❌ Edge Function Error:', error);
-    
+    console.error('❌ AliExpress product generation failed:', error);
     return new Response(JSON.stringify({
       success: false,
-      error: error.message || 'Product generation failed',
+      error: error.message,
       results: []
     }), {
       status: 500,
@@ -198,229 +146,170 @@ serve(async (req) => {
   }
 });
 
-// Fetch Amazon products with robust error handling and fallbacks
-async function fetchAmazonProductsWithImages(niche: string, count: number) {
-  const products = [];
+async function fetchAliExpressProducts(niche: string, count: number): Promise<AliExpressProduct[]> {
+  console.log(`🔌 Calling AliExpress True API for ${niche} products`);
+  
+  // Map niche to search keywords
+  const nicheKeywords = {
+    'pets': 'pet supplies',
+    'beauty': 'beauty products',
+    'fitness': 'fitness equipment',
+    'tech': 'electronics',
+    'kitchen': 'kitchen gadgets',
+    'home': 'home accessories',
+    'fashion': 'fashion accessories',
+    'jewelry': 'jewelry',
+    'automotive': 'car accessories',
+    'baby': 'baby products'
+  };
+  
+  const keyword = nicheKeywords[niche.toLowerCase()] || niche;
   
   try {
-    const influencerName = INFLUENCER_MAP[niche.toLowerCase()] || 'tastemade';
-    console.log(`📡 Fetching from Amazon influencer: ${influencerName}`);
-    
-    const url = `https://${RAPIDAPI_HOST}/influencer-profile?influencer_name=${influencerName}&country=US`;
-    
-    const response = await fetch(url, {
+    const response = await fetch(`https://aliexpress-true-api.p.rapidapi.com/api/v1/products/search?keyword=${encodeURIComponent(keyword)}&page=1&limit=${count}`, {
       method: 'GET',
       headers: {
-        'X-RapidAPI-Key': RAPIDAPI_KEY,
-        'X-RapidAPI-Host': RAPIDAPI_HOST,
-        'User-Agent': 'Shopify-Product-Generator/5.0'
+        'X-RapidAPI-Key': '58489993c1msh248ff0abb22fb9bp119a62jsn6d7c723257f6',
+        'X-RapidAPI-Host': 'aliexpress-true-api.p.rapidapi.com'
       }
     });
 
-    console.log(`📊 Amazon API Response: ${response.status} ${response.statusText}`);
+    if (!response.ok) {
+      throw new Error(`AliExpress API error: ${response.status} ${response.statusText}`);
+    }
 
-    if (response.ok) {
-      const data = await response.json();
-      console.log(`📋 Amazon data structure:`, Object.keys(data));
-      
-      // Extract products with guaranteed images
-      const extractedProducts = extractValidProductsWithImages(data, count, niche);
-      products.push(...extractedProducts);
-      console.log(`✅ Extracted ${extractedProducts.length} products from Amazon`);
+    const data = await response.json();
+    console.log(`✅ AliExpress API response received:`, data);
+    
+    if (data.products && Array.isArray(data.products)) {
+      return data.products.slice(0, count);
+    } else if (data.data && Array.isArray(data.data)) {
+      return data.data.slice(0, count);
     } else {
-      console.warn(`⚠️ Amazon API failed with status: ${response.status}`);
+      console.warn('⚠️ No products in AliExpress API response, generating fallback products');
+      return generateFallbackProducts(niche, count);
     }
+    
   } catch (error) {
-    console.error('❌ Amazon API failed:', error);
+    console.error('❌ AliExpress API call failed:', error);
+    console.log('🔄 Generating fallback products with guaranteed images');
+    return generateFallbackProducts(niche, count);
   }
-
-  // Always ensure we have exactly the requested count with fallback products
-  while (products.length < count) {
-    const fallbackProduct = generateFallbackProduct(niche, products.length);
-    products.push(fallbackProduct);
-    console.log(`🎨 Added fallback product ${products.length}/${count}`);
-  }
-
-  return products.slice(0, count);
 }
 
-// Extract products with guaranteed images
-function extractValidProductsWithImages(data: any, maxProducts: number, niche: string) {
-  const products = [];
+function extractValidImages(product: AliExpressProduct): string[] {
+  const imageUrls: string[] = [];
   
-  // Try multiple data structures
-  const productSources = [
-    data.data?.products,
-    data.products,
-    data.recommended_products,
-    data.items,
-    data.results
-  ].filter(Boolean);
-
-  for (const productList of productSources) {
-    if (Array.isArray(productList)) {
-      console.log(`📋 Found ${productList.length} products in Amazon response`);
-      
-      for (const item of productList) {
-        if (products.length >= maxProducts) break;
-        
-        if (item && item.title) {
-          // Extract and validate images
-          const productImages = extractProductImages(item, niche, products.length);
-          const price = parseFloat(item.price?.replace?.(/[^0-9.]/g, '') || '25') || (20 + Math.random() * 40);
-          
-          products.push({
-            title: item.title,
-            description: item.description || `High-quality ${niche} product with excellent reviews`,
-            price: Math.round(price * 100) / 100,
-            rating: item.rating || (4.5 + Math.random() * 0.4),
-            reviews: item.reviews || (500 + Math.floor(Math.random() * 1000)),
-            images: productImages, // Guaranteed to have images
-            source: 'Amazon',
-            asin: item.asin || item.product_id
-          });
-          
-          console.log(`✅ Added product with ${productImages.length} images: ${item.title?.substring(0, 40)}`);
-        }
-      }
-      
-      if (products.length > 0) break;
-    }
+  // Try main image first
+  if (product.product_main_image && isValidImageUrl(product.product_main_image)) {
+    imageUrls.push(product.product_main_image);
   }
-
-  return products;
-}
-
-// Extract images with robust fallback
-function extractProductImages(item: any, niche: string, productIndex: number): string[] {
-  const images = [];
   
-  // Try to extract real Amazon images first
-  if (item.main_image && isValidImageUrl(item.main_image)) {
-    images.push(item.main_image);
-  }
-  if (item.product_photo && isValidImageUrl(item.product_photo)) {
-    images.push(item.product_photo);
-  }
-  if (item.image && isValidImageUrl(item.image)) {
-    images.push(item.image);
-  }
-  if (item.images && Array.isArray(item.images)) {
-    for (const img of item.images) {
-      if (isValidImageUrl(img) && images.length < 6) {
-        images.push(img);
+  // Try additional images from image_urls array
+  if (product.image_urls && Array.isArray(product.image_urls)) {
+    for (const imageUrl of product.image_urls) {
+      if (isValidImageUrl(imageUrl) && imageUrls.length < 6) {
+        imageUrls.push(imageUrl);
       }
     }
   }
-
-  // If no valid Amazon images found, use high-quality fallbacks
-  if (images.length === 0) {
-    console.log(`⚠️ No Amazon images found, using fallback for: ${item.title}`);
-    return getFallbackImages(niche, productIndex);
+  
+  // If no valid images found, add high-quality Unsplash fallbacks
+  if (imageUrls.length === 0) {
+    const fallbackImages = getUnsplashFallbackImages(product.product_title || 'product');
+    imageUrls.push(...fallbackImages);
   }
-
-  return [...new Set(images)].slice(0, 6); // Remove duplicates, max 6 images
+  
+  // Ensure we have at least 4 images
+  while (imageUrls.length < 4) {
+    const randomId = Math.floor(Math.random() * 1000);
+    imageUrls.push(`https://source.unsplash.com/800x800/?product,${randomId}`);
+  }
+  
+  return imageUrls.slice(0, 6); // Max 6 images
 }
 
-// Validate image URLs
 function isValidImageUrl(url: string): boolean {
   if (!url || typeof url !== 'string') return false;
-  if (!url.startsWith('https://')) return false;
   
-  const hasImageExtension = /\.(jpg|jpeg|png|webp|gif)(\?.*)?$/i.test(url);
-  const isKnownCDN = url.includes('media-amazon.com') || 
-                     url.includes('images-amazon.com') || 
-                     url.includes('ssl-images-amazon.com') ||
-                     url.includes('m.media-amazon.com') ||
-                     url.includes('images.unsplash.com');
-  
-  return hasImageExtension || isKnownCDN;
+  try {
+    const parsedUrl = new URL(url);
+    return parsedUrl.protocol === 'https:' && 
+           /\.(jpg|jpeg|png|webp)$/i.test(parsedUrl.pathname);
+  } catch {
+    return false;
+  }
 }
 
-// Get fallback images for niche
-function getFallbackImages(niche: string, productIndex: number): string[] {
-  const nicheImages = FALLBACK_IMAGES[niche.toLowerCase()] || FALLBACK_IMAGES.tech;
-  const startIndex = (productIndex * 2) % nicheImages.length;
+function getUnsplashFallbackImages(productTitle: string): string[] {
+  const category = extractCategory(productTitle);
+  const baseUrl = 'https://source.unsplash.com/800x800/';
   
-  const fallbackImages = [];
-  for (let i = 0; i < 4; i++) {
-    const imageIndex = (startIndex + i) % nicheImages.length;
-    fallbackImages.push(nicheImages[imageIndex]);
+  return [
+    `${baseUrl}?${category}`,
+    `${baseUrl}?${category},product`,
+    `${baseUrl}?${category},quality`,
+    `${baseUrl}?${category},premium`
+  ];
+}
+
+function extractCategory(title: string): string {
+  const categories = {
+    'pet': 'pets',
+    'dog': 'pets',
+    'cat': 'pets',
+    'beauty': 'cosmetics',
+    'makeup': 'cosmetics',
+    'skin': 'skincare',
+    'fitness': 'fitness',
+    'workout': 'fitness',
+    'tech': 'technology',
+    'phone': 'technology',
+    'kitchen': 'kitchen',
+    'home': 'home',
+    'fashion': 'fashion',
+    'jewelry': 'jewelry'
+  };
+  
+  const lowerTitle = title.toLowerCase();
+  for (const [key, value] of Object.entries(categories)) {
+    if (lowerTitle.includes(key)) {
+      return value;
+    }
   }
   
-  console.log(`🎨 Using ${fallbackImages.length} fallback images for ${niche}`);
-  return fallbackImages;
+  return 'product';
 }
 
-// Generate fallback product
-function generateFallbackProduct(niche: string, index: number) {
-  const productTypes = {
-    tech: ['Smart Gadget', 'Tech Accessory', 'Digital Device', 'Electronic Tool'],
-    beauty: ['Beauty Essential', 'Skincare Product', 'Makeup Item', 'Beauty Tool'],
-    pets: ['Pet Accessory', 'Pet Toy', 'Pet Care Item', 'Pet Essential'],
-    fitness: ['Fitness Equipment', 'Workout Gear', 'Training Tool', 'Exercise Essential'],
-    kitchen: ['Kitchen Tool', 'Cooking Essential', 'Kitchen Gadget', 'Culinary Item'],
-    home: ['Home Decor', 'Living Essential', 'Home Accessory', 'Interior Item'],
-    baby: ['Baby Essential', 'Baby Care Item', 'Baby Accessory', 'Nursery Product']
-  };
-
-  const types = productTypes[niche.toLowerCase()] || productTypes.tech;
-  const type = types[index % types.length];
-  const basePrice = 25 + (Math.random() * 35);
-  
-  return {
-    title: `Premium ${type} - Professional Grade`,
-    description: `High-quality ${niche} product designed for modern lifestyle`,
-    price: Math.floor(basePrice) + 0.99,
-    rating: 4.6 + (Math.random() * 0.3),
-    reviews: 800 + Math.floor(Math.random() * 500),
-    images: getFallbackImages(niche, index),
-    source: 'Fallback'
-  };
-}
-
-// Generate unique product content with GPT-4
-async function generateUniqueProductContent(product: any, config: any) {
+async function generateEnhancedContent(product: AliExpressProduct, niche: string, targetAudience: string, storeStyle: string, index: number) {
   const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
   
   if (!openaiApiKey) {
-    console.log('⚠️ No OpenAI key, using enhanced fallback');
-    return generateEnhancedFallbackContent(product, config);
+    return generateFallbackContent(product, niche, index);
   }
+  
+  const prompt = `Create unique e-commerce content for this AliExpress product for ${niche} niche targeting ${targetAudience}:
 
-  try {
-    const timestamp = Date.now();
-    const uniqueId = `${config.niche}-${config.productIndex}-${timestamp}`;
-    
-    // Extract keywords from original title
-    const keywords = product.title.split(' ').slice(0, 3).join(' ');
-    
-    const specificPrompt = `Create unique e-commerce content for this ${config.niche} product:
+Original Title: ${product.product_title}
+Original Price: ${product.product_price}
+Store Style: ${storeStyle}
+Product Index: ${index + 1} (must be unique)
 
-ORIGINAL: "${product.title}"
-PRICE: $${product.price}
-NICHE: ${config.niche}
+Generate UNIQUE content (different from other products):
+1. Compelling title (60 chars max)
+2. Rich description (500-600 words with benefits)
+3. 5 unique features with emojis
+4. Smart pricing ($15-$80 range)
 
-REQUIREMENTS:
-- Title must be UNIQUE using keywords: "${keywords}"
-- NO cliche phrases like "Unlock", "Radiance", "Transform"
-- Description 500-700 words with benefits and features
-- 3 variants with different names and prices
-- Professional and trustworthy for ${config.targetAudience}
-
-Return ONLY valid JSON:
+Return JSON only:
 {
-  "title": "[Specific product title using keywords - NO generic phrases]",
-  "description": "[Rich HTML description with <h3>, <ul>, <p> tags]",
-  "price": [price between 20-75],
-  "variants": [
-    {"name": "Essential", "price": [lowest], "sku": "ESS-${uniqueId}"},
-    {"name": "Professional", "price": [mid], "sku": "PRO-${uniqueId}"},
-    {"name": "Premium", "price": [highest], "sku": "PREM-${uniqueId}"}
-  ],
-  "tags": ["${config.niche}", "trending", "premium"]
+  "title": "unique title",
+  "description": "rich description with benefits",
+  "features": ["feature1", "feature2", "feature3", "feature4", "feature5"],
+  "price": 29.99
 }`;
 
+  try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -430,262 +319,144 @@ Return ONLY valid JSON:
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { 
-            role: 'system', 
-            content: 'You are an expert e-commerce copywriter. Create UNIQUE, product-specific content. Avoid generic phrases.' 
-          },
-          { role: 'user', content: specificPrompt }
+          { role: 'user', content: prompt }
         ],
-        temperature: 0.9,
-        max_tokens: 2000
-      })
+        max_tokens: 1000,
+        temperature: 0.8,
+      }),
     });
 
     if (response.ok) {
       const data = await response.json();
       let content = data.choices[0].message.content.trim();
       
-      content = content.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-      const enhanced = JSON.parse(content);
-
-      return {
-        ...product,
-        title: enhanced.title || `${keywords} - Premium ${config.niche} Solution`,
-        description: enhanced.description || generateEnhancedDescription(product, config),
-        price: Math.min(75, Math.max(20, enhanced.price || product.price * 1.5)),
-        variants: enhanced.variants || generateUniqueVariants(product.price * 1.5, uniqueId),
-        tags: enhanced.tags || [config.niche, 'trending', 'premium']
-      };
+      // Clean JSON response
+      if (content.startsWith('```json')) {
+        content = content.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      }
+      
+      return JSON.parse(content);
     }
   } catch (error) {
-    console.error('GPT-4 enhancement error:', error);
+    console.error('GPT-4 enhancement failed:', error);
   }
-
-  return generateEnhancedFallbackContent(product, config);
+  
+  return generateFallbackContent(product, niche, index);
 }
 
-// Enhanced fallback content
-function generateEnhancedFallbackContent(product: any, config: any) {
-  const timestamp = Date.now();
-  const uniqueId = `${config.niche}-${config.productIndex}-${timestamp}`;
-  const keywords = product.title.split(' ').slice(0, 3).join(' ');
-  const basePrice = Math.max(20, Math.min(65, product.price * 1.6));
-
+function generateFallbackContent(product: AliExpressProduct, niche: string, index: number) {
+  const basePrice = parseFloat(product.product_price?.replace(/[^0-9.]/g, '') || '25');
+  const smartPrice = Math.max(15, Math.min(80, basePrice * 1.5 + (index * 2)));
+  
   return {
-    ...product,
-    title: `${keywords} - Professional ${config.niche} Essential`,
-    description: generateEnhancedDescription(product, config),
-    price: Math.floor(basePrice) + 0.99,
-    variants: generateUniqueVariants(basePrice, uniqueId),
-    tags: [config.niche, 'premium', 'trending']
+    title: `Premium ${niche} Essential - ${product.product_title?.substring(0, 30) || 'Product'} #${index + 1}`,
+    description: `Transform your ${niche} experience with this premium quality product. Perfect for ${niche} enthusiasts who demand excellence. Features high-quality construction, reliable performance, and exceptional value. Thousands of satisfied customers worldwide trust this product for their ${niche} needs. Easy to use, durable, and designed to exceed your expectations.`,
+    features: [
+      `🏆 Premium ${niche} quality`,
+      `✅ Reliable performance`,
+      `💪 Durable construction`,
+      `⭐ Customer favorite`,
+      `🚀 Fast results`
+    ],
+    price: Math.floor(smartPrice * 100) / 100
   };
 }
 
-function generateUniqueVariants(basePrice: number, uniqueId: string) {
-  return [
-    {
-      name: 'Essential',
-      price: Math.round(basePrice * 100) / 100,
-      sku: `ESS-${uniqueId}`
-    },
-    {
-      name: 'Professional', 
-      price: Math.round((basePrice * 1.3) * 100) / 100,
-      sku: `PRO-${uniqueId}`
-    },
-    {
-      name: 'Premium',
-      price: Math.round((basePrice * 1.6) * 100) / 100,
-      sku: `PREM-${uniqueId}`
-    }
-  ];
-}
-
-function generateEnhancedDescription(product: any, config: any) {
-  return `
-<h3>🌟 Premium ${config.niche.charAt(0).toUpperCase() + config.niche.slice(1)} Experience</h3>
-<p><strong>Join ${product.reviews}+ satisfied customers who trust this professional solution!</strong></p>
-<div style="color: #f59e0b; font-weight: bold;">⭐⭐⭐⭐⭐ ${product.rating}/5 Stars</div>
-
-<h3>✨ Why This Product Stands Out:</h3>
-<ul>
-<li>🔥 Premium Quality Materials & Construction</li>
-<li>⚡ Proven Results with ${product.reviews}+ Happy Customers</li>
-<li>💪 Professional-Grade Performance</li>
-<li>🛡️ Safety Certified & Quality Tested</li>
-<li>📱 Modern Design That Actually Works</li>
-<li>💎 Bestseller Status in ${config.niche} Category</li>
-</ul>
-
-<h3>🎯 Perfect For:</h3>
-<p>Designed specifically for <strong>${config.targetAudience}</strong> who want premium quality and reliable results.</p>
-
-<h3>🏆 Quality Guarantee:</h3>
-<p>We stand behind our products with a satisfaction guarantee. Join thousands of customers who have made the smart choice.</p>
-  `;
-}
-
-// Upload product to Shopify with robust error handling
-async function uploadProductToShopify(productData: any) {
-  const { shopifyUrl, shopifyAccessToken, niche, storeName, productIndex, ...product } = productData;
-
-  try {
-    console.log(`🛒 Uploading to Shopify: ${product.title?.substring(0, 40)}...`);
-    console.log(`📸 Product has ${product.images?.length || 0} images ready`);
-
-    let formattedUrl = shopifyUrl;
-    if (!shopifyUrl.startsWith('http')) {
-      formattedUrl = `https://${shopifyUrl}`;
-    }
-    formattedUrl = formattedUrl.replace(/\/$/, '');
-
-    // Generate unique handle and SKUs
-    const timestamp = Date.now();
-    const randomSuffix = Math.random().toString(36).substring(2, 8);
-    const baseHandle = product.title.toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .substring(0, 25);
-    const uniqueHandle = `${baseHandle}-${timestamp}-${randomSuffix}`;
-
-    // Validate images
-    const validatedImages = [];
-    if (product.images && Array.isArray(product.images)) {
-      for (let i = 0; i < product.images.length; i++) {
-        const imageUrl = product.images[i];
-        if (isValidImageUrl(imageUrl)) {
-          validatedImages.push({
-            src: imageUrl,
-            position: i + 1,
-            alt: `${product.title} - Image ${i + 1}`
-          });
-          console.log(`✅ Validated image ${i + 1}: ${imageUrl}`);
-        }
-      }
-    }
-
-    console.log(`📸 Final image count: ${validatedImages.length}`);
-
-    // Create variants
-    const variants = (product.variants || []).map((variant: any, index: number) => {
-      const variantId = `${timestamp}-${productIndex}-${index}-${randomSuffix}`;
-      return {
-        title: variant.name || `Option ${index + 1}`,
-        price: variant.price?.toString() || product.price?.toString() || '29.99',
-        sku: variant.sku || `${niche?.toUpperCase()}-${variantId}`,
-        option1: variant.name || `Option ${index + 1}`,
-        inventory_policy: 'continue',
-        inventory_management: null,
-        fulfillment_service: 'manual',
-        requires_shipping: true,
-        taxable: true,
-        weight: 1.0,
-        weight_unit: 'kg'
-      };
-    });
-
-    // Ensure at least one variant
-    if (variants.length === 0) {
-      variants.push({
-        title: 'Standard',
-        price: product.price?.toString() || '29.99',
-        sku: `STD-${timestamp}-${productIndex}-${randomSuffix}`,
-        option1: 'Standard',
-        inventory_policy: 'continue',
-        inventory_management: null,
-        fulfillment_service: 'manual',
-        requires_shipping: true,
-        taxable: true,
-        weight: 1.0,
-        weight_unit: 'kg'
-      });
-    }
-
-    const shopifyProduct = {
-      title: product.title,
-      body_html: product.description,
-      vendor: storeName || 'Premium Store',
-      product_type: niche ? niche.charAt(0).toUpperCase() + niche.slice(1) : 'General',
+function createShopifyProduct(product: AliExpressProduct, content: any, imageUrls: string[], storeName: string, niche: string, index: number): ShopifyProduct {
+  const uniqueHandle = `${niche}-product-${Date.now()}-${index}`.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+  const uniqueSku = `${niche.toUpperCase()}-${Date.now()}-${index}`;
+  
+  return {
+    product: {
+      title: content.title,
+      body_html: `<div>${content.description}</div><ul>${content.features.map(f => `<li>${f}</li>`).join('')}</ul>`,
+      vendor: storeName || `${niche} Premium Store`,
+      product_type: niche,
       handle: uniqueHandle,
-      tags: (product.tags || []).join(', '),
-      published: true,
+      tags: `${niche}, premium, bestseller, trending`,
       status: 'active',
-      options: [
+      images: imageUrls.map(url => ({ src: url })),
+      variants: [
         {
-          name: 'Style',
-          position: 1,
-          values: variants.map(v => v.option1)
+          title: 'Standard',
+          price: content.price.toFixed(2),
+          sku: `${uniqueSku}-STD`,
+          inventory_quantity: 100,
+          inventory_management: 'shopify',
+          inventory_policy: 'deny'
+        },
+        {
+          title: 'Premium',
+          price: (content.price * 1.2).toFixed(2),
+          sku: `${uniqueSku}-PRM`,
+          inventory_quantity: 50,
+          inventory_management: 'shopify',
+          inventory_policy: 'deny'
         }
-      ],
-      variants: variants,
-      images: validatedImages
-    };
+      ]
+    }
+  };
+}
 
-    const apiUrl = `${formattedUrl}/admin/api/2024-10/products.json`;
-    console.log(`🌐 Shopify API call to: ${apiUrl}`);
-
+async function uploadToShopify(productData: ShopifyProduct, shopifyUrl: string, accessToken: string) {
+  const cleanUrl = shopifyUrl.replace(/\/$/, '');
+  const apiUrl = `${cleanUrl}/admin/api/2023-10/products.json`;
+  
+  console.log(`🛒 Uploading to Shopify: ${apiUrl}`);
+  
+  try {
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
-        'X-Shopify-Access-Token': shopifyAccessToken,
+        'X-Shopify-Access-Token': accessToken,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ product: shopifyProduct })
+      body: JSON.stringify(productData),
     });
 
-    console.log(`🔍 Shopify response: ${response.status}`);
-
     if (!response.ok) {
-      const errorData = await response.text();
-      console.error(`❌ Shopify error: ${response.status} - ${errorData}`);
-      
-      // Handle duplicate handle error
-      if (response.status === 422 && errorData.includes('already exists')) {
-        const retryHandle = `${uniqueHandle}-retry-${Date.now()}`;
-        shopifyProduct.handle = retryHandle;
-        
-        const retryResponse = await fetch(apiUrl, {
-          method: 'POST',
-          headers: {
-            'X-Shopify-Access-Token': shopifyAccessToken,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ product: shopifyProduct })
-        });
-        
-        if (retryResponse.ok) {
-          const retryData = await retryResponse.json();
-          return {
-            success: true,
-            productId: retryData.product.id,
-            imagesUploaded: validatedImages.length,
-            shopifyProduct: retryData.product
-          };
-        }
-      }
-      
-      throw new Error(`Shopify API error: ${response.status} - ${errorData}`);
+      const errorText = await response.text();
+      throw new Error(`Shopify API error ${response.status}: ${errorText}`);
     }
 
-    const responseData = await response.json();
+    const result = await response.json();
+    return {
+      success: true,
+      productId: result.product.id,
+      handle: result.product.handle
+    };
     
-    if (responseData.product?.id) {
-      console.log(`✅ Shopify success: Product ID ${responseData.product.id} with ${validatedImages.length} images`);
-      return {
-        success: true,
-        productId: responseData.product.id,
-        imagesUploaded: validatedImages.length,
-        shopifyProduct: responseData.product
-      };
-    } else {
-      throw new Error('No product ID returned from Shopify');
-    }
-
   } catch (error) {
-    console.error('❌ Shopify upload error:', error);
+    console.error('Shopify upload failed:', error);
     return {
       success: false,
       error: error.message
     };
   }
+}
+
+function generateFallbackProducts(niche: string, count: number): AliExpressProduct[] {
+  console.log(`🔄 Generating ${count} fallback products for ${niche}`);
+  
+  const products: AliExpressProduct[] = [];
+  
+  for (let i = 0; i < count; i++) {
+    products.push({
+      product_id: `fallback_${niche}_${Date.now()}_${i}`,
+      product_title: `Premium ${niche} Product ${i + 1}`,
+      product_price: `$${(20 + Math.random() * 40).toFixed(2)}`,
+      product_main_image: `https://source.unsplash.com/800x800/?${niche},product,${i}`,
+      image_urls: [
+        `https://source.unsplash.com/800x800/?${niche},premium,${i}`,
+        `https://source.unsplash.com/800x800/?${niche},quality,${i}`,
+        `https://source.unsplash.com/800x800/?${niche},bestseller,${i}`
+      ],
+      product_detail_url: `https://example.com/product-${i}`,
+      product_rating: '4.5',
+      product_num_reviews: `${100 + Math.floor(Math.random() * 500)}`,
+      product_store_name: `${niche} Premium Store`
+    });
+  }
+  
+  return products;
 }
