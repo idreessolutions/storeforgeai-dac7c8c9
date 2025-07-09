@@ -7,9 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// OpenAI API key from environment
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-const rapidApiKey = Deno.env.get('RAPIDAPI_KEY');
 
 interface ProductResult {
   productId?: string;
@@ -22,13 +20,21 @@ interface ProductResult {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('🚀 AliExpress Product Generation Started');
+    console.log('🚀 AliExpress Product Generation Edge Function Started');
     
+    const requestBody = await req.json();
+    console.log('📋 Request received:', {
+      productCount: requestBody.productCount,
+      niche: requestBody.niche,
+      shopifyUrl: requestBody.shopifyUrl?.substring(0, 30) + '...'
+    });
+
     const {
       productCount = 10,
       niche = 'tech',
@@ -40,15 +46,13 @@ serve(async (req) => {
       shopifyAccessToken,
       themeColor = '#3B82F6',
       sessionId
-    } = await req.json();
-
-    console.log('📋 Request params:', { productCount, niche, shopifyUrl: shopifyUrl?.substring(0, 30) + '...' });
+    } = requestBody;
 
     if (!shopifyUrl || !shopifyAccessToken) {
       throw new Error('Shopify URL and access token are required');
     }
 
-    // Validate and fix Shopify URL
+    // Validate and clean Shopify URL
     let cleanUrl = shopifyUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
     if (!cleanUrl.includes('.myshopify.com')) {
       cleanUrl = `${cleanUrl}.myshopify.com`;
@@ -65,9 +69,10 @@ serve(async (req) => {
       try {
         console.log(`🎯 Generating AliExpress product ${i + 1}/${productCount}`);
         
-        // Generate unique product data
+        // Generate unique product data with timestamp to prevent conflicts
         const timestamp = Date.now();
-        const uniqueId = `${timestamp}_${i}_${Math.random().toString(36).substr(2, 9)}`;
+        const randomId = Math.random().toString(36).substr(2, 9);
+        const uniqueId = `${timestamp}_${i}_${randomId}`;
         
         const productTitle = await generateUniqueProductTitle(niche, i, uniqueId);
         const productDescription = await generateProductDescription(productTitle, niche, targetAudience);
@@ -76,7 +81,7 @@ serve(async (req) => {
         
         console.log(`📝 Generated: ${productTitle} - $${productPrice}`);
 
-        // Create Shopify product
+        // Create Shopify product with unique identifiers
         const shopifyProduct = {
           product: {
             title: productTitle,
@@ -94,7 +99,7 @@ serve(async (req) => {
             })),
             variants: [
               {
-                option1: 'Standard',
+                option1: `Standard-${uniqueId}`,
                 price: productPrice.toFixed(2),
                 compare_at_price: (productPrice * 1.3).toFixed(2),
                 inventory_quantity: 100,
@@ -105,7 +110,7 @@ serve(async (req) => {
                 title: `${productTitle} - Standard`
               },
               {
-                option1: 'Premium',
+                option1: `Premium-${uniqueId}`,
                 price: (productPrice * 1.2).toFixed(2),
                 compare_at_price: (productPrice * 1.5).toFixed(2),
                 inventory_quantity: 50,
@@ -120,7 +125,7 @@ serve(async (req) => {
               {
                 name: 'Variant',
                 position: 1,
-                values: ['Standard', 'Premium']
+                values: [`Standard-${uniqueId}`, `Premium-${uniqueId}`]
               }
             ]
           }
@@ -185,7 +190,6 @@ serve(async (req) => {
         await applyThemeColor(validatedShopifyUrl, shopifyAccessToken, themeColor);
       } catch (themeError) {
         console.error('⚠️ Theme color application failed:', themeError);
-        // Don't fail the entire operation for theme color issues
       }
     }
 
@@ -212,7 +216,7 @@ serve(async (req) => {
       successfulUploads: 0,
       results: []
     }), {
-      status: 200, // Return 200 to avoid "non-2xx" errors
+      status: 200, // Return 200 to avoid non-2xx errors
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
@@ -230,7 +234,7 @@ async function generateUniqueProductTitle(niche: string, index: number, uniqueId
   };
   
   const powerWord = powerWords[index % powerWords.length];
-  const nicheWordList = nicheWords[niche.toLowerCase()] || nicheWords['tech'];
+  const nicheWordList = nicheWords[niche.toLowerCase() as keyof typeof nicheWords] || nicheWords['tech'];
   const nicheWord = nicheWordList[index % nicheWordList.length];
   
   return `${powerWord} ${niche} ${nicheWord} - Model ${uniqueId.substring(0, 8).toUpperCase()}`;
@@ -332,7 +336,7 @@ function generateProductImages(niche: string, index: number): string[] {
     `https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&h=800&fit=crop&auto=format&q=80&random=${index + 4}`
   ];
   
-  return imageUrls.slice(0, 4); // Return 4 images per product
+  return imageUrls.slice(0, 4);
 }
 
 async function applyThemeColor(shopifyUrl: string, accessToken: string, themeColor: string): Promise<void> {
