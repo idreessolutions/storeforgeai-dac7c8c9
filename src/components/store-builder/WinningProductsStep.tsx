@@ -55,10 +55,10 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
     setProgress(0);
     setResults([]);
     setProductPreviews([]);
-    setCurrentStage("🌟 Connecting to Amazon Influencer Database...");
+    setCurrentStage("🔌 Connecting to AliExpress True API...");
 
     try {
-      console.log(`🚀 AMAZON RAPIDAPI: Starting generation for ${niche} niche`);
+      console.log(`🚀 ALIEXPRESS TRUE API: Starting generation for ${niche} niche`);
       
       const requestData = {
         productCount: 10,
@@ -71,19 +71,19 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
         shopifyAccessToken: formData.accessToken,
         themeColor: formData.themeColor || '#3B82F6',
         sessionId: sessionId,
-        rapidApiIntegration: true
+        aliexpressApiIntegration: true
       };
 
-      console.log('🎯 Amazon RapidAPI request:', requestData);
+      console.log('🎯 AliExpress True API request:', requestData);
 
-      // Enhanced progress stages for Amazon API integration with REAL images
+      // Enhanced progress stages for AliExpress API integration with REAL images
       const stages = [
-        { progress: 10, stage: "📡 Fetching trending Amazon influencer data...", previews: [] },
-        { progress: 25, stage: "🔥 Analyzing hot-selling products from top influencers...", previews: generatePreviewProducts(niche, 3) },
+        { progress: 10, stage: "📡 Fetching trending AliExpress products data...", previews: [] },
+        { progress: 25, stage: "🔥 Analyzing hot-selling products from AliExpress...", previews: generatePreviewProducts(niche, 3) },
         { progress: 40, stage: "🤖 Enhancing with GPT-4 emotional copywriting...", previews: generatePreviewProducts(niche, 6) },
-        { progress: 60, stage: "📸 Extracting authentic Amazon product images...", previews: generatePreviewProducts(niche, 8) },
-        { progress: 75, stage: "💰 Optimizing pricing & creating variations...", previews: generatePreviewProducts(niche, 10) },
-        { progress: 90, stage: "🛒 Uploading to your Shopify store...", previews: generatePreviewProducts(niche, 10) },
+        { progress: 60, stage: "📸 Extracting authentic AliExpress product images...", previews: generatePreviewProducts(niche, 8) },
+        { progress: 75, stage: "💰 Optimizing pricing & creating unique variations...", previews: generatePreviewProducts(niche, 10) },
+        { progress: 90, stage: "🛒 Uploading to your Shopify store with theme colors...", previews: generatePreviewProducts(niche, 10) },
       ];
 
       // Start progress simulation with previews
@@ -104,72 +104,47 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
       clearInterval(progressInterval);
 
       if (error) {
-        console.error('❌ Amazon RapidAPI generation failed:', error);
-        throw new Error(`Amazon Integration Error: ${error.message || 'Unknown error'}`);
+        console.error('❌ AliExpress API Error:', error);
+        throw new Error(error.message || 'AliExpress product generation failed');
       }
 
-      if (!data || !data.success) {
-        const errorMsg = data?.error || data?.message || 'Amazon product generation failed';
-        console.error('❌ Generation failed:', errorMsg);
-        throw new Error(errorMsg);
+      if (!data.success) {
+        throw new Error(data.error || 'AliExpress product generation failed');
       }
 
-      console.log('✅ Amazon RapidAPI generation successful:', data);
+      console.log('✅ AliExpress API generation success:', data);
       
       setResults(data.results || []);
       setProgress(100);
-      setCurrentStage("🎉 Amazon trending products with real images uploaded successfully!");
+      setCurrentStage(`🎉 Generated ${data.successfulUploads || 0} AliExpress products!`);
       
-      // Mark products as added
-      handleInputChange('productsAdded', true);
-      
-      const successCount = data.successfulUploads || data.results?.filter((r: any) => r.status === 'SUCCESS').length || 0;
-      
-      toast.success(
-        `🎉 Successfully created ${successCount} trending ${niche} products with authentic Amazon images!`,
-        { duration: 5000 }
-      );
+      // Mark products as added if any were successful
+      if (data.successfulUploads > 0) {
+        handleInputChange('productsAdded', true);
+        
+        toast.success(`🎉 Successfully created ${data.successfulUploads} unique ${formData.niche} products from AliExpress True API!`, {
+          duration: 5000,
+        });
 
-      // Store generation data
-      await storeGenerationData(data);
+        // Store generation data in localStorage
+        await storeGenerationData(data);
+      } else {
+        toast.error(`Failed to generate AliExpress products. All ${data.results?.length || 0} attempts failed.`, {
+          duration: 8000,
+        });
+      }
 
     } catch (error: any) {
-      console.error('❌ Amazon RapidAPI generation error:', error);
+      console.error('❌ AliExpress product generation error:', error);
       setProgress(0);
       setCurrentStage("❌ Generation failed");
-      setProductPreviews([]);
       
-      let errorMessage = 'Amazon product generation failed';
-      if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      toast.error(`Failed to generate trending products: ${errorMessage}`, {
+      toast.error(`Failed to generate AliExpress products: ${error.message}`, {
         duration: 8000,
       });
     } finally {
       setIsGenerating(false);
     }
-  };
-
-  // Generate preview products for UI feedback
-  const generatePreviewProducts = (niche: string, count: number) => {
-    const nicheProducts = {
-      tech: ['Smart Wireless Charger Pro', 'Bluetooth Gaming Headset', '4K AI Webcam', 'Portable Power Station'],
-      pets: ['Smart Pet Water Fountain', 'Interactive Puzzle Feeder', 'Premium Training Collar', 'Self-Cleaning Litter Box'],
-      beauty: ['LED Light Therapy Mask', 'Jade Facial Roller Set', 'Electric Makeup Brush Cleaner', 'Skincare Fridge'],
-      fitness: ['Resistance Band System', 'Smart Yoga Mat', 'Digital Body Scale', 'Foam Roller with Vibration'],
-      kitchen: ['Air Fryer Oven Pro', 'Smart Espresso Machine', 'Chef Knife Set', 'Silicone Utensil Collection'],
-      home: ['Smart LED Strip Lights', 'Aromatherapy Diffuser', 'Bamboo Organizer Set', 'Memory Foam Bath Mat']
-    };
-
-    const products = nicheProducts[niche.toLowerCase() as keyof typeof nicheProducts] || nicheProducts.tech;
-    
-    return Array.from({ length: count }, (_, i) => ({
-      title: `${products[i % products.length]} - Amazon Trending`,
-      price: `$${(19.99 + Math.random() * 40).toFixed(2)}`,
-      isPreview: true
-    }));
   };
 
   const storeGenerationData = async (generationData: any) => {
@@ -185,12 +160,12 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
         shopify_url: formData.shopifyUrl,
         products_generated: generationData.successfulUploads || 0,
         generation_data: generationData,
-        api_source: 'rapidapi_amazon_data',
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        data_source: 'AliExpress True API'
       };
 
       localStorage.setItem('storeGenerationData', JSON.stringify(storeData));
-      console.log('✅ RapidAPI Amazon store data saved successfully');
+      console.log('✅ AliExpress store data saved successfully');
     } catch (error) {
       console.error('❌ Failed to store generation data:', error);
     }
@@ -200,7 +175,7 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
     setHasStarted(false);
     setResults([]);
     setProgress(0);
-    setCurrentStage("");
+    setProductPreviews([]);
     handleInputChange('productsAdded', false);
     generateProducts();
   };
@@ -213,6 +188,18 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
     return results.filter(result => result.status === 'FAILED').length;
   };
 
+  const generatePreviewProducts = (niche: string, count: number) => {
+    const products = [];
+    for (let i = 0; i < count; i++) {
+      products.push({
+        title: `Premium ${niche} Product ${i + 1}`,
+        price: `$${(20 + Math.random() * 40).toFixed(2)}`,
+        image: `https://source.unsplash.com/400x400/?${niche.toLowerCase()},product,${Date.now() + i}`
+      });
+    }
+    return products;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-2 sm:p-4">
       <div className="max-w-4xl mx-auto pt-4 sm:pt-8">
@@ -221,51 +208,53 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
             {/* Header */}
             <div className="text-center mb-8">
               <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                <TrendingUp className="h-10 w-10 text-white" />
+                <Package className="h-10 w-10 text-white" />
               </div>
               <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
                 🚀 Launch AI-Powered {nicheCapitalized} Store
               </h1>
               <p className="text-gray-600 text-lg">
-                Generate 10 trending {nicheCapitalized} products from Amazon influencer data with authentic images and AI-enhanced content
+                Generate 10 trending {nicheCapitalized} products from AliExpress True API with real images and AI-enhanced content for {formData.targetAudience || 'customers'}
               </p>
+              
+              {/* AliExpress API Confirmation Badge */}
+              <div className="mt-4 inline-flex items-center px-4 py-2 bg-green-100 border border-green-300 rounded-full">
+                <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
+                <span className="text-sm font-medium text-green-800">
+                  ✅ Powered by AliExpress True API via RapidAPI
+                </span>
+              </div>
             </div>
 
             {!hasStarted && (
               <>
-                {/* Enhanced Features Display - Amazon RapidAPI Integration with REAL Images */}
-                <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 mb-8 border border-green-200">
-                  <div className="text-center mb-4">
-                    <div className="inline-flex items-center bg-gradient-to-r from-green-100 to-blue-100 text-green-800 px-4 py-2 rounded-full text-sm font-medium mb-2">
-                      <TrendingUp className="h-4 w-4 mr-1" />
-                      NEW: Amazon RapidAPI Integration
-                    </div>
-                  </div>
-                  
+                {/* Enhanced AliExpress Product Generation Section */}
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 mb-8">
                   <h3 className="text-xl font-semibold text-gray-900 mb-6 text-center">
-                    🔥 Amazon Trending Products with Authentic Images
+                    🚀 AliExpress True API Product Generation with Real Images
                   </h3>
                   
+                  {/* Feature Boxes - Enhanced features */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-white rounded-lg p-4 text-center shadow-sm border border-green-100">
-                      <TrendingUp className="h-8 w-8 text-green-500 mx-auto mb-2" />
-                      <div className="font-semibold text-gray-900">Amazon Data</div>
-                      <div className="text-sm text-gray-600">Real influencer trends</div>
-                    </div>
-                    <div className="bg-white rounded-lg p-4 text-center shadow-sm border border-yellow-100">
+                    <div className="bg-white rounded-lg p-4 text-center shadow-sm border">
                       <Star className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
-                      <div className="font-semibold text-gray-900">Hot Sellers</div>
-                      <div className="text-sm text-gray-600">Verified winners</div>
+                      <div className="font-semibold text-gray-900">4.8+ Rating</div>
+                      <div className="text-sm text-gray-600">AliExpress verified</div>
                     </div>
-                    <div className="bg-white rounded-lg p-4 text-center shadow-sm border border-blue-100">
-                      <Camera className="h-8 w-8 text-blue-500 mx-auto mb-2" />
+                    <div className="bg-white rounded-lg p-4 text-center shadow-sm border">
+                      <Users className="h-8 w-8 text-blue-500 mx-auto mb-2" />
+                      <div className="font-semibold text-gray-900">1000+ Orders</div>
+                      <div className="text-sm text-gray-600">Proven bestsellers</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-4 text-center shadow-sm border">
+                      <Camera className="h-8 w-8 text-green-500 mx-auto mb-2" />
                       <div className="font-semibold text-gray-900">Real Images</div>
-                      <div className="text-sm text-gray-600">Authentic Amazon photos</div>
+                      <div className="text-sm text-gray-600">AliExpress + Fallbacks</div>
                     </div>
-                    <div className="bg-white rounded-lg p-4 text-center shadow-sm border border-purple-100">
+                    <div className="bg-white rounded-lg p-4 text-center shadow-sm border">
                       <Sparkles className="h-8 w-8 text-purple-500 mx-auto mb-2" />
-                      <div className="font-semibold text-gray-900">GPT-4 Content</div>
-                      <div className="text-sm text-gray-600">600-800 words</div>
+                      <div className="font-semibold text-gray-900">AI Content</div>
+                      <div className="text-sm text-gray-600">GPT-4 enhanced</div>
                     </div>
                   </div>
 
@@ -273,17 +262,17 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
                     <Button
                       onClick={generateProducts}
                       disabled={isGenerating}
-                      className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white px-8 py-4 rounded-lg text-lg font-semibold h-auto shadow-lg transform hover:scale-105 transition-all duration-200"
+                      className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-4 rounded-lg text-lg font-semibold h-auto"
                     >
                       {isGenerating ? (
                         <>
                           <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                          Generating Products...
+                          Generating AliExpress Products...
                         </>
                       ) : (
                         <>
-                          <TrendingUp className="mr-2 h-5 w-5" />
-                          Generate Amazon Trending {nicheCapitalized} Products
+                          <Package className="mr-2 h-5 w-5" />
+                          Generate AliExpress {nicheCapitalized} Products
                         </>
                       )}
                     </Button>
@@ -294,101 +283,75 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
 
             {isGenerating && (
               <div className="mb-8">
-                <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 border border-green-200">
+                <div className="bg-blue-50 rounded-xl p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-gray-900">
                       {currentStage}
                     </h3>
-                    <span className="text-sm text-gray-600 font-medium">{Math.round(progress)}%</span>
+                    <span className="text-sm text-gray-600">{Math.round(progress)}%</span>
                   </div>
                   
-                  <div className="w-full bg-gray-200 rounded-full h-4 mb-6">
+                  <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
                     <div 
-                      className="bg-gradient-to-r from-green-600 to-blue-600 h-4 rounded-full transition-all duration-1000 ease-out shadow-sm"
+                      className="bg-gradient-to-r from-purple-600 to-pink-600 h-3 rounded-full transition-all duration-500 ease-out"
                       style={{ width: `${progress}%` }}
                     ></div>
                   </div>
 
+                  <div className="text-sm text-gray-600 space-y-1">
+                    <div>✨ Fetching winning products from AliExpress True API</div>
+                    <div>🤖 Generating unique descriptions with GPT-4</div>
+                    <div>🖼️ Extracting real AliExpress product images</div>
+                    <div>💰 Optimizing pricing and creating unique variants</div>
+                    <div>🛒 Uploading to your Shopify store</div>
+                    <div>🎨 Applying {formData.themeColor} theme color to store</div>
+                  </div>
+
                   {/* Product Previews */}
                   {productPreviews.length > 0 && (
-                    <div className="mb-6">
-                      <h4 className="text-sm font-medium text-gray-700 mb-3">
-                        🔍 Discovering Products ({productPreviews.length}/10)
-                      </h4>
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                        {productPreviews.map((preview, index) => (
-                          <div key={index} className="bg-white rounded-lg p-3 shadow-sm border animate-pulse">
-                            <div className="bg-gradient-to-r from-green-200 to-blue-200 rounded-lg h-16 mb-2"></div>
-                            <div className="text-xs font-medium text-gray-700 truncate mb-1">
-                              {preview.title.substring(0, 25)}...
-                            </div>
-                            <div className="text-xs text-green-600 font-semibold">{preview.price}</div>
+                    <div className="mt-6">
+                      <h4 className="text-sm font-medium text-gray-900 mb-3">Preview Products:</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {productPreviews.slice(0, 4).map((product, index) => (
+                          <div key={index} className="bg-white rounded-lg p-3 shadow-sm border">
+                            <div className="w-full h-20 bg-gray-200 rounded mb-2 bg-cover bg-center" 
+                                 style={{ backgroundImage: `url(${product.image})` }}></div>
+                            <p className="text-xs font-medium text-gray-900 truncate">{product.title}</p>
+                            <p className="text-xs text-green-600 font-semibold">{product.price}</p>
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
-
-                  <div className="text-sm text-gray-600 space-y-1 bg-white rounded-lg p-4">
-                    <div className="flex items-center">
-                      <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-                      🔥 Fetching trending products from Amazon influencers
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></div>
-                      🤖 Generating unique 600-800 word descriptions with GPT-4
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-2 h-2 bg-purple-500 rounded-full mr-2 animate-pulse"></div>
-                      📸 Extracting authentic Amazon product images
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2 animate-pulse"></div>
-                      💰 Optimizing pricing with psychological patterns ($X.99)
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse"></div>
-                      🔧 Setting up 3 product variations per item
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2 animate-pulse"></div>
-                      🛒 Uploading to your Shopify store with real images
-                    </div>
-                  </div>
                 </div>
               </div>
             )}
 
             {results.length > 0 && (
               <div className="mb-8">
-                <div className="bg-white rounded-xl border p-6 shadow-sm">
+                <div className="bg-white rounded-xl border p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                      <TrendingUp className="h-5 w-5 mr-2 text-green-500" />
-                      Amazon Product Generation Results
-                    </h3>
+                    <h3 className="text-lg font-semibold text-gray-900">AliExpress Product Generation Results</h3>
                     <div className="flex space-x-4 text-sm">
-                      <span className="text-green-600 font-medium flex items-center">
-                        <CheckCircle className="h-4 w-4 mr-1" />
-                        Success: {getSuccessCount()}
+                      <span className="text-green-600 font-medium">
+                        ✅ Success: {getSuccessCount()}
                       </span>
                       {getFailureCount() > 0 && (
-                        <span className="text-red-600 font-medium flex items-center">
-                          <XCircle className="h-4 w-4 mr-1" />
-                          Failed: {getFailureCount()}
+                        <span className="text-red-600 font-medium">
+                          ❌ Failed: {getFailureCount()}
                         </span>
                       )}
                     </div>
                   </div>
 
-                  <div className="grid gap-3 max-h-72 overflow-y-auto">
+                  <div className="grid gap-3 max-h-60 overflow-y-auto">
                     {results.map((result, index) => (
                       <div
                         key={index}
-                        className={`flex items-center justify-between p-4 rounded-lg border transition-all ${
+                        className={`flex items-center justify-between p-3 rounded-lg border ${
                           result.status === 'SUCCESS' 
-                            ? 'bg-green-50 border-green-200 hover:bg-green-100' 
-                            : 'bg-red-50 border-red-200 hover:bg-red-100'
+                            ? 'bg-green-50 border-green-200' 
+                            : 'bg-red-50 border-red-200'
                         }`}
                       >
                         <div className="flex items-center space-x-3">
@@ -398,22 +361,12 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
                             <XCircle className="h-5 w-5 text-red-500" />
                           )}
                           <div>
-                            <p className="font-semibold text-sm">
-                              {result.title || `Amazon Product ${index + 1}`}
+                            <p className="font-medium text-sm">
+                              {result.title || `AliExpress Product ${index + 1}`}
                             </p>
                             {result.status === 'SUCCESS' && (
-                              <p className="text-xs text-gray-600 flex items-center space-x-3">
-                                <span className="flex items-center">
-                                  <span className="text-green-600 font-medium">${result.price}</span>
-                                </span>
-                                <span className="flex items-center">
-                                  <Camera className="h-3 w-3 mr-1" />
-                                  {result.imagesUploaded || 6} real images
-                                </span>
-                                <span className="flex items-center">
-                                  <Package className="h-3 w-3 mr-1" />
-                                  {result.variantsCreated || 3} variants
-                                </span>
+                              <p className="text-xs text-gray-600">
+                                ${result.price} • {result.imagesUploaded || 4} images • {result.variantsCreated || 3} variants
                               </p>
                             )}
                             {result.error && (
@@ -430,10 +383,10 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
                       <Button
                         onClick={retryGeneration}
                         variant="outline"
-                        className="w-full hover:bg-gray-50"
+                        className="w-full"
                       >
                         <RefreshCw className="mr-2 h-4 w-4" />
-                        Retry Failed Amazon Products
+                        Retry Failed Products
                       </Button>
                     </div>
                   )}
@@ -443,30 +396,14 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
 
             {formData.productsAdded && (
               <div className="text-center">
-                <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-8 border border-green-200">
-                  <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle className="h-8 w-8 text-white" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-green-900 mb-3">
-                    🎉 Amazon Trending Products with Real Images Generated Successfully!
+                <div className="bg-green-50 rounded-xl p-6">
+                  <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-green-900 mb-2">
+                    🎉 AliExpress Products Generated Successfully!
                   </h3>
-                  <p className="text-green-700 text-lg leading-relaxed">
-                    Your {niche} store now has {getSuccessCount() || 10} trending Amazon products with authentic images and GPT-4 enhanced descriptions ready for customers.
+                  <p className="text-green-700">
+                    Your {formData.niche} store now has {getSuccessCount() || 10} unique AliExpress products with real images, theme colors applied, and AI-enhanced content ready for customers.
                   </p>
-                  <div className="mt-6 flex items-center justify-center space-x-6 text-sm text-green-600">
-                    <div className="flex items-center bg-white rounded-full px-3 py-1 shadow-sm">
-                      <TrendingUp className="h-4 w-4 mr-1" />
-                      Amazon Trending
-                    </div>
-                    <div className="flex items-center bg-white rounded-full px-3 py-1 shadow-sm">
-                      <Camera className="h-4 w-4 mr-1" />
-                      Real Images
-                    </div>
-                    <div className="flex items-center bg-white rounded-full px-3 py-1 shadow-sm">
-                      <Sparkles className="h-4 w-4 mr-1" />
-                      GPT-4 Content
-                    </div>
-                  </div>
                 </div>
               </div>
             )}
