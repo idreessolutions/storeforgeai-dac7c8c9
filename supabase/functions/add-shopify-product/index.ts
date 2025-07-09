@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -120,7 +119,7 @@ serve(async (req) => {
       }
     }
 
-    console.log(`🎉 GENERATION COMPLETE: ${successfulUploads}/${productCount} products uploaded successfully`);
+    console.log(`🎉 ALIEXPRESS GENERATION COMPLETE: ${successfulUploads}/${productCount} products uploaded successfully`);
 
     return new Response(JSON.stringify({
       success: true,
@@ -128,7 +127,9 @@ serve(async (req) => {
       results: results,
       successfulUploads: successfulUploads,
       totalRequested: productCount,
-      api_source: 'aliexpress_true_api_rapidapi'
+      api_source: 'AliExpress True API - RapidAPI',
+      data_source: 'AliExpress',
+      integration_status: 'FULLY_INTEGRATED'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -138,7 +139,9 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
-      results: []
+      results: [],
+      data_source: 'AliExpress',
+      integration_status: 'ERROR'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -399,10 +402,21 @@ function createShopifyProduct(product: AliExpressProduct, content: any, imageUrl
 }
 
 async function uploadToShopify(productData: ShopifyProduct, shopifyUrl: string, accessToken: string) {
-  const cleanUrl = shopifyUrl.replace(/\/$/, '');
-  const apiUrl = `${cleanUrl}/admin/api/2023-10/products.json`;
+  // Fix Shopify URL validation - ensure proper format
+  let cleanUrl = shopifyUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
   
-  console.log(`🛒 Uploading to Shopify: ${apiUrl}`);
+  // Handle different URL formats
+  if (!cleanUrl.includes('.myshopify.com')) {
+    cleanUrl = `${cleanUrl}.myshopify.com`;
+  }
+  
+  // Remove any extra path segments
+  cleanUrl = cleanUrl.split('/')[0];
+  
+  const finalUrl = `https://${cleanUrl}`;
+  const apiUrl = `${finalUrl}/admin/api/2023-10/products.json`;
+  
+  console.log(`🛒 Uploading to Shopify with validated URL: ${apiUrl}`);
   
   try {
     const response = await fetch(apiUrl, {
@@ -416,10 +430,13 @@ async function uploadToShopify(productData: ShopifyProduct, shopifyUrl: string, 
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error(`❌ Shopify API error ${response.status}:`, errorText);
       throw new Error(`Shopify API error ${response.status}: ${errorText}`);
     }
 
     const result = await response.json();
+    console.log(`✅ Successfully uploaded product: ${result.product.id}`);
+    
     return {
       success: true,
       productId: result.product.id,
@@ -427,7 +444,7 @@ async function uploadToShopify(productData: ShopifyProduct, shopifyUrl: string, 
     };
     
   } catch (error) {
-    console.error('Shopify upload failed:', error);
+    console.error('❌ Shopify upload failed:', error);
     return {
       success: false,
       error: error.message

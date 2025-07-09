@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,11 +43,28 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
   const niche = formData.niche || 'Products';
   const nicheCapitalized = niche.charAt(0).toUpperCase() + niche.slice(1);
 
+  const validateShopifyUrl = (url: string): string => {
+    // Clean the URL - remove any protocols and ensure proper format
+    let cleanUrl = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    
+    // If it doesn't end with .myshopify.com, add it
+    if (!cleanUrl.includes('.myshopify.com')) {
+      cleanUrl = `${cleanUrl}.myshopify.com`;
+    }
+    
+    // Ensure it starts with https://
+    return `https://${cleanUrl}`;
+  };
+
   const handleGenerateProducts = async () => {
     if (!formData.shopifyUrl || !formData.accessToken) {
       toast.error('Missing Shopify store URL or access token');
       return;
     }
+
+    // Validate and fix Shopify URL
+    const validatedShopifyUrl = validateShopifyUrl(formData.shopifyUrl);
+    console.log(`🔗 Validated Shopify URL: ${validatedShopifyUrl}`);
 
     setIsGenerating(true);
     setHasStarted(true);
@@ -56,7 +72,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
     setResults([]);
 
     try {
-      console.log(`🚀 STARTING ENHANCED PRODUCT GENERATION for ${formData.niche?.toUpperCase()} niche`);
+      console.log(`🚀 STARTING ALIEXPRESS PRODUCT GENERATION for ${formData.niche?.toUpperCase()} niche`);
       
       // Start progress simulation
       const progressInterval = setInterval(() => {
@@ -69,9 +85,9 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         });
       }, 2000);
 
-      // Use the updated generateProducts function
+      // Use the updated generateProducts function with validated URL
       const result = await generateProducts(
-        formData.shopifyUrl!,
+        validatedShopifyUrl,
         formData.accessToken!,
         formData.niche || 'tech',
         formData.themeColor || '#3B82F6',
@@ -88,7 +104,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         throw new Error(result.error || 'Product generation failed');
       }
 
-      console.log('✅ GENERATION SUCCESS:', result);
+      console.log('✅ ALIEXPRESS GENERATION SUCCESS:', result);
       
       setResults(result.results || []);
       setProgress(100);
@@ -96,7 +112,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       // Mark products as added
       handleInputChange('productsAdded', true);
       
-      toast.success(`🎉 Successfully created ${result.successfulUploads || 10} unique ${formData.niche} products with images!`, {
+      toast.success(`🎉 Successfully created ${result.successfulUploads || 10} unique ${formData.niche} products from AliExpress!`, {
         duration: 5000,
       });
 
@@ -104,14 +120,14 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       await storeGenerationData(result);
 
     } catch (error: any) {
-      console.error('❌ Product generation error:', error);
+      console.error('❌ AliExpress product generation error:', error);
       setProgress(0);
       
       // Show detailed error message
       const errorMessage = error.message || 'Unknown error occurred';
       console.error('Full error details:', error);
       
-      toast.error(`Failed to generate products: ${errorMessage}`, {
+      toast.error(`Failed to generate AliExpress products: ${errorMessage}`, {
         duration: 8000,
       });
     } finally {
@@ -132,13 +148,12 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         shopify_url: formData.shopifyUrl,
         products_generated: generationData.successfulUploads || 0,
         generation_data: generationData,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        data_source: 'AliExpress True API'
       };
 
-      // Store in localStorage as backup
       localStorage.setItem('storeGenerationData', JSON.stringify(storeData));
-      
-      console.log('✅ Store data saved successfully');
+      console.log('✅ AliExpress store data saved successfully');
     } catch (error) {
       console.error('❌ Failed to store generation data:', error);
     }
@@ -174,7 +189,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 🚀 Launch AI-Powered {nicheCapitalized} Store
               </h1>
               <p className="text-gray-600 text-lg">
-                Install premium theme + add 10 trending {nicheCapitalized} products with AI-generated images to get {formData.targetAudience || 'customers'} with winning products
+                Generate 10 trending {nicheCapitalized} products from AliExpress with real images and AI-enhanced content for {formData.targetAudience || 'customers'}
               </p>
             </div>
 
@@ -183,7 +198,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 {/* Enhanced AI Product Generation Section */}
                 <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 mb-8">
                   <h3 className="text-xl font-semibold text-gray-900 mb-6 text-center">
-                    🚀 Enhanced AI Product Generation with Real Amazon Images
+                    🚀 AliExpress Product Generation with Real Images
                   </h3>
                   
                   {/* Feature Boxes - Enhanced features */}
@@ -191,7 +206,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                     <div className="bg-white rounded-lg p-4 text-center shadow-sm border">
                       <Star className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
                       <div className="font-semibold text-gray-900">4.8+ Rating</div>
-                      <div className="text-sm text-gray-600">Quality verified</div>
+                      <div className="text-sm text-gray-600">AliExpress verified</div>
                     </div>
                     <div className="bg-white rounded-lg p-4 text-center shadow-sm border">
                       <Users className="h-8 w-8 text-blue-500 mx-auto mb-2" />
@@ -201,12 +216,12 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                     <div className="bg-white rounded-lg p-4 text-center shadow-sm border">
                       <Camera className="h-8 w-8 text-green-500 mx-auto mb-2" />
                       <div className="font-semibold text-gray-900">Real Images</div>
-                      <div className="text-sm text-gray-600">Amazon + Fallbacks</div>
+                      <div className="text-sm text-gray-600">AliExpress + Fallbacks</div>
                     </div>
                     <div className="bg-white rounded-lg p-4 text-center shadow-sm border">
                       <Sparkles className="h-8 w-8 text-purple-500 mx-auto mb-2" />
-                      <div className="font-semibold text-gray-900">Rich Content</div>
-                      <div className="text-sm text-gray-600">500-800 words</div>
+                      <div className="font-semibold text-gray-900">AI Content</div>
+                      <div className="text-sm text-gray-600">GPT-4 enhanced</div>
                     </div>
                   </div>
 
@@ -219,12 +234,12 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                       {isGenerating ? (
                         <>
                           <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                          Generating Products...
+                          Generating AliExpress Products...
                         </>
                       ) : (
                         <>
                           <Package className="mr-2 h-5 w-5" />
-                          Launch AI-Powered {nicheCapitalized} Store
+                          Generate AliExpress {nicheCapitalized} Products
                         </>
                       )}
                     </Button>
@@ -238,7 +253,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 <div className="bg-blue-50 rounded-xl p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-gray-900">
-                      🤖 AI is creating your {formData.niche} products with real Amazon images...
+                      🤖 AI is fetching trending {formData.niche} products from AliExpress...
                     </h3>
                     <span className="text-sm text-gray-600">{Math.round(progress)}%</span>
                   </div>
@@ -251,11 +266,11 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                   </div>
 
                   <div className="text-sm text-gray-600 space-y-1">
-                    <div>✨ Fetching winning products with verified sales data</div>
-                    <div>🤖 Generating unique 500-800 word descriptions with GPT-4</div>
-                    <div>🖼️ Extracting real Amazon product images + fallbacks</div>
-                    <div>💰 Optimizing pricing and 2-4 variants per product</div>
-                    <div>🛒 Uploading to your Shopify store with images</div>
+                    <div>✨ Fetching winning products from AliExpress True API</div>
+                    <div>🤖 Generating unique descriptions with GPT-4</div>
+                    <div>🖼️ Extracting real AliExpress product images</div>
+                    <div>💰 Optimizing pricing and creating variants</div>
+                    <div>🛒 Uploading to your Shopify store</div>
                     <div>🎨 Applying {formData.storeStyle} theme styling</div>
                   </div>
                 </div>
@@ -266,7 +281,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
               <div className="mb-8">
                 <div className="bg-white rounded-xl border p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">Generation Results</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">AliExpress Product Generation Results</h3>
                     <div className="flex space-x-4 text-sm">
                       <span className="text-green-600 font-medium">
                         ✅ Success: {getSuccessCount()}
@@ -297,7 +312,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                           )}
                           <div>
                             <p className="font-medium text-sm">
-                              {result.title || `Product ${index + 1}`}
+                              {result.title || `AliExpress Product ${index + 1}`}
                             </p>
                             {result.status === 'SUCCESS' && (
                               <p className="text-xs text-gray-600">
@@ -334,10 +349,10 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 <div className="bg-green-50 rounded-xl p-6">
                   <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
                   <h3 className="text-xl font-semibold text-green-900 mb-2">
-                    🎉 Products Generated Successfully!
+                    🎉 AliExpress Products Generated Successfully!
                   </h3>
                   <p className="text-green-700">
-                    Your {formData.niche} store now has {getSuccessCount() || 10} unique, AI-enhanced products with real Amazon images and rich 500-800 word descriptions ready for customers.
+                    Your {formData.niche} store now has {getSuccessCount() || 10} unique AliExpress products with real images and AI-enhanced content ready for customers.
                   </p>
                 </div>
               </div>
