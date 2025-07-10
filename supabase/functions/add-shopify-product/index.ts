@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -155,7 +154,7 @@ serve(async (req) => {
         
         console.log(`📝 Generated: ${productData.title} - $${productData.price} with ${realImages.length} images`);
 
-        // Create Shopify product with unique identifiers
+        // Create Shopify product with unique identifiers and properly formatted prices
         const shopifyProduct = {
           product: {
             title: productData.title,
@@ -174,8 +173,8 @@ serve(async (req) => {
             variants: [
               {
                 option1: `Standard-${uniqueId}`,
-                price: productData.price.toFixed(2),
-                compare_at_price: productData.originalPrice.toFixed(2),
+                price: String(productData.price.toFixed(2)), // Convert to string
+                compare_at_price: String(productData.originalPrice.toFixed(2)), // Convert to string
                 inventory_quantity: 100,
                 inventory_management: null,
                 fulfillment_service: 'manual',
@@ -185,8 +184,8 @@ serve(async (req) => {
               },
               {
                 option1: `Premium-${uniqueId}`,
-                price: (productData.price * 1.2).toFixed(2),
-                compare_at_price: (productData.price * 1.5).toFixed(2),
+                price: String((productData.price * 1.2).toFixed(2)), // Convert to string
+                compare_at_price: String((productData.price * 1.5).toFixed(2)), // Convert to string
                 inventory_quantity: 50,
                 inventory_management: null,
                 fulfillment_service: 'manual',
@@ -206,6 +205,7 @@ serve(async (req) => {
         };
 
         console.log(`🛒 Uploading to Shopify: ${productData.title}`);
+        console.log(`💰 Price formatting: ${shopifyProduct.product.variants[0].price} (compare: ${shopifyProduct.product.variants[0].compare_at_price})`);
 
         // Upload to Shopify
         const shopifyResponse = await fetch(`${validatedShopifyUrl}/admin/api/2024-10/products.json`, {
@@ -219,11 +219,17 @@ serve(async (req) => {
 
         if (!shopifyResponse.ok) {
           const errorText = await shopifyResponse.text();
-          console.error(`❌ Shopify upload failed for product ${i + 1}:`, errorText);
+          console.error(`❌ Shopify upload failed for product ${i + 1}:`, {
+            status: shopifyResponse.status,
+            error: errorText,
+            productTitle: productData.title,
+            priceFormat: shopifyProduct.product.variants[0].price,
+            compareAtPriceFormat: shopifyProduct.product.variants[0].compare_at_price
+          });
           
           results.push({
             title: productData.title,
-            price: productData.price.toFixed(2),
+            price: String(productData.price.toFixed(2)),
             status: 'FAILED',
             error: `Shopify API error ${shopifyResponse.status}: ${errorText.substring(0, 100)}`
           });
@@ -236,7 +242,7 @@ serve(async (req) => {
         results.push({
           productId: createdProduct.product.id,
           title: productData.title,
-          price: productData.price.toFixed(2),
+          price: String(productData.price.toFixed(2)),
           imagesUploaded: realImages.length,
           variantsCreated: 2,
           status: 'SUCCESS'
@@ -426,6 +432,12 @@ function generateNicheImages(niche: string, index: number): string[] {
       'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&h=800&fit=crop&auto=format&q=80',
       'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=800&fit=crop&auto=format&q=80',
       'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=800&h=800&fit=crop&auto=format&q=80'
+    ],
+    'pets': [
+      'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&h=800&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=800&h=800&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=800&h=800&fit=crop&auto=format&q=80',
+      'https://images.unsplash.com/photo-1583512603805-3cc6b41f3edb?w=800&h=800&fit=crop&auto=format&q=80'
     ]
   };
   
