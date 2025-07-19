@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -214,14 +213,14 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
                 🚀 Launch AI-Powered {nicheCapitalized} Store
               </h1>
               <p className="text-gray-600 text-lg">
-                Generate 10 trending {nicheCapitalized} products from AliExpress True API with real images and AI-enhanced content for {formData.targetAudience || 'customers'}
+                Generate 10 trending {nicheCapitalized} products from AliExpress Data API with real images and AI-enhanced content for {formData.targetAudience || 'customers'}
               </p>
               
-              {/* AliExpress API Confirmation Badge */}
+              {/* Updated API Confirmation Badge */}
               <div className="mt-4 inline-flex items-center px-4 py-2 bg-green-100 border border-green-300 rounded-full">
                 <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
                 <span className="text-sm font-medium text-green-800">
-                  ✅ Powered by AliExpress True API via RapidAPI
+                  ✅ Powered by AliExpress Data API via RapidAPI
                 </span>
               </div>
             </div>
@@ -231,7 +230,7 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
                 {/* Enhanced AliExpress Product Generation Section */}
                 <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 mb-8">
                   <h3 className="text-xl font-semibold text-gray-900 mb-6 text-center">
-                    🚀 AliExpress True API Product Generation with Real Images
+                    🚀 AliExpress Data API Product Generation with Real Images
                   </h3>
                   
                   {/* Feature Boxes - Enhanced features */}
@@ -249,7 +248,7 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
                     <div className="bg-white rounded-lg p-4 text-center shadow-sm border">
                       <Camera className="h-8 w-8 text-green-500 mx-auto mb-2" />
                       <div className="font-semibold text-gray-900">Real Images</div>
-                      <div className="text-sm text-gray-600">AliExpress + Fallbacks</div>
+                      <div className="text-sm text-gray-600">AliExpress Data API</div>
                     </div>
                     <div className="bg-white rounded-lg p-4 text-center shadow-sm border">
                       <Sparkles className="h-8 w-8 text-purple-500 mx-auto mb-2" />
@@ -299,7 +298,7 @@ const WinningProductsStep = ({ formData, handleInputChange }: WinningProductsSte
                   </div>
 
                   <div className="text-sm text-gray-600 space-y-1">
-                    <div>✨ Fetching winning products from AliExpress True API</div>
+                    <div>✨ Fetching winning products from AliExpress Data API</div>
                     <div>🤖 Generating unique descriptions with GPT-4</div>
                     <div>🖼️ Extracting real AliExpress product images</div>
                     <div>💰 Optimizing pricing and creating unique variants</div>

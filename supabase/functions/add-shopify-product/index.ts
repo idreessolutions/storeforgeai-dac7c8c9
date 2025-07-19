@@ -9,7 +9,7 @@ const corsHeaders = {
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const rapidApiKey = Deno.env.get('RAPIDAPI_KEY') || '58489993c1msh248ff0abb22fb9bp119a62jsn6d7c723257f6';
 
-// Updated to use the correct AliExpress Data API host
+// Correct AliExpress Data API host
 const HOST = 'aliexpress-data.p.rapidapi.com';
 
 interface ProductResult {
@@ -59,7 +59,8 @@ serve(async (req) => {
       productCount: requestBody.productCount,
       niche: requestBody.niche,
       shopifyUrl: requestBody.shopifyUrl?.substring(0, 30) + '...',
-      hasRapidApiKey: !!rapidApiKey
+      hasRapidApiKey: !!rapidApiKey,
+      rapidApiHost: HOST
     });
 
     const {
@@ -91,26 +92,44 @@ serve(async (req) => {
     const validatedShopifyUrl = `https://${cleanUrl}`;
     
     console.log('🔗 Validated Shopify URL:', validatedShopifyUrl);
+    console.log('🔑 Using AliExpress Data API host:', HOST);
 
-    // Step 1: Search for products using the NEW AliExpress Data API
+    // Step 1: Search for products using the AliExpress Data API
     console.log(`🔍 Searching for ${niche} products using AliExpress Data API...`);
     
-    const searchResponse = await fetch(`https://${HOST}/product/search?query=${encodeURIComponent(niche)}&page=1&country=US&currency=USD`, {
+    const searchUrl = `https://${HOST}/product/search?query=${encodeURIComponent(niche)}&page=1&country=US&currency=USD`;
+    console.log('📡 Search URL:', searchUrl);
+    
+    const searchResponse = await fetch(searchUrl, {
       method: 'GET',
       headers: {
         'X-RapidAPI-Key': rapidApiKey,
-        'X-RapidAPI-Host': HOST
+        'X-RapidAPI-Host': HOST,
+        'Content-Type': 'application/json'
       }
     });
 
+    console.log('📊 Search response status:', searchResponse.status);
+
     if (!searchResponse.ok) {
       const errorText = await searchResponse.text();
-      console.error('❌ AliExpress Data API search failed:', errorText);
+      console.error('❌ AliExpress Data API search failed:', {
+        status: searchResponse.status,
+        statusText: searchResponse.statusText,
+        error: errorText,
+        host: HOST,
+        url: searchUrl
+      });
       throw new Error(`AliExpress Data API search failed: ${searchResponse.status} - ${errorText}`);
     }
 
     const searchResponseJson = await searchResponse.json();
     console.log('📦 AliExpress search response received successfully');
+    console.log('🔍 Response structure:', {
+      hasData: !!searchResponseJson.data,
+      hasProducts: !!searchResponseJson.data?.products,
+      productCount: searchResponseJson.data?.products?.length || 0
+    });
 
     // Properly unwrap the data from the API response
     const searchData = searchResponseJson.data;
@@ -135,11 +154,13 @@ serve(async (req) => {
         // Step 2: Get detailed product information using v5 endpoint
         console.log(`📋 Fetching detailed info for product ID: ${searchProduct.productId}`);
         
-        const detailResponse = await fetch(`https://${HOST}/product/descriptionv5?productId=${searchProduct.productId}&country=US&currency=USD`, {
+        const detailUrl = `https://${HOST}/product/descriptionv5?productId=${searchProduct.productId}&country=US&currency=USD`;
+        const detailResponse = await fetch(detailUrl, {
           method: 'GET',
           headers: {
             'X-RapidAPI-Key': rapidApiKey,
-            'X-RapidAPI-Host': HOST
+            'X-RapidAPI-Host': HOST,
+            'Content-Type': 'application/json'
           }
         });
 
