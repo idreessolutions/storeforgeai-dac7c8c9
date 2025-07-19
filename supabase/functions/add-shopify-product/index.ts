@@ -10,6 +10,8 @@ const corsHeaders = {
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const rapidApiKey = Deno.env.get('RAPIDAPI_KEY') || '58489993c1msh248ff0abb22fb9bp119a62jsn6d7c723257f6';
 
+const HOST = 'aliexpress-data.p.rapidapi.com';
+
 interface ProductResult {
   productId?: string;
   title?: string;
@@ -20,16 +22,28 @@ interface ProductResult {
   error?: string;
 }
 
-interface AliExpressProduct {
+interface AliExpressSearchProduct {
   productId: string;
   title: string;
-  price: number;
-  originalPrice: number;
-  images: string[];
-  description: string;
-  variants: any[];
-  category: string;
+  price: string;
+  originalPrice?: string;
+  thumbnail: string;
   orderCount: number;
+  categoryName: string;
+}
+
+interface AliExpressProductDetail {
+  productId: string;
+  title: string;
+  description: string;
+  images: string[];
+  variants?: Array<{
+    name: string;
+    price: number;
+    originalPrice?: number;
+    sku?: string;
+  }>;
+  specs?: Record<string, any>;
 }
 
 serve(async (req) => {
@@ -81,11 +95,11 @@ serve(async (req) => {
     // Step 1: Search for products using AliExpress Data API
     console.log(`🔍 Searching for ${niche} products using AliExpress Data API...`);
     
-    const searchResponse = await fetch(`https://aliexpress-data.p.rapidapi.com/product/search?query=${encodeURIComponent(niche)}&page=1&country=US&currency=USD`, {
+    const searchResponse = await fetch(`https://${HOST}/product/search?query=${encodeURIComponent(niche)}&page=1&country=US&currency=USD`, {
       method: 'GET',
       headers: {
         'X-RapidAPI-Key': rapidApiKey,
-        'X-RapidAPI-Host': 'aliexpress-data.p.rapidapi.com'
+        'X-RapidAPI-Host': HOST
       }
     });
 
@@ -93,15 +107,17 @@ serve(async (req) => {
       throw new Error(`AliExpress Data API search failed: ${searchResponse.status}`);
     }
 
-    const searchData = await searchResponse.json();
-    console.log('📦 AliExpress search response:', searchData);
+    const searchResponseJson = await searchResponse.json();
+    console.log('📦 AliExpress search response structure:', searchResponseJson);
 
-    if (!searchData.products || searchData.products.length === 0) {
+    // Properly unwrap the data from the API response
+    const searchData = searchResponseJson.data;
+    if (!searchData || !searchData.products || searchData.products.length === 0) {
       throw new Error(`No products found for niche: ${niche}`);
     }
 
     // Take top products (up to productCount)
-    const topProducts = searchData.products.slice(0, productCount);
+    const topProducts: AliExpressSearchProduct[] = searchData.products.slice(0, productCount);
     console.log(`✅ Found ${topProducts.length} products for ${niche}`);
 
     const results: ProductResult[] = [];
@@ -113,62 +129,55 @@ serve(async (req) => {
         const searchProduct = topProducts[i];
         console.log(`🎯 Processing product ${i + 1}/${topProducts.length}: ${searchProduct.title}`);
 
-        // Step 2: Get detailed product information
+        // Step 2: Get detailed product information using v5 endpoint
         console.log(`📋 Fetching detailed info for product ID: ${searchProduct.productId}`);
         
-        const detailResponse = await fetch(`https://aliexpress-data.p.rapidapi.com/product/descriptionv5?productId=${searchProduct.productId}&country=US&currency=USD`, {
+        const detailResponse = await fetch(`https://${HOST}/product/descriptionv5?productId=${searchProduct.productId}&country=US&currency=USD`, {
           method: 'GET',
           headers: {
             'X-RapidAPI-Key': rapidApiKey,
-            'X-RapidAPI-Host': 'aliexpress-data.p.rapidapi.com'
+            'X-RapidAPI-Host': HOST
           }
         });
 
-        let productDetail = null;
+        let productDetail: AliExpressProductDetail | null = null;
         if (detailResponse.ok) {
-          productDetail = await detailResponse.json();
+          const detailResponseJson = await detailResponse.json();
+          productDetail = detailResponseJson.data; // Unwrap the data
           console.log(`✅ Got detailed product info for: ${searchProduct.title}`);
         } else {
           console.warn(`⚠️ Failed to get details for product ${searchProduct.productId}, using search data`);
         }
 
         // Build comprehensive product data
-        const aliProduct: AliExpressProduct = {
-          productId: searchProduct.productId,
-          title: searchProduct.title || `Premium ${niche} Product`,
-          price: parseFloat(searchProduct.price || '25.00'),
-          originalPrice: parseFloat(searchProduct.originalPrice || searchProduct.price || '35.00'),
-          images: [],
-          description: '',
-          variants: [],
-          category: searchProduct.categoryName || niche,
-          orderCount: searchProduct.orderCount || 100
-        };
+        const productTitle = productDetail?.title || searchProduct.title || `Premium ${niche} Product`;
+        const productPrice = parseFloat(searchProduct.price?.replace(/[^0-9.]/g, '') || '25.00');
+        const originalPrice = parseFloat(searchProduct.originalPrice?.replace(/[^0-9.]/g, '') || (productPrice * 1.4).toFixed(2));
 
         // Extract images from detailed response or fallback to search thumbnail
+        let productImages: string[] = [];
         if (productDetail && productDetail.images && productDetail.images.length > 0) {
-          aliProduct.images = productDetail.images.slice(0, 8); // Up to 8 images
-          console.log(`📸 Using ${aliProduct.images.length} real AliExpress images`);
+          productImages = productDetail.images.slice(0, 8); // Up to 8 images
+          console.log(`📸 Using ${productImages.length} real AliExpress images`);
         } else if (searchProduct.thumbnail) {
-          aliProduct.images = [searchProduct.thumbnail];
+          productImages = [searchProduct.thumbnail];
           console.log(`📸 Using search thumbnail image`);
         } else {
           // Fallback to niche-specific placeholder
-          aliProduct.images = [generateNicheImage(niche, i)];
+          productImages = [generateNicheImage(niche, i)];
           console.log(`📸 Using niche fallback image`);
         }
 
         // Extract description
+        let productDescription = '';
         if (productDetail && productDetail.description) {
-          aliProduct.description = productDetail.description;
+          productDescription = productDetail.description;
         } else {
-          aliProduct.description = await generateProductDescription(aliProduct.title, niche, targetAudience, aliProduct);
-        }
-
-        // Extract variants
-        if (productDetail && productDetail.variants && productDetail.variants.length > 0) {
-          aliProduct.variants = productDetail.variants.slice(0, 3); // Up to 3 variants
-          console.log(`🎨 Using ${aliProduct.variants.length} real product variants`);
+          productDescription = await generateProductDescription(productTitle, niche, targetAudience, {
+            price: productPrice,
+            orderCount: searchProduct.orderCount,
+            category: searchProduct.categoryName
+          });
         }
 
         // Generate unique identifiers to prevent conflicts
@@ -176,22 +185,22 @@ serve(async (req) => {
         const randomId = Math.random().toString(36).substr(2, 9);
         const uniqueId = `${timestamp}_${i}_${randomId}`;
 
-        console.log(`📝 Processed: ${aliProduct.title} - $${aliProduct.price} with ${aliProduct.images.length} images`);
+        console.log(`📝 Processed: ${productTitle} - $${productPrice} with ${productImages.length} images`);
 
         // Create Shopify product with real AliExpress data
         const shopifyProduct = {
           product: {
-            title: aliProduct.title,
-            body_html: aliProduct.description,
+            title: productTitle,
+            body_html: productDescription,
             vendor: storeName,
-            product_type: aliProduct.category,
+            product_type: searchProduct.categoryName || niche,
             handle: `aliexpress-${niche.toLowerCase()}-${uniqueId}`,
             status: 'active',
             published: true,
-            tags: `AliExpress, ${niche}, ${aliProduct.category}, ${targetAudience}, real-images, verified-product`,
-            images: aliProduct.images.map((url, index) => ({
+            tags: `AliExpress, ${niche}, ${searchProduct.categoryName || niche}, ${targetAudience}, real-images, verified-product`,
+            images: productImages.map((url, index) => ({
               src: url,
-              alt: `${aliProduct.title} - Image ${index + 1}`,
+              alt: `${productTitle} - Image ${index + 1}`,
               position: index + 1
             })),
             variants: [],
@@ -200,50 +209,50 @@ serve(async (req) => {
         };
 
         // Create variants based on AliExpress data or generate standard ones
-        if (aliProduct.variants.length > 0) {
+        if (productDetail && productDetail.variants && productDetail.variants.length > 0) {
           // Use real AliExpress variants
-          const variantOptions = aliProduct.variants.map((variant, vIndex) => ({
+          const variantOptions = productDetail.variants.slice(0, 3).map((variant, vIndex) => ({
             option1: variant.name || `Variant ${vIndex + 1}`,
-            price: String((aliProduct.price * (1 + vIndex * 0.05)).toFixed(2)),
-            compare_at_price: String((aliProduct.originalPrice * (1 + vIndex * 0.05)).toFixed(2)),
+            price: String((variant.price || productPrice * (1 + vIndex * 0.05)).toFixed(2)),
+            compare_at_price: String((variant.originalPrice || originalPrice * (1 + vIndex * 0.05)).toFixed(2)),
             inventory_quantity: 100 - (vIndex * 10),
             inventory_management: null,
             fulfillment_service: 'manual',
             requires_shipping: true,
             sku: `ALI-${uniqueId}-VAR${vIndex + 1}`,
-            title: `${aliProduct.title} - ${variant.name || `Variant ${vIndex + 1}`}`
+            title: `${productTitle} - ${variant.name || `Variant ${vIndex + 1}`}`
           }));
 
           shopifyProduct.product.variants = variantOptions;
           shopifyProduct.product.options = [{
             name: 'Style',
             position: 1,
-            values: aliProduct.variants.map((v, idx) => v.name || `Variant ${idx + 1}`)
+            values: productDetail.variants.slice(0, 3).map((v, idx) => v.name || `Variant ${idx + 1}`)
           }];
         } else {
           // Generate standard variants
           shopifyProduct.product.variants = [
             {
               option1: `Standard`,
-              price: String(aliProduct.price.toFixed(2)),
-              compare_at_price: String(aliProduct.originalPrice.toFixed(2)),
+              price: String(productPrice.toFixed(2)),
+              compare_at_price: String(originalPrice.toFixed(2)),
               inventory_quantity: 100,
               inventory_management: null,
               fulfillment_service: 'manual',
               requires_shipping: true,
               sku: `ALI-${uniqueId}-STD`,
-              title: `${aliProduct.title} - Standard`
+              title: `${productTitle} - Standard`
             },
             {
               option1: `Premium`,
-              price: String((aliProduct.price * 1.15).toFixed(2)),
-              compare_at_price: String((aliProduct.originalPrice * 1.15).toFixed(2)),
+              price: String((productPrice * 1.15).toFixed(2)),
+              compare_at_price: String((originalPrice * 1.15).toFixed(2)),
               inventory_quantity: 50,
               inventory_management: null,
               fulfillment_service: 'manual',
               requires_shipping: true,
               sku: `ALI-${uniqueId}-PREM`,
-              title: `${aliProduct.title} - Premium`
+              title: `${productTitle} - Premium`
             }
           ];
 
@@ -254,7 +263,7 @@ serve(async (req) => {
           }];
         }
 
-        console.log(`🛒 Uploading to Shopify: ${aliProduct.title}`);
+        console.log(`🛒 Uploading to Shopify: ${productTitle}`);
         console.log(`💰 Price formatting: ${shopifyProduct.product.variants[0].price} (compare: ${shopifyProduct.product.variants[0].compare_at_price})`);
 
         // Upload to Shopify
@@ -272,14 +281,14 @@ serve(async (req) => {
           console.error(`❌ Shopify upload failed for product ${i + 1}:`, {
             status: shopifyResponse.status,
             error: errorText,
-            productTitle: aliProduct.title,
+            productTitle: productTitle,
             priceFormat: shopifyProduct.product.variants[0].price,
             compareAtPriceFormat: shopifyProduct.product.variants[0].compare_at_price
           });
           
           results.push({
-            title: aliProduct.title,
-            price: String(aliProduct.price.toFixed(2)),
+            title: productTitle,
+            price: String(productPrice.toFixed(2)),
             status: 'FAILED',
             error: `Shopify API error ${shopifyResponse.status}: ${errorText.substring(0, 100)}`
           });
@@ -291,9 +300,9 @@ serve(async (req) => {
 
         results.push({
           productId: createdProduct.product.id,
-          title: aliProduct.title,
-          price: String(aliProduct.price.toFixed(2)),
-          imagesUploaded: aliProduct.images.length,
+          title: productTitle,
+          price: String(productPrice.toFixed(2)),
+          imagesUploaded: productImages.length,
           variantsCreated: shopifyProduct.product.variants.length,
           status: 'SUCCESS'
         });
@@ -353,7 +362,7 @@ serve(async (req) => {
   }
 });
 
-async function generateProductDescription(title: string, niche: string, targetAudience: string, productData: AliExpressProduct): Promise<string> {
+async function generateProductDescription(title: string, niche: string, targetAudience: string, productData: { price: number; orderCount: number; category: string }): Promise<string> {
   if (!openAIApiKey) {
     return generateFallbackDescription(title, niche, targetAudience, productData);
   }
@@ -393,7 +402,7 @@ async function generateProductDescription(title: string, niche: string, targetAu
   return generateFallbackDescription(title, niche, targetAudience, productData);
 }
 
-function generateFallbackDescription(title: string, niche: string, targetAudience: string, productData: AliExpressProduct): string {
+function generateFallbackDescription(title: string, niche: string, targetAudience: string, productData: { price: number; orderCount: number; category: string }): string {
   return `
     <h2>${title}</h2>
     
