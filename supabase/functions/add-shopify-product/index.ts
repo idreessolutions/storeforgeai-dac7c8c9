@@ -155,10 +155,10 @@ serve(async (req) => {
         const searchProduct = topProducts[i];
         console.log(`🎯 Processing product ${i + 1}/${topProducts.length}: ${searchProduct.title}`);
 
-        // Step 2: Get detailed product information using PRO-tier endpoint (/product/description)
+        // Step 2: Get detailed product information using PRO-tier endpoint (/product/descriptionv4)
         console.log(`📋 Fetching detailed info for product ID: ${searchProduct.productId}`);
         
-        const detailUrl = `${BASE_URL}/product/description?productId=${searchProduct.productId}&country=US&currency=USD`;
+        const detailUrl = `${BASE_URL}/product/descriptionv4?productId=${searchProduct.productId}&country=US&currency=USD`;
         const detailResponse = await fetch(detailUrl, {
           method: 'GET',
           headers: {
