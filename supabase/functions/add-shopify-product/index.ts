@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -9,8 +10,9 @@ const corsHeaders = {
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const rapidApiKey = Deno.env.get('RAPIDAPI_KEY') || '58489993c1msh248ff0abb22fb9bp119a62jsn6d7c723257f6';
 
-// Correct AliExpress Data API host
+// Correct AliExpress Data API host for PRO plan
 const HOST = 'aliexpress-data.p.rapidapi.com';
+const BASE_URL = `https://${HOST}`;
 
 interface ProductResult {
   productId?: string;
@@ -52,7 +54,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🚀 Starting AliExpress Data API Product Generation');
+    console.log('🚀 Starting AliExpress Data API Product Generation (PRO Plan)');
     
     const requestBody = await req.json();
     console.log('📋 Request received:', {
@@ -60,7 +62,8 @@ serve(async (req) => {
       niche: requestBody.niche,
       shopifyUrl: requestBody.shopifyUrl?.substring(0, 30) + '...',
       hasRapidApiKey: !!rapidApiKey,
-      rapidApiHost: HOST
+      rapidApiHost: HOST,
+      planTier: 'PRO'
     });
 
     const {
@@ -92,12 +95,12 @@ serve(async (req) => {
     const validatedShopifyUrl = `https://${cleanUrl}`;
     
     console.log('🔗 Validated Shopify URL:', validatedShopifyUrl);
-    console.log('🔑 Using AliExpress Data API host:', HOST);
+    console.log('🔑 Using AliExpress Data API (PRO Plan):', HOST);
 
-    // Step 1: Search for products using the AliExpress Data API
-    console.log(`🔍 Searching for ${niche} products using AliExpress Data API...`);
+    // Step 1: Search for products using the AliExpress Data API (PRO endpoint)
+    console.log(`🔍 Searching for ${niche} products using AliExpress Data API (PRO)...`);
     
-    const searchUrl = `https://${HOST}/product/search?query=${encodeURIComponent(niche)}&page=1&country=US&currency=USD`;
+    const searchUrl = `${BASE_URL}/product/search?query=${encodeURIComponent(niche)}&page=1&country=US&currency=USD`;
     console.log('📡 Search URL:', searchUrl);
     
     const searchResponse = await fetch(searchUrl, {
@@ -118,7 +121,8 @@ serve(async (req) => {
         statusText: searchResponse.statusText,
         error: errorText,
         host: HOST,
-        url: searchUrl
+        url: searchUrl,
+        planTier: 'PRO'
       });
       throw new Error(`AliExpress Data API search failed: ${searchResponse.status} - ${errorText}`);
     }
@@ -151,10 +155,10 @@ serve(async (req) => {
         const searchProduct = topProducts[i];
         console.log(`🎯 Processing product ${i + 1}/${topProducts.length}: ${searchProduct.title}`);
 
-        // Step 2: Get detailed product information using v5 endpoint
+        // Step 2: Get detailed product information using PRO-tier endpoint (/product/description)
         console.log(`📋 Fetching detailed info for product ID: ${searchProduct.productId}`);
         
-        const detailUrl = `https://${HOST}/product/descriptionv5?productId=${searchProduct.productId}&country=US&currency=USD`;
+        const detailUrl = `${BASE_URL}/product/description?productId=${searchProduct.productId}&country=US&currency=USD`;
         const detailResponse = await fetch(detailUrl, {
           method: 'GET',
           headers: {
@@ -362,11 +366,12 @@ serve(async (req) => {
       success: true,
       successfulUploads,
       results,
-      message: `Successfully generated ${successfulUploads} real AliExpress products using AliExpress Data API`,
+      message: `Successfully generated ${successfulUploads} real AliExpress products using AliExpress Data API (PRO Plan)`,
       sessionId,
       aliexpressDataApiUsed: true,
       realImagesUsed: true,
-      themeColorApplied: successfulUploads > 0
+      themeColorApplied: successfulUploads > 0,
+      planTier: 'PRO'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
