@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -10,6 +9,7 @@ const corsHeaders = {
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const rapidApiKey = Deno.env.get('RAPIDAPI_KEY') || '58489993c1msh248ff0abb22fb9bp119a62jsn6d7c723257f6';
 
+// Updated to use the correct AliExpress Data API host
 const HOST = 'aliexpress-data.p.rapidapi.com';
 
 interface ProductResult {
@@ -92,7 +92,7 @@ serve(async (req) => {
     
     console.log('🔗 Validated Shopify URL:', validatedShopifyUrl);
 
-    // Step 1: Search for products using AliExpress Data API
+    // Step 1: Search for products using the NEW AliExpress Data API
     console.log(`🔍 Searching for ${niche} products using AliExpress Data API...`);
     
     const searchResponse = await fetch(`https://${HOST}/product/search?query=${encodeURIComponent(niche)}&page=1&country=US&currency=USD`, {
@@ -104,15 +104,18 @@ serve(async (req) => {
     });
 
     if (!searchResponse.ok) {
-      throw new Error(`AliExpress Data API search failed: ${searchResponse.status}`);
+      const errorText = await searchResponse.text();
+      console.error('❌ AliExpress Data API search failed:', errorText);
+      throw new Error(`AliExpress Data API search failed: ${searchResponse.status} - ${errorText}`);
     }
 
     const searchResponseJson = await searchResponse.json();
-    console.log('📦 AliExpress search response structure:', searchResponseJson);
+    console.log('📦 AliExpress search response received successfully');
 
     // Properly unwrap the data from the API response
     const searchData = searchResponseJson.data;
     if (!searchData || !searchData.products || searchData.products.length === 0) {
+      console.warn(`⚠️ No products found for niche: ${niche}`);
       throw new Error(`No products found for niche: ${niche}`);
     }
 
