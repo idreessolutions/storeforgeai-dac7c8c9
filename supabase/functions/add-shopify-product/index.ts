@@ -22,9 +22,21 @@ try {
   rapidApiKey = undefined;
 }
 
-// Correct AliExpress Data API host for PRO plan
+// AliExpress Data API configuration
 const HOST = 'aliexpress-data.p.rapidapi.com';
 const BASE_URL = `https://${HOST}`;
+
+// Retry configuration for rate limiting
+const RETRY_ATTEMPTS = 3;
+const RETRY_DELAY = 5000; // 5 seconds
+
+// API endpoints by plan tier (use only authorized endpoints)
+const API_ENDPOINTS = {
+  // Try these endpoints in order of preference
+  SEARCH_PRIMARY: '/products/list', // Most commonly authorized
+  SEARCH_FALLBACK: '/products/search', // Secondary option
+  DETAILS: '/product/details' // Product details
+};
 
 interface ProductResult {
   productId?: string;
@@ -118,11 +130,8 @@ serve(async (req) => {
     
     console.log('🔗 Validated Shopify URL:', validatedShopifyUrl);
 
-    // Step 1: Search for products using the AliExpress Data API (PRO endpoint)
-    console.log(`🔍 Searching for ${niche} products using AliExpress Data API (PRO)...`);
-    
-    // Use the correct PRO-tier endpoint with proper parameters
-    const searchUrl = `${BASE_URL}/product/search?query=${encodeURIComponent(niche)}&page=1&country=US&currency=USD&min_price=1&max_price=100`;
+    // Step 1: Test API key and search for products with proper error handling
+    console.log(`🔍 Searching for ${niche} products using AliExpress Data API...`);
     
     const requestHeaders = {
       'X-RapidAPI-Key': rapidApiKey,
@@ -130,99 +139,128 @@ serve(async (req) => {
       'Content-Type': 'application/json',
       'User-Agent': 'Lovable-AliExpress-Integration/1.0'
     };
-    
-    console.log('📡 PRO API Request Details:', {
-      method: 'GET',
-      url: searchUrl,
-      headers: {
-        'X-RapidAPI-Key': `${rapidApiKey.substring(0, 15)}...${rapidApiKey.substring(-10)}`,
-        'X-RapidAPI-Host': HOST,
-        'Content-Type': 'application/json',
-        'User-Agent': 'Lovable-AliExpress-Integration/1.0'
-      },
-      keyLength: rapidApiKey.length,
-      endpoint: '/product/search',
-      planTier: 'PRO'
-    });
-    
-    const searchResponse = await fetch(searchUrl, {
-      method: 'GET',
-      headers: requestHeaders
-    });
 
-    console.log('📊 API Response Status:', searchResponse.status);
-    console.log('📊 API Response Headers:', Object.fromEntries(searchResponse.headers.entries()));
-
-    if (!searchResponse.ok) {
-      const errorText = await searchResponse.text();
-      console.error('❌ AliExpress Data API search failed:', {
-        status: searchResponse.status,
-        statusText: searchResponse.statusText,
-        error: errorText,
-        host: HOST,
-        url: searchUrl,
-        planTier: 'PRO',
-        endpoint: '/product/search',
-        apiKeyPresent: !!rapidApiKey,
-        apiKeyLength: rapidApiKey?.length,
-        apiKeyPreview: rapidApiKey ? `${rapidApiKey.substring(0, 15)}...${rapidApiKey.substring(-10)}` : 'NONE',
-        requestHeaders: {
-          'X-RapidAPI-Key': rapidApiKey ? `${rapidApiKey.substring(0, 15)}...${rapidApiKey.substring(-10)}` : 'MISSING',
-          'X-RapidAPI-Host': HOST,
-          'Content-Type': 'application/json',
-          'User-Agent': 'Lovable-AliExpress-Integration/1.0'
-        },
-        possibleCauses: [
-          'API subscription may not include this specific endpoint',
-          'PRO plan may require different endpoint or parameters',
-          'API rate limiting may be in effect',
-          'Endpoint may have changed or been deprecated'
-        ]
-      });
+    // Function to handle API calls with retry logic
+    async function makeApiRequest(url: string, endpoint: string, attempt = 1): Promise<Response> {
+      console.log(`📡 API Request [Attempt ${attempt}]: ${endpoint}`);
+      console.log(`🔗 URL: ${url}`);
       
-      // Try alternative PRO endpoints if main search fails
-      console.log('🔄 Trying alternative PRO endpoint...');
-      
-      const altSearchUrl = `${BASE_URL}/products/search?keyword=${encodeURIComponent(niche)}&page=1&country=US&currency=USD`;
-      console.log('📡 Trying alternative endpoint:', altSearchUrl);
-      
-      const altSearchResponse = await fetch(altSearchUrl, {
+      const response = await fetch(url, {
         method: 'GET',
         headers: requestHeaders
       });
+
+      console.log(`📊 Response Status: ${response.status} for ${endpoint}`);
       
-      if (!altSearchResponse.ok) {
-        const altErrorText = await altSearchResponse.text();
-        console.error('❌ Alternative endpoint also failed:', {
-          status: altSearchResponse.status,
-          error: altErrorText,
-          endpoint: '/products/search'
+      // Handle specific error cases
+      if (response.status === 403) {
+        const errorText = await response.text();
+        console.error(`❌ 403 Forbidden for ${endpoint}:`, {
+          status: 403,
+          error: errorText,
+          endpoint,
+          message: 'Not subscribed to this specific endpoint or plan tier insufficient'
         });
+        throw new Error(`API endpoint not authorized: ${endpoint} - ${errorText}`);
+      }
+      
+      if (response.status === 429) {
+        const errorText = await response.text();
+        console.warn(`⚠️ Rate limited on ${endpoint} (attempt ${attempt}):`, errorText);
         
-        // Log final error with all attempted endpoints
-        throw new Error(`AliExpress Data API failed for both endpoints:
-        1. /product/search - ${searchResponse.status}: ${errorText}
-        2. /products/search - ${altSearchResponse.status}: ${altErrorText}`);
-      } else {
-        console.log('✅ Alternative endpoint succeeded, processing response...');
-        const altSearchResponseJson = await altSearchResponse.json();
-        console.log('📦 Alternative search response received');
-        // Process alternative response...
+        if (attempt < RETRY_ATTEMPTS) {
+          console.log(`🔄 Retrying in ${RETRY_DELAY}ms... (${attempt + 1}/${RETRY_ATTEMPTS})`);
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+          return makeApiRequest(url, endpoint, attempt + 1);
+        } else {
+          throw new Error(`Rate limit exceeded after ${RETRY_ATTEMPTS} attempts: ${errorText}`);
+        }
+      }
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ API Error ${response.status} for ${endpoint}:`, errorText);
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+      
+      return response;
+    }
+
+    // Try different API endpoints in order of preference
+    let searchResponse: Response;
+    let searchData: any = null;
+    let usedEndpoint = '';
+
+    // Endpoint 1: Try /products/list (most commonly authorized for PRO)
+    try {
+      const listUrl = `${BASE_URL}${API_ENDPOINTS.SEARCH_PRIMARY}?keywords=${encodeURIComponent(niche)}&page=1&region=US`;
+      searchResponse = await makeApiRequest(listUrl, API_ENDPOINTS.SEARCH_PRIMARY);
+      const responseData = await searchResponse.json();
+      
+      if (responseData && (responseData.data || responseData.products || responseData.result)) {
+        searchData = responseData;
+        usedEndpoint = API_ENDPOINTS.SEARCH_PRIMARY;
+        console.log('✅ Success with /products/list endpoint');
+      }
+    } catch (error) {
+      console.warn(`⚠️ ${API_ENDPOINTS.SEARCH_PRIMARY} failed:`, error.message);
+    }
+
+    // Endpoint 2: Try /products/search as fallback
+    if (!searchData) {
+      try {
+        const searchUrl = `${BASE_URL}${API_ENDPOINTS.SEARCH_FALLBACK}?keyword=${encodeURIComponent(niche)}&page=1&country=US&currency=USD`;
+        searchResponse = await makeApiRequest(searchUrl, API_ENDPOINTS.SEARCH_FALLBACK);
+        const responseData = await searchResponse.json();
+        
+        if (responseData && (responseData.data || responseData.products || responseData.result)) {
+          searchData = responseData;
+          usedEndpoint = API_ENDPOINTS.SEARCH_FALLBACK;
+          console.log('✅ Success with /products/search endpoint');
+        }
+      } catch (error) {
+        console.warn(`⚠️ ${API_ENDPOINTS.SEARCH_FALLBACK} failed:`, error.message);
       }
     }
 
-    const searchResponseJson = await searchResponse.json();
-    console.log('📦 AliExpress search response received successfully');
+    // If all API endpoints fail, generate fallback products
+    if (!searchData) {
+      console.warn(`⚠️ All AliExpress API endpoints failed. Generating fallback products for ${niche}.`);
+      
+      const fallbackProducts = await generateFallbackProducts(niche, productCount, validatedShopifyUrl, shopifyAccessToken, storeName, targetAudience);
+      
+      return new Response(JSON.stringify({
+        success: true,
+        successfulUploads: fallbackProducts.length,
+        results: fallbackProducts,
+        message: `Generated ${fallbackProducts.length} fallback products (API endpoints unavailable)`,
+        sessionId,
+        fallbackMode: true,
+        apiError: 'All AliExpress endpoints returned 403/429 errors',
+        themeColorApplied: fallbackProducts.length > 0
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log(`📦 Processing search data from ${usedEndpoint}`);
     console.log('🔍 Response structure:', {
-      hasData: !!searchResponseJson.data,
-      hasProducts: !!searchResponseJson.data?.products,
-      productCount: searchResponseJson.data?.products?.length || 0,
-      responseKeys: Object.keys(searchResponseJson)
+      hasData: !!searchData.data,
+      hasProducts: !!searchData.data?.products || !!searchData.products || !!searchData.result,
+      responseKeys: Object.keys(searchData)
     });
 
-    // Properly unwrap the data from the API response
-    const searchData = searchResponseJson.data;
-    if (!searchData || !searchData.products || searchData.products.length === 0) {
+    // Properly unwrap the data from the API response (handle different response formats)
+    let products: any[] = [];
+    if (searchData.data && searchData.data.products) {
+      products = searchData.data.products;
+    } else if (searchData.products) {
+      products = searchData.products;
+    } else if (searchData.result && searchData.result.products) {
+      products = searchData.result.products;
+    }
+
+    if (!products || products.length === 0) {
       console.warn(`⚠️ No products found for niche: ${niche}, generating fallback products`);
       
       // Generate fallback products if API returns no results
@@ -242,8 +280,8 @@ serve(async (req) => {
     }
 
     // Take top products (up to productCount)
-    const topProducts: AliExpressSearchProduct[] = searchData.products.slice(0, productCount);
-    console.log(`✅ Found ${topProducts.length} products for ${niche}`);
+    const topProducts: AliExpressSearchProduct[] = products.slice(0, productCount);
+    console.log(`✅ Found ${topProducts.length} products for ${niche} using ${usedEndpoint}`);
 
     const results: ProductResult[] = [];
     let successfulUploads = 0;
