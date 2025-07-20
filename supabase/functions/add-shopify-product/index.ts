@@ -7,8 +7,8 @@ const corsHeaders = {
 };
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-// Use the exact API key you provided as fallback if environment variable is not set
-const rapidApiKey = Deno.env.get('RAPIDAPI_KEY') || '58489993c1msh248ff0abb22fb9bp119a62jsn6d7c723257f6';
+// Get RapidAPI key from environment variables
+const rapidApiKey = Deno.env.get('RAPIDAPI_KEY');
 
 // Correct AliExpress Data API host for PRO plan
 const HOST = 'aliexpress-data.p.rapidapi.com';
@@ -56,12 +56,18 @@ serve(async (req) => {
   try {
     console.log('🚀 Starting AliExpress Data API Product Generation (PRO Plan)');
     
-    // Debug API key availability
-    console.log('📡 Requesting AliExpress product search');
-    console.log('🔑 API Key present:', !!rapidApiKey);
-    console.log('🔑 API Key length:', rapidApiKey?.length || 0);
-    console.log('🔑 Host:', HOST);
-    console.log('🔑 Base URL:', BASE_URL);
+    // Critical: Debug API key retrieval
+    console.log('🔑 RAPIDAPI_KEY environment check:', {
+      keyExists: !!rapidApiKey,
+      keyLength: rapidApiKey?.length || 0,
+      keyPreview: rapidApiKey ? rapidApiKey.substring(0, 10) + '...' : 'NOT_FOUND',
+      envKeys: Object.keys(Deno.env.toObject()).filter(k => k.includes('RAPID')),
+    });
+    
+    if (!rapidApiKey) {
+      console.error('❌ CRITICAL: RAPIDAPI_KEY not found in environment variables');
+      throw new Error('RapidAPI key is required but not found in environment variables');
+    }
     
     const requestBody = await req.json();
     console.log('📋 Request received:', {
@@ -90,10 +96,6 @@ serve(async (req) => {
       throw new Error('Shopify URL and access token are required');
     }
 
-    if (!rapidApiKey) {
-      throw new Error('RapidAPI key is required for AliExpress Data API');
-    }
-
     // Validate and clean Shopify URL
     let cleanUrl = shopifyUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
     if (!cleanUrl.includes('.myshopify.com')) {
@@ -108,7 +110,11 @@ serve(async (req) => {
     
     const searchUrl = `${BASE_URL}/product/search?query=${encodeURIComponent(niche)}&page=1&country=US&currency=USD`;
     console.log('📡 Search URL:', searchUrl);
-    console.log('🔑 Using API Key (first 10 chars):', rapidApiKey.substring(0, 10) + '...');
+    console.log('🔑 Headers being sent:', {
+      'X-RapidAPI-Key': rapidApiKey.substring(0, 10) + '...',
+      'X-RapidAPI-Host': HOST,
+      'Content-Type': 'application/json'
+    });
     
     const searchResponse = await fetch(searchUrl, {
       method: 'GET',
@@ -132,7 +138,11 @@ serve(async (req) => {
         url: searchUrl,
         planTier: 'PRO',
         apiKeyPresent: !!rapidApiKey,
-        apiKeyLength: rapidApiKey?.length
+        apiKeyLength: rapidApiKey?.length,
+        requestHeaders: {
+          'X-RapidAPI-Key': rapidApiKey.substring(0, 10) + '...',
+          'X-RapidAPI-Host': HOST
+        }
       });
       throw new Error(`AliExpress Data API search failed: ${searchResponse.status} - ${errorText}`);
     }
