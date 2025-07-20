@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -8,6 +7,7 @@ const corsHeaders = {
 };
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+// Use the exact API key you provided as fallback if environment variable is not set
 const rapidApiKey = Deno.env.get('RAPIDAPI_KEY') || '58489993c1msh248ff0abb22fb9bp119a62jsn6d7c723257f6';
 
 // Correct AliExpress Data API host for PRO plan
@@ -56,6 +56,13 @@ serve(async (req) => {
   try {
     console.log('🚀 Starting AliExpress Data API Product Generation (PRO Plan)');
     
+    // Debug API key availability
+    console.log('📡 Requesting AliExpress product search');
+    console.log('🔑 API Key present:', !!rapidApiKey);
+    console.log('🔑 API Key length:', rapidApiKey?.length || 0);
+    console.log('🔑 Host:', HOST);
+    console.log('🔑 Base URL:', BASE_URL);
+    
     const requestBody = await req.json();
     console.log('📋 Request received:', {
       productCount: requestBody.productCount,
@@ -95,13 +102,13 @@ serve(async (req) => {
     const validatedShopifyUrl = `https://${cleanUrl}`;
     
     console.log('🔗 Validated Shopify URL:', validatedShopifyUrl);
-    console.log('🔑 Using AliExpress Data API (PRO Plan):', HOST);
 
     // Step 1: Search for products using the AliExpress Data API (PRO endpoint)
     console.log(`🔍 Searching for ${niche} products using AliExpress Data API (PRO)...`);
     
     const searchUrl = `${BASE_URL}/product/search?query=${encodeURIComponent(niche)}&page=1&country=US&currency=USD`;
     console.log('📡 Search URL:', searchUrl);
+    console.log('🔑 Using API Key (first 10 chars):', rapidApiKey.substring(0, 10) + '...');
     
     const searchResponse = await fetch(searchUrl, {
       method: 'GET',
@@ -113,6 +120,7 @@ serve(async (req) => {
     });
 
     console.log('📊 Search response status:', searchResponse.status);
+    console.log('📊 Search response headers:', Object.fromEntries(searchResponse.headers.entries()));
 
     if (!searchResponse.ok) {
       const errorText = await searchResponse.text();
@@ -122,7 +130,9 @@ serve(async (req) => {
         error: errorText,
         host: HOST,
         url: searchUrl,
-        planTier: 'PRO'
+        planTier: 'PRO',
+        apiKeyPresent: !!rapidApiKey,
+        apiKeyLength: rapidApiKey?.length
       });
       throw new Error(`AliExpress Data API search failed: ${searchResponse.status} - ${errorText}`);
     }
