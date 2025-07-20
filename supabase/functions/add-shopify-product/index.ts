@@ -7,8 +7,21 @@ const corsHeaders = {
 };
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-// Get RapidAPI key from environment variables
-const rapidApiKey = Deno.env.get('RAPIDAPI_KEY');
+
+// Get RapidAPI key from environment variables with proper error handling
+let rapidApiKey: string | undefined;
+try {
+  rapidApiKey = Deno.env.get('RAPIDAPI_KEY');
+  console.log('🔧 Environment variable retrieval:', {
+    rapidApiKeyExists: !!rapidApiKey,
+    rapidApiKeyLength: rapidApiKey?.length || 0,
+    rapidApiKeyPrefix: rapidApiKey?.substring(0, 15) || 'UNDEFINED',
+    allEnvKeys: Object.keys(Deno.env.toObject()).filter(k => k.toUpperCase().includes('RAPID'))
+  });
+} catch (error) {
+  console.error('❌ Error getting RAPIDAPI_KEY from environment:', error);
+  rapidApiKey = undefined;
+}
 
 // Correct AliExpress Data API host for PRO plan
 const HOST = 'aliexpress-data.p.rapidapi.com';
@@ -56,17 +69,33 @@ serve(async (req) => {
   try {
     console.log('🚀 Starting AliExpress Data API Product Generation (PRO Plan)');
     
-    // Critical: Debug API key retrieval
-    console.log('🔑 RAPIDAPI_KEY environment check:', {
+    // Enhanced API key validation and logging
+    console.log('🔑 RAPIDAPI_KEY Debug Information:', {
       keyExists: !!rapidApiKey,
       keyLength: rapidApiKey?.length || 0,
-      keyPreview: rapidApiKey ? rapidApiKey.substring(0, 10) + '...' : 'NOT_FOUND',
-      envKeys: Object.keys(Deno.env.toObject()).filter(k => k.includes('RAPID')),
+      keyPreview: rapidApiKey ? `${rapidApiKey.substring(0, 10)}...${rapidApiKey.substring(-5)}` : 'NOT_FOUND',
+      keyType: typeof rapidApiKey,
+      isString: typeof rapidApiKey === 'string',
+      envVarsDirect: {
+        RAPIDAPI_KEY: !!Deno.env.get('RAPIDAPI_KEY'),
+        'RAPIDAPI_KEY ': !!Deno.env.get('RAPIDAPI_KEY '), // Check for trailing space
+        'rapidapi_key': !!Deno.env.get('rapidapi_key'), // Check lowercase
+      },
+      allRapidKeys: Object.keys(Deno.env.toObject()).filter(k => k.toLowerCase().includes('rapid'))
     });
     
-    if (!rapidApiKey) {
-      console.error('❌ CRITICAL: RAPIDAPI_KEY not found in environment variables');
-      throw new Error('RapidAPI key is required but not found in environment variables');
+    // Force re-fetch the key directly
+    const directKey = Deno.env.get('RAPIDAPI_KEY');
+    if (directKey && directKey !== rapidApiKey) {
+      console.log('🔄 Direct key fetch differs from initial fetch, using direct key');
+      rapidApiKey = directKey;
+    }
+    
+    if (!rapidApiKey || rapidApiKey.length === 0) {
+      console.error('❌ CRITICAL: RAPIDAPI_KEY not found or empty in environment variables');
+      const allEnvKeys = Object.keys(Deno.env.toObject());
+      console.error('📋 All available environment variables:', allEnvKeys.filter(k => !k.includes('SUPABASE')));
+      throw new Error('RapidAPI key is required but not found in environment variables. Please check Supabase Edge Function secrets.');
     }
     
     const requestBody = await req.json();
@@ -76,7 +105,12 @@ serve(async (req) => {
       shopifyUrl: requestBody.shopifyUrl?.substring(0, 30) + '...',
       hasRapidApiKey: !!rapidApiKey,
       rapidApiHost: HOST,
-      planTier: 'PRO'
+      planTier: 'PRO',
+      keyValidation: {
+        length: rapidApiKey.length,
+        startsCorrectly: rapidApiKey.startsWith('19e3753fc0') || rapidApiKey.startsWith('58489993c1'),
+        endsCorrectly: rapidApiKey.includes('jsn') || rapidApiKey.includes('msh')
+      }
     });
 
     const {
@@ -109,24 +143,32 @@ serve(async (req) => {
     console.log(`🔍 Searching for ${niche} products using AliExpress Data API (PRO)...`);
     
     const searchUrl = `${BASE_URL}/product/search?query=${encodeURIComponent(niche)}&page=1&country=US&currency=USD`;
-    console.log('📡 Search URL:', searchUrl);
-    console.log('🔑 Headers being sent:', {
-      'X-RapidAPI-Key': rapidApiKey.substring(0, 10) + '...',
+    
+    const requestHeaders = {
+      'X-RapidAPI-Key': rapidApiKey,
       'X-RapidAPI-Host': HOST,
       'Content-Type': 'application/json'
+    };
+    
+    console.log('📡 API Request Details:', {
+      method: 'GET',
+      url: searchUrl,
+      headers: {
+        'X-RapidAPI-Key': `${rapidApiKey.substring(0, 10)}...${rapidApiKey.substring(-10)}`,
+        'X-RapidAPI-Host': HOST,
+        'Content-Type': 'application/json'
+      },
+      keyLength: rapidApiKey.length,
+      keyValid: rapidApiKey.length >= 40 && rapidApiKey.includes('msh')
     });
     
     const searchResponse = await fetch(searchUrl, {
       method: 'GET',
-      headers: {
-        'X-RapidAPI-Key': rapidApiKey,
-        'X-RapidAPI-Host': HOST,
-        'Content-Type': 'application/json'
-      }
+      headers: requestHeaders
     });
 
-    console.log('📊 Search response status:', searchResponse.status);
-    console.log('📊 Search response headers:', Object.fromEntries(searchResponse.headers.entries()));
+    console.log('📊 API Response Status:', searchResponse.status);
+    console.log('📊 API Response Headers:', Object.fromEntries(searchResponse.headers.entries()));
 
     if (!searchResponse.ok) {
       const errorText = await searchResponse.text();
@@ -139,12 +181,29 @@ serve(async (req) => {
         planTier: 'PRO',
         apiKeyPresent: !!rapidApiKey,
         apiKeyLength: rapidApiKey?.length,
+        apiKeyPreview: rapidApiKey ? `${rapidApiKey.substring(0, 15)}...${rapidApiKey.substring(-10)}` : 'NONE',
         requestHeaders: {
-          'X-RapidAPI-Key': rapidApiKey.substring(0, 10) + '...',
+          'X-RapidAPI-Key': rapidApiKey ? `${rapidApiKey.substring(0, 10)}...${rapidApiKey.substring(-5)}` : 'MISSING',
           'X-RapidAPI-Host': HOST
-        }
+        },
+        possibleCauses: [
+          'API key may be incorrect or expired',
+          'Subscription may not be active for this endpoint',
+          'Rate limiting may be in effect',
+          'API endpoint may have changed'
+        ]
       });
-      throw new Error(`AliExpress Data API search failed: ${searchResponse.status} - ${errorText}`);
+      
+      // Try to parse error response for more details
+      let errorDetails = errorText;
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorDetails = errorJson.message || errorText;
+      } catch (e) {
+        // Keep original error text if not JSON
+      }
+      
+      throw new Error(`AliExpress Data API search failed: ${searchResponse.status} - ${errorDetails}`);
     }
 
     const searchResponseJson = await searchResponse.json();
@@ -152,7 +211,8 @@ serve(async (req) => {
     console.log('🔍 Response structure:', {
       hasData: !!searchResponseJson.data,
       hasProducts: !!searchResponseJson.data?.products,
-      productCount: searchResponseJson.data?.products?.length || 0
+      productCount: searchResponseJson.data?.products?.length || 0,
+      responseKeys: Object.keys(searchResponseJson)
     });
 
     // Properly unwrap the data from the API response
@@ -403,7 +463,13 @@ serve(async (req) => {
       success: false,
       error: error.message || 'AliExpress Data API product generation failed',
       successfulUploads: 0,
-      results: []
+      results: [],
+      debugInfo: {
+        rapidApiKeyExists: !!rapidApiKey,
+        rapidApiKeyLength: rapidApiKey?.length || 0,
+        envVarsAvailable: Object.keys(Deno.env.toObject()).filter(k => k.includes('RAPID')),
+        timestamp: new Date().toISOString()
+      }
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
