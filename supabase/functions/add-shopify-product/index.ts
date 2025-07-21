@@ -8,18 +8,18 @@ const corsHeaders = {
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// Get RapidAPI key from environment variables with proper error handling
-let rapidApiKey: string | undefined;
+// Get AliExpress API key from environment variables with proper error handling
+let aliExpressApiKey: string | undefined;
 try {
-  rapidApiKey = Deno.env.get('RAPIDAPI_KEY');
-  console.log('🔧 RAPIDAPI_KEY Environment Check:', {
-    keyExists: !!rapidApiKey,
-    keyLength: rapidApiKey?.length || 0,
-    keyPreview: rapidApiKey ? `${rapidApiKey.substring(0, 15)}...${rapidApiKey.substring(-10)}` : 'UNDEFINED'
+  aliExpressApiKey = Deno.env.get('ALIEXPRESS_DATA_API_KEY');
+  console.log('🔧 ALIEXPRESS_DATA_API_KEY Environment Check:', {
+    keyExists: !!aliExpressApiKey,
+    keyLength: aliExpressApiKey?.length || 0,
+    keyPreview: aliExpressApiKey ? `${aliExpressApiKey.substring(0, 15)}...${aliExpressApiKey.substring(-10)}` : 'UNDEFINED'
   });
 } catch (error) {
-  console.error('❌ Error getting RAPIDAPI_KEY from environment:', error);
-  rapidApiKey = undefined;
+  console.error('❌ Error getting ALIEXPRESS_DATA_API_KEY from environment:', error);
+  aliExpressApiKey = undefined;
 }
 
 // AliExpress Data API configuration
@@ -81,17 +81,17 @@ serve(async (req) => {
     console.log('🚀 Starting AliExpress Data API Product Generation (PRO Plan)');
     
     // Enhanced API key validation and logging
-    console.log('🔑 RAPIDAPI_KEY Final Check:', {
-      keyExists: !!rapidApiKey,
-      keyLength: rapidApiKey?.length || 0,
-      keyPreview: rapidApiKey ? `${rapidApiKey.substring(0, 15)}...${rapidApiKey.substring(-10)}` : 'NOT_FOUND',
-      keyType: typeof rapidApiKey,
-      isString: typeof rapidApiKey === 'string'
+    console.log('🔑 ALIEXPRESS_DATA_API_KEY Final Check:', {
+      keyExists: !!aliExpressApiKey,
+      keyLength: aliExpressApiKey?.length || 0,
+      keyPreview: aliExpressApiKey ? `${aliExpressApiKey.substring(0, 15)}...${aliExpressApiKey.substring(-10)}` : 'NOT_FOUND',
+      keyType: typeof aliExpressApiKey,
+      isString: typeof aliExpressApiKey === 'string'
     });
     
-    if (!rapidApiKey || rapidApiKey.length === 0) {
-      console.error('❌ CRITICAL: RAPIDAPI_KEY not found or empty in environment variables');
-      throw new Error('RapidAPI key is required but not found in environment variables. Please check Supabase Edge Function secrets.');
+    if (!aliExpressApiKey || aliExpressApiKey.length === 0) {
+      console.error('❌ CRITICAL: ALIEXPRESS_DATA_API_KEY not found or empty in environment variables');
+      throw new Error('AliExpress API key is required but not found in environment variables. Please check Supabase Edge Function secrets.');
     }
     
     const requestBody = await req.json();
@@ -99,7 +99,7 @@ serve(async (req) => {
       productCount: requestBody.productCount,
       niche: requestBody.niche,
       shopifyUrl: requestBody.shopifyUrl?.substring(0, 30) + '...',
-      hasRapidApiKey: !!rapidApiKey,
+      hasRapidApiKey: !!aliExpressApiKey,
       rapidApiHost: HOST,
       planTier: 'PRO'
     });
@@ -134,7 +134,7 @@ serve(async (req) => {
     console.log(`🔍 Searching for ${niche} products using AliExpress Data API...`);
     
     const requestHeaders = {
-      'X-RapidAPI-Key': rapidApiKey,
+      'X-RapidAPI-Key': aliExpressApiKey,
       'X-RapidAPI-Host': HOST,
       'Content-Type': 'application/json',
       'User-Agent': 'Lovable-AliExpress-Integration/1.0'
