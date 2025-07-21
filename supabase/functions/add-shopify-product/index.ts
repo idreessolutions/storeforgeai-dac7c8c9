@@ -191,35 +191,49 @@ serve(async (req) => {
     let searchData: any = null;
     let usedEndpoint = '';
 
-    // Endpoint 1: Try /products/list (most commonly authorized for PRO)
+    // Enhanced product search with quality filtering and sorting
     try {
-      const listUrl = `${BASE_URL}${API_ENDPOINTS.SEARCH_PRIMARY}?keywords=${encodeURIComponent(niche)}&page=1&region=US`;
-      searchResponse = await makeApiRequest(listUrl, API_ENDPOINTS.SEARCH_PRIMARY);
+      // Primary endpoint with quality filters
+      const listUrl = `${BASE_URL}/product/search?query=${encodeURIComponent(niche)}&page=1&limit=${productCount}&sort=orders&hasImage=true&minOrders=50&minRating=4.0`;
+      searchResponse = await makeApiRequest(listUrl, '/product/search');
       const responseData = await searchResponse.json();
       
       if (responseData && (responseData.data || responseData.products || responseData.result)) {
         searchData = responseData;
-        usedEndpoint = API_ENDPOINTS.SEARCH_PRIMARY;
-        console.log('✅ Success with /products/list endpoint');
+        usedEndpoint = '/product/search';
+        console.log('✅ Success with enhanced /product/search endpoint (quality filtered)');
       }
     } catch (error) {
-      console.warn(`⚠️ ${API_ENDPOINTS.SEARCH_PRIMARY} failed:`, error.message);
-    }
-
-    // Endpoint 2: Try /products/search as fallback
-    if (!searchData) {
+      console.warn(`⚠️ Enhanced product search failed:`, error.message);
+      
+      // Fallback 1: Standard products/list
       try {
-        const searchUrl = `${BASE_URL}${API_ENDPOINTS.SEARCH_FALLBACK}?keyword=${encodeURIComponent(niche)}&page=1&country=US&currency=USD`;
-        searchResponse = await makeApiRequest(searchUrl, API_ENDPOINTS.SEARCH_FALLBACK);
+        const listUrl = `${BASE_URL}${API_ENDPOINTS.SEARCH_PRIMARY}?keywords=${encodeURIComponent(niche)}&page=1&region=US&sort=orders`;
+        searchResponse = await makeApiRequest(listUrl, API_ENDPOINTS.SEARCH_PRIMARY);
         const responseData = await searchResponse.json();
         
         if (responseData && (responseData.data || responseData.products || responseData.result)) {
           searchData = responseData;
-          usedEndpoint = API_ENDPOINTS.SEARCH_FALLBACK;
-          console.log('✅ Success with /products/search endpoint');
+          usedEndpoint = API_ENDPOINTS.SEARCH_PRIMARY;
+          console.log('✅ Success with /products/list endpoint');
         }
-      } catch (error) {
-        console.warn(`⚠️ ${API_ENDPOINTS.SEARCH_FALLBACK} failed:`, error.message);
+      } catch (error2) {
+        console.warn(`⚠️ ${API_ENDPOINTS.SEARCH_PRIMARY} failed:`, error2.message);
+        
+        // Fallback 2: Standard products/search
+        try {
+          const searchUrl = `${BASE_URL}${API_ENDPOINTS.SEARCH_FALLBACK}?keyword=${encodeURIComponent(niche)}&page=1&country=US&currency=USD`;
+          searchResponse = await makeApiRequest(searchUrl, API_ENDPOINTS.SEARCH_FALLBACK);
+          const responseData = await searchResponse.json();
+          
+          if (responseData && (responseData.data || responseData.products || responseData.result)) {
+            searchData = responseData;
+            usedEndpoint = API_ENDPOINTS.SEARCH_FALLBACK;
+            console.log('✅ Success with /products/search endpoint');
+          }
+        } catch (error3) {
+          console.warn(`⚠️ ${API_ENDPOINTS.SEARCH_FALLBACK} failed:`, error3.message);
+        }
       }
     }
 
@@ -279,9 +293,52 @@ serve(async (req) => {
       });
     }
 
+    // Enhanced product filtering for high-quality winning products
+    console.log(`🔍 Raw products found: ${products.length}, applying quality filters...`);
+    
+    // Step 1: Filter for products with images and quality indicators
+    let filteredProducts = products.filter(product => {
+      const hasImage = product.main_image || product.image_url || product.imageUrl || product.thumbnail;
+      const hasTitle = product.title && product.title.length > 5;
+      const hasPrice = product.price || product.salePrice;
+      const hasOrders = !product.orders || product.orders > 10; // Allow unknown order count
+      const hasRating = !product.rating || product.rating >= 4.0; // Allow unknown rating
+      
+      return hasImage && hasTitle && hasPrice && hasOrders && hasRating;
+    });
+    
+    console.log(`✅ After quality filter: ${filteredProducts.length} products`);
+    
+    // Step 2: Sort by winning product indicators (orders, ratings, reviews)
+    filteredProducts.sort((a, b) => {
+      const scoreA = (a.orders || 100) * 0.4 + (a.rating || 4.5) * 20 + (a.reviews || 50) * 0.1;
+      const scoreB = (b.orders || 100) * 0.4 + (b.rating || 4.5) * 20 + (b.reviews || 50) * 0.1;
+      return scoreB - scoreA;
+    });
+    
+    // Step 3: Remove duplicates based on title similarity
+    const uniqueProducts = [];
+    const seenTitles = new Set();
+    
+    for (const product of filteredProducts) {
+      // Create a simplified title key for duplicate detection
+      const titleKey = product.title?.toLowerCase()
+        .replace(/[^a-z0-9\s]/g, '')
+        .split(' ')
+        .slice(0, 4)
+        .join(' ');
+      
+      if (!seenTitles.has(titleKey)) {
+        seenTitles.add(titleKey);
+        uniqueProducts.push(product);
+      }
+    }
+    
+    console.log(`✅ After deduplication: ${uniqueProducts.length} unique products`);
+    
     // Take top products (up to productCount)
-    const topProducts: AliExpressSearchProduct[] = products.slice(0, productCount);
-    console.log(`✅ Found ${topProducts.length} products for ${niche} using ${usedEndpoint}`);
+    const topProducts: AliExpressSearchProduct[] = uniqueProducts.slice(0, productCount);
+    console.log(`🎯 Selected top ${topProducts.length} winning products for ${niche} using ${usedEndpoint}`);
 
     const results: ProductResult[] = [];
     let successfulUploads = 0;
@@ -514,8 +571,8 @@ serve(async (req) => {
       successfulUploads: 0,
       results: [],
       debugInfo: {
-        rapidApiKeyExists: !!rapidApiKey,
-        rapidApiKeyLength: rapidApiKey?.length || 0,
+        aliExpressApiKeyExists: !!aliExpressApiKey,
+        aliExpressApiKeyLength: aliExpressApiKey?.length || 0,
         timestamp: new Date().toISOString()
       }
     }), {
@@ -615,19 +672,39 @@ async function generateProductDescription(title: string, niche: string, targetAu
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4.1-2025-04-14',
         messages: [
           {
             role: 'system',
-            content: `You are an expert e-commerce copywriter specializing in AliExpress products. Create compelling product descriptions that convert.`
+            content: `You are an expert e-commerce copywriter specializing in high-converting AliExpress product descriptions. Your goal is to create compelling, SEO-optimized content that drives sales and builds trust with customers.`
           },
           {
             role: 'user',
-            content: `Write a detailed product description for "${title}" in the ${niche} category, targeting ${targetAudience}. Price: $${productData.price}, Orders: ${productData.orderCount}+. Include benefits, features, and emotional appeal. Make it 400-600 words with HTML formatting.`
+            content: `Create a compelling, conversion-focused product description for "${title}" in the ${niche} category.
+
+Product Details:
+- Target Audience: ${targetAudience}
+- Price: $${productData.price}
+- Verified Orders: ${productData.orderCount}+
+- Category: ${productData.category}
+
+Requirements:
+- 500-800 words with rich HTML formatting
+- Include compelling headlines and subheadings
+- Use emojis strategically (🛍️ 🔥 ✅ 💡 ⭐ 🌟 💎 🚀 ✨ 🎯)
+- Focus on benefits over features
+- Include social proof and urgency
+- Add trust signals and quality indicators
+- Use persuasive copywriting techniques
+- Structure with proper HTML tags (h2, h3, ul, li, strong, em)
+- Include a strong call-to-action
+- Make it SEO-friendly for ${niche} keywords
+
+Write in a style that builds excitement and trust while addressing customer pain points and desires.`
           }
         ],
-        max_tokens: 800,
-        temperature: 0.7
+        max_tokens: 1200,
+        temperature: 0.75
       }),
     });
 
@@ -643,32 +720,49 @@ async function generateProductDescription(title: string, niche: string, targetAu
 }
 
 function generateFallbackDescription(title: string, niche: string, targetAudience: string, productData: { price: number; orderCount: number; category: string }): string {
+  const emojis = ['🔥', '✨', '⭐', '💎', '🚀', '🌟', '💡', '🎯'];
+  const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+  
   return `
-    <h2>${title}</h2>
+    <h2>${randomEmoji} ${title} - Premium ${niche.charAt(0).toUpperCase() + niche.slice(1)} Collection</h2>
     
-    <p><strong>⭐ Premium AliExpress Quality | ${productData.orderCount}+ Verified Orders</strong></p>
+    <p><strong>⭐ AUTHENTIC ALIEXPRESS QUALITY | ${productData.orderCount}+ VERIFIED ORDERS | ${productData.category.toUpperCase()} BESTSELLER</strong></p>
     
-    <p><strong>Transform your ${niche} experience with this authentic AliExpress product!</strong></p>
+    <h3>🔥 TRANSFORM YOUR ${niche.toUpperCase()} EXPERIENCE!</h3>
+    <p><strong>Discover why thousands of ${targetAudience} are choosing this premium ${title}!</strong> Sourced directly from AliExpress's most trusted suppliers, this product delivers exceptional quality that exceeds expectations at an unbeatable price point of just <em>$${productData.price}</em>.</p>
     
-    <p>Sourced directly from AliExpress's trusted suppliers, this ${title} combines exceptional quality with unbeatable value. Perfect for ${targetAudience} who demand the best.</p>
-    
-    <h3>🌟 Key Features:</h3>
+    <h3>🌟 PREMIUM FEATURES & BENEFITS:</h3>
     <ul>
-      <li>✅ Authentic AliExpress product with verified quality</li>
-      <li>✅ Designed specifically for ${targetAudience}</li>
-      <li>✅ Premium materials and construction</li>
-      <li>✅ Fast shipping and reliable customer service</li>
-      <li>✅ Backed by ${productData.orderCount}+ satisfied customers</li>
-      <li>✅ Category: ${productData.category}</li>
+      <li>✅ <strong>Verified Quality:</strong> Authentic AliExpress product with ${productData.orderCount}+ satisfied customers</li>
+      <li>✅ <strong>Perfect Design:</strong> Specifically crafted for ${targetAudience} who demand excellence</li>
+      <li>✅ <strong>Superior Materials:</strong> Premium construction using high-grade materials</li>
+      <li>✅ <strong>Fast Delivery:</strong> Quick shipping with reliable tracking and customer support</li>
+      <li>✅ <strong>Proven Success:</strong> Join ${productData.orderCount}+ happy customers worldwide</li>
+      <li>✅ <strong>Category Leader:</strong> Top-rated in ${productData.category} category</li>
+      <li>✅ <strong>Money-Back Guarantee:</strong> Complete satisfaction or full refund</li>
     </ul>
     
-    <h3>💎 Why Choose This ${niche} Product:</h3>
-    <p>This ${title} represents authentic AliExpress quality at an unbeatable price. With ${productData.orderCount}+ verified orders, you can trust in the proven track record of customer satisfaction.</p>
+    <h3>💎 WHY ${targetAudience.toUpperCase()} LOVE THIS ${niche.toUpperCase()} PRODUCT:</h3>
+    <p>This ${title} isn't just another product - it's a <strong>game-changer</strong> for anyone serious about ${niche}. With over ${productData.orderCount} verified orders and countless 5-star reviews, it has proven itself as the go-to choice for discerning customers.</p>
     
-    <p><strong>Perfect for:</strong> ${targetAudience} seeking quality ${niche} products</p>
-    <p><strong>Proven Success:</strong> ${productData.orderCount}+ happy customers worldwide!</p>
+    <blockquote style="border-left: 4px solid #007cba; padding-left: 15px; margin: 20px 0; font-style: italic;">
+      <p>"This product exceeded all my expectations! The quality is outstanding and delivery was super fast. Highly recommend!" - <strong>Verified Customer</strong></p>
+    </blockquote>
     
-    <p><em>Order now and experience authentic AliExpress quality!</em></p>
+    <h3>🎯 PERFECT FOR:</h3>
+    <p>✨ <strong>${targetAudience}</strong> who want premium ${niche} products<br>
+    🔥 People seeking <strong>authentic AliExpress quality</strong> at great prices<br>
+    💡 Anyone looking to <strong>upgrade their ${niche} experience</strong><br>
+    🚀 Customers who value <strong>proven quality</strong> with ${productData.orderCount}+ orders</p>
+    
+    <h3>⚡ LIMITED TIME - SPECIAL PRICING!</h3>
+    <p><strong>🛍️ Order now for just $${productData.price} and join thousands of satisfied customers!</strong></p>
+    
+    <p style="text-align: center; background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
+      <strong>🌟 SATISFACTION GUARANTEED | ⚡ FAST SHIPPING | 💎 PREMIUM QUALITY</strong>
+    </p>
+    
+    <p><em><strong>Don't wait - experience the quality that ${productData.orderCount}+ customers already love!</strong></em></p>
   `;
 }
 
@@ -702,7 +796,9 @@ function generateNicheImage(niche: string, index: number): string {
 
 async function applyThemeColor(shopifyUrl: string, accessToken: string, themeColor: string) {
   try {
-    // Get the current theme
+    console.log(`🎨 Starting theme color application: ${themeColor}`);
+    
+    // Get the current published theme
     const themesResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/themes.json`, {
       headers: {
         'X-Shopify-Access-Token': accessToken,
@@ -710,18 +806,118 @@ async function applyThemeColor(shopifyUrl: string, accessToken: string, themeCol
       }
     });
 
-    if (themesResponse.ok) {
-      const themesData = await themesResponse.json();
-      const mainTheme = themesData.themes.find((theme: any) => theme.role === 'main');
+    if (!themesResponse.ok) {
+      throw new Error(`Failed to fetch themes: ${themesResponse.status}`);
+    }
+
+    const themesData = await themesResponse.json();
+    const mainTheme = themesData.themes.find((theme: any) => theme.role === 'main');
+    
+    if (!mainTheme) {
+      throw new Error('No main theme found');
+    }
+
+    console.log(`🎯 Found main theme: ${mainTheme.name} (ID: ${mainTheme.id})`);
+
+    // Get current theme settings
+    const settingsResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/themes/${mainTheme.id}/assets.json?asset[key]=config/settings_data.json`, {
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (settingsResponse.ok) {
+      const settingsData = await settingsResponse.json();
+      let settings = {};
       
-      if (mainTheme) {
-        console.log(`🎨 Applying theme color ${themeColor} to theme ${mainTheme.id}`);
-        // Theme color application logic would go here
-        console.log('✅ Theme color applied successfully');
+      try {
+        settings = JSON.parse(settingsData.asset.value);
+      } catch (e) {
+        console.log('📝 Creating new settings object');
+        settings = { current: {} };
+      }
+
+      // Update theme color settings for common theme variables
+      const colorSettings = {
+        'colors_accent_1': themeColor,
+        'colors_accent_2': themeColor,
+        'color_primary': themeColor,
+        'color_accent': themeColor,
+        'color_button': themeColor,
+        'button_color': themeColor,
+        'accent_color': themeColor,
+        'colors_solid_button_labels': '#FFFFFF',
+        'colors_outline_button_labels': themeColor,
+        'gradient_accent_1': `linear-gradient(135deg, ${themeColor} 0%, ${themeColor}CC 100%)`,
+        'gradient_accent_2': `linear-gradient(135deg, ${themeColor}CC 0%, ${themeColor} 100%)`
+      };
+
+      // Apply color settings to current theme section
+      if (!settings.current) settings.current = {};
+      Object.assign(settings.current, colorSettings);
+
+      console.log(`🔧 Applying color settings:`, Object.keys(colorSettings));
+
+      // Update theme settings
+      const updateResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/themes/${mainTheme.id}/assets.json`, {
+        method: 'PUT',
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          asset: {
+            key: 'config/settings_data.json',
+            value: JSON.stringify(settings)
+          }
+        })
+      });
+
+      if (updateResponse.ok) {
+        console.log('✅ Theme color settings updated successfully');
+      } else {
+        const errorText = await updateResponse.text();
+        console.error('⚠️ Theme settings update failed:', errorText);
       }
     }
+
+    // Also try to update store branding if available
+    try {
+      const brandingPayload = {
+        checkout_branding: {
+          design_system: {
+            colors: {
+              accent: themeColor,
+              decorative: themeColor,
+              interactive: themeColor
+            }
+          }
+        }
+      };
+
+      const brandingResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/checkout_branding.json`, {
+        method: 'PUT',
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(brandingPayload)
+      });
+
+      if (brandingResponse.ok) {
+        console.log('✅ Checkout branding updated successfully');
+      } else {
+        console.log('ℹ️ Checkout branding update not available');
+      }
+    } catch (brandingError) {
+      console.log('ℹ️ Checkout branding update skipped');
+    }
+
+    console.log('🎨 Theme color application completed');
+    
   } catch (error) {
-    console.error('Theme color application error:', error);
+    console.error('❌ Theme color application error:', error);
     throw error;
   }
 }
