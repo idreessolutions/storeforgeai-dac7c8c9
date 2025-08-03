@@ -36,8 +36,8 @@ export const generateWinningProducts = async (
 
     // Step 2: Enhanced API connection with advanced retry logic
     onProgress(10, `🔗 Establishing premium connection to winning product intelligence database...`);
-    const rapidApiKey = await getRapidApiKeyWithRetry(5); // Increased retries
-    if (!rapidApiKey) {
+    const aliExpressApiKey = await getAliExpressApiKeyWithRetry(5); // Updated function name
+    if (!aliExpressApiKey) {
       throw new Error('Unable to connect to premium product database - API configuration required');
     }
 
@@ -350,7 +350,7 @@ function extractProductCategory(title: string, niche: string): string {
 }
 
 // Enhanced API key retrieval with advanced retry logic
-async function getRapidApiKeyWithRetry(maxRetries: number): Promise<string | null> {
+async function getAliExpressApiKeyWithRetry(maxRetries: number): Promise<string | null> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const { data, error } = await supabase.functions.invoke('get-rapidapi-key');
@@ -359,11 +359,11 @@ async function getRapidApiKeyWithRetry(maxRetries: number): Promise<string | nul
       }
       
       if (attempt < maxRetries) {
-        console.warn(`API key retrieval attempt ${attempt} failed, retrying with exponential backoff...`);
+        console.warn(`AliExpress API key retrieval attempt ${attempt} failed, retrying with exponential backoff...`);
         await new Promise(resolve => setTimeout(resolve, 1000 * attempt * attempt)); // Exponential backoff
       }
     } catch (error) {
-      console.warn(`API key retrieval attempt ${attempt} error:`, error);
+      console.warn(`AliExpress API key retrieval attempt ${attempt} error:`, error);
       if (attempt < maxRetries) {
         await new Promise(resolve => setTimeout(resolve, 1000 * attempt * attempt));
       }
@@ -374,5 +374,5 @@ async function getRapidApiKeyWithRetry(maxRetries: number): Promise<string | nul
 }
 
 async function getRapidApiKey(): Promise<string | null> {
-  return getRapidApiKeyWithRetry(1);
+  return getAliExpressApiKeyWithRetry(1);
 }

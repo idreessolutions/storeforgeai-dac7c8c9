@@ -12,12 +12,12 @@ serve(async (req) => {
   }
 
   try {
-    const rapidApiKey = Deno.env.get('RAPIDAPI_KEY');
+    const aliExpressApiKey = Deno.env.get('ALIEXPRESS_DATA_API_KEY_V2');
     
-    if (!rapidApiKey) {
+    if (!aliExpressApiKey) {
       return new Response(JSON.stringify({
         success: false,
-        error: 'RapidAPI key not configured'
+        error: 'AliExpress Data API key not configured (V2)'
       }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -26,13 +26,13 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({
       success: true,
-      rapidApiKey: rapidApiKey
+      rapidApiKey: aliExpressApiKey // Keep same response format for compatibility
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error retrieving RapidAPI key:', error);
+    console.error('Error retrieving AliExpress Data API key:', error);
     return new Response(JSON.stringify({
       success: false,
       error: error.message
