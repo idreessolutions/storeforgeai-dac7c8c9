@@ -12,9 +12,9 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🚀 Starting AliExpress Data API Product Generation (PRO Plan)');
+    console.log('🚀 Starting AliExpress Data API Product Generation (UPDATED VERSION)');
     
-    // Check for the V2 API keys with detailed logging
+    // Get API keys with detailed logging
     const aliExpressApiKey = Deno.env.get('ALIEXPRESS_DATA_API_KEY_V2');
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY_V2');
     
@@ -23,20 +23,15 @@ serve(async (req) => {
       aliExpressKeyLength: aliExpressApiKey?.length || 0,
       aliExpressKeyPreview: aliExpressApiKey ? `${aliExpressApiKey.substring(0, 8)}...` : 'UNDEFINED',
       openaiKeyExists: !!openaiApiKey,
-      openaiKeyLength: openaiApiKey?.length || 0,
-      openaiKeyPreview: openaiApiKey ? `${openaiApiKey.substring(0, 8)}...` : 'UNDEFINED'
+      openaiKeyLength: openaiApiKey?.length || 0
     });
 
     if (!aliExpressApiKey) {
-      const errorMsg = 'ALIEXPRESS_DATA_API_KEY_V2 not found in environment variables';
-      console.error('❌ CRITICAL ERROR:', errorMsg);
+      console.error('❌ CRITICAL: ALIEXPRESS_DATA_API_KEY_V2 not found');
       return new Response(JSON.stringify({
         success: false,
-        error: errorMsg,
-        debug: {
-          availableEnvVars: Object.keys(Deno.env.toObject()).filter(k => k.includes('ALIEXPRESS') || k.includes('API')),
-          timestamp: new Date().toISOString()
-        }
+        error: 'ALIEXPRESS_DATA_API_KEY_V2 environment variable not set',
+        debug: { timestamp: new Date().toISOString() }
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -44,11 +39,10 @@ serve(async (req) => {
     }
 
     if (!openaiApiKey) {
-      const errorMsg = 'OPENAI_API_KEY_V2 not found in environment variables';
-      console.error('❌ CRITICAL ERROR:', errorMsg);
+      console.error('❌ CRITICAL: OPENAI_API_KEY_V2 not found');
       return new Response(JSON.stringify({
         success: false,
-        error: errorMsg
+        error: 'OPENAI_API_KEY_V2 environment variable not set'
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -56,61 +50,39 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    console.log('📨 Request received:', {
-      hasShopifyUrl: !!body.shopifyUrl,
-      hasAccessToken: !!body.accessToken || !!body.shopifyAccessToken,
-      niche: body.niche,
-      productCount: body.productCount || 10,
-      requestBody: JSON.stringify(body, null, 2)
-    });
+    console.log('📨 Request Body:', JSON.stringify(body, null, 2));
 
     // Generate products using AliExpress Data API
     const products = await generateProductsFromAliExpress(
-      body.niche,
+      body.niche || 'beauty',
       body.productCount || 10,
       aliExpressApiKey,
       openaiApiKey,
-      {
-        storeName: body.storeName,
-        targetAudience: body.targetAudience,
-        businessType: body.businessType,
-        storeStyle: body.storeStyle,
-        themeColor: body.themeColor
-      }
+      body
     );
 
     // Upload to Shopify
-    const shopifyUrl = body.shopifyUrl;
-    const accessToken = body.accessToken || body.shopifyAccessToken;
-    
-    console.log('🛒 Shopify Upload Details:', {
-      shopifyUrl: shopifyUrl,
-      hasAccessToken: !!accessToken,
-      productCount: products.length
-    });
-
     const results = await uploadToShopify(
       products,
-      shopifyUrl,
-      accessToken,
+      body.shopifyUrl,
+      body.shopifyAccessToken || body.accessToken,
       body.themeColor
     );
 
     return new Response(JSON.stringify({
       success: true,
       message: `Successfully processed ${results.length} products`,
-      results
+      results,
+      successfulUploads: results.filter(r => !r.error).length
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('❌ Critical error in AliExpress Data API generation:', error);
-    console.error('❌ Error stack trace:', error.stack);
-    console.error('❌ Error details:', {
+    console.error('❌ Critical Error in Edge Function:', {
       name: error.name,
       message: error.message,
-      cause: error.cause
+      stack: error.stack
     });
     
     return new Response(JSON.stringify({
@@ -118,7 +90,7 @@ serve(async (req) => {
       error: error.message,
       debug: {
         errorName: error.name,
-        errorStack: error.stack,
+        errorStack: error.stack?.substring(0, 500),
         timestamp: new Date().toISOString()
       }
     }), {
@@ -135,137 +107,232 @@ async function generateProductsFromAliExpress(
   openaiKey: string,
   storeConfig: any
 ) {
-  console.log(`🎯 Searching for ${count} ${niche} products from AliExpress Data API`);
-  console.log('🔑 API Key being used:', {
-    keyExists: !!apiKey,
-    keyLength: apiKey.length,
-    keyPreview: `${apiKey.substring(0, 8)}...${apiKey.substring(apiKey.length - 4)}`
-  });
+  console.log(`🎯 Fetching ${count} ${niche} products from AliExpress Data API`);
   
-  const searchUrl = `https://aliexpress-data-api.p.rapidapi.com/product/search`;
-  const searchParams = new URLSearchParams({
-    query: `${niche} trending bestseller`,
-    page_size: count.toString(),
-    sort: 'orders',
-    min_price: '5',
-    max_price: '100',
-    has_image: 'true'
-  });
-
-  const requestUrl = `${searchUrl}?${searchParams}`;
-  const requestHeaders = {
+  const apiHeaders = {
     'X-RapidAPI-Key': apiKey,
-    'X-RapidAPI-Host': 'aliexpress-data-api.p.rapidapi.com',
+    'X-RapidAPI-Host': 'aliexpress-data.p.rapidapi.com',
     'Accept': 'application/json'
   };
 
-  console.log('🌐 Making AliExpress API Request:', {
-    url: requestUrl,
-    headers: {
-      'X-RapidAPI-Key': `${apiKey.substring(0, 8)}...${apiKey.substring(apiKey.length - 4)}`,
-      'X-RapidAPI-Host': requestHeaders['X-RapidAPI-Host'],
-      'Accept': requestHeaders['Accept']
-    },
-    method: 'GET'
+  console.log('🔑 API Headers configured:', {
+    'X-RapidAPI-Key': `${apiKey.substring(0, 8)}...${apiKey.substring(apiKey.length - 4)}`,
+    'X-RapidAPI-Host': 'aliexpress-data.p.rapidapi.com',
+    'Accept': 'application/json'
   });
 
   try {
-    const response = await fetch(requestUrl, {
-      method: 'GET',
-      headers: requestHeaders
-    });
-
-    console.log('📡 AliExpress API Response Status:', {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok,
-      headers: Object.fromEntries(response.headers.entries())
-    });
-
-    // Get response text first to handle both JSON and non-JSON responses
-    const responseText = await response.text();
-    console.log('📄 Raw AliExpress API Response:', {
-      responseLength: responseText.length,
-      responsePreview: responseText.substring(0, 500),
-      isResponseEmpty: responseText.length === 0
-    });
-
-    if (!response.ok) {
-      console.error('❌ AliExpress API request failed:', {
-        status: response.status,
-        statusText: response.statusText,
-        responseBody: responseText
-      });
-      throw new Error(`AliExpress API request failed: ${response.status} ${response.statusText} - ${responseText}`);
+    // Step 1: Search for products by niche
+    const searchProducts = await searchProductsByNiche(niche, apiHeaders, count);
+    console.log(`✅ Found ${searchProducts.length} products from search`);
+    
+    if (searchProducts.length === 0) {
+      throw new Error(`No products found for niche: ${niche}`);
     }
 
-    let data;
-    try {
-      data = JSON.parse(responseText);
-      console.log('✅ Successfully parsed JSON response:', {
-        hasResults: !!data.results,
-        resultCount: data.results?.length || 0,
-        dataKeys: Object.keys(data || {}),
-        dataStructure: JSON.stringify(data, null, 2).substring(0, 1000)
-      });
-    } catch (parseError) {
-      console.error('❌ JSON parsing failed:', {
-        parseError: parseError.message,
-        responseText: responseText.substring(0, 1000)
-      });
-      throw new Error(`Failed to parse AliExpress API response as JSON: ${parseError.message}`);
-    }
-
-    if (!data.results || data.results.length === 0) {
-      console.error('❌ No products found in response:', data);
-      throw new Error(`No ${niche} products found from AliExpress API. Response: ${JSON.stringify(data)}`);
-    }
-
-    // Process and enhance products
+    // Step 2: Get detailed information for each product
     const enhancedProducts = [];
-    for (let i = 0; i < Math.min(data.results.length, count); i++) {
-      const product = data.results[i];
-      console.log(`🤖 Enhancing product ${i + 1}: ${product.title?.substring(0, 40)}...`);
+    for (let i = 0; i < Math.min(searchProducts.length, count); i++) {
+      const product = searchProducts[i];
+      console.log(`🔍 Processing product ${i + 1}: ${product.productTitle?.substring(0, 40)}...`);
 
       try {
-        const enhanced = await enhanceProductWithGPT(product, niche, openaiKey, storeConfig);
-        enhancedProducts.push(enhanced);
+        const enhancedProduct = await enhanceProductWithAllData(
+          product, 
+          apiHeaders, 
+          niche, 
+          openaiKey, 
+          storeConfig
+        );
+        
+        if (enhancedProduct) {
+          enhancedProducts.push(enhancedProduct);
+          console.log(`✅ Enhanced product ${i + 1} successfully`);
+        }
         
         // Rate limiting
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
-        console.warn(`⚠️ Failed to enhance product ${i + 1}:`, {
-          error: error.message,
-          productTitle: product.title
-        });
+        console.warn(`⚠️ Failed to enhance product ${i + 1}:`, error.message);
         continue;
       }
     }
 
-    console.log(`✅ Generated ${enhancedProducts.length} enhanced ${niche} products`);
+    console.log(`🎉 Successfully generated ${enhancedProducts.length} enhanced products`);
     return enhancedProducts;
 
   } catch (error) {
-    console.error('❌ Error in generateProductsFromAliExpress:', {
-      error: error.message,
-      stack: error.stack,
-      niche: niche,
-      count: count
-    });
+    console.error('❌ Error in generateProductsFromAliExpress:', error);
     throw error;
+  }
+}
+
+async function searchProductsByNiche(niche: string, headers: any, pageSize: number = 20) {
+  const searchQueries = [
+    `${niche} trending bestseller`,
+    `${niche} popular`,
+    `best ${niche} products`,
+    `${niche} accessories`
+  ];
+  
+  let allProducts: any[] = [];
+  
+  for (const query of searchQueries) {
+    if (allProducts.length >= pageSize) break;
+    
+    try {
+      console.log(`🔍 Searching with query: "${query}"`);
+      
+      const searchUrl = `https://aliexpress-data.p.rapidapi.com/product/search?query=${encodeURIComponent(query)}&pageSize=${Math.min(pageSize, 20)}&sort=orders&minPrice=5&maxPrice=100`;
+      
+      console.log('🌐 Making Product Search Request:', {
+        url: searchUrl,
+        headers: {
+          'X-RapidAPI-Key': `${headers['X-RapidAPI-Key'].substring(0, 8)}...`,
+          'X-RapidAPI-Host': headers['X-RapidAPI-Host']
+        }
+      });
+
+      const response = await fetch(searchUrl, {
+        method: 'GET',
+        headers: headers
+      });
+
+      console.log(`📡 Search Response Status: ${response.status} ${response.statusText}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Search API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
+        });
+        continue;
+      }
+
+      const data = await response.json();
+      console.log('📄 Search Response Structure:', {
+        hasProducts: !!data.products,
+        productCount: data.products?.length || 0,
+        dataKeys: Object.keys(data || {})
+      });
+
+      if (data.products && Array.isArray(data.products)) {
+        const validProducts = data.products.filter(p => p.productImages && p.productImages.length > 0);
+        allProducts.push(...validProducts);
+        console.log(`✅ Added ${validProducts.length} valid products from query: "${query}"`);
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+    } catch (error) {
+      console.error(`❌ Search failed for query "${query}":`, error.message);
+      continue;
+    }
+  }
+  
+  return allProducts.slice(0, pageSize);
+}
+
+async function enhanceProductWithAllData(
+  product: any, 
+  headers: any, 
+  niche: string, 
+  openaiKey: string, 
+  storeConfig: any
+) {
+  const productId = product.productId;
+  
+  if (!productId) {
+    console.warn('⚠️ Product missing productId, skipping');
+    return null;
+  }
+
+  try {
+    // Get detailed product description using V5 endpoint
+    let detailedDescription = '';
+    try {
+      console.log(`🔍 Fetching description for product ${productId}`);
+      const descUrl = `https://aliexpress-data.p.rapidapi.com/product/descriptionv5?productId=${productId}`;
+      
+      const descResponse = await fetch(descUrl, { method: 'GET', headers });
+      
+      if (descResponse.ok) {
+        const descData = await descResponse.json();
+        detailedDescription = descData.description || '';
+        console.log(`✅ Got description for product ${productId} (${detailedDescription.length} chars)`);
+      } else {
+        console.warn(`⚠️ Description fetch failed for ${productId}: ${descResponse.status}`);
+      }
+    } catch (error) {
+      console.warn(`⚠️ Description API error for ${productId}:`, error.message);
+    }
+
+    // Get product reviews
+    let reviews = [];
+    try {
+      console.log(`🔍 Fetching reviews for product ${productId}`);
+      const reviewUrl = `https://aliexpress-data.p.rapidapi.com/product/review?productId=${productId}&pageSize=5&filter=all&lang=en_US&country=US`;
+      
+      const reviewResponse = await fetch(reviewUrl, { method: 'GET', headers });
+      
+      if (reviewResponse.ok) {
+        const reviewData = await reviewResponse.json();
+        reviews = reviewData.reviews || [];
+        console.log(`✅ Got ${reviews.length} reviews for product ${productId}`);
+      }
+    } catch (error) {
+      console.warn(`⚠️ Reviews API error for ${productId}:`, error.message);
+    }
+
+    // Get similar products for variations
+    let similarProducts = [];
+    try {
+      console.log(`🔍 Fetching similar products for ${productId}`);
+      const similarUrl = `https://aliexpress-data.p.rapidapi.com/product/similar?productId=${productId}`;
+      
+      const similarResponse = await fetch(similarUrl, { method: 'GET', headers });
+      
+      if (similarResponse.ok) {
+        const similarData = await similarResponse.json();
+        similarProducts = similarData.products || [];
+        console.log(`✅ Got ${similarProducts.length} similar products for ${productId}`);
+      }
+    } catch (error) {
+      console.warn(`⚠️ Similar products API error for ${productId}:`, error.message);
+    }
+
+    // Generate enhanced product with OpenAI
+    const enhancedProduct = await enhanceProductWithGPT(
+      {
+        ...product,
+        detailedDescription,
+        reviews,
+        similarProducts
+      },
+      niche,
+      openaiKey,
+      storeConfig
+    );
+
+    return enhancedProduct;
+
+  } catch (error) {
+    console.error(`❌ Failed to enhance product ${productId}:`, error);
+    return null;
   }
 }
 
 async function enhanceProductWithGPT(product: any, niche: string, openaiKey: string, storeConfig: any) {
   const prompt = `Create a compelling 500-800 word product description for this ${niche} product:
 
-Title: ${product.title}
-Price: $${product.price}
-Original Description: ${product.description || 'Premium quality product'}
+Title: ${product.productTitle}
+Price: $${product.price || product.salePrice}
+Original Description: ${product.detailedDescription || product.productTitle}
+Reviews: ${product.reviews?.slice(0, 3).map((r: any) => r.comment).join(' | ') || 'Great product'}
 
 Store Details:
 - Store Name: ${storeConfig.storeName}
-- Target Audience: ${storeConfig.targetAudience}  
+- Target Audience: ${storeConfig.targetAudience}
 - Business Type: ${storeConfig.businessType}
 - Store Style: ${storeConfig.storeStyle}
 
@@ -300,11 +367,6 @@ Format as valid HTML that can be used directly in Shopify.`;
       })
     });
 
-    console.log('🤖 OpenAI API Response Status:', {
-      status: response.status,
-      ok: response.ok
-    });
-
     if (!response.ok) {
       const errorText = await response.text();
       console.error('❌ OpenAI API Error:', {
@@ -315,19 +377,19 @@ Format as valid HTML that can be used directly in Shopify.`;
     }
 
     const aiData = await response.json();
-    const enhancedDescription = aiData.choices[0]?.message?.content || product.description;
+    const enhancedDescription = aiData.choices[0]?.message?.content || product.detailedDescription || product.productTitle;
 
-    // Create enhanced product with real images and variants
-    const enhancedProduct = {
-      title: product.title,
+    // Create Shopify product structure
+    const shopifyProduct = {
+      title: product.productTitle,
       body_html: enhancedDescription,
-      vendor: storeConfig.storeName,
+      vendor: storeConfig.storeName || 'AliExpress Store',
       product_type: niche,
-      tags: `${niche}, trending, bestseller, premium quality, verified, ${storeConfig.targetAudience}`,
+      tags: `${niche}, trending, bestseller, premium quality, verified, ${storeConfig.targetAudience || 'customers'}`,
       variants: [{
         option1: 'Default',
-        price: product.price,
-        compare_at_price: (parseFloat(product.price) * 1.3).toFixed(2),
+        price: product.salePrice || product.price || '29.99',
+        compare_at_price: product.price ? (parseFloat(product.price) * 1.3).toFixed(2) : '39.99',
         inventory_quantity: 100,
         inventory_management: null,
         fulfillment_service: 'manual',
@@ -343,58 +405,43 @@ Format as valid HTML that can be used directly in Shopify.`;
       images: []
     };
 
-    // Add real product images
-    if (product.main_image) {
-      enhancedProduct.images.push({
-        src: product.main_image,
-        alt: product.title
+    // Add product images
+    if (product.productImages && Array.isArray(product.productImages)) {
+      product.productImages.slice(0, 8).forEach((imgUrl: string, index: number) => {
+        shopifyProduct.images.push({
+          src: imgUrl,
+          alt: `${product.productTitle} - Image ${index + 1}`
+        });
       });
     }
 
-    if (product.gallery_images) {
-      product.gallery_images.forEach((img: string, index: number) => {
-        if (index < 8) { // Limit to 8 additional images
-          enhancedProduct.images.push({
-            src: img,
-            alt: `${product.title} - View ${index + 2}`
-          });
-        }
-      });
-    }
-
-    console.log(`✅ Enhanced product with ${enhancedProduct.images.length} images`);
-    return enhancedProduct;
+    console.log(`✅ Enhanced product with ${shopifyProduct.images.length} images and GPT-4 content`);
+    return shopifyProduct;
 
   } catch (error) {
-    console.error('❌ GPT enhancement failed:', {
-      error: error.message,
-      productTitle: product.title
-    });
+    console.error('❌ GPT enhancement failed:', error);
     throw error;
   }
 }
 
 async function uploadToShopify(products: any[], shopifyUrl: string, accessToken: string, themeColor: string) {
-  console.log(`🛒 Uploading ${products.length} products to Shopify`);
-  console.log('🔑 Shopify Connection Details:', {
-    shopifyUrl: shopifyUrl,
-    hasAccessToken: !!accessToken,
-    accessTokenLength: accessToken?.length || 0
-  });
+  console.log(`🛒 Uploading ${products.length} products to Shopify: ${shopifyUrl}`);
   
+  if (!shopifyUrl || !accessToken) {
+    throw new Error('Missing Shopify URL or access token');
+  }
+
   const results = [];
   for (let i = 0; i < products.length; i++) {
     const product = products[i];
     
     try {
-      console.log(`📦 Creating product ${i + 1}: ${product.title.substring(0, 40)}...`);
+      console.log(`📦 Creating product ${i + 1}: ${product.title?.substring(0, 40)}...`);
       
-      const shopifyApiUrl = `https://${shopifyUrl}/admin/api/2023-10/products.json`;
-      console.log('🌐 Making Shopify API request:', {
-        url: shopifyApiUrl,
-        hasAccessToken: !!accessToken,
-        productTitle: product.title
-      });
+      const cleanShopifyUrl = shopifyUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+      const shopifyApiUrl = `https://${cleanShopifyUrl}/admin/api/2023-10/products.json`;
+      
+      console.log(`🌐 Shopify API URL: ${shopifyApiUrl}`);
       
       const response = await fetch(shopifyApiUrl, {
         method: 'POST',
@@ -405,88 +452,48 @@ async function uploadToShopify(products: any[], shopifyUrl: string, accessToken:
         body: JSON.stringify({ product })
       });
 
-      console.log('📡 Shopify API Response:', {
-        status: response.status,
-        ok: response.ok,
-        statusText: response.statusText
-      });
+      console.log(`📡 Shopify Response: ${response.status} ${response.statusText}`);
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Shopify API Error:', {
+        console.error(`❌ Shopify API Error for product ${i + 1}:`, {
           status: response.status,
           statusText: response.statusText,
-          errorBody: errorText
+          errorBody: errorText.substring(0, 500)
         });
-        throw new Error(`Shopify API error: ${response.status} - ${errorText}`);
+        
+        results.push({ 
+          error: `Shopify API error: ${response.status} - ${errorText.substring(0, 100)}`,
+          product: product.title,
+          status: 'FAILED'
+        });
+        continue;
       }
 
       const result = await response.json();
-      results.push(result.product);
+      results.push({
+        productId: result.product.id,
+        title: result.product.title,
+        price: result.product.variants[0]?.price,
+        imagesUploaded: result.product.images?.length || 0,
+        variantsCreated: result.product.variants?.length || 0,
+        status: 'SUCCESS'
+      });
       
-      console.log(`✅ Product created: ${result.product.title} (ID: ${result.product.id})`);
+      console.log(`✅ Product ${i + 1} created successfully: ${result.product.title} (ID: ${result.product.id})`);
       
       // Rate limiting
       await new Promise(resolve => setTimeout(resolve, 1000));
       
     } catch (error) {
-      console.error(`❌ Failed to create product ${i + 1}:`, {
-        error: error.message,
-        productTitle: product.title
+      console.error(`❌ Failed to create product ${i + 1}:`, error);
+      results.push({ 
+        error: error.message, 
+        product: product.title,
+        status: 'FAILED'
       });
-      results.push({ error: error.message, product: product.title });
     }
   }
 
-  // Apply theme color after products are created
-  if (themeColor && results.some(r => !r.error)) {
-    console.log(`🎨 Applying theme color: ${themeColor}`);
-    await applyThemeColor(shopifyUrl, accessToken, themeColor);
-  }
-
   return results;
-}
-
-async function applyThemeColor(shopifyUrl: string, accessToken: string, themeColor: string) {
-  try {
-    // Get current theme
-    const themesResponse = await fetch(`https://${shopifyUrl}/admin/api/2023-10/themes.json`, {
-      headers: { 'X-Shopify-Access-Token': accessToken }
-    });
-
-    if (!themesResponse.ok) return;
-
-    const themes = await themesResponse.json();
-    const currentTheme = themes.themes?.find((t: any) => t.role === 'main');
-
-    if (!currentTheme) return;
-
-    // Update theme settings
-    const settingsData = {
-      colors_accent_1: themeColor,
-      colors_accent_2: themeColor,
-      button_color: themeColor,
-      header_color: themeColor
-    };
-
-    await fetch(`https://${shopifyUrl}/admin/api/2023-10/themes/${currentTheme.id}/assets.json`, {
-      method: 'PUT',
-      headers: {
-        'X-Shopify-Access-Token': accessToken,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        asset: {
-          key: 'config/settings_data.json',
-          value: JSON.stringify({
-            current: settingsData
-          })
-        }
-      })
-    });
-
-    console.log(`✅ Applied theme color: ${themeColor}`);
-  } catch (error) {
-    console.error('❌ Failed to apply theme color:', error);
-  }
 }
