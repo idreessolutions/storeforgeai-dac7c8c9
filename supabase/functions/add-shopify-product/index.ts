@@ -14,46 +14,54 @@ serve(async (req) => {
   try {
     console.log('🚀 Starting AliExpress Data API Product Generation (PRO Plan)');
     
-    // Check for the V2 API key
+    // Check for the V2 API keys with detailed logging
     const aliExpressApiKey = Deno.env.get('ALIEXPRESS_DATA_API_KEY_V2');
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY_V2');
     
-    console.log('🔧 ALIEXPRESS_DATA_API_KEY_V2 Environment Check:', {
-      keyExists: !!aliExpressApiKey,
-      keyLength: aliExpressApiKey?.length || 0,
-      keyPreview: aliExpressApiKey ? `${aliExpressApiKey.substring(0, 8)}...` : 'UNDEFINED'
-    });
-
-    console.log('🔧 OPENAI_API_KEY_V2 Environment Check:', {
-      keyExists: !!openaiApiKey,
-      keyLength: openaiApiKey?.length || 0,
-      keyPreview: openaiApiKey ? `${openaiApiKey.substring(0, 8)}...` : 'UNDEFINED'
+    console.log('🔧 Environment Variables Check:', {
+      aliExpressKeyExists: !!aliExpressApiKey,
+      aliExpressKeyLength: aliExpressApiKey?.length || 0,
+      aliExpressKeyPreview: aliExpressApiKey ? `${aliExpressApiKey.substring(0, 8)}...` : 'UNDEFINED',
+      openaiKeyExists: !!openaiApiKey,
+      openaiKeyLength: openaiApiKey?.length || 0,
+      openaiKeyPreview: openaiApiKey ? `${openaiApiKey.substring(0, 8)}...` : 'UNDEFINED'
     });
 
     if (!aliExpressApiKey) {
-      console.error('❌ CRITICAL: ALIEXPRESS_DATA_API_KEY_V2 not found or empty in environment variables');
-      console.log('🔑 ALIEXPRESS_DATA_API_KEY_V2 Final Check:', {
-        keyExists: !!aliExpressApiKey,
-        keyLength: aliExpressApiKey?.length || 0,
-        keyPreview: aliExpressApiKey || 'NOT_FOUND',
-        keyType: typeof aliExpressApiKey,
-        isString: typeof aliExpressApiKey === 'string'
+      const errorMsg = 'ALIEXPRESS_DATA_API_KEY_V2 not found in environment variables';
+      console.error('❌ CRITICAL ERROR:', errorMsg);
+      return new Response(JSON.stringify({
+        success: false,
+        error: errorMsg,
+        debug: {
+          availableEnvVars: Object.keys(Deno.env.toObject()).filter(k => k.includes('ALIEXPRESS') || k.includes('API')),
+          timestamp: new Date().toISOString()
+        }
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
-      
-      throw new Error('AliExpress API key is required but not found in environment variables. Please check Supabase Edge Function secrets.');
     }
 
     if (!openaiApiKey) {
-      console.error('❌ CRITICAL: OPENAI_API_KEY_V2 not found or empty in environment variables');
-      throw new Error('OpenAI API key is required but not found in environment variables. Please check Supabase Edge Function secrets.');
+      const errorMsg = 'OPENAI_API_KEY_V2 not found in environment variables';
+      console.error('❌ CRITICAL ERROR:', errorMsg);
+      return new Response(JSON.stringify({
+        success: false,
+        error: errorMsg
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const body = await req.json();
     console.log('📨 Request received:', {
       hasShopifyUrl: !!body.shopifyUrl,
-      hasAccessToken: !!body.accessToken,
+      hasAccessToken: !!body.accessToken || !!body.shopifyAccessToken,
       niche: body.niche,
-      productCount: body.productCount || 10
+      productCount: body.productCount || 10,
+      requestBody: JSON.stringify(body, null, 2)
     });
 
     // Generate products using AliExpress Data API
@@ -72,10 +80,19 @@ serve(async (req) => {
     );
 
     // Upload to Shopify
+    const shopifyUrl = body.shopifyUrl;
+    const accessToken = body.accessToken || body.shopifyAccessToken;
+    
+    console.log('🛒 Shopify Upload Details:', {
+      shopifyUrl: shopifyUrl,
+      hasAccessToken: !!accessToken,
+      productCount: products.length
+    });
+
     const results = await uploadToShopify(
       products,
-      body.shopifyUrl,
-      body.accessToken,
+      shopifyUrl,
+      accessToken,
       body.themeColor
     );
 
@@ -89,9 +106,21 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('❌ Critical error in AliExpress Data API generation:', error);
+    console.error('❌ Error stack trace:', error.stack);
+    console.error('❌ Error details:', {
+      name: error.name,
+      message: error.message,
+      cause: error.cause
+    });
+    
     return new Response(JSON.stringify({
       success: false,
-      error: error.message
+      error: error.message,
+      debug: {
+        errorName: error.name,
+        errorStack: error.stack,
+        timestamp: new Date().toISOString()
+      }
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -107,6 +136,11 @@ async function generateProductsFromAliExpress(
   storeConfig: any
 ) {
   console.log(`🎯 Searching for ${count} ${niche} products from AliExpress Data API`);
+  console.log('🔑 API Key being used:', {
+    keyExists: !!apiKey,
+    keyLength: apiKey.length,
+    keyPreview: `${apiKey.substring(0, 8)}...${apiKey.substring(apiKey.length - 4)}`
+  });
   
   const searchUrl = `https://aliexpress-data-api.p.rapidapi.com/product/search`;
   const searchParams = new URLSearchParams({
@@ -118,30 +152,73 @@ async function generateProductsFromAliExpress(
     has_image: 'true'
   });
 
+  const requestUrl = `${searchUrl}?${searchParams}`;
+  const requestHeaders = {
+    'X-RapidAPI-Key': apiKey,
+    'X-RapidAPI-Host': 'aliexpress-data-api.p.rapidapi.com',
+    'Accept': 'application/json'
+  };
+
+  console.log('🌐 Making AliExpress API Request:', {
+    url: requestUrl,
+    headers: {
+      'X-RapidAPI-Key': `${apiKey.substring(0, 8)}...${apiKey.substring(apiKey.length - 4)}`,
+      'X-RapidAPI-Host': requestHeaders['X-RapidAPI-Host'],
+      'Accept': requestHeaders['Accept']
+    },
+    method: 'GET'
+  });
+
   try {
-    const response = await fetch(`${searchUrl}?${searchParams}`, {
+    const response = await fetch(requestUrl, {
       method: 'GET',
-      headers: {
-        'X-RapidAPI-Key': apiKey,
-        'X-RapidAPI-Host': 'aliexpress-data-api.p.rapidapi.com',
-        'Accept': 'application/json'
-      }
+      headers: requestHeaders
+    });
+
+    console.log('📡 AliExpress API Response Status:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok,
+      headers: Object.fromEntries(response.headers.entries())
+    });
+
+    // Get response text first to handle both JSON and non-JSON responses
+    const responseText = await response.text();
+    console.log('📄 Raw AliExpress API Response:', {
+      responseLength: responseText.length,
+      responsePreview: responseText.substring(0, 500),
+      isResponseEmpty: responseText.length === 0
     });
 
     if (!response.ok) {
-      console.error('❌ AliExpress API request failed:', response.status, response.statusText);
-      throw new Error(`AliExpress API request failed: ${response.status} ${response.statusText}`);
+      console.error('❌ AliExpress API request failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        responseBody: responseText
+      });
+      throw new Error(`AliExpress API request failed: ${response.status} ${response.statusText} - ${responseText}`);
     }
 
-    const data = await response.json();
-    console.log('✅ AliExpress API response received:', {
-      status: response.status,
-      hasResults: !!data.results,
-      resultCount: data.results?.length || 0
-    });
+    let data;
+    try {
+      data = JSON.parse(responseText);
+      console.log('✅ Successfully parsed JSON response:', {
+        hasResults: !!data.results,
+        resultCount: data.results?.length || 0,
+        dataKeys: Object.keys(data || {}),
+        dataStructure: JSON.stringify(data, null, 2).substring(0, 1000)
+      });
+    } catch (parseError) {
+      console.error('❌ JSON parsing failed:', {
+        parseError: parseError.message,
+        responseText: responseText.substring(0, 1000)
+      });
+      throw new Error(`Failed to parse AliExpress API response as JSON: ${parseError.message}`);
+    }
 
     if (!data.results || data.results.length === 0) {
-      throw new Error(`No ${niche} products found from AliExpress API`);
+      console.error('❌ No products found in response:', data);
+      throw new Error(`No ${niche} products found from AliExpress API. Response: ${JSON.stringify(data)}`);
     }
 
     // Process and enhance products
@@ -157,7 +234,10 @@ async function generateProductsFromAliExpress(
         // Rate limiting
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
-        console.warn(`⚠️ Failed to enhance product ${i + 1}:`, error);
+        console.warn(`⚠️ Failed to enhance product ${i + 1}:`, {
+          error: error.message,
+          productTitle: product.title
+        });
         continue;
       }
     }
@@ -166,7 +246,12 @@ async function generateProductsFromAliExpress(
     return enhancedProducts;
 
   } catch (error) {
-    console.error('❌ Error fetching from AliExpress Data API:', error);
+    console.error('❌ Error in generateProductsFromAliExpress:', {
+      error: error.message,
+      stack: error.stack,
+      niche: niche,
+      count: count
+    });
     throw error;
   }
 }
@@ -195,6 +280,8 @@ Requirements:
 
 Format as valid HTML that can be used directly in Shopify.`;
 
+  console.log('🤖 Making OpenAI API request for product enhancement');
+
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -213,8 +300,18 @@ Format as valid HTML that can be used directly in Shopify.`;
       })
     });
 
+    console.log('🤖 OpenAI API Response Status:', {
+      status: response.status,
+      ok: response.ok
+    });
+
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('❌ OpenAI API Error:', {
+        status: response.status,
+        errorText: errorText
+      });
+      throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
     }
 
     const aiData = await response.json();
@@ -269,13 +366,21 @@ Format as valid HTML that can be used directly in Shopify.`;
     return enhancedProduct;
 
   } catch (error) {
-    console.error('❌ GPT enhancement failed:', error);
+    console.error('❌ GPT enhancement failed:', {
+      error: error.message,
+      productTitle: product.title
+    });
     throw error;
   }
 }
 
 async function uploadToShopify(products: any[], shopifyUrl: string, accessToken: string, themeColor: string) {
   console.log(`🛒 Uploading ${products.length} products to Shopify`);
+  console.log('🔑 Shopify Connection Details:', {
+    shopifyUrl: shopifyUrl,
+    hasAccessToken: !!accessToken,
+    accessTokenLength: accessToken?.length || 0
+  });
   
   const results = [];
   for (let i = 0; i < products.length; i++) {
@@ -284,7 +389,14 @@ async function uploadToShopify(products: any[], shopifyUrl: string, accessToken:
     try {
       console.log(`📦 Creating product ${i + 1}: ${product.title.substring(0, 40)}...`);
       
-      const response = await fetch(`https://${shopifyUrl}/admin/api/2023-10/products.json`, {
+      const shopifyApiUrl = `https://${shopifyUrl}/admin/api/2023-10/products.json`;
+      console.log('🌐 Making Shopify API request:', {
+        url: shopifyApiUrl,
+        hasAccessToken: !!accessToken,
+        productTitle: product.title
+      });
+      
+      const response = await fetch(shopifyApiUrl, {
         method: 'POST',
         headers: {
           'X-Shopify-Access-Token': accessToken,
@@ -293,8 +405,19 @@ async function uploadToShopify(products: any[], shopifyUrl: string, accessToken:
         body: JSON.stringify({ product })
       });
 
+      console.log('📡 Shopify API Response:', {
+        status: response.status,
+        ok: response.ok,
+        statusText: response.statusText
+      });
+
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('❌ Shopify API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorBody: errorText
+        });
         throw new Error(`Shopify API error: ${response.status} - ${errorText}`);
       }
 
@@ -307,7 +430,10 @@ async function uploadToShopify(products: any[], shopifyUrl: string, accessToken:
       await new Promise(resolve => setTimeout(resolve, 1000));
       
     } catch (error) {
-      console.error(`❌ Failed to create product ${i + 1}:`, error);
+      console.error(`❌ Failed to create product ${i + 1}:`, {
+        error: error.message,
+        productTitle: product.title
+      });
       results.push({ error: error.message, product: product.title });
     }
   }
