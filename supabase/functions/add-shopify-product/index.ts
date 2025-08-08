@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🚀 Starting AliExpress Data API Product Generation (UPDATED VERSION)');
+    console.log('🚀 Starting Enhanced AliExpress Product Generation');
     
     // Get API keys with detailed logging
     const aliExpressApiKey = Deno.env.get('ALIEXPRESS_DATA_API_KEY_V2');
@@ -61,6 +61,8 @@ serve(async (req) => {
       body
     );
 
+    console.log(`✅ Generated ${products.length} products successfully`);
+
     // Upload to Shopify
     const results = await uploadToShopify(
       products,
@@ -68,6 +70,8 @@ serve(async (req) => {
       body.shopifyAccessToken || body.accessToken,
       body.themeColor
     );
+
+    console.log(`🎉 Upload completed: ${results.filter(r => !r.error).length}/${results.length} successful`);
 
     return new Response(JSON.stringify({
       success: true,
@@ -122,19 +126,24 @@ async function generateProductsFromAliExpress(
   });
 
   try {
-    // Step 1: Search for products by niche
+    // Step 1: Search for products by niche (10% progress point)
+    console.log('🔍 STEP 1: Searching for products...');
     const searchProducts = await searchProductsByNiche(niche, apiHeaders, count);
-    console.log(`✅ Found ${searchProducts.length} products from search`);
+    console.log(`✅ STEP 1 COMPLETE: Found ${searchProducts.length} products from search`);
     
     if (searchProducts.length === 0) {
       throw new Error(`No products found for niche: ${niche}`);
     }
 
-    // Step 2: Get detailed information for each product
+    // Step 2: Enhance each product with detailed information (10% - 80% progress)
+    console.log('🔍 STEP 2: Enhancing products with detailed information...');
     const enhancedProducts = [];
+    
     for (let i = 0; i < Math.min(searchProducts.length, count); i++) {
       const product = searchProducts[i];
-      console.log(`🔍 Processing product ${i + 1}: ${product.productTitle?.substring(0, 40)}...`);
+      const progressPercent = 10 + ((i / count) * 70); // 10% to 80%
+      
+      console.log(`🔍 STEP 2.${i + 1}: Processing product ${i + 1}/${count} (${progressPercent.toFixed(1)}%): ${product.productTitle?.substring(0, 40)}...`);
 
       try {
         const enhancedProduct = await enhanceProductWithAllData(
@@ -142,23 +151,31 @@ async function generateProductsFromAliExpress(
           apiHeaders, 
           niche, 
           openaiKey, 
-          storeConfig
+          storeConfig,
+          i + 1
         );
         
         if (enhancedProduct) {
           enhancedProducts.push(enhancedProduct);
-          console.log(`✅ Enhanced product ${i + 1} successfully`);
+          console.log(`✅ STEP 2.${i + 1} COMPLETE: Enhanced product ${i + 1} successfully`);
+        } else {
+          console.warn(`⚠️ STEP 2.${i + 1} FAILED: Could not enhance product ${i + 1}`);
         }
         
-        // Rate limiting
+        // Rate limiting between product enhancements
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
-        console.warn(`⚠️ Failed to enhance product ${i + 1}:`, error.message);
+        console.error(`❌ STEP 2.${i + 1} ERROR: Failed to enhance product ${i + 1}:`, error.message);
         continue;
       }
     }
 
-    console.log(`🎉 Successfully generated ${enhancedProducts.length} enhanced products`);
+    console.log(`🎉 STEP 2 COMPLETE: Successfully generated ${enhancedProducts.length} enhanced products`);
+    
+    if (enhancedProducts.length === 0) {
+      throw new Error('Failed to enhance any products from the search results');
+    }
+    
     return enhancedProducts;
 
   } catch (error) {
@@ -168,29 +185,32 @@ async function generateProductsFromAliExpress(
 }
 
 async function searchProductsByNiche(niche: string, headers: any, pageSize: number = 20) {
-  const searchQueries = [
-    `${niche} trending bestseller`,
-    `${niche} popular`,
-    `best ${niche} products`,
-    `${niche} accessories`
-  ];
+  const nicheQueries = {
+    'beauty': ['makeup brushes bestseller', 'skincare serum trending', 'beauty tools popular', 'cosmetic accessories'],
+    'pets': ['pet toys bestseller', 'dog accessories trending', 'pet grooming tools', 'cat toys popular'],
+    'fitness': ['workout equipment bestseller', 'fitness accessories trending', 'exercise tools', 'gym equipment popular'],
+    'kitchen': ['kitchen gadgets bestseller', 'cooking tools trending', 'kitchen accessories', 'chef tools popular'],
+    'home': ['home decor bestseller', 'home accessories trending', 'organization tools', 'home gadgets popular'],
+    'tech': ['tech gadgets bestseller', 'electronics accessories trending', 'phone accessories', 'tech tools popular'],
+    'fashion': ['fashion accessories bestseller', 'jewelry trending', 'style accessories', 'fashion items popular'],
+    'baby': ['baby products bestseller', 'baby accessories trending', 'baby care tools', 'infant products popular']
+  };
   
+  const searchQueries = nicheQueries[niche.toLowerCase()] || [`${niche} trending bestseller`, `${niche} popular`, `best ${niche} products`];
   let allProducts: any[] = [];
   
   for (const query of searchQueries) {
     if (allProducts.length >= pageSize) break;
     
     try {
-      console.log(`🔍 Searching with query: "${query}"`);
+      console.log(`🔍 Searching with niche-specific query: "${query}"`);
       
       const searchUrl = `https://aliexpress-data.p.rapidapi.com/product/search?query=${encodeURIComponent(query)}&pageSize=${Math.min(pageSize, 20)}&sort=orders&minPrice=5&maxPrice=100`;
       
       console.log('🌐 Making Product Search Request:', {
         url: searchUrl,
-        headers: {
-          'X-RapidAPI-Key': `${headers['X-RapidAPI-Key'].substring(0, 8)}...`,
-          'X-RapidAPI-Host': headers['X-RapidAPI-Host']
-        }
+        query: query,
+        niche: niche
       });
 
       const response = await fetch(searchUrl, {
@@ -198,14 +218,15 @@ async function searchProductsByNiche(niche: string, headers: any, pageSize: numb
         headers: headers
       });
 
-      console.log(`📡 Search Response Status: ${response.status} ${response.statusText}`);
+      console.log(`📡 Search Response: ${response.status} ${response.statusText} for query "${query}"`);
 
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ Search API Error:', {
           status: response.status,
           statusText: response.statusText,
-          body: errorText
+          body: errorText,
+          query: query
         });
         continue;
       }
@@ -214,23 +235,36 @@ async function searchProductsByNiche(niche: string, headers: any, pageSize: numb
       console.log('📄 Search Response Structure:', {
         hasProducts: !!data.products,
         productCount: data.products?.length || 0,
-        dataKeys: Object.keys(data || {})
+        dataKeys: Object.keys(data || {}),
+        query: query
       });
 
       if (data.products && Array.isArray(data.products)) {
-        const validProducts = data.products.filter(p => p.productImages && p.productImages.length > 0);
+        // Filter for products with good images and ratings
+        const validProducts = data.products.filter(p => 
+          p.productImages && 
+          p.productImages.length > 0 && 
+          p.productTitle && 
+          (p.rating || 0) >= 4.0
+        );
         allProducts.push(...validProducts);
         console.log(`✅ Added ${validProducts.length} valid products from query: "${query}"`);
       }
       
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 800));
     } catch (error) {
       console.error(`❌ Search failed for query "${query}":`, error.message);
       continue;
     }
   }
   
-  return allProducts.slice(0, pageSize);
+  // Remove duplicates based on productId
+  const uniqueProducts = allProducts.filter((product, index, self) => 
+    index === self.findIndex(p => p.productId === product.productId)
+  );
+  
+  console.log(`🎯 Search complete: Found ${uniqueProducts.length} unique products for niche "${niche}"`);
+  return uniqueProducts.slice(0, pageSize);
 }
 
 async function enhanceProductWithAllData(
@@ -238,14 +272,17 @@ async function enhanceProductWithAllData(
   headers: any, 
   niche: string, 
   openaiKey: string, 
-  storeConfig: any
+  storeConfig: any,
+  productNumber: number
 ) {
   const productId = product.productId;
   
   if (!productId) {
-    console.warn('⚠️ Product missing productId, skipping');
+    console.warn('⚠️ Product missing productId, skipping enhancement');
     return null;
   }
+
+  console.log(`🔄 Enhancing product ${productNumber}: ${productId}`);
 
   try {
     // Get detailed product description using V5 endpoint
@@ -263,6 +300,8 @@ async function enhanceProductWithAllData(
       } else {
         console.warn(`⚠️ Description fetch failed for ${productId}: ${descResponse.status}`);
       }
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
     } catch (error) {
       console.warn(`⚠️ Description API error for ${productId}:`, error.message);
     }
@@ -280,6 +319,8 @@ async function enhanceProductWithAllData(
         reviews = reviewData.reviews || [];
         console.log(`✅ Got ${reviews.length} reviews for product ${productId}`);
       }
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
     } catch (error) {
       console.warn(`⚠️ Reviews API error for ${productId}:`, error.message);
     }
@@ -297,11 +338,14 @@ async function enhanceProductWithAllData(
         similarProducts = similarData.products || [];
         console.log(`✅ Got ${similarProducts.length} similar products for ${productId}`);
       }
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
     } catch (error) {
       console.warn(`⚠️ Similar products API error for ${productId}:`, error.message);
     }
 
     // Generate enhanced product with OpenAI
+    console.log(`🤖 Enhancing product ${productNumber} with GPT-4...`);
     const enhancedProduct = await enhanceProductWithGPT(
       {
         ...product,
@@ -311,9 +355,11 @@ async function enhanceProductWithAllData(
       },
       niche,
       openaiKey,
-      storeConfig
+      storeConfig,
+      productNumber
     );
 
+    console.log(`✅ Product ${productNumber} enhanced successfully with GPT-4`);
     return enhancedProduct;
 
   } catch (error) {
@@ -322,32 +368,35 @@ async function enhanceProductWithAllData(
   }
 }
 
-async function enhanceProductWithGPT(product: any, niche: string, openaiKey: string, storeConfig: any) {
-  const prompt = `Create a compelling 500-800 word product description for this ${niche} product:
+async function enhanceProductWithGPT(product: any, niche: string, openaiKey: string, storeConfig: any, productNumber: number) {
+  const prompt = `Create a compelling 500-800 word product description for this winning ${niche} product:
 
 Title: ${product.productTitle}
-Price: $${product.price || product.salePrice}
+Price: $${product.price || product.salePrice || '29.99'}
+Rating: ${product.rating || 4.5}/5 (${product.orders || 1000}+ orders)
 Original Description: ${product.detailedDescription || product.productTitle}
-Reviews: ${product.reviews?.slice(0, 3).map((r: any) => r.comment).join(' | ') || 'Great product'}
+Customer Reviews: ${product.reviews?.slice(0, 3).map((r: any) => r.comment || r.review).join(' | ') || 'Great quality product, highly recommended!'}
 
 Store Details:
-- Store Name: ${storeConfig.storeName}
-- Target Audience: ${storeConfig.targetAudience}
-- Business Type: ${storeConfig.businessType}
-- Store Style: ${storeConfig.storeStyle}
+- Store Name: ${storeConfig.storeName || 'Premium Store'}
+- Target Audience: ${storeConfig.targetAudience || 'Everyone'}
+- Business Type: ${storeConfig.businessType || 'e-commerce'}
+- Store Style: ${storeConfig.storeStyle || 'modern'}
+- Theme Color: ${storeConfig.themeColor || '#3B82F6'}
 
 Requirements:
-- Write 500-800 words optimized for conversions
-- Include strategic emojis (🛍️ ✅ 🔥 💡 🎯)
+- Write 500-800 words optimized for conversions and ${niche} enthusiasts
+- Include strategic emojis (🛍️ ✅ 🔥 💡 🎯 ⭐ 🏆 💎)
 - Use HTML formatting with <h3>, <p>, <ul>, <li> tags
-- Focus on benefits over features
-- Include urgency and social proof elements
-- Match the ${niche} niche perfectly
-- Sound natural and engaging, not robotic
+- Focus on benefits and results, not just features
+- Include urgency, social proof, and guarantee elements
+- Match the ${niche} niche perfectly with relevant terminology
+- Sound natural and engaging, avoid robotic AI language
+- Highlight what makes this product special for ${niche} users
 
-Format as valid HTML that can be used directly in Shopify.`;
+Format as clean HTML that works perfectly in Shopify product descriptions.`;
 
-  console.log('🤖 Making OpenAI API request for product enhancement');
+  console.log(`🤖 Making OpenAI API request for product ${productNumber} enhancement`);
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -379,49 +428,75 @@ Format as valid HTML that can be used directly in Shopify.`;
     const aiData = await response.json();
     const enhancedDescription = aiData.choices[0]?.message?.content || product.detailedDescription || product.productTitle;
 
+    // Create variations from similar products or default variations
+    const variations = createProductVariations(product, niche, productNumber);
+
     // Create Shopify product structure
     const shopifyProduct = {
       title: product.productTitle,
       body_html: enhancedDescription,
-      vendor: storeConfig.storeName || 'AliExpress Store',
-      product_type: niche,
-      tags: `${niche}, trending, bestseller, premium quality, verified, ${storeConfig.targetAudience || 'customers'}`,
-      variants: [{
-        option1: 'Default',
-        price: product.salePrice || product.price || '29.99',
-        compare_at_price: product.price ? (parseFloat(product.price) * 1.3).toFixed(2) : '39.99',
-        inventory_quantity: 100,
-        inventory_management: null,
-        fulfillment_service: 'manual',
-        requires_shipping: true,
-        taxable: true,
-        weight: 500,
-        weight_unit: 'g'
-      }],
+      vendor: storeConfig.storeName || 'Premium Store',
+      product_type: niche.charAt(0).toUpperCase() + niche.slice(1),
+      tags: `${niche}, trending, bestseller, premium quality, verified, ${storeConfig.targetAudience || 'customers'}, winning product, high-demand`,
+      variants: variations,
       options: [{
-        name: 'Variant',
-        values: ['Default']
+        name: 'Style',
+        values: variations.map(v => v.option1)
       }],
       images: []
     };
 
-    // Add product images
+    // Add product images (ensure we have real product images)
     if (product.productImages && Array.isArray(product.productImages)) {
       product.productImages.slice(0, 8).forEach((imgUrl: string, index: number) => {
-        shopifyProduct.images.push({
-          src: imgUrl,
-          alt: `${product.productTitle} - Image ${index + 1}`
-        });
+        if (imgUrl && typeof imgUrl === 'string') {
+          shopifyProduct.images.push({
+            src: imgUrl,
+            alt: `${product.productTitle} - Image ${index + 1}`,
+            position: index + 1
+          });
+        }
       });
     }
 
-    console.log(`✅ Enhanced product with ${shopifyProduct.images.length} images and GPT-4 content`);
+    console.log(`✅ Enhanced product ${productNumber} with ${shopifyProduct.images.length} images and ${variations.length} variants`);
     return shopifyProduct;
 
   } catch (error) {
-    console.error('❌ GPT enhancement failed:', error);
+    console.error(`❌ GPT enhancement failed for product ${productNumber}:`, error);
     throw error;
   }
+}
+
+function createProductVariations(product: any, niche: string, productNumber: number) {
+  const basePrice = parseFloat(product.salePrice || product.price || '29.99');
+  
+  const nicheVariations: Record<string, string[]> = {
+    'beauty': ['Natural', 'Premium', 'Deluxe'],
+    'pets': ['Small', 'Medium', 'Large'],
+    'fitness': ['Light', 'Standard', 'Pro'],
+    'kitchen': ['Basic', 'Premium', 'Professional'],
+    'home': ['Standard', 'Deluxe', 'Premium'],
+    'tech': ['Basic', 'Advanced', 'Pro'],
+    'fashion': ['Classic', 'Trendy', 'Limited Edition'],
+    'baby': ['Newborn', 'Infant', 'Toddler']
+  };
+
+  const variationNames = nicheVariations[niche.toLowerCase()] || ['Standard', 'Premium', 'Deluxe'];
+  
+  return variationNames.map((name, index) => ({
+    option1: name,
+    price: (basePrice * (1 + index * 0.15)).toFixed(2),
+    compare_at_price: (basePrice * (1 + index * 0.15) * 1.3).toFixed(2),
+    inventory_quantity: Math.max(50, 100 - (index * 20)),
+    inventory_management: 'shopify',
+    fulfillment_service: 'manual',
+    requires_shipping: true,
+    taxable: true,
+    weight: 500 + (index * 100),
+    weight_unit: 'g',
+    sku: `${niche.toUpperCase()}-${productNumber}-${name.replace(/\s+/g, '')}`
+  }));
 }
 
 async function uploadToShopify(products: any[], shopifyUrl: string, accessToken: string, themeColor: string) {
@@ -436,7 +511,7 @@ async function uploadToShopify(products: any[], shopifyUrl: string, accessToken:
     const product = products[i];
     
     try {
-      console.log(`📦 Creating product ${i + 1}: ${product.title?.substring(0, 40)}...`);
+      console.log(`📦 Creating product ${i + 1}/${products.length}: ${product.title?.substring(0, 40)}...`);
       
       const cleanShopifyUrl = shopifyUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
       const shopifyApiUrl = `https://${cleanShopifyUrl}/admin/api/2023-10/products.json`;
@@ -482,8 +557,8 @@ async function uploadToShopify(products: any[], shopifyUrl: string, accessToken:
       
       console.log(`✅ Product ${i + 1} created successfully: ${result.product.title} (ID: ${result.product.id})`);
       
-      // Rate limiting
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Rate limiting between uploads
+      await new Promise(resolve => setTimeout(resolve, 1200));
       
     } catch (error) {
       console.error(`❌ Failed to create product ${i + 1}:`, error);
@@ -495,5 +570,6 @@ async function uploadToShopify(products: any[], shopifyUrl: string, accessToken:
     }
   }
 
+  console.log(`🎉 Shopify upload complete: ${results.filter(r => r.status === 'SUCCESS').length}/${results.length} successful`);
   return results;
 }
