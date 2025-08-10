@@ -13,22 +13,22 @@ export const generateWinningProducts = async (
   customInfo: string = '',
   storeName: string = ''
 ) => {
-  console.log(`🚀 ENHANCED CURATED: Starting premium ${niche} product generation with curated system`);
+  console.log(`🚀 SUPABASE CURATED: Starting premium ${niche} product generation from Supabase buckets`);
   
   try {
-    // Step 1: Validate curated products exist
-    onProgress(5, `🔍 Validating curated ${niche} products...`);
+    // Step 1: Validate curated products exist in Supabase
+    onProgress(5, `🔍 Checking Supabase bucket for ${niche} products...`);
     
     const productsExist = await validateCuratedProductsExist(niche);
     if (!productsExist) {
-      throw new Error(`No curated products found for ${niche}. Please contact support to add products for this niche.`);
+      throw new Error(`No curated products found in Supabase bucket for ${niche}. Please check your bucket structure.`);
     }
 
     const productCount = await getCuratedProductsCount(niche);
-    console.log(`📊 Found ${productCount} curated products for ${niche}`);
+    console.log(`📊 Found ${productCount} products in Supabase bucket for ${niche}`);
 
-    // Step 2: Use curated product service
-    onProgress(10, `📦 Loading ${productCount} premium curated ${niche} products...`);
+    // Step 2: Use ONLY the curated product service from Supabase
+    onProgress(10, `📦 Loading ${productCount} products from Supabase ${niche} bucket...`);
     
     await generateCuratedProducts(
       shopifyUrl,
@@ -46,15 +46,15 @@ export const generateWinningProducts = async (
     onProgress(95, `🎨 Finalizing ${niche} store with ${themeColor} theme...`);
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    onProgress(100, `🏆 ${productCount} curated ${niche} products are now LIVE!`);
+    onProgress(100, `🏆 ${productCount} products from Supabase buckets are now LIVE!`);
     
-    console.log(`🎉 ENHANCED CURATED SUCCESS: ${niche} products uploaded with curated system`, {
+    console.log(`🎉 SUPABASE SUCCESS: ${niche} products uploaded from Supabase buckets`, {
       niche,
       themeColor,
       storeName,
       productCount,
-      system: 'curated',
-      qualityStandards: 'Hand-curated premium products'
+      system: 'Supabase Storage Buckets',
+      source: 'Your Curated Product Folders'
     });
     
     return {
@@ -64,34 +64,13 @@ export const generateWinningProducts = async (
       errors: [],
       niche,
       themeColor,
-      qualityStandards: 'Hand-curated premium products with real images',
+      source: 'Supabase Storage Buckets',
       system: 'curated',
-      message: `Successfully uploaded ${productCount} premium curated ${niche} products with ${themeColor} theme!`
+      message: `Successfully uploaded ${productCount} products from Supabase ${niche} bucket with ${themeColor} theme!`
     };
 
   } catch (error) {
-    console.error(`❌ ENHANCED CURATED: Premium ${niche} product generation failed:`, error);
+    console.error(`❌ SUPABASE ERROR: Failed to generate ${niche} products from buckets:`, error);
     throw error;
   }
 };
-
-// Mark old functions as deprecated
-function selectAdvancedDiverseProducts(products: any[], maxCount: number, niche: string): any[] {
-  console.warn('DEPRECATED: selectAdvancedDiverseProducts - Now using curated products');
-  return products.slice(0, maxCount);
-}
-
-function extractProductCategory(title: string, niche: string): string {
-  console.warn('DEPRECATED: extractProductCategory - Now using curated products');
-  return 'general';
-}
-
-async function getAliExpressApiKeyWithRetry(maxRetries: number): Promise<string | null> {
-  console.warn('DEPRECATED: getAliExpressApiKeyWithRetry - Now using curated products');
-  return null;
-}
-
-async function getRapidApiKey(): Promise<string | null> {
-  console.warn('DEPRECATED: getRapidApiKey - Now using curated products');
-  return null;
-}
