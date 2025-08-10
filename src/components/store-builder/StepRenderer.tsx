@@ -7,7 +7,7 @@ import ColorSelectionStep from "./ColorSelectionStep";
 import ShopifySetupStep from "./ShopifySetupStep";
 import APIConfigStep from "./APIConfigStep";
 import ActivateTrialStep from "./ActivateTrialStep";
-import WinningProductsStep from "./WinningProductsStep";
+import ProductsStep from "./ProductsStep";
 import LaunchStep from "./LaunchStep";
 import StoreSummaryStep from "./StoreSummaryStep";
 import MentorshipStep from "./MentorshipStep";
@@ -67,9 +67,9 @@ const StepRenderer = ({
             handleInputChange={handleInputChange}
           />
         );
-      case 6: // Activate Trial (Products)
+      case 6: // Activate Trial (Products FROM SUPABASE BUCKETS)
         return (
-          <WinningProductsStep
+          <ProductsStep
             formData={formData}
             handleInputChange={handleInputChange}
           />
