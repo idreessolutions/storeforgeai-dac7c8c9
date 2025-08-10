@@ -29,7 +29,13 @@ const StepRenderer = ({
 }: StepRendererProps) => {
   switch (currentStep) {
     case 1:
-      return <GetStartedStep onNext={onNext} />;
+      return (
+        <GetStartedStep 
+          onNext={onNext} 
+          formData={formData}
+          handleInputChange={handleInputChange}
+        />
+      );
     case 2:
       return (
         <ShopifySetupStep
@@ -42,13 +48,14 @@ const StepRenderer = ({
         <VisionSelectionStep
           formData={formData}
           handleInputChange={handleInputChange}
+          onNext={onNext}
         />
       );
     case 4:
       return (
         <StoreDetailsStep
           formData={formData}
-          handleInputChange={handleInputChange}
+          onInputChange={handleInputChange}
         />
       );
     case 5:
@@ -77,13 +84,18 @@ const StepRenderer = ({
       return (
         <LaunchStep
           formData={formData}
-          handleInputChange={handleInputChange}
         />
       );
     case 9:
       return <StoreSummaryStep formData={formData} />;
     default:
-      return <GetStartedStep onNext={onNext} />;
+      return (
+        <GetStartedStep 
+          onNext={onNext} 
+          formData={formData}
+          handleInputChange={handleInputChange}
+        />
+      );
   }
 };
 
