@@ -276,7 +276,7 @@ serve(async (req) => {
       console.log(`📦 Processing product ${i + 1}/${selectedProducts.length}: ${productFolder}`);
 
       try {
-        // Get title from Titles folder
+        // Get title from Titles folder with better error handling
         const { data: titleFiles } = await supabase.storage
           .from(bucketName)
           .list(`${productFolder}/Titles`);
@@ -284,16 +284,33 @@ serve(async (req) => {
         let productTitle = `Premium ${niche} Product ${i + 1}`;
         
         if (titleFiles && titleFiles.length > 0) {
-          const titleFile = titleFiles[0];
-          const { data: titleData } = await supabase.storage
-            .from(bucketName)
-            .download(`${productFolder}/Titles/${titleFile.name}`);
-          
-          if (titleData) {
-            productTitle = await titleData.text();
-            productTitle = productTitle.trim();
+          try {
+            const titleFile = titleFiles[0];
+            const { data: titleData } = await supabase.storage
+              .from(bucketName)
+              .download(`${productFolder}/Titles/${titleFile.name}`);
+            
+            if (titleData) {
+              const titleText = await titleData.text();
+              const cleanTitle = titleText.trim().replace(/\n/g, ' ').replace(/\r/g, '');
+              if (cleanTitle && cleanTitle.length > 0) {
+                productTitle = cleanTitle;
+              }
+              console.log(`📝 Extracted title: "${productTitle}"`);
+            }
+          } catch (titleError) {
+            console.warn(`⚠️ Could not read title for ${productFolder}, using fallback`);
           }
+        } else {
+          console.warn(`⚠️ No title files found for ${productFolder}, using fallback`);
         }
+
+        // Ensure title is never empty
+        if (!productTitle || productTitle.trim().length === 0) {
+          productTitle = `Premium ${niche} Product ${i + 1}`;
+        }
+
+        console.log(`🛒 Creating product in Shopify: ${productTitle}`);
 
         // Get main product images
         const { data: mainImages } = await supabase.storage
@@ -330,7 +347,6 @@ serve(async (req) => {
         // Create variants based on available variant images
         const variants = [];
         const colors = ['Black', 'White', 'Blue', 'Red', 'Gray'];
-        const sizes = ['Standard', 'Large', 'Extra Large'];
 
         if (variantImages && variantImages.length > 0) {
           // Create variants based on available variant images
@@ -399,7 +415,6 @@ serve(async (req) => {
         };
 
         // Upload to Shopify
-        console.log(`🛒 Creating product in Shopify: ${productTitle}`);
         const productResponse = await shopifyClient.createProduct(shopifyProduct);
         const createdProduct = productResponse.product;
 
