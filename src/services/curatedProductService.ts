@@ -19,7 +19,7 @@ export const generateCuratedProducts = async (
       throw new Error('Shopify credentials are required');
     }
 
-    // Step 2: Call the new curated products Edge Function
+    // Step 2: Call the updated curated products Edge Function
     progressCallback(20, `Loading premium ${niche} products from storage...`);
     
     const { data: uploadResult, error: uploadError } = await supabase.functions.invoke('upload-curated-products', {
@@ -81,21 +81,28 @@ export const generateCuratedProducts = async (
 // Get available curated products count for a niche
 export const getCuratedProductsCount = async (niche: string): Promise<number> => {
   try {
-    const { count, error } = await supabase
-      .from('curated_products')
-      .select('*', { count: 'exact', head: true })
-      .eq('niche', niche)
-      .eq('is_active', true);
+    // Map niche to bucket name (convert spaces to underscores and lowercase)
+    const bucketName = niche.toLowerCase().replace(/\s+/g, '_').replace(/&/g, '');
+    
+    // List product folders to get actual count
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .list('', { limit: 100 });
 
     if (error) {
       console.warn(`Warning: Could not get curated products count for ${niche}:`, error);
-      return 10; // Default fallback
+      return 20; // Default fallback assuming 20 products
     }
 
-    return count || 10; // Default to 10 if no data
+    // Count folders that start with "Product"
+    const productCount = data?.filter(item => 
+      item.name.startsWith('Product') && !item.name.includes('.')
+    ).length || 20;
+
+    return Math.min(productCount, 20); // Cap at 20
   } catch (error) {
     console.warn(`Warning: Error getting curated products count:`, error);
-    return 10; // Default fallback
+    return 20; // Default fallback
   }
 };
 
@@ -103,28 +110,12 @@ export const getCuratedProductsCount = async (niche: string): Promise<number> =>
 export const validateCuratedProductsExist = async (niche: string): Promise<boolean> => {
   try {
     // Map niche to bucket name
-    const nicheMap: { [key: string]: string } = {
-      'Home & Living': 'home_living',
-      'Beauty & Personal Care': 'beauty_personal_care',
-      'Health & Fitness': 'health_fitness',
-      'Pets': 'pets',
-      'Fashion & Accessories': 'fashion_accessories',
-      'Electronics & Gadgets': 'electronics_gadgets',
-      'Kids & Babies': 'kids_babies',
-      'Seasonal & Events': 'seasonal_events',
-      'Hobbies & Lifestyle': 'hobbies_lifestyle',
-      'Trending Viral Products': 'trending_viral'
-    };
-
-    const bucketName = nicheMap[niche];
-    if (!bucketName) {
-      return false;
-    }
+    const bucketName = niche.toLowerCase().replace(/\s+/g, '_').replace(/&/g, '');
 
     // Check if at least one product folder exists
     const { data, error } = await supabase.storage
       .from(bucketName)
-      .list('p01');
+      .list('Product 1');
 
     return !error && data && data.length > 0;
   } catch (error) {
