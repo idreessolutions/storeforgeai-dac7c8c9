@@ -79,18 +79,28 @@ class ShopifyClient {
   }
 }
 
-// Map niche names to bucket names
+// Updated niche mapping to handle both formats
 const NICHE_TO_BUCKET: { [key: string]: string } = {
   'Home & Living': 'home_living',
+  'home-living': 'home_living',
   'Beauty & Personal Care': 'beauty_personal_care',
+  'beauty-personal-care': 'beauty_personal_care',
   'Health & Fitness': 'health_fitness',
+  'health-fitness': 'health_fitness',
   'Pets': 'pets',
+  'pets': 'pets',
   'Fashion & Accessories': 'fashion_accessories',
+  'fashion-accessories': 'fashion_accessories',
   'Electronics & Gadgets': 'electronics_gadgets',
+  'electronics-gadgets': 'electronics_gadgets',
   'Kids & Babies': 'kids_babies',
+  'kids-babies': 'kids_babies',
   'Seasonal & Events': 'seasonal_events',
+  'seasonal-events': 'seasonal_events',
   'Hobbies & Lifestyle': 'hobbies_lifestyle',
-  'Trending Viral Products': 'trending_viral'
+  'hobbies-lifestyle': 'hobbies_lifestyle',
+  'Trending Viral Products': 'trending_viral',
+  'trending-viral-products': 'trending_viral'
 };
 
 async function generateAIDescription(title: string, niche: string): Promise<string> {
@@ -164,15 +174,25 @@ function calculateSmartPrice(basePrice: number, niche: string, index: number): n
   // Smart pricing between $15-$80
   const nicheMultipliers: { [key: string]: number } = {
     'Home & Living': 1.6,
+    'home-living': 1.6,
     'Beauty & Personal Care': 1.8,
+    'beauty-personal-care': 1.8,
     'Health & Fitness': 1.7,
+    'health-fitness': 1.7,
     'Pets': 1.9,
+    'pets': 1.9,
     'Fashion & Accessories': 1.5,
+    'fashion-accessories': 1.5,
     'Electronics & Gadgets': 2.0,
+    'electronics-gadgets': 2.0,
     'Kids & Babies': 1.8,
+    'kids-babies': 1.8,
     'Seasonal & Events': 1.4,
+    'seasonal-events': 1.4,
     'Hobbies & Lifestyle': 1.6,
-    'Trending Viral Products': 1.7
+    'hobbies-lifestyle': 1.6,
+    'Trending Viral Products': 1.7,
+    'trending-viral-products': 1.7
   };
 
   const multiplier = nicheMultipliers[niche] || 1.6;
@@ -210,8 +230,11 @@ serve(async (req) => {
 
     const bucketName = NICHE_TO_BUCKET[niche];
     if (!bucketName) {
-      throw new Error(`Invalid niche: ${niche}`);
+      console.error(`❌ Invalid niche: ${niche}. Available niches:`, Object.keys(NICHE_TO_BUCKET));
+      throw new Error(`Invalid niche: ${niche}. Please use one of: ${Object.keys(NICHE_TO_BUCKET).join(', ')}`);
     }
+
+    console.log(`✅ Mapped niche "${niche}" to bucket "${bucketName}"`);
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
