@@ -22,27 +22,14 @@ interface ProductsStepProps {
   handleInputChange: (field: string, value: boolean) => void;
 }
 
-interface ProductResult {
-  productId?: string;
-  title?: string;
-  price?: string;
-  imagesUploaded?: number;
-  variantsCreated?: number;
-  status: string;
-  error?: string;
-  images?: string[];
-  variants?: any[];
-}
-
 const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentProductName, setCurrentProductName] = useState('');
-  const [results, setResults] = useState<ProductResult[]>([]);
   const [hasStarted, setHasStarted] = useState(false);
 
   const sessionId = localStorage.getItem('storeBuilderSessionId') || 'default';
-  const niche = formData.niche || 'Products';
+  const niche = formData.niche || 'Home & Living';
   const nicheCapitalized = niche.charAt(0).toUpperCase() + niche.slice(1);
 
   const validateShopifyUrl = (url: string): string => {
@@ -72,12 +59,11 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
     setHasStarted(true);
     setProgress(0);
     setCurrentProductName('');
-    setResults([]);
 
     try {
-      console.log(`🚀 STARTING CURATED PRODUCT GENERATION for ${formData.niche?.toUpperCase()} niche`);
+      console.log(`🚀 STARTING CURATED PRODUCT GENERATION for ${formData.niche?.toUpperCase()} niche from Supabase`);
       
-      // Use the curated product service with progress callback
+      // Use the curated product service that pulls from Supabase buckets
       await generateCuratedProducts(
         validatedShopifyUrl,
         formData.accessToken!,
@@ -91,12 +77,12 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         formData.storeName || 'My Store'
       );
 
-      console.log('✅ CURATED GENERATION SUCCESS');
+      console.log('✅ CURATED GENERATION SUCCESS from Supabase');
       
       // Mark products as added
       handleInputChange('productsAdded', true);
       
-      toast.success(`🎉 Successfully created 10 curated ${formData.niche} products from Supabase!`, {
+      toast.success(`🎉 Successfully created 10 curated ${formData.niche} products from Supabase storage!`, {
         duration: 5000,
       });
 
@@ -104,7 +90,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       await storeGenerationData({
         success: true,
         successfulUploads: 10,
-        source: 'Curated Supabase Products'
+        source: 'Supabase Curated Products'
       });
 
     } catch (error: any) {
@@ -116,7 +102,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       const errorMessage = error.message || 'Unknown error occurred';
       console.error('Full error details:', error);
       
-      toast.error(`Failed to generate curated products: ${errorMessage}`, {
+      toast.error(`Failed to generate curated products from Supabase: ${errorMessage}`, {
         duration: 8000,
       });
     } finally {
@@ -138,7 +124,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
         products_generated: generationData.successfulUploads || 10,
         generation_data: generationData,
         created_at: new Date().toISOString(),
-        data_source: 'Curated Supabase Products'
+        data_source: 'Supabase Curated Products'
       };
 
       localStorage.setItem('storeGenerationData', JSON.stringify(storeData));
@@ -150,7 +136,6 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
 
   const retryGeneration = () => {
     setHasStarted(false);
-    setResults([]);
     setProgress(0);
     setCurrentProductName('');
     handleInputChange('productsAdded', false);
@@ -171,7 +156,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 🚀 Launch Curated {nicheCapitalized} Store
               </h1>
               <p className="text-gray-600 text-lg">
-                Generate 10 hand-curated {nicheCapitalized} products from Supabase with real images and AI-enhanced content for {formData.targetAudience || 'customers'}
+                Generate 10 hand-curated {nicheCapitalized} products from Supabase storage with real images and AI-enhanced content for {formData.targetAudience || 'customers'}
               </p>
             </div>
 
@@ -180,7 +165,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 {/* Enhanced Curated Product Generation Section */}
                 <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 mb-8">
                   <h3 className="text-xl font-semibold text-gray-900 mb-6 text-center">
-                    🏆 Premium Curated Product Generation from Supabase
+                    🏆 Premium Curated Product Generation from Supabase Storage
                   </h3>
                   
                   {/* Feature Boxes - Enhanced features */}
@@ -216,12 +201,12 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                       {isGenerating ? (
                         <>
                           <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                          Generating Curated Products...
+                          Generating Curated Products from Supabase...
                         </>
                       ) : (
                         <>
                           <Package className="mr-2 h-5 w-5" />
-                          Generate Curated {nicheCapitalized} Products
+                          Generate Curated {nicheCapitalized} Products from Supabase
                         </>
                       )}
                     </Button>
@@ -235,7 +220,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 <div className="bg-blue-50 rounded-xl p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-gray-900">
-                      🏆 Loading curated {formData.niche} products from Supabase...
+                      🏆 Loading curated {formData.niche} products from Supabase storage...
                     </h3>
                     <span className="text-sm text-gray-600">{Math.round(progress)}%</span>
                   </div>
@@ -248,9 +233,11 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                   </div>
 
                   <div className="text-sm text-gray-600 space-y-1">
-                    <div>📦 {currentProductName || `Loading curated ${formData.niche} products...`}</div>
+                    <div>📦 {currentProductName || `Loading curated ${formData.niche} products from Supabase...`}</div>
+                    <div>🗂️ Reading product titles from Supabase storage</div>
+                    <div>🖼️ Using real product images from your Supabase buckets</div>
+                    <div>🎨 Getting variant images from Supabase storage</div>
                     <div>🤖 Generating unique descriptions with GPT-4</div>
-                    <div>🖼️ Using real product images from Supabase storage</div>
                     <div>💰 Applying smart pricing and creating variants</div>
                     <div>🛒 Uploading to your Shopify store</div>
                     <div>🎨 Applying {formData.themeColor} theme color</div>
@@ -264,10 +251,10 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 <div className="bg-green-50 rounded-xl p-6">
                   <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
                   <h3 className="text-xl font-semibold text-green-900 mb-2">
-                    🎉 Curated Products Generated Successfully!
+                    🎉 Curated Products Generated Successfully from Supabase!
                   </h3>
                   <p className="text-green-700">
-                    Your {formData.niche} store now has 10 premium curated products from Supabase with real images and AI-enhanced content ready for customers.
+                    Your {formData.niche} store now has 10 premium curated products from Supabase storage with real images and AI-enhanced content ready for customers.
                   </p>
                   
                   {hasStarted && (
@@ -278,7 +265,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                         className="w-full border-green-300 text-green-700 hover:bg-green-100"
                       >
                         <RefreshCw className="mr-2 h-4 w-4" />
-                        Generate Different Products
+                        Generate Different Products from Supabase
                       </Button>
                     </div>
                   )}
