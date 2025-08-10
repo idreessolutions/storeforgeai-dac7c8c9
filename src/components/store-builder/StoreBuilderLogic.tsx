@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -24,7 +23,6 @@ export interface FormData {
 
 export const useStoreBuilderLogic = () => {
   const { toast } = useToast();
-  // FIXED: Start at step 1 (Create Your Dream Store) instead of step 0 (Vision)
   const [currentStep, setCurrentStep] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
   const [formData, setFormData] = useState<FormData>({
@@ -64,12 +62,10 @@ export const useStoreBuilderLogic = () => {
     const missingFields: string[] = [];
 
     switch (step) {
-      case 1: // Create Your Dream Store (Store Details)
+      case 1: // Create Your Dream Store (Store Details) - Simplified validation
         if (!formData.storeName.trim()) missingFields.push("Store Name");
         if (!formData.niche.trim()) missingFields.push("Niche");
-        if (!formData.targetAudience.trim()) missingFields.push("Target Audience");
         if (!formData.businessType.trim()) missingFields.push("Business Type");
-        if (!formData.storeStyle.trim()) missingFields.push("Store Style");
         break;
       case 2: // Store Identity (Color Selection)
         if (!formData.selectedColor.trim()) missingFields.push("Theme Color");

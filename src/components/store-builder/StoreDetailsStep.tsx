@@ -3,7 +3,6 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { FormData } from "./StoreBuilderLogic";
@@ -12,6 +11,19 @@ interface StoreDetailsStepProps {
   formData: FormData;
   onInputChange: (field: keyof FormData, value: string) => void;
 }
+
+const predefinedNiches = [
+  "Home & Living",
+  "Beauty & Personal Care", 
+  "Health & Fitness",
+  "Pets",
+  "Fashion & Accessories",
+  "Electronics & Gadgets",
+  "Kids & Babies",
+  "Seasonal & Events",
+  "Hobbies & Lifestyle",
+  "Trending Viral Products"
+];
 
 const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) => {
   return (
@@ -40,7 +52,7 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         {/* Store Identity - Enhanced */}
         <Card className="border-2 border-blue-100 hover:border-blue-300 transition-all duration-300 hover:shadow-xl group">
           <CardHeader className="pb-4">
@@ -77,46 +89,22 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
                 Store Niche
                 <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">Required</Badge>
               </Label>
-              <Input
-                id="niche"
-                placeholder="What products will you sell? (e.g., Pet Products, Fitness, Beauty)"
-                value={formData.niche}
-                onChange={(e) => onInputChange('niche', e.target.value)}
-                className="focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-lg py-3"
-              />
-              <p className="text-xs text-gray-500 mt-1">AI will generate 10 premium products in this niche</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Target Market - Enhanced */}
-        <Card className="border-2 border-purple-100 hover:border-purple-300 transition-all duration-300 hover:shadow-xl group">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-3 text-purple-700 text-xl">
-              <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                <div className="text-2xl">👥</div>
-              </div>
-              <div>
-                <div className="text-xl font-bold">Target Market</div>
-                <div className="text-sm text-purple-600 font-normal">Who will love your products?</div>
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="targetAudience" className="text-sm font-semibold flex items-center gap-2 text-gray-700">
-                <span className="text-lg">💝</span>
-                Target Audience
-                <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">Required</Badge>
-              </Label>
-              <Input
-                id="targetAudience"
-                placeholder="Describe your ideal customers (e.g., Dog owners 25-45, Fitness enthusiasts)"
-                value={formData.targetAudience}
-                onChange={(e) => onInputChange('targetAudience', e.target.value)}
-                className="focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-lg py-3"
-              />
-              <p className="text-xs text-gray-500 mt-1">This will shape your product descriptions and store tone</p>
+              <Select 
+                value={formData.niche} 
+                onValueChange={(value) => onInputChange('niche', value)}
+              >
+                <SelectTrigger className="focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-lg py-3">
+                  <SelectValue placeholder="Choose your store niche ✨" />
+                </SelectTrigger>
+                <SelectContent>
+                  {predefinedNiches.map((niche) => (
+                    <SelectItem key={niche} value={niche.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-')}>
+                      {niche}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500 mt-1">We'll add 10 winning products from this niche</p>
             </div>
 
             <div className="space-y-2">
@@ -129,7 +117,7 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
                 value={formData.businessType} 
                 onValueChange={(value) => onInputChange('businessType', value)}
               >
-                <SelectTrigger className="focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-lg py-3">
+                <SelectTrigger className="focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-lg py-3">
                   <SelectValue placeholder="Choose your business model ✨" />
                 </SelectTrigger>
                 <SelectContent>
@@ -142,80 +130,6 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
                 </SelectContent>
               </Select>
               <p className="text-xs text-gray-500 mt-1">Affects store setup and product organization</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Design & Aesthetics - Enhanced */}
-        <Card className="border-2 border-green-100 hover:border-green-300 transition-all duration-300 hover:shadow-xl group">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-3 text-green-700 text-xl">
-              <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                <div className="text-2xl">🎨</div>
-              </div>
-              <div>
-                <div className="text-xl font-bold">Design & Style</div>
-                <div className="text-sm text-green-600 font-normal">Your store's personality</div>
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="storeStyle" className="text-sm font-semibold flex items-center gap-2 text-gray-700">
-                <span className="text-lg">✨</span>
-                Store Aesthetic
-                <Badge variant="outline" className="text-xs bg-pink-50 text-pink-700 border-pink-200">Required</Badge>
-              </Label>
-              <Select 
-                value={formData.storeStyle} 
-                onValueChange={(value) => onInputChange('storeStyle', value)}
-              >
-                <SelectTrigger className="focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all text-lg py-3">
-                  <SelectValue placeholder="Choose your visual style 🌟" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="modern">🔥 Modern & Minimalist</SelectItem>
-                  <SelectItem value="luxury">💎 Luxury & Premium</SelectItem>
-                  <SelectItem value="fun">🌈 Fun & Colorful</SelectItem>
-                  <SelectItem value="professional">👔 Professional & Corporate</SelectItem>
-                  <SelectItem value="rustic">🌿 Rustic & Natural</SelectItem>
-                  <SelectItem value="trendy">🚀 Trendy & Hip</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-gray-500 mt-1">Affects theme colors, typography, and overall design</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Personal Touch - Enhanced */}
-        <Card className="border-2 border-orange-100 hover:border-orange-300 transition-all duration-300 hover:shadow-xl group">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-3 text-orange-700 text-xl">
-              <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                <div className="text-2xl">💭</div>
-              </div>
-              <div>
-                <div className="text-xl font-bold">Personal Touch</div>
-                <div className="text-sm text-orange-600 font-normal">Make it uniquely yours</div>
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="customInfo" className="text-sm font-semibold flex items-center gap-2 text-gray-700">
-                <span className="text-lg">🌟</span>
-                Special Customizations
-                <Badge variant="outline" className="text-xs bg-gray-50 text-gray-600 border-gray-200">Optional</Badge>
-              </Label>
-              <Textarea
-                id="customInfo"
-                placeholder="Any special requests? Custom features, specific colors, unique requirements, or special messages you'd like to include..."
-                value={formData.customInfo}
-                onChange={(e) => onInputChange('customInfo', e.target.value)}
-                rows={5}
-                className="focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all resize-none"
-              />
-              <p className="text-xs text-gray-500 mt-1">We'll integrate these requests into your store design and setup</p>
             </div>
           </CardContent>
         </Card>
