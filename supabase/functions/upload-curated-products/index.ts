@@ -83,34 +83,46 @@ class ShopifyClient {
 const NICHE_TO_BUCKET: { [key: string]: string } = {
   'Home & Living': 'home_living',
   'home-living': 'home_living',
+  'home_living': 'home_living',
   'Beauty & Personal Care': 'beauty_personal_care',
   'beauty-personal-care': 'beauty_personal_care',
+  'beauty_personal_care': 'beauty_personal_care',
   'Health & Fitness': 'health_fitness',
   'health-fitness': 'health_fitness',
+  'health_fitness': 'health_fitness',
   'Pets': 'pets',
   'pets': 'pets',
   'Fashion & Accessories': 'fashion_accessories',
   'fashion-accessories': 'fashion_accessories',
+  'fashion_accessories': 'fashion_accessories',
   'Electronics & Gadgets': 'electronics_gadgets',
   'electronics-gadgets': 'electronics_gadgets',
+  'electronics_gadgets': 'electronics_gadgets',
   'Kids & Babies': 'kids_babies',
   'kids-babies': 'kids_babies',
+  'kids_babies': 'kids_babies',
   'Seasonal & Events': 'seasonal_events',
   'seasonal-events': 'seasonal_events',
+  'seasonal_events': 'seasonal_events',
   'Hobbies & Lifestyle': 'hobbies_lifestyle',
   'hobbies-lifestyle': 'hobbies_lifestyle',
+  'hobbies_lifestyle': 'hobbies_lifestyle',
   'Trending Viral Products': 'trending_viral',
-  'trending-viral-products': 'trending_viral'
+  'trending-viral-products': 'trending_viral',
+  'trending_viral': 'trending_viral'
 };
 
-async function generateAIDescription(title: string, niche: string): Promise<string> {
+async function generateAITitleAndDescription(niche: string, productIndex: number, storeName: string): Promise<{title: string; description: string}> {
   const openaiKey = Deno.env.get('OPENAI_API_KEY_V2');
   
   if (!openaiKey) {
-    return generateFallbackDescription(title, niche);
+    console.log('⚠️ OpenAI API key not found, using fallback content');
+    return generateFallbackTitleAndDescription(niche, productIndex, storeName);
   }
 
   try {
+    console.log(`🤖 Generating AI title and description for ${niche} product ${productIndex + 1}`);
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -122,52 +134,116 @@ async function generateAIDescription(title: string, niche: string): Promise<stri
         messages: [
           {
             role: 'system',
-            content: `You are an expert e-commerce copywriter. Create compelling, sales-oriented product descriptions that are 500-800 words long. Use emojis strategically and focus on benefits, features, and emotional appeal. Make it conversion-focused for the ${niche} niche.`
+            content: `You are an expert e-commerce copywriter specializing in high-converting product content. Create compelling, emotional, and SEO-optimized content that drives sales. Use relevant emojis strategically throughout your writing.`
           },
           {
             role: 'user',
-            content: `Write a compelling product description for: "${title}" in the ${niche} category. Include benefits, features, use cases, and social proof elements. Use relevant emojis and make it highly persuasive for online sales.`
+            content: `Create a compelling product title and description for a ${niche} product for ${storeName || 'Premium Store'}. This is product ${productIndex + 1} so make it unique.
+
+REQUIREMENTS:
+1. Title: Create a catchy, benefit-focused title (max 70 characters) with relevant emojis
+2. Description: Write a beautiful 500-800 word description with:
+   - Emotional hook opening with emojis
+   - 6-8 key benefits (not just features) 
+   - Social proof elements
+   - Strong call-to-action
+   - Modern, high-quality tone
+   - Strategic use of emojis throughout
+   - Perfect for ${niche} enthusiasts
+
+Return ONLY this JSON format:
+{
+  "title": "🏆 Amazing ${niche} Product Title with Emojis",
+  "description": "Beautiful 500-800 word description with emojis and compelling copy..."
+}`
           }
         ],
-        max_tokens: 1000,
-        temperature: 0.7
+        max_tokens: 1200,
+        temperature: 0.8
       }),
     });
 
     if (response.ok) {
       const data = await response.json();
-      return data.choices[0]?.message?.content || generateFallbackDescription(title, niche);
+      const content = data.choices[0]?.message?.content;
+      
+      if (content) {
+        try {
+          // Clean up the response
+          let cleanContent = content.trim();
+          if (cleanContent.startsWith('```json')) {
+            cleanContent = cleanContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+          } else if (cleanContent.startsWith('```')) {
+            cleanContent = cleanContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+          }
+          
+          const aiContent = JSON.parse(cleanContent);
+          console.log(`✅ AI generated title: "${aiContent.title}"`);
+          return {
+            title: aiContent.title || `✨ Premium ${niche} Essential - Product ${productIndex + 1}`,
+            description: aiContent.description || generateFallbackDescription(niche, productIndex, storeName)
+          };
+        } catch (parseError) {
+          console.warn('⚠️ Failed to parse AI response, using fallback');
+          return generateFallbackTitleAndDescription(niche, productIndex, storeName);
+        }
+      }
     }
   } catch (error) {
-    console.error('AI description generation failed:', error);
+    console.error('❌ AI generation failed:', error);
   }
 
-  return generateFallbackDescription(title, niche);
+  return generateFallbackTitleAndDescription(niche, productIndex, storeName);
 }
 
-function generateFallbackDescription(title: string, niche: string): string {
-  return `✨ **Transform Your ${niche} Experience with ${title}**
+function generateFallbackTitleAndDescription(niche: string, productIndex: number, storeName: string): {title: string; description: string} {
+  const powerWords = ['Premium', 'Ultimate', 'Professional', 'Advanced', 'Elite', 'Smart'];
+  const urgencyWords = ['Bestseller', 'Top Rated', 'Must-Have', 'Trending', '#1 Choice'];
+  const emojis = ['⭐', '🏆', '💎', '🔥', '✨', '🎯'];
+  
+  const powerWord = powerWords[productIndex % powerWords.length];
+  const urgency = urgencyWords[productIndex % urgencyWords.length];
+  const emoji = emojis[productIndex % emojis.length];
+  
+  const title = `${emoji} ${powerWord} ${niche} Essential - ${urgency}`;
+  const description = generateFallbackDescription(niche, productIndex, storeName);
+  
+  return { title, description };
+}
 
-🎯 **Perfect for Modern Living**
-Discover the ultimate solution that combines quality, style, and functionality. This premium ${title.toLowerCase()} is designed for those who demand excellence in their ${niche.toLowerCase()} choices.
+function generateFallbackDescription(niche: string, productIndex: number, storeName: string): string {
+  return `✨ **Transform Your ${niche} Experience Today!**
 
-🏆 **Why Choose This Product?**
-• ✅ **Premium Quality**: Crafted with superior materials for lasting durability
-• 🚀 **Instant Results**: Experience the difference from day one
-• 💯 **Satisfaction Guaranteed**: Backed by our commitment to excellence
-• 🎁 **Complete Package**: Everything you need included
+🌟 **Join thousands of satisfied customers who've discovered this game-changing product!**
 
-💎 **Key Features:**
-🔹 Professional-grade design and construction
-🔹 User-friendly operation for all skill levels
-🔹 Compact and convenient storage
-🔹 Versatile functionality for multiple uses
+🔥 **Why You'll Love This Premium ${niche} Solution:**
+• ✅ **Professional Quality**: Engineered with superior materials for lasting performance
+• 🚀 **Instant Results**: Experience remarkable improvements from day one
+• 💯 **Safety First**: Rigorously tested and certified for your peace of mind
+• 🎁 **Complete Package**: Everything included - no hidden extras needed
+• 🛡️ **Satisfaction Guaranteed**: 30-day money-back promise
 
-⭐ **Customer Love**: Join thousands of satisfied customers who've upgraded their ${niche.toLowerCase()} experience with this amazing product.
+🎯 **Perfect For ${niche} Enthusiasts:**
+Whether you're a beginner or expert, this premium solution delivers professional results every time. Designed specifically for those who demand excellence and won't settle for ordinary.
 
-🛒 **Order Now** and discover why this is becoming the #1 choice for ${niche.toLowerCase()} enthusiasts everywhere!
+🏆 **${storeName || 'Our'} Quality Promise:**
+⭐ **4.8/5 Star Rating** from verified buyers
+🚚 **Free Fast Shipping** on orders over $35
+💝 **30-Day Money-Back Guarantee**
+🔒 **Secure Checkout** & 24/7 customer support
 
-*Limited stock available - don't miss out on this opportunity to elevate your lifestyle!*`;
+💎 **Exclusive Features:**
+🔹 Premium design that stands out from the competition
+🔹 User-friendly operation - perfect for all skill levels
+🔹 Durable construction built to last for years
+🔹 Compact and convenient for any space or lifestyle
+
+⚡ **Limited Time: Special Launch Price!**
+🎁 **Order now and get FREE bonus accessories worth $25!**
+
+🛒 **Transform your ${niche.toLowerCase()} experience today** - join the thousands who've already made the upgrade!
+
+*Premium quality • Modern design • Satisfaction guaranteed*`;
 }
 
 function calculateSmartPrice(basePrice: number, niche: string, index: number): number {
@@ -175,24 +251,33 @@ function calculateSmartPrice(basePrice: number, niche: string, index: number): n
   const nicheMultipliers: { [key: string]: number } = {
     'Home & Living': 1.6,
     'home-living': 1.6,
+    'home_living': 1.6,
     'Beauty & Personal Care': 1.8,
     'beauty-personal-care': 1.8,
+    'beauty_personal_care': 1.8,
     'Health & Fitness': 1.7,
     'health-fitness': 1.7,
+    'health_fitness': 1.7,
     'Pets': 1.9,
     'pets': 1.9,
     'Fashion & Accessories': 1.5,
     'fashion-accessories': 1.5,
+    'fashion_accessories': 1.5,
     'Electronics & Gadgets': 2.0,
     'electronics-gadgets': 2.0,
+    'electronics_gadgets': 2.0,
     'Kids & Babies': 1.8,
     'kids-babies': 1.8,
+    'kids_babies': 1.8,
     'Seasonal & Events': 1.4,
     'seasonal-events': 1.4,
+    'seasonal_events': 1.4,
     'Hobbies & Lifestyle': 1.6,
     'hobbies-lifestyle': 1.6,
+    'hobbies_lifestyle': 1.6,
     'Trending Viral Products': 1.7,
-    'trending-viral-products': 1.7
+    'trending-viral-products': 1.7,
+    'trending_viral': 1.7
   };
 
   const multiplier = nicheMultipliers[niche] || 1.6;
@@ -217,11 +302,12 @@ serve(async (req) => {
   try {
     const { niche, shopifyUrl, shopifyAccessToken, themeColor, storeName, limit = 10 } = await req.json();
 
-    console.log('🚀 Starting curated product upload:', {
+    console.log('🚀 Starting curated product upload with AI content generation:', {
       niche,
       limit,
       themeColor,
-      storeName
+      storeName,
+      aiContentGeneration: true
     });
 
     if (!shopifyUrl || !shopifyAccessToken) {
@@ -266,7 +352,7 @@ serve(async (req) => {
     const shuffled = [...availableProducts].sort(() => 0.5 - Math.random());
     const selectedProducts = shuffled.slice(0, Math.min(limit, availableProducts.length));
 
-    console.log(`📦 Processing ${selectedProducts.length} products from ${bucketName}`);
+    console.log(`📦 Processing ${selectedProducts.length} products from ${bucketName} with AI content generation`);
 
     const results = [];
     let successCount = 0;
@@ -276,39 +362,9 @@ serve(async (req) => {
       console.log(`📦 Processing product ${i + 1}/${selectedProducts.length}: ${productFolder}`);
 
       try {
-        // Get title from Titles folder with better error handling
-        const { data: titleFiles } = await supabase.storage
-          .from(bucketName)
-          .list(`${productFolder}/Titles`);
-
-        let productTitle = `Premium ${niche} Product ${i + 1}`;
-        
-        if (titleFiles && titleFiles.length > 0) {
-          try {
-            const titleFile = titleFiles[0];
-            const { data: titleData } = await supabase.storage
-              .from(bucketName)
-              .download(`${productFolder}/Titles/${titleFile.name}`);
-            
-            if (titleData) {
-              const titleText = await titleData.text();
-              const cleanTitle = titleText.trim().replace(/\n/g, ' ').replace(/\r/g, '');
-              if (cleanTitle && cleanTitle.length > 0) {
-                productTitle = cleanTitle;
-              }
-              console.log(`📝 Extracted title: "${productTitle}"`);
-            }
-          } catch (titleError) {
-            console.warn(`⚠️ Could not read title for ${productFolder}, using fallback`);
-          }
-        } else {
-          console.warn(`⚠️ No title files found for ${productFolder}, using fallback`);
-        }
-
-        // Ensure title is never empty
-        if (!productTitle || productTitle.trim().length === 0) {
-          productTitle = `Premium ${niche} Product ${i + 1}`;
-        }
+        // Generate AI title and description
+        console.log(`🤖 Generating AI content for ${productFolder}...`);
+        const { title: productTitle, description } = await generateAITitleAndDescription(niche, i, storeName);
 
         console.log(`🛒 Creating product in Shopify: ${productTitle}`);
 
@@ -336,9 +392,6 @@ serve(async (req) => {
         const { data: variantImages } = await supabase.storage
           .from(bucketName)
           .list(`${productFolder}/Variants Product Images`);
-
-        // Generate AI description
-        const description = await generateAIDescription(productTitle, niche);
 
         // Calculate smart pricing
         const price = calculateSmartPrice(29.99, niche, i);
@@ -397,7 +450,7 @@ serve(async (req) => {
             body_html: description,
             vendor: storeName || 'Premium Store',
             product_type: niche,
-            tags: `${niche}, premium, bestseller, trending`,
+            tags: `${niche}, premium, bestseller, trending, ai-generated`,
             options: [
               {
                 name: 'Color',
@@ -426,10 +479,11 @@ serve(async (req) => {
           title: productTitle,
           shopifyUrl: `${shopifyUrl}/admin/products/${createdProduct.id}`,
           imagesUploaded: imageUrls.length,
-          variantsCreated: createdProduct.variants.length
+          variantsCreated: createdProduct.variants.length,
+          aiGenerated: true
         });
 
-        console.log(`✅ Successfully created: ${productTitle} (ID: ${createdProduct.id})`);
+        console.log(`✅ Successfully created with AI content: ${productTitle} (ID: ${createdProduct.id})`);
 
         // Rate limiting
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -491,7 +545,7 @@ serve(async (req) => {
       }
     }
 
-    console.log(`🎉 Upload complete: ${successCount}/${results.length} products successful`);
+    console.log(`🎉 Upload complete with AI content: ${successCount}/${results.length} products successful`);
 
     return new Response(JSON.stringify({
       success: true,
@@ -500,13 +554,14 @@ serve(async (req) => {
       results,
       niche,
       bucketName,
-      message: `Successfully uploaded ${successCount} curated ${niche} products to Shopify${themeColor ? ' and applied theme color' : ''}`
+      aiContentGenerated: true,
+      message: `Successfully uploaded ${successCount} curated ${niche} products with AI-generated titles and descriptions${themeColor ? ' and applied theme color' : ''}`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('❌ Curated product upload failed:', error);
+    console.error('❌ Curated product upload with AI content failed:', error);
     return new Response(JSON.stringify({
       success: false,
       error: error.message || 'Upload failed'
