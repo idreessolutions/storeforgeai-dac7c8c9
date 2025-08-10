@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instanciate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+    PostgrestVersion: "12.2.12 (cd3cf9e)"
   }
   public: {
     Tables: {
@@ -80,6 +80,51 @@ export type Database = {
           stores_processed?: number
           stores_successful?: number
           total_products_added?: number
+        }
+        Relationships: []
+      }
+      curated_products: {
+        Row: {
+          bucket_name: string
+          compare_at_price: number | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          niche: string
+          price: number
+          product_folder: string
+          product_type: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          bucket_name: string
+          compare_at_price?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          niche: string
+          price: number
+          product_folder: string
+          product_type?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          bucket_name?: string
+          compare_at_price?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          niche?: string
+          price?: number
+          product_folder?: string
+          product_type?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
