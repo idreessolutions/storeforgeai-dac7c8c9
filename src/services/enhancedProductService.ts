@@ -13,29 +13,29 @@ export const generateWinningProducts = async (
   customInfo: string = '',
   storeName: string = ''
 ) => {
-  console.log(`🚀 SUPABASE CURATED: Starting premium ${niche} product generation from Supabase buckets`);
+  console.log(`🚀 DATABASE-DRIVEN: Starting premium ${niche} product generation from your product_data table`);
   
   try {
-    // Step 1: Validate curated products exist in Supabase
-    onProgress(5, `🔍 Checking Supabase bucket for ${niche} products...`);
+    // Step 1: Validate products exist in database
+    onProgress(5, `🔍 Checking your product_data table for ${niche} products...`);
     
     const productsExist = await validateCuratedProductsExist(niche);
     if (!productsExist) {
-      throw new Error(`No curated products found in Supabase bucket for ${niche}. Please check your bucket structure.`);
+      throw new Error(`No products found in your product_data table for ${niche}. Please add products to the database.`);
     }
 
     const productCount = await getCuratedProductsCount(niche);
-    console.log(`📊 Found ${productCount} products in Supabase bucket for ${niche}`);
+    console.log(`📊 Found ${productCount} products in database for ${niche}`);
 
-    // Step 2: Use ONLY the curated product service from Supabase
-    onProgress(10, `📦 Loading ${productCount} products from Supabase ${niche} bucket...`);
+    // Step 2: Use the database-driven product service
+    onProgress(10, `📦 Loading ${productCount} products from your database...`);
     
     await generateCuratedProducts(
       shopifyUrl,
       accessToken,
       niche,
       (progress, productName) => {
-        // Map progress from curated service (10-100) to our range (10-95)
+        // Map progress from service (10-100) to our range (10-95)
         const mappedProgress = 10 + ((progress - 10) * 0.85);
         onProgress(mappedProgress, productName);
       },
@@ -46,15 +46,15 @@ export const generateWinningProducts = async (
     onProgress(95, `🎨 Finalizing ${niche} store with ${themeColor} theme...`);
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    onProgress(100, `🏆 ${productCount} products from Supabase buckets are now LIVE!`);
+    onProgress(100, `🏆 ${productCount} products from your database are now LIVE!`);
     
-    console.log(`🎉 SUPABASE SUCCESS: ${niche} products uploaded from Supabase buckets`, {
+    console.log(`🎉 DATABASE SUCCESS: ${niche} products uploaded from your product_data table`, {
       niche,
       themeColor,
       storeName,
       productCount,
-      system: 'Supabase Storage Buckets',
-      source: 'Your Curated Product Folders'
+      system: 'Database + Storage',
+      source: 'Your product_data table'
     });
     
     return {
@@ -64,13 +64,13 @@ export const generateWinningProducts = async (
       errors: [],
       niche,
       themeColor,
-      source: 'Supabase Storage Buckets',
-      system: 'curated',
-      message: `Successfully uploaded ${productCount} products from Supabase ${niche} bucket with ${themeColor} theme!`
+      source: 'Database + Storage',
+      system: 'database-driven',
+      message: `Successfully uploaded ${productCount} products from your database with ${themeColor} theme!`
     };
 
   } catch (error) {
-    console.error(`❌ SUPABASE ERROR: Failed to generate ${niche} products from buckets:`, error);
+    console.error(`❌ DATABASE ERROR: Failed to generate ${niche} products from database:`, error);
     throw error;
   }
 };

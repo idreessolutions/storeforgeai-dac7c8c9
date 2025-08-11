@@ -79,219 +79,61 @@ class ShopifyClient {
   }
 }
 
-// Updated niche mapping to handle both formats
-const NICHE_TO_BUCKET: { [key: string]: string } = {
-  'Home & Living': 'home_living',
-  'home-living': 'home_living',
-  'home_living': 'home_living',
-  'Beauty & Personal Care': 'beauty_personal_care',
-  'beauty-personal-care': 'beauty_personal_care',
-  'beauty_personal_care': 'beauty_personal_care',
-  'Health & Fitness': 'health_fitness',
-  'health-fitness': 'health_fitness',
-  'health_fitness': 'health_fitness',
-  'Pets': 'pets',
-  'pets': 'pets',
-  'Fashion & Accessories': 'fashion_accessories',
-  'fashion-accessories': 'fashion_accessories',
-  'fashion_accessories': 'fashion_accessories',
-  'Electronics & Gadgets': 'electronics_gadgets',
-  'electronics-gadgets': 'electronics_gadgets',
-  'electronics_gadgets': 'electronics_gadgets',
-  'Kids & Babies': 'kids_babies',
-  'kids-babies': 'kids_babies',
-  'kids_babies': 'kids_babies',
-  'Seasonal & Events': 'seasonal_events',
-  'seasonal-events': 'seasonal_events',
-  'seasonal_events': 'seasonal_events',
-  'Hobbies & Lifestyle': 'hobbies_lifestyle',
-  'hobbies-lifestyle': 'hobbies_lifestyle',
-  'hobbies_lifestyle': 'hobbies_lifestyle',
-  'Trending Viral Products': 'trending_viral',
-  'trending-viral-products': 'trending_viral',
-  'trending_viral': 'trending_viral'
-};
+// Helper function to create signed URLs for images
+async function getSigned(supabase: any, bucket: string, fullPath: string, expires = 7200) {
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(fullPath, expires);
+  if (error) {
+    console.warn(`⚠️ Failed to create signed URL for ${bucket}/${fullPath}:`, error);
+    return null;
+  }
+  return data.signedUrl;
+}
 
-async function generateAITitleAndDescription(niche: string, productIndex: number, storeName: string): Promise<{title: string; description: string}> {
-  const openaiKey = Deno.env.get('OPENAI_API_KEY_V2');
+// Select products from database with randomization
+async function selectProducts(supabase: any, niche: string, limit = 10) {
+  console.log(`📦 Selecting ${limit} products for niche: ${niche}`);
   
-  if (!openaiKey) {
-    console.log('⚠️ OpenAI API key not found, using fallback content');
-    return generateFallbackTitleAndDescription(niche, productIndex, storeName);
+  const { data, error } = await supabase
+    .from("product_data")
+    .select("*")
+    .eq("niche", niche)
+    .eq("is_active", true)
+    .order("created_at", { ascending: false })
+    .limit(30); // Fetch more for randomization
+
+  if (error) {
+    throw new Error(`Failed to fetch products: ${error.message}`);
   }
 
-  try {
-    console.log(`🤖 Generating AI title and description for ${niche} product ${productIndex + 1}`);
+  if (!data || data.length === 0) {
+    throw new Error(`No products found for niche: ${niche}`);
+  }
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: `You are an expert e-commerce copywriter specializing in high-converting product content. Create compelling, emotional, and SEO-optimized content that drives sales. Use relevant emojis strategically throughout your writing.`
-          },
-          {
-            role: 'user',
-            content: `Create a compelling product title and description for a ${niche} product for ${storeName || 'Premium Store'}. This is product ${productIndex + 1} so make it unique.
+  // Shuffle array for randomization
+  for (let i = data.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [data[i], data[j]] = [data[j], data[i]];
+  }
 
-REQUIREMENTS:
-1. Title: Create a catchy, benefit-focused title (max 70 characters) with relevant emojis
-2. Description: Write a beautiful 500-800 word description with:
-   - Emotional hook opening with emojis
-   - 6-8 key benefits (not just features) 
-   - Social proof elements
-   - Strong call-to-action
-   - Modern, high-quality tone
-   - Strategic use of emojis throughout
-   - Perfect for ${niche} enthusiasts
+  const selectedProducts = data.slice(0, Math.min(limit, data.length));
+  console.log(`✅ Selected ${selectedProducts.length} products from database`);
+  
+  return selectedProducts;
+}
 
-Return ONLY this JSON format:
-{
-  "title": "🏆 Amazing ${niche} Product Title with Emojis",
-  "description": "Beautiful 500-800 word description with emojis and compelling copy..."
-}`
-          }
-        ],
-        max_tokens: 1200,
-        temperature: 0.8
-      }),
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      const content = data.choices[0]?.message?.content;
-      
-      if (content) {
-        try {
-          // Clean up the response
-          let cleanContent = content.trim();
-          if (cleanContent.startsWith('```json')) {
-            cleanContent = cleanContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-          } else if (cleanContent.startsWith('```')) {
-            cleanContent = cleanContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
-          }
-          
-          const aiContent = JSON.parse(cleanContent);
-          console.log(`✅ AI generated title: "${aiContent.title}"`);
-          return {
-            title: aiContent.title || `✨ Premium ${niche} Essential - Product ${productIndex + 1}`,
-            description: aiContent.description || generateFallbackDescription(niche, productIndex, storeName)
-          };
-        } catch (parseError) {
-          console.warn('⚠️ Failed to parse AI response, using fallback');
-          return generateFallbackTitleAndDescription(niche, productIndex, storeName);
-        }
-      }
+// Build image URLs from storage paths
+async function buildImages(supabase: any, niche: string, folder: string, paths: string[]) {
+  const signedUrls = [];
+  
+  for (const path of paths) {
+    const fullPath = `${folder}/${path}`;
+    const signedUrl = await getSigned(supabase, niche, fullPath);
+    if (signedUrl) {
+      signedUrls.push(signedUrl);
     }
-  } catch (error) {
-    console.error('❌ AI generation failed:', error);
   }
-
-  return generateFallbackTitleAndDescription(niche, productIndex, storeName);
-}
-
-function generateFallbackTitleAndDescription(niche: string, productIndex: number, storeName: string): {title: string; description: string} {
-  const powerWords = ['Premium', 'Ultimate', 'Professional', 'Advanced', 'Elite', 'Smart'];
-  const urgencyWords = ['Bestseller', 'Top Rated', 'Must-Have', 'Trending', '#1 Choice'];
-  const emojis = ['⭐', '🏆', '💎', '🔥', '✨', '🎯'];
   
-  const powerWord = powerWords[productIndex % powerWords.length];
-  const urgency = urgencyWords[productIndex % urgencyWords.length];
-  const emoji = emojis[productIndex % emojis.length];
-  
-  const title = `${emoji} ${powerWord} ${niche} Essential - ${urgency}`;
-  const description = generateFallbackDescription(niche, productIndex, storeName);
-  
-  return { title, description };
-}
-
-function generateFallbackDescription(niche: string, productIndex: number, storeName: string): string {
-  return `✨ **Transform Your ${niche} Experience Today!**
-
-🌟 **Join thousands of satisfied customers who've discovered this game-changing product!**
-
-🔥 **Why You'll Love This Premium ${niche} Solution:**
-• ✅ **Professional Quality**: Engineered with superior materials for lasting performance
-• 🚀 **Instant Results**: Experience remarkable improvements from day one
-• 💯 **Safety First**: Rigorously tested and certified for your peace of mind
-• 🎁 **Complete Package**: Everything included - no hidden extras needed
-• 🛡️ **Satisfaction Guaranteed**: 30-day money-back promise
-
-🎯 **Perfect For ${niche} Enthusiasts:**
-Whether you're a beginner or expert, this premium solution delivers professional results every time. Designed specifically for those who demand excellence and won't settle for ordinary.
-
-🏆 **${storeName || 'Our'} Quality Promise:**
-⭐ **4.8/5 Star Rating** from verified buyers
-🚚 **Free Fast Shipping** on orders over $35
-💝 **30-Day Money-Back Guarantee**
-🔒 **Secure Checkout** & 24/7 customer support
-
-💎 **Exclusive Features:**
-🔹 Premium design that stands out from the competition
-🔹 User-friendly operation - perfect for all skill levels
-🔹 Durable construction built to last for years
-🔹 Compact and convenient for any space or lifestyle
-
-⚡ **Limited Time: Special Launch Price!**
-🎁 **Order now and get FREE bonus accessories worth $25!**
-
-🛒 **Transform your ${niche.toLowerCase()} experience today** - join the thousands who've already made the upgrade!
-
-*Premium quality • Modern design • Satisfaction guaranteed*`;
-}
-
-function calculateSmartPrice(basePrice: number, niche: string, index: number): number {
-  // Smart pricing between $15-$80
-  const nicheMultipliers: { [key: string]: number } = {
-    'Home & Living': 1.6,
-    'home-living': 1.6,
-    'home_living': 1.6,
-    'Beauty & Personal Care': 1.8,
-    'beauty-personal-care': 1.8,
-    'beauty_personal_care': 1.8,
-    'Health & Fitness': 1.7,
-    'health-fitness': 1.7,
-    'health_fitness': 1.7,
-    'Pets': 1.9,
-    'pets': 1.9,
-    'Fashion & Accessories': 1.5,
-    'fashion-accessories': 1.5,
-    'fashion_accessories': 1.5,
-    'Electronics & Gadgets': 2.0,
-    'electronics-gadgets': 2.0,
-    'electronics_gadgets': 2.0,
-    'Kids & Babies': 1.8,
-    'kids-babies': 1.8,
-    'kids_babies': 1.8,
-    'Seasonal & Events': 1.4,
-    'seasonal-events': 1.4,
-    'seasonal_events': 1.4,
-    'Hobbies & Lifestyle': 1.6,
-    'hobbies-lifestyle': 1.6,
-    'hobbies_lifestyle': 1.6,
-    'Trending Viral Products': 1.7,
-    'trending-viral-products': 1.7,
-    'trending_viral': 1.7
-  };
-
-  const multiplier = nicheMultipliers[niche] || 1.6;
-  const variation = 1 + (index * 0.05); // Small variation per product
-  
-  let price = (basePrice || 25) * multiplier * variation;
-  
-  // Ensure within range
-  price = Math.max(15, Math.min(80, price));
-  
-  // Psychological pricing
-  if (price < 25) return Math.floor(price) + 0.99;
-  else if (price < 50) return Math.floor(price) + 0.95;
-  else return Math.floor(price) + 0.99;
+  return signedUrls;
 }
 
 serve(async (req) => {
@@ -302,27 +144,19 @@ serve(async (req) => {
   try {
     const { niche, shopifyUrl, shopifyAccessToken, themeColor, storeName, limit = 10 } = await req.json();
 
-    console.log('🚀 Starting curated product upload with AI content generation:', {
+    console.log('🚀 Starting DATABASE-DRIVEN product upload:', {
       niche,
       limit,
       themeColor,
       storeName,
-      aiContentGeneration: true
+      source: 'Supabase Database + Storage'
     });
 
     if (!shopifyUrl || !shopifyAccessToken) {
       throw new Error('Shopify credentials are required');
     }
 
-    const bucketName = NICHE_TO_BUCKET[niche];
-    if (!bucketName) {
-      console.error(`❌ Invalid niche: ${niche}. Available niches:`, Object.keys(NICHE_TO_BUCKET));
-      throw new Error(`Invalid niche: ${niche}. Please use one of: ${Object.keys(NICHE_TO_BUCKET).join(', ')}`);
-    }
-
-    console.log(`✅ Mapped niche "${niche}" to bucket "${bucketName}"`);
-
-    // Initialize Supabase client
+    // Initialize Supabase client with service role key
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -330,140 +164,125 @@ serve(async (req) => {
     // Initialize Shopify client
     const shopifyClient = new ShopifyClient(shopifyUrl, shopifyAccessToken);
 
-    // Get available product folders
-    const { data: productFolders, error: listError } = await supabase.storage
-      .from(bucketName)
-      .list('', { limit: 100 });
+    // Select products from database
+    const selectedProducts = await selectProducts(supabase, niche, limit);
 
-    if (listError) {
-      throw new Error(`Failed to list products: ${listError.message}`);
-    }
-
-    // Filter for product folders and randomly select 10
-    const availableProducts = productFolders?.filter(item => 
-      item.name.startsWith('Product') && !item.name.includes('.')
-    ) || [];
-
-    if (availableProducts.length === 0) {
-      throw new Error(`No product folders found in ${bucketName} bucket`);
-    }
-
-    // Randomly select products
-    const shuffled = [...availableProducts].sort(() => 0.5 - Math.random());
-    const selectedProducts = shuffled.slice(0, Math.min(limit, availableProducts.length));
-
-    console.log(`📦 Processing ${selectedProducts.length} products from ${bucketName} with AI content generation`);
+    console.log(`📦 Processing ${selectedProducts.length} products from database`);
 
     const results = [];
     let successCount = 0;
 
     for (let i = 0; i < selectedProducts.length; i++) {
-      const productFolder = selectedProducts[i].name;
-      console.log(`📦 Processing product ${i + 1}/${selectedProducts.length}: ${productFolder}`);
+      const dbProduct = selectedProducts[i];
+      console.log(`📦 Processing product ${i + 1}/${selectedProducts.length}: ${dbProduct.title}`);
 
       try {
-        // Generate AI title and description
-        console.log(`🤖 Generating AI content for ${productFolder}...`);
-        const { title: productTitle, description } = await generateAITitleAndDescription(niche, i, storeName);
+        // Build main images from storage
+        const mainImageUrls = await buildImages(
+          supabase, 
+          niche, 
+          dbProduct.product_folder, 
+          dbProduct.main_images || []
+        );
 
-        console.log(`🛒 Creating product in Shopify: ${productTitle}`);
+        console.log(`🖼️ Loaded ${mainImageUrls.length} main images for ${dbProduct.title}`);
 
-        // Get main product images
-        const { data: mainImages } = await supabase.storage
-          .from(bucketName)
-          .list(`${productFolder}/Products Images`);
+        // Process variants and their images
+        const processedVariants = [];
+        const variantImageUrls = [];
 
-        const imageUrls: Array<{ src: string; alt: string }> = [];
+        if (dbProduct.variants && Array.isArray(dbProduct.variants)) {
+          for (const variant of dbProduct.variants) {
+            // Get variant image if specified
+            let variantImageUrl = null;
+            if (variant.image) {
+              const fullPath = `${dbProduct.product_folder}/${variant.image}`;
+              variantImageUrl = await getSigned(supabase, niche, fullPath);
+              if (variantImageUrl) {
+                variantImageUrls.push({
+                  src: variantImageUrl,
+                  alt: `${dbProduct.title} - ${variant.optionValues?.join(' ')}`
+                });
+              }
+            }
+
+            // Create Shopify variant
+            processedVariants.push({
+              title: variant.optionValues?.join(' / ') || `Variant ${processedVariants.length + 1}`,
+              price: variant.price?.toString() || dbProduct.price.toString(),
+              compare_at_price: variant.compareAtPrice?.toString() || dbProduct.compare_at_price?.toString(),
+              sku: variant.sku || `${niche.toUpperCase()}-${i + 1}-${processedVariants.length + 1}`,
+              option1: variant.optionValues?.[0] || 'Default',
+              inventory_quantity: 100,
+              inventory_management: 'shopify',
+              inventory_policy: 'deny',
+              requires_shipping: true,
+              taxable: true
+            });
+          }
+        }
+
+        // If no variants in DB, create default variant
+        if (processedVariants.length === 0) {
+          processedVariants.push({
+            title: 'Default',
+            price: dbProduct.price.toString(),
+            compare_at_price: dbProduct.compare_at_price?.toString(),
+            sku: `${niche.toUpperCase()}-${i + 1}-DEFAULT`,
+            option1: 'Default',
+            inventory_quantity: 100,
+            inventory_management: 'shopify',
+            inventory_policy: 'deny',
+            requires_shipping: true,
+            taxable: true
+          });
+        }
+
+        // Combine all images (main + variant)
+        const allImages = [
+          ...mainImageUrls.map((url, index) => ({
+            src: url,
+            alt: `${dbProduct.title} - Image ${index + 1}`,
+            position: index + 1
+          })),
+          ...variantImageUrls.map((img, index) => ({
+            src: img.src,
+            alt: img.alt,
+            position: mainImageUrls.length + index + 1
+          }))
+        ];
+
+        // Prepare tags with theme color
+        const productTags = [
+          ...(dbProduct.tags || []),
+          niche.replace('_', ' '),
+          'database-driven',
+          'premium'
+        ];
         
-        if (mainImages && mainImages.length > 0) {
-          for (const img of mainImages.slice(0, 5)) { // Limit to 5 images
-            const { data: imageUrl } = supabase.storage
-              .from(bucketName)
-              .getPublicUrl(`${productFolder}/Products Images/${img.name}`);
-            
-            imageUrls.push({
-              src: imageUrl.publicUrl,
-              alt: `${productTitle} - Image ${imageUrls.length + 1}`
-            });
-          }
+        if (themeColor) {
+          productTags.push(`theme-${themeColor.replace('#', '')}`);
         }
 
-        // Get variant images
-        const { data: variantImages } = await supabase.storage
-          .from(bucketName)
-          .list(`${productFolder}/Variants Product Images`);
-
-        // Calculate smart pricing
-        const price = calculateSmartPrice(29.99, niche, i);
-        const compareAtPrice = price * 1.4; // 40% higher compare price
-
-        // Create variants based on available variant images
-        const variants = [];
-        const colors = ['Black', 'White', 'Blue', 'Red', 'Gray'];
-
-        if (variantImages && variantImages.length > 0) {
-          // Create variants based on available variant images
-          for (let v = 0; v < Math.min(3, variantImages.length); v++) {
-            const variantImageUrl = supabase.storage
-              .from(bucketName)
-              .getPublicUrl(`${productFolder}/Variants Product Images/${variantImages[v].name}`);
-
-            variants.push({
-              option1: colors[v] || `Option ${v + 1}`,
-              price: (price + (v * 2)).toFixed(2),
-              compare_at_price: (compareAtPrice + (v * 2)).toFixed(2),
-              sku: `${bucketName.toUpperCase()}-${i + 1}-${v + 1}`,
-              inventory_quantity: 100,
-              inventory_management: 'shopify',
-              inventory_policy: 'deny',
-              requires_shipping: true,
-              taxable: true
-            });
-
-            // Add variant image to main images if not already included
-            imageUrls.push({
-              src: variantImageUrl.data.publicUrl,
-              alt: `${productTitle} - ${colors[v] || `Variant ${v + 1}`}`
-            });
-          }
-        } else {
-          // Create default variants
-          for (let v = 0; v < 3; v++) {
-            variants.push({
-              option1: colors[v],
-              price: (price + (v * 2)).toFixed(2),
-              compare_at_price: (compareAtPrice + (v * 2)).toFixed(2),
-              sku: `${bucketName.toUpperCase()}-${i + 1}-${v + 1}`,
-              inventory_quantity: 100,
-              inventory_management: 'shopify',
-              inventory_policy: 'deny',
-              requires_shipping: true,
-              taxable: true
-            });
-          }
-        }
-
-        // Create Shopify product
+        // Create Shopify product payload
         const shopifyProduct = {
           product: {
-            title: productTitle,
-            body_html: description,
+            title: dbProduct.title,
+            body_html: dbProduct.description_md,
             vendor: storeName || 'Premium Store',
-            product_type: niche,
-            tags: `${niche}, premium, bestseller, trending, ai-generated`,
-            options: [
+            product_type: niche.replace('_', ' '),
+            tags: productTags.join(', '),
+            status: 'draft',
+            published: false,
+            options: dbProduct.options || [
               {
-                name: 'Color',
+                name: 'Style',
                 position: 1,
-                values: colors.slice(0, 3)
+                values: ['Default']
               }
             ],
-            variants: variants,
-            images: imageUrls.map((img, index) => ({
-              src: img.src,
-              alt: img.alt,
-              position: index + 1
-            }))
+            variants: processedVariants,
+            images: allImages
           }
         };
 
@@ -473,25 +292,25 @@ serve(async (req) => {
 
         successCount++;
         results.push({
-          productFolder,
+          productFolder: dbProduct.product_folder,
           success: true,
           productId: createdProduct.id,
-          title: productTitle,
+          title: dbProduct.title,
           shopifyUrl: `${shopifyUrl}/admin/products/${createdProduct.id}`,
-          imagesUploaded: imageUrls.length,
+          imagesUploaded: allImages.length,
           variantsCreated: createdProduct.variants.length,
-          aiGenerated: true
+          source: 'database'
         });
 
-        console.log(`✅ Successfully created with AI content: ${productTitle} (ID: ${createdProduct.id})`);
+        console.log(`✅ Successfully created from database: ${dbProduct.title} (ID: ${createdProduct.id})`);
 
         // Rate limiting
         await new Promise(resolve => setTimeout(resolve, 1000));
 
       } catch (error) {
-        console.error(`❌ Error processing ${productFolder}:`, error);
+        console.error(`❌ Error processing ${dbProduct.product_folder}:`, error);
         results.push({
-          productFolder,
+          productFolder: dbProduct.product_folder,
           success: false,
           error: error.message
         });
@@ -501,7 +320,7 @@ serve(async (req) => {
     // Apply theme color to Refresh theme
     if (themeColor && successCount > 0) {
       try {
-        console.log(`🎨 Applying theme color ${themeColor} to Refresh theme...`);
+        console.log(`🎨 Applying theme color ${themeColor}...`);
         
         const themesResponse = await shopifyClient.getThemes();
         const refreshTheme = themesResponse.themes.find((theme: any) => 
@@ -516,14 +335,12 @@ serve(async (req) => {
             
             if (!settings.current) settings.current = {};
             
-            // Update color settings for Refresh theme
             const colorKeys = [
               'colors_accent_1',
               'colors_accent_2', 
               'color_accent',
               'color_primary',
-              'colors_button_background',
-              'colors_button_label'
+              'colors_button_background'
             ];
 
             colorKeys.forEach(key => {
@@ -537,7 +354,7 @@ serve(async (req) => {
               value: JSON.stringify(settings)
             });
 
-            console.log(`✅ Theme color applied to ${refreshTheme.name} theme`);
+            console.log(`✅ Theme color applied successfully`);
           }
         }
       } catch (error) {
@@ -545,7 +362,7 @@ serve(async (req) => {
       }
     }
 
-    console.log(`🎉 Upload complete with AI content: ${successCount}/${results.length} products successful`);
+    console.log(`🎉 DATABASE-DRIVEN upload complete: ${successCount}/${results.length} products successful`);
 
     return new Response(JSON.stringify({
       success: true,
@@ -553,15 +370,15 @@ serve(async (req) => {
       totalProcessed: results.length,
       results,
       niche,
-      bucketName,
-      aiContentGenerated: true,
-      message: `Successfully uploaded ${successCount} curated ${niche} products with AI-generated titles and descriptions${themeColor ? ' and applied theme color' : ''}`
+      source: 'Supabase Database + Storage',
+      databaseDriven: true,
+      message: `Successfully uploaded ${successCount} products from your database and storage buckets${themeColor ? ' with theme color applied' : ''}`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('❌ Curated product upload with AI content failed:', error);
+    console.error('❌ Database-driven product upload failed:', error);
     return new Response(JSON.stringify({
       success: false,
       error: error.message || 'Upload failed'

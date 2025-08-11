@@ -9,18 +9,18 @@ export const generateCuratedProducts = async (
   themeColor: string,
   storeName: string
 ): Promise<void> => {
-  console.log(`🚀 CURATED PRODUCTS: Starting upload for ${niche} with theme color ${themeColor}`);
+  console.log(`🚀 DATABASE-DRIVEN: Starting upload for ${niche} from your product_data table`);
 
   try {
     // Step 1: Validate inputs
-    progressCallback(10, `Preparing curated ${niche} products...`);
+    progressCallback(10, `Preparing products from your ${niche} database...`);
     
     if (!shopifyUrl || !accessToken) {
       throw new Error('Shopify credentials are required');
     }
 
-    // Step 2: Call the updated curated products Edge Function
-    progressCallback(20, `Loading premium ${niche} products from storage...`);
+    // Step 2: Call the updated database-driven Edge Function
+    progressCallback(20, `Loading products from your product_data table...`);
     
     const { data: uploadResult, error: uploadError } = await supabase.functions.invoke('upload-curated-products', {
       body: {
@@ -34,7 +34,7 @@ export const generateCuratedProducts = async (
     });
 
     if (uploadError || !uploadResult?.success) {
-      throw new Error(`Failed to upload curated products: ${uploadError?.message || uploadResult?.error || 'Unknown error'}`);
+      throw new Error(`Failed to upload products from database: ${uploadError?.message || uploadResult?.error || 'Unknown error'}`);
     }
 
     // Step 3: Process results with progress updates
@@ -46,7 +46,7 @@ export const generateCuratedProducts = async (
       const progress = 30 + ((i / results.length) * 60);
       
       if (result.success) {
-        progressCallback(progress, `✅ Uploaded: ${result.title?.substring(0, 35)}...`);
+        progressCallback(progress, `✅ Uploaded from DB: ${result.title?.substring(0, 35)}...`);
       } else {
         progressCallback(progress, `⚠️ Skipped: ${result.productFolder}`);
       }
@@ -58,68 +58,61 @@ export const generateCuratedProducts = async (
     progressCallback(95, `Applying ${themeColor} theme color...`);
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    progressCallback(100, `🎉 ${successCount} curated ${niche} products uploaded successfully!`);
+    progressCallback(100, `🎉 ${successCount} products uploaded from your database!`);
 
-    console.log(`🎉 CURATED SUCCESS: ${successCount}/${results.length} products uploaded for ${niche}`, {
+    console.log(`🎉 DATABASE SUCCESS: ${successCount}/${results.length} products uploaded from product_data table`, {
       successCount,
       totalProcessed: results.length,
       niche,
       themeColor,
-      storeName
+      storeName,
+      source: 'Database + Storage'
     });
 
     if (successCount === 0) {
-      throw new Error(`No curated ${niche} products were uploaded. Please check your product storage and try again.`);
+      throw new Error(`No products were uploaded from your ${niche} database. Please check your product_data table.`);
     }
 
   } catch (error) {
-    console.error(`❌ CURATED ERROR: Failed to upload ${niche} products:`, error);
+    console.error(`❌ DATABASE ERROR: Failed to upload ${niche} products from database:`, error);
     throw error;
   }
 };
 
-// Get available curated products count for a niche
+// Get available products count from database
 export const getCuratedProductsCount = async (niche: string): Promise<number> => {
   try {
-    // Map niche to bucket name (convert spaces to underscores and lowercase)
-    const bucketName = niche.toLowerCase().replace(/\s+/g, '_').replace(/&/g, '');
-    
-    // List product folders to get actual count
-    const { data, error } = await supabase.storage
-      .from(bucketName)
-      .list('', { limit: 100 });
+    const { count, error } = await supabase
+      .from('product_data')
+      .select('*', { count: 'exact', head: true })
+      .eq('niche', niche)
+      .eq('is_active', true);
 
     if (error) {
-      console.warn(`Warning: Could not get curated products count for ${niche}:`, error);
-      return 20; // Default fallback assuming 20 products
+      console.warn(`Warning: Could not get products count for ${niche}:`, error);
+      return 10; // Default fallback
     }
 
-    // Count folders that start with "Product"
-    const productCount = data?.filter(item => 
-      item.name.startsWith('Product') && !item.name.includes('.')
-    ).length || 20;
-
-    return Math.min(productCount, 20); // Cap at 20
+    return count || 10;
   } catch (error) {
-    console.warn(`Warning: Error getting curated products count:`, error);
-    return 20; // Default fallback
+    console.warn(`Warning: Error getting products count:`, error);
+    return 10; // Default fallback
   }
 };
 
-// Validate that curated products exist for a niche
+// Validate that products exist in database for a niche
 export const validateCuratedProductsExist = async (niche: string): Promise<boolean> => {
   try {
-    // Map niche to bucket name
-    const bucketName = niche.toLowerCase().replace(/\s+/g, '_').replace(/&/g, '');
-
-    // Check if at least one product folder exists
-    const { data, error } = await supabase.storage
-      .from(bucketName)
-      .list('Product 1');
+    const { data, error } = await supabase
+      .from('product_data')
+      .select('id')
+      .eq('niche', niche)
+      .eq('is_active', true)
+      .limit(1);
 
     return !error && data && data.length > 0;
   } catch (error) {
-    console.warn(`Warning: Could not validate curated products for ${niche}:`, error);
+    console.warn(`Warning: Could not validate products for ${niche}:`, error);
     return true; // Assume they exist to prevent blocking
   }
 };
