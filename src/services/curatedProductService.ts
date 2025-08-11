@@ -1,118 +1,67 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
+// Map frontend niche names to database niche names
+const nicheMapping: Record<string, string> = {
+  'home-living': 'home_living',
+  'beauty-personal-care': 'beauty_personal_care',
+  'health-fitness': 'health_fitness',
+  'pets': 'pets',
+  'fashion-accessories': 'fashion_accessories',
+  'electronics-gadgets': 'electronics_gadgets',
+  'kids-babies': 'kids_babies',
+  'seasonal-events': 'seasonal_events',
+  'hobbies-lifestyle': 'hobbies_lifestyle',
+  'trending-viral': 'trending_viral'
+};
+
 export const generateCuratedProducts = async (
   shopifyUrl: string,
   accessToken: string,
   niche: string,
-  progressCallback: (progress: number, productName: string) => void,
-  themeColor: string,
-  storeName: string
-): Promise<void> => {
+  onProgress: (progress: number, productName: string) => void,
+  themeColor: string = '#3B82F6',
+  storeName: string = 'My Store'
+) => {
   console.log(`🚀 DATABASE-DRIVEN: Starting upload for ${niche} from your product_data table`);
-
+  
+  // Map the frontend niche to database niche format
+  const dbNiche = nicheMapping[niche] || niche;
+  console.log(`🔄 Mapped niche: ${niche} -> ${dbNiche}`);
+  
+  onProgress(10, `Preparing products from your ${niche} database...`);
+  
   try {
-    // Step 1: Validate inputs
-    progressCallback(10, `Preparing products from your ${niche} database...`);
+    onProgress(20, `Loading products from your product_data table...`);
     
-    if (!shopifyUrl || !accessToken) {
-      throw new Error('Shopify credentials are required');
-    }
-
-    // Step 2: Call the updated database-driven Edge Function
-    progressCallback(20, `Loading products from your product_data table...`);
-    
-    const { data: uploadResult, error: uploadError } = await supabase.functions.invoke('upload-curated-products', {
+    const { data, error } = await supabase.functions.invoke('upload-curated-products', {
       body: {
-        niche,
-        shopifyUrl,
+        niche: dbNiche, // Use the mapped database niche
+        shopifyUrl: shopifyUrl,
         shopifyAccessToken: accessToken,
-        themeColor,
-        storeName,
+        themeColor: themeColor,
+        storeName: storeName,
         limit: 10
       }
     });
 
-    if (uploadError || !uploadResult?.success) {
-      throw new Error(`Failed to upload products from database: ${uploadError?.message || uploadResult?.error || 'Unknown error'}`);
-    }
-
-    // Step 3: Process results with progress updates
-    const results = uploadResult.results || [];
-    const successCount = uploadResult.uploadedCount || 0;
-    
-    for (let i = 0; i < results.length; i++) {
-      const result = results[i];
-      const progress = 30 + ((i / results.length) * 60);
-      
-      if (result.success) {
-        progressCallback(progress, `✅ Uploaded from DB: ${result.title?.substring(0, 35)}...`);
-      } else {
-        progressCallback(progress, `⚠️ Skipped: ${result.productFolder}`);
-      }
-      
-      // Small delay for UI feedback
-      await new Promise(resolve => setTimeout(resolve, 200));
-    }
-
-    progressCallback(95, `Applying ${themeColor} theme color...`);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    progressCallback(100, `🎉 ${successCount} products uploaded from your database!`);
-
-    console.log(`🎉 DATABASE SUCCESS: ${successCount}/${results.length} products uploaded from product_data table`, {
-      successCount,
-      totalProcessed: results.length,
-      niche,
-      themeColor,
-      storeName,
-      source: 'Database + Storage'
-    });
-
-    if (successCount === 0) {
-      throw new Error(`No products were uploaded from your ${niche} database. Please check your product_data table.`);
-    }
-
-  } catch (error) {
-    console.error(`❌ DATABASE ERROR: Failed to upload ${niche} products from database:`, error);
-    throw error;
-  }
-};
-
-// Get available products count from database
-export const getCuratedProductsCount = async (niche: string): Promise<number> => {
-  try {
-    const { count, error } = await supabase
-      .from('product_data')
-      .select('*', { count: 'exact', head: true })
-      .eq('niche', niche)
-      .eq('is_active', true);
-
     if (error) {
-      console.warn(`Warning: Could not get products count for ${niche}:`, error);
-      return 10; // Default fallback
+      console.error('❌ DATABASE ERROR: Failed to upload products from database:', error);
+      throw new Error(`Failed to upload products from database: ${error.message}`);
     }
 
-    return count || 10;
-  } catch (error) {
-    console.warn(`Warning: Error getting products count:`, error);
-    return 10; // Default fallback
-  }
-};
+    if (!data?.success) {
+      console.error('❌ DATABASE ERROR: Upload failed:', data);
+      throw new Error(`Failed to upload products from database: ${data?.error || 'Unknown error'}`);
+    }
 
-// Validate that products exist in database for a niche
-export const validateCuratedProductsExist = async (niche: string): Promise<boolean> => {
-  try {
-    const { data, error } = await supabase
-      .from('product_data')
-      .select('id')
-      .eq('niche', niche)
-      .eq('is_active', true)
-      .limit(1);
-
-    return !error && data && data.length > 0;
-  } catch (error) {
-    console.warn(`Warning: Could not validate products for ${niche}:`, error);
-    return true; // Assume they exist to prevent blocking
+    console.log('✅ DATABASE SUCCESS: Products uploaded from your curated database');
+    onProgress(100, `Successfully uploaded ${data.uploadedCount} products!`);
+    
+    return data;
+    
+  } catch (error: any) {
+    console.error('❌ DATABASE ERROR: Failed to upload products from database:', error);
+    throw new Error(`Failed to upload products from database: ${error.message || 'Unknown error occurred'}`);
   }
 };

@@ -116,7 +116,21 @@ async function selectProducts(supabase: any, niche: string, limit = 10) {
   }
 
   if (!data || data.length === 0) {
-    throw new Error(`No products found for niche: ${niche}`);
+    console.error(`❌ No products found for niche: ${niche}`);
+    console.log(`🔍 Available niches in database:`);
+    
+    // Let's check what niches are actually available
+    const { data: availableNiches } = await supabase
+      .from("product_data")
+      .select("niche")
+      .eq("is_active", true);
+    
+    if (availableNiches) {
+      const uniqueNiches = [...new Set(availableNiches.map(p => p.niche))];
+      console.log(`📋 Found niches:`, uniqueNiches);
+    }
+    
+    throw new Error(`No products found for niche: ${niche}. Please check if products exist for this niche.`);
   }
 
   // Shuffle array for randomization
