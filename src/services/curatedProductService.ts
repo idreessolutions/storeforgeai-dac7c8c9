@@ -15,6 +15,49 @@ const nicheMapping: Record<string, string> = {
   'trending-viral': 'trending_viral'
 };
 
+export const validateCuratedProductsExist = async (niche: string): Promise<boolean> => {
+  const dbNiche = nicheMapping[niche] || niche;
+  
+  try {
+    const { data, error } = await supabase
+      .from('product_data')
+      .select('id')
+      .eq('niche', dbNiche)
+      .limit(1);
+
+    if (error) {
+      console.error('Error validating products exist:', error);
+      return false;
+    }
+
+    return data && data.length > 0;
+  } catch (error) {
+    console.error('Error validating products exist:', error);
+    return false;
+  }
+};
+
+export const getCuratedProductsCount = async (niche: string): Promise<number> => {
+  const dbNiche = nicheMapping[niche] || niche;
+  
+  try {
+    const { count, error } = await supabase
+      .from('product_data')
+      .select('*', { count: 'exact', head: true })
+      .eq('niche', dbNiche);
+
+    if (error) {
+      console.error('Error getting products count:', error);
+      return 0;
+    }
+
+    return count || 0;
+  } catch (error) {
+    console.error('Error getting products count:', error);
+    return 0;
+  }
+};
+
 export const generateCuratedProducts = async (
   shopifyUrl: string,
   accessToken: string,
