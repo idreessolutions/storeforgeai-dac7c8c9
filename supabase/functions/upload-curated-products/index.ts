@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -98,14 +97,14 @@ async function getSigned(supabase: any, bucket: string, fullPath: string, expire
   }
 }
 
-// Get ordered product images from storage
-async function getOrderedProductImages(supabase: any, niche: string, productIndex: number) {
-  console.log(`🖼️ Getting ordered images for Product ${productIndex + 1} in ${niche}`);
+// Get ordered product images from storage for specific product number
+async function getOrderedProductImages(supabase: any, niche: string, productNumber: number) {
+  console.log(`🖼️ Getting ordered images for Product ${productNumber} in ${niche}`);
   
   const productImages = [];
   
-  // Try to get main product images in order: 1st Product Image.jpg, 2nd Product Image.jpg, etc.
-  const productImageName = `${productIndex + 1}st Product Image.jpg`;
+  // Get main product image for this specific product number
+  const productImageName = `${productNumber}${getOrdinalSuffix(productNumber)} Product Image.jpg`;
   const productImagePath = `Products Images/${productImageName}`;
   
   console.log(`📸 Looking for main product image: ${productImagePath}`);
@@ -113,81 +112,58 @@ async function getOrderedProductImages(supabase: any, niche: string, productInde
   if (productImageUrl) {
     productImages.push({
       src: productImageUrl,
-      alt: `Product ${productIndex + 1} - Main Image`,
+      alt: `Product ${productNumber} - Main Image`,
       position: 1
     });
-    console.log(`✅ Found main product image for Product ${productIndex + 1}`);
+    console.log(`✅ Found main product image for Product ${productNumber}`);
   }
 
-  // Try to get additional numbered product images (1st, 2nd, 3rd, etc.)
-  for (let imgIndex = 1; imgIndex <= 10; imgIndex++) {
-    let imageName;
-    if (imgIndex === 1) {
-      imageName = `1st Product Image.jpg`;
-    } else if (imgIndex === 2) {
-      imageName = `2nd Product Image.jpg`;
-    } else if (imgIndex === 3) {
-      imageName = `3rd Product Image.jpg`;
-    } else {
-      imageName = `${imgIndex}th Product Image.jpg`;
-    }
-    
-    const imagePath = `Products Images/${imageName}`;
-    console.log(`📸 Looking for additional image: ${imagePath}`);
-    
-    const imageUrl = await getSigned(supabase, niche, imagePath);
-    if (imageUrl) {
-      productImages.push({
-        src: imageUrl,
-        alt: `Product ${productIndex + 1} - Image ${imgIndex}`,
-        position: productImages.length + 1
-      });
-      console.log(`✅ Found additional image ${imgIndex} for Product ${productIndex + 1}`);
-    }
-  }
-
-  console.log(`🎯 Found ${productImages.length} product images for Product ${productIndex + 1}`);
+  console.log(`🎯 Found ${productImages.length} product images for Product ${productNumber}`);
   return productImages;
 }
 
-// Get ordered variant images from storage
-async function getOrderedVariantImages(supabase: any, niche: string, variantIndex: number) {
-  console.log(`🎨 Getting variant images for Variant ${variantIndex + 1} in ${niche}`);
+// Get ordered variant images from storage for specific variant number
+async function getOrderedVariantImages(supabase: any, niche: string, variantNumber: number) {
+  console.log(`🎨 Getting variant images for Variant ${variantNumber} in ${niche}`);
   
   const variantImages = [];
   
-  // Try to get variant images in order: 1st Variant Product Image.jpg, 2nd Variant Product Image.jpg, etc.
-  for (let imgIndex = 1; imgIndex <= 5; imgIndex++) {
-    let imageName;
-    if (imgIndex === 1) {
-      imageName = `1st Variant Product Image.jpg`;
-    } else if (imgIndex === 2) {
-      imageName = `2nd Variant Product Image.jpg`;
-    } else if (imgIndex === 3) {
-      imageName = `3rd Variant Product Image.jpg`;
-    } else {
-      imageName = `${imgIndex}th Variant Product Image.jpg`;
-    }
-    
-    const imagePath = `Variants Product Images/${imageName}`;
-    console.log(`🎨 Looking for variant image: ${imagePath}`);
-    
-    const imageUrl = await getSigned(supabase, niche, imagePath);
-    if (imageUrl) {
-      variantImages.push({
-        src: imageUrl,
-        alt: `Variant ${variantIndex + 1} - Image ${imgIndex}`,
-        position: imgIndex
-      });
-      console.log(`✅ Found variant image ${imgIndex} for Variant ${variantIndex + 1}`);
-    }
+  // Get variant image for this specific variant number
+  const variantImageName = `${variantNumber}${getOrdinalSuffix(variantNumber)} Variant Product Image.jpg`;
+  const variantImagePath = `Variants Product Images/${variantImageName}`;
+  
+  console.log(`🎨 Looking for variant image: ${variantImagePath}`);
+  const imageUrl = await getSigned(supabase, niche, variantImagePath);
+  if (imageUrl) {
+    variantImages.push({
+      src: imageUrl,
+      alt: `Variant ${variantNumber} - Main Image`,
+      position: 1
+    });
+    console.log(`✅ Found variant image for Variant ${variantNumber}`);
   }
 
-  console.log(`🎯 Found ${variantImages.length} variant images for Variant ${variantIndex + 1}`);
+  console.log(`🎯 Found ${variantImages.length} variant images for Variant ${variantNumber}`);
   return variantImages;
 }
 
-// Select products from database with randomization
+// Helper function to get ordinal suffix (1st, 2nd, 3rd, 4th, etc.)
+function getOrdinalSuffix(num: number): string {
+  const j = num % 10;
+  const k = num % 100;
+  if (j === 1 && k !== 11) {
+    return 'st';
+  }
+  if (j === 2 && k !== 12) {
+    return 'nd';
+  }
+  if (j === 3 && k !== 13) {
+    return 'rd';
+  }
+  return 'th';
+}
+
+// Select products from database or create multiple variations if only one exists
 async function selectProducts(supabase: any, niche: string, limit = 10) {
   console.log(`📦 Selecting ${limit} products for niche: ${niche}`);
   
@@ -196,8 +172,7 @@ async function selectProducts(supabase: any, niche: string, limit = 10) {
     .select("*")
     .eq("niche", niche)
     .eq("is_active", true)
-    .order("created_at", { ascending: true }) // Get in order for consistent mapping
-    .limit(limit);
+    .order("created_at", { ascending: true });
 
   if (error) {
     console.error(`❌ Database error:`, error);
@@ -209,8 +184,27 @@ async function selectProducts(supabase: any, niche: string, limit = 10) {
     throw new Error(`No products found for niche: ${niche}. Please check if products exist for this niche.`);
   }
 
-  console.log(`✅ Selected ${data.length} products from database in order`);
-  return data;
+  console.log(`✅ Found ${data.length} base products in database`);
+
+  // If we have fewer products than needed, create variations of existing products
+  const products = [];
+  for (let i = 0; i < limit; i++) {
+    const baseProduct = data[i % data.length]; // Cycle through available products
+    const productNumber = i + 1;
+    
+    // Create a variation with unique title and adjusted pricing
+    const product = {
+      ...baseProduct,
+      title: `${baseProduct.title} - Product ${productNumber}`,
+      price: baseProduct.price + (Math.random() * 10 - 5), // Slight price variation
+      product_number: productNumber
+    };
+    
+    products.push(product);
+  }
+
+  console.log(`✅ Created ${products.length} products for upload`);
+  return products;
 }
 
 serve(async (req) => {
@@ -261,7 +255,7 @@ serve(async (req) => {
       throw new Error(`Shopify connection failed: ${error.message}`);
     }
 
-    // Select products from database in order
+    // Select products from database (will create variations if needed)
     const selectedProducts = await selectProducts(supabase, niche, limit);
 
     console.log(`📦 Processing ${selectedProducts.length} products from database with ordered images`);
@@ -271,13 +265,14 @@ serve(async (req) => {
 
     for (let i = 0; i < selectedProducts.length; i++) {
       const dbProduct = selectedProducts[i];
-      console.log(`\n📦 Processing Product ${i + 1}/${selectedProducts.length}: ${dbProduct.title}`);
+      const productNumber = i + 1;
+      console.log(`\n📦 Processing Product ${productNumber}/${selectedProducts.length}: ${dbProduct.title}`);
 
       try {
-        // Get ordered product images for this specific product
-        const productImages = await getOrderedProductImages(supabase, niche, i);
+        // Get ordered product images for this specific product number
+        const productImages = await getOrderedProductImages(supabase, niche, productNumber);
 
-        console.log(`🖼️ Loaded ${productImages.length} ordered images for Product ${i + 1}: ${dbProduct.title}`);
+        console.log(`🖼️ Loaded ${productImages.length} ordered images for Product ${productNumber}: ${dbProduct.title}`);
 
         // Process variants and their ordered images
         const processedVariants = [];
@@ -288,28 +283,29 @@ serve(async (req) => {
           
           for (let vIndex = 0; vIndex < dbProduct.variants.length; vIndex++) {
             const variant = dbProduct.variants[vIndex];
+            const variantNumber = vIndex + 1;
             
-            // Get ordered variant images for this specific variant
-            const variantImages = await getOrderedVariantImages(supabase, niche, vIndex);
+            // Get ordered variant images for this specific variant number
+            const variantImages = await getOrderedVariantImages(supabase, niche, variantNumber);
             
             if (variantImages.length > 0) {
               // Add variant images with proper positioning
               const variantImagesWithPosition = variantImages.map((img, imgIndex) => ({
                 src: img.src,
-                alt: `${dbProduct.title} - Variant ${vIndex + 1} ${variant.optionValues?.join(' ')}`,
+                alt: `${dbProduct.title} - Variant ${variantNumber} ${variant.optionValues?.join(' ')}`,
                 position: productImages.length + allVariantImages.length + imgIndex + 1
               }));
               allVariantImages = [...allVariantImages, ...variantImagesWithPosition];
-              console.log(`✅ Added ${variantImages.length} ordered images for Variant ${vIndex + 1}`);
+              console.log(`✅ Added ${variantImages.length} ordered images for Variant ${variantNumber}`);
             }
 
             // Create Shopify variant
             processedVariants.push({
-              title: variant.optionValues?.join(' / ') || `Variant ${vIndex + 1}`,
+              title: variant.optionValues?.join(' / ') || `Variant ${variantNumber}`,
               price: variant.price?.toString() || dbProduct.price.toString(),
               compare_at_price: variant.compareAtPrice?.toString() || dbProduct.compare_at_price?.toString(),
-              sku: variant.sku || `${niche.toUpperCase()}-P${i + 1}-V${vIndex + 1}`,
-              option1: variant.optionValues?.[0] || `Style ${vIndex + 1}`,
+              sku: `${niche.toUpperCase()}-P${productNumber}-V${variantNumber}`,
+              option1: variant.optionValues?.[0] || `Style ${variantNumber}`,
               inventory_quantity: 100,
               inventory_management: 'shopify',
               inventory_policy: 'deny',
@@ -326,7 +322,7 @@ serve(async (req) => {
             title: 'Default',
             price: dbProduct.price.toString(),
             compare_at_price: dbProduct.compare_at_price?.toString(),
-            sku: `${niche.toUpperCase()}-P${i + 1}-DEFAULT`,
+            sku: `${niche.toUpperCase()}-P${productNumber}-DEFAULT`,
             option1: 'Default',
             inventory_quantity: 100,
             inventory_management: 'shopify',
@@ -339,7 +335,7 @@ serve(async (req) => {
         // Combine all images in proper order (product images first, then variant images)
         const allImages = [...productImages, ...allVariantImages];
 
-        console.log(`🎨 Total ordered images for Product ${i + 1}: ${allImages.length} (${productImages.length} product + ${allVariantImages.length} variant)`);
+        console.log(`🎨 Total ordered images for Product ${productNumber}: ${allImages.length} (${productImages.length} product + ${allVariantImages.length} variant)`);
 
         // Prepare tags with theme color
         const productTags = [
@@ -347,23 +343,23 @@ serve(async (req) => {
           niche.replace('_', ' '),
           'database-driven',
           'premium',
-          `product-${i + 1}`
+          `product-${productNumber}`
         ];
         
         if (themeColor) {
           productTags.push(`theme-${themeColor.replace('#', '')}`);
         }
 
-        // Create Shopify product payload
+        // Create Shopify product payload - SET TO ACTIVE STATUS
         const shopifyProduct = {
           product: {
-            title: `${dbProduct.title} - Product ${i + 1}`,
+            title: dbProduct.title,
             body_html: dbProduct.description_md,
             vendor: storeName || 'Premium Store',
             product_type: niche.replace('_', ' '),
             tags: productTags.join(', '),
-            status: 'draft',
-            published: false,
+            status: 'active', // ✅ CHANGED: Set to active instead of draft
+            published: true,  // ✅ CHANGED: Set to published instead of false
             options: dbProduct.options || [
               {
                 name: 'Style',
@@ -376,8 +372,8 @@ serve(async (req) => {
           }
         };
 
-        console.log(`🛒 Uploading to Shopify: Product ${i + 1} - ${dbProduct.title}`);
-        console.log(`📊 Product details: ${processedVariants.length} variants, ${allImages.length} ordered images`);
+        console.log(`🛒 Uploading to Shopify: Product ${productNumber} - ${dbProduct.title}`);
+        console.log(`📊 Product details: ${processedVariants.length} variants, ${allImages.length} ordered images, STATUS: ACTIVE`);
 
         // Upload to Shopify
         const productResponse = await shopifyClient.createProduct(shopifyProduct);
@@ -385,7 +381,7 @@ serve(async (req) => {
 
         successCount++;
         results.push({
-          productIndex: i + 1,
+          productIndex: productNumber,
           productFolder: dbProduct.product_folder,
           success: true,
           productId: createdProduct.id,
@@ -395,18 +391,19 @@ serve(async (req) => {
           productImages: productImages.length,
           variantImages: allVariantImages.length,
           variantsCreated: createdProduct.variants.length,
+          status: 'active',
           source: 'ordered-database'
         });
 
-        console.log(`✅ Successfully created Product ${i + 1}: ${dbProduct.title} (ID: ${createdProduct.id})`);
+        console.log(`✅ Successfully created Product ${productNumber}: ${dbProduct.title} (ID: ${createdProduct.id}) - STATUS: ACTIVE`);
 
         // Rate limiting
         await new Promise(resolve => setTimeout(resolve, 1000));
 
       } catch (error) {
-        console.error(`❌ Error processing Product ${i + 1} (${dbProduct.product_folder}):`, error);
+        console.error(`❌ Error processing Product ${productNumber} (${dbProduct.product_folder}):`, error);
         results.push({
-          productIndex: i + 1,
+          productIndex: productNumber,
           productFolder: dbProduct.product_folder,
           success: false,
           error: error.message,
@@ -461,7 +458,7 @@ serve(async (req) => {
       }
     }
 
-    console.log(`\n🎉 ORDERED upload complete: ${successCount}/${results.length} products successful`);
+    console.log(`\n🎉 ORDERED upload complete: ${successCount}/${results.length} products successful - ALL SET TO ACTIVE STATUS`);
 
     return new Response(JSON.stringify({
       success: true,
@@ -471,7 +468,8 @@ serve(async (req) => {
       niche,
       source: 'Supabase Database + Ordered Storage',
       orderedImages: true,
-      message: `Successfully uploaded ${successCount} products with ordered images from your storage buckets${themeColor ? ' with theme color applied' : ''}`
+      status: 'All products set to ACTIVE',
+      message: `Successfully uploaded ${successCount} ACTIVE products with ordered images from your storage buckets${themeColor ? ' with theme color applied' : ''}`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
