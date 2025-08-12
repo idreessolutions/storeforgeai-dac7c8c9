@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Users, Check, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import type { User } from "@supabase/supabase-js";
 
 interface MentorshipStepProps {
   formData: {
@@ -18,6 +19,7 @@ interface MentorshipStepProps {
 }
 
 const MentorshipStep = ({ formData, handleInputChange }: MentorshipStepProps) => {
+  const [user, setUser] = useState<User | null>(null);
   const [mentorshipData, setMentorshipData] = useState({
     name: "",
     email: "",
@@ -33,6 +35,14 @@ const MentorshipStep = ({ formData, handleInputChange }: MentorshipStepProps) =>
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    getUser();
+  }, []);
 
   const handleInputChangeMentorship = (field: string, value: string) => {
     setMentorshipData(prev => ({ ...prev, [field]: value }));
@@ -68,10 +78,11 @@ const MentorshipStep = ({ formData, handleInputChange }: MentorshipStepProps) =>
     try {
       console.log('Submitting mentorship application:', mentorshipData);
       
-      // Save to Supabase mentorship_applications table without session_id
+      // Save to Supabase mentorship_applications table with user_id
       const { data, error } = await supabase
         .from('mentorship_applications')
         .insert({
+          user_id: user?.id || null,
           full_name: mentorshipData.name.trim(),
           email: mentorshipData.email.trim().toLowerCase(),
           phone_number: mentorshipData.phone.trim(),
@@ -81,7 +92,7 @@ const MentorshipStep = ({ formData, handleInputChange }: MentorshipStepProps) =>
           income_goal: mentorshipData.revenue_goal || null,
           business_experience: mentorshipData.experience || null,
           additional_info: `Business Type: ${mentorshipData.business_type || 'Not specified'}, Timeline: ${mentorshipData.timeline || 'Not specified'}`,
-          session_id: null // Remove foreign key constraint by setting to null
+          session_id: null
         })
         .select();
 

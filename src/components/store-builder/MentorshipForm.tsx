@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import type { User } from "@supabase/supabase-js";
 
 interface MentorshipFormProps {
   onSuccess: () => void;
@@ -16,6 +17,7 @@ interface MentorshipFormProps {
 
 const MentorshipForm = ({ onSuccess }: MentorshipFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -29,6 +31,14 @@ const MentorshipForm = ({ onSuccess }: MentorshipFormProps) => {
   });
 
   const { toast } = useToast();
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    getUser();
+  }, []);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -57,7 +67,8 @@ const MentorshipForm = ({ onSuccess }: MentorshipFormProps) => {
       const { error } = await supabase
         .from('mentorship_applications')
         .insert({
-          session_id: sessionId, // Use generated session ID instead of foreign key
+          user_id: user?.id || null,
+          session_id: sessionId,
           full_name: formData.fullName,
           email: formData.email,
           phone_number: formData.phoneNumber,
