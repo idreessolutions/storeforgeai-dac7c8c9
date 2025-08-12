@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -85,16 +84,34 @@ class ShopifyClient {
 // Helper function to create signed URLs for images
 async function getSigned(supabase: any, bucket: string, fullPath: string, expires = 7200) {
   try {
+    console.log(`🔍 Attempting to get signed URL for: ${bucket}/${fullPath}`);
     const { data, error } = await supabase.storage.from(bucket).createSignedUrl(fullPath, expires);
     if (error) {
       console.warn(`⚠️ Failed to create signed URL for ${bucket}/${fullPath}:`, error);
       return null;
     }
-    console.log(`✅ Created signed URL for ${bucket}/${fullPath}`);
+    console.log(`✅ Successfully created signed URL for ${bucket}/${fullPath}`);
     return data.signedUrl;
   } catch (error) {
     console.error(`❌ Error creating signed URL:`, error);
     return null;
+  }
+}
+
+// List all files in a bucket folder to dynamically find available images
+async function listFilesInFolder(supabase: any, bucket: string, folderPath: string) {
+  try {
+    console.log(`📂 Listing files in ${bucket}/${folderPath}`);
+    const { data, error } = await supabase.storage.from(bucket).list(folderPath);
+    if (error) {
+      console.error(`❌ Error listing files in ${bucket}/${folderPath}:`, error);
+      return [];
+    }
+    console.log(`📋 Found ${data?.length || 0} files in ${bucket}/${folderPath}`);
+    return data || [];
+  } catch (error) {
+    console.error(`❌ Error listing folder:`, error);
+    return [];
   }
 }
 
@@ -104,79 +121,112 @@ async function getProductImages(supabase: any, niche: string, productNumber: num
   
   const productImages = [];
   
-  // Try to get images with sequential naming: 1st, 2nd, 3rd, etc.
-  const ordinalSuffixes = ['st', 'nd', 'rd', 'th', 'th', 'th', 'th', 'th', 'th', 'th'];
+  // List all files in the Products Images folder
+  const files = await listFilesInFolder(supabase, niche, 'Products Images');
   
-  for (let imageIndex = 1; imageIndex <= 10; imageIndex++) {
-    const suffix = imageIndex <= 3 ? ordinalSuffixes[imageIndex - 1] : 'th';
-    const imageName = `${imageIndex}${suffix} Product Image.jpg`;
-    const imagePath = `Products Images/${imageName}`;
+  // Filter files that belong to this product number and sort them
+  const productFiles = files
+    .filter(file => {
+      const fileName = file.name.toLowerCase();
+      return fileName.includes(`${productNumber}st `) || 
+             fileName.includes(`${productNumber}nd `) || 
+             fileName.includes(`${productNumber}rd `) || 
+             fileName.includes(`${productNumber}th `);
+    })
+    .sort((a, b) => {
+      // Sort by image sequence (1st, 2nd, 3rd, etc.)
+      const getImageNumber = (name: string) => {
+        const match = name.match(/(\d+)(st|nd|rd|th)\s+product\s+image/i);
+        return match ? parseInt(match[1]) : 0;
+      };
+      return getImageNumber(a.name) - getImageNumber(b.name);
+    });
+
+  console.log(`📸 Found ${productFiles.length} product image files for Product ${productNumber}`);
+
+  // Get signed URLs for each product image
+  for (let i = 0; i < productFiles.length; i++) {
+    const file = productFiles[i];
+    const imagePath = `Products Images/${file.name}`;
     
-    console.log(`📸 Looking for image: ${imagePath}`);
+    console.log(`📸 Processing product image: ${imagePath}`);
     const imageUrl = await getSigned(supabase, niche, imagePath);
     if (imageUrl) {
       productImages.push({
         src: imageUrl,
-        alt: `Product ${productNumber} - Image ${imageIndex}`,
-        position: imageIndex
+        alt: `Product ${productNumber} - Image ${i + 1}`,
+        position: i + 1
       });
-      console.log(`✅ Found product image ${imageIndex} for Product ${productNumber}`);
-    } else {
-      console.log(`⚠️ No image found at ${imagePath} - stopping search`);
-      break; // Stop looking for more images if one is missing
+      console.log(`✅ Successfully got product image ${i + 1} for Product ${productNumber}`);
     }
   }
 
-  console.log(`🎯 Found ${productImages.length} product images for Product ${productNumber}`);
+  console.log(`🎯 Final count: ${productImages.length} product images for Product ${productNumber}`);
   return productImages;
 }
 
 // Get ALL variant images for ALL variants of a product
-async function getAllVariantImages(supabase: any, niche: string, variantCount: number) {
-  console.log(`🎨 Getting ALL variant images for ${variantCount} variants in ${niche}`);
+async function getAllVariantImages(supabase: any, niche: string, productNumber: number, variantCount: number) {
+  console.log(`🎨 Getting ALL variant images for Product ${productNumber} with ${variantCount} variants in ${niche}`);
   
   const allVariantImages = [];
+  
+  // List all files in the Variants Product Images folder
+  const files = await listFilesInFolder(supabase, niche, 'Variants Product Images');
+  
+  // Filter files that belong to this product number
+  const productVariantFiles = files
+    .filter(file => {
+      const fileName = file.name.toLowerCase();
+      return fileName.includes(`${productNumber}st `) || 
+             fileName.includes(`${productNumber}nd `) || 
+             fileName.includes(`${productNumber}rd `) || 
+             fileName.includes(`${productNumber}th `);
+    })
+    .sort((a, b) => {
+      // Sort by variant and image sequence
+      const getVariantInfo = (name: string) => {
+        const match = name.match(/(\d+)(st|nd|rd|th)\s+variant\s+product\s+image(?:\s+(\d+))?/i);
+        const variantNum = match ? parseInt(match[1]) : 0;
+        const imageNum = match && match[3] ? parseInt(match[3]) : 1;
+        return { variant: variantNum, image: imageNum };
+      };
+      
+      const aInfo = getVariantInfo(a.name);
+      const bInfo = getVariantInfo(b.name);
+      
+      if (aInfo.variant !== bInfo.variant) {
+        return aInfo.variant - bInfo.variant;
+      }
+      return aInfo.image - bInfo.image;
+    });
+
+  console.log(`🎨 Found ${productVariantFiles.length} variant image files for Product ${productNumber}`);
+
   let currentPosition = 1;
   
-  // For each variant, get all available images
-  for (let variantIndex = 1; variantIndex <= variantCount; variantIndex++) {
-    const ordinalSuffixes = ['st', 'nd', 'rd', 'th', 'th', 'th', 'th', 'th', 'th', 'th'];
-    const suffix = variantIndex <= 3 ? ordinalSuffixes[variantIndex - 1] : 'th';
+  // Get signed URLs for each variant image
+  for (const file of productVariantFiles) {
+    const imagePath = `Variants Product Images/${file.name}`;
     
-    // Try to get multiple images for this variant
-    for (let imageIndex = 1; imageIndex <= 5; imageIndex++) {
-      let imageName;
-      if (imageIndex === 1) {
-        // First image uses the main pattern
-        imageName = `${variantIndex}${suffix} Variant Product Image.jpg`;
-      } else {
-        // Additional images use numbered pattern
-        imageName = `${variantIndex}${suffix} Variant Product Image ${imageIndex}.jpg`;
-      }
+    console.log(`🎨 Processing variant image: ${imagePath}`);
+    const imageUrl = await getSigned(supabase, niche, imagePath);
+    if (imageUrl) {
+      // Extract variant number from filename
+      const variantMatch = file.name.match(/(\d+)(st|nd|rd|th)\s+variant/i);
+      const variantIndex = variantMatch ? parseInt(variantMatch[1]) : 1;
       
-      const imagePath = `Variants Product Images/${imageName}`;
-      
-      console.log(`🎨 Looking for variant image: ${imagePath}`);
-      const imageUrl = await getSigned(supabase, niche, imagePath);
-      if (imageUrl) {
-        allVariantImages.push({
-          src: imageUrl,
-          alt: `Variant ${variantIndex} - Image ${imageIndex}`,
-          position: currentPosition++,
-          variantIndex: variantIndex
-        });
-        console.log(`✅ Found variant image ${imageIndex} for Variant ${variantIndex}`);
-      } else {
-        console.log(`⚠️ No variant image found at ${imagePath}`);
-        if (imageIndex === 1) {
-          // If no first image, stop looking for this variant
-          break;
-        }
-      }
+      allVariantImages.push({
+        src: imageUrl,
+        alt: `Product ${productNumber} Variant ${variantIndex}`,
+        position: currentPosition++,
+        variantIndex: variantIndex
+      });
+      console.log(`✅ Successfully got variant image for Product ${productNumber} Variant ${variantIndex}`);
     }
   }
 
-  console.log(`🎯 Found ${allVariantImages.length} total variant images`);
+  console.log(`🎯 Final count: ${allVariantImages.length} variant images for Product ${productNumber}`);
   return allVariantImages;
 }
 
@@ -292,7 +342,7 @@ serve(async (req) => {
     // Select products from database
     const selectedProducts = await selectProducts(supabase, niche, limit);
 
-    console.log(`📦 Processing ${selectedProducts.length} products with ENHANCED image mapping`);
+    console.log(`📦 Processing ${selectedProducts.length} products with ENHANCED image mapping from YOUR Supabase buckets`);
 
     const results = [];
     let successCount = 0;
@@ -303,7 +353,7 @@ serve(async (req) => {
       console.log(`\n📦 Processing Product ${productNumber}/${selectedProducts.length}: ${dbProduct.title}`);
 
       try {
-        // Get ALL product images for this product number
+        // Get ALL product images for this specific product number from YOUR bucket
         const productImages = await getProductImages(supabase, niche, productNumber);
 
         // Process variants from database
@@ -352,8 +402,8 @@ serve(async (req) => {
           }
         }
 
-        // Get ALL variant images based on actual variant count
-        const allVariantImages = await getAllVariantImages(supabase, niche, variantCount);
+        // Get ALL variant images for this specific product number from YOUR bucket
+        const allVariantImages = await getAllVariantImages(supabase, niche, productNumber, variantCount);
 
         // Combine all images with proper positioning
         const allImages = [...productImages];
@@ -367,7 +417,7 @@ serve(async (req) => {
           });
         });
 
-        console.log(`🎨 TOTAL IMAGES: ${allImages.length} (${productImages.length} product + ${allVariantImages.length} variant)`);
+        console.log(`🎨 TOTAL IMAGES: ${allImages.length} (${productImages.length} product + ${allVariantImages.length} variant) FROM YOUR BUCKETS`);
 
         // Get proper product type for category
         const productType = getNicheProductType(niche);
@@ -404,12 +454,12 @@ serve(async (req) => {
               }
             ],
             variants: processedVariants,
-            images: allImages // ✅ ALL IMAGES FROM STORAGE
+            images: allImages // ✅ ALL IMAGES FROM YOUR STORAGE BUCKETS
           }
         };
 
         console.log(`🛒 Uploading to Shopify: Product ${productNumber}`);
-        console.log(`📊 Details: ${processedVariants.length} variants, ${allImages.length} images, Category: ${productType}`);
+        console.log(`📊 Details: ${processedVariants.length} variants, ${allImages.length} images FROM YOUR BUCKETS, Category: ${productType}`);
 
         // Upload to Shopify
         const productResponse = await shopifyClient.createProduct(shopifyProduct);
@@ -430,7 +480,7 @@ serve(async (req) => {
           status: 'active'
         });
 
-        console.log(`✅ SUCCESS: Product ${productNumber} created with ${allImages.length} images, Category: ${productType}`);
+        console.log(`✅ SUCCESS: Product ${productNumber} created with ${allImages.length} images FROM YOUR BUCKETS, Category: ${productType}, Status: ACTIVE`);
 
         // Rate limiting
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -446,7 +496,7 @@ serve(async (req) => {
       }
     }
 
-    // Apply theme color
+    // Apply theme color if successful products exist
     if (themeColor && successCount > 0) {
       try {
         console.log(`🎨 Applying theme color ${themeColor}...`);
@@ -492,7 +542,7 @@ serve(async (req) => {
       }
     }
 
-    console.log(`\n🎉 ENHANCED upload complete: ${successCount}/${results.length} products successful with PROPER CATEGORIES and ALL IMAGES`);
+    console.log(`\n🎉 ENHANCED upload complete: ${successCount}/${results.length} products successful with PROPER CATEGORIES and ALL IMAGES FROM YOUR BUCKETS`);
 
     return new Response(JSON.stringify({
       success: true,
@@ -500,7 +550,7 @@ serve(async (req) => {
       totalProcessed: results.length,
       results,
       niche,
-      message: `Successfully uploaded ${successCount} products with proper categories and all images from storage`
+      message: `Successfully uploaded ${successCount} products with proper categories and all images from YOUR Supabase storage buckets`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
