@@ -173,57 +173,6 @@ export type Database = {
         }
         Relationships: []
       }
-      product_data: {
-        Row: {
-          compare_at_price: number | null
-          created_at: string
-          currency: string
-          description_md: string
-          id: string
-          is_active: boolean
-          main_images: string[] | null
-          niche: string
-          options: Json | null
-          price: number
-          product_folder: string
-          tags: string[] | null
-          title: string
-          variants: Json | null
-        }
-        Insert: {
-          compare_at_price?: number | null
-          created_at?: string
-          currency?: string
-          description_md: string
-          id?: string
-          is_active?: boolean
-          main_images?: string[] | null
-          niche: string
-          options?: Json | null
-          price?: number
-          product_folder: string
-          tags?: string[] | null
-          title: string
-          variants?: Json | null
-        }
-        Update: {
-          compare_at_price?: number | null
-          created_at?: string
-          currency?: string
-          description_md?: string
-          id?: string
-          is_active?: boolean
-          main_images?: string[] | null
-          niche?: string
-          options?: Json | null
-          price?: number
-          product_folder?: string
-          tags?: string[] | null
-          title?: string
-          variants?: Json | null
-        }
-        Relationships: []
-      }
       product_uploads: {
         Row: {
           benefits: Json | null
