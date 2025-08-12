@@ -18,8 +18,6 @@ class ShopifyClient {
   }
 
   async createProduct(productData: any): Promise<any> {
-    console.log('🛒 Creating Shopify product:', productData.product.title);
-    
     const response = await fetch(`${this.baseUrl}/admin/api/2024-10/products.json`, {
       method: 'POST',
       headers: {
@@ -31,7 +29,6 @@ class ShopifyClient {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`❌ Shopify API Error:`, errorText);
       throw new Error(`Failed to create product: ${response.status} - ${errorText}`);
     }
 
@@ -84,18 +81,12 @@ class ShopifyClient {
 
 // Helper function to create signed URLs for images
 async function getSigned(supabase: any, bucket: string, fullPath: string, expires = 7200) {
-  try {
-    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(fullPath, expires);
-    if (error) {
-      console.warn(`⚠️ Failed to create signed URL for ${bucket}/${fullPath}:`, error);
-      return null;
-    }
-    console.log(`✅ Created signed URL for ${bucket}/${fullPath}`);
-    return data.signedUrl;
-  } catch (error) {
-    console.error(`❌ Error creating signed URL:`, error);
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(fullPath, expires);
+  if (error) {
+    console.warn(`⚠️ Failed to create signed URL for ${bucket}/${fullPath}:`, error);
     return null;
   }
+  return data.signedUrl;
 }
 
 // Select products from database with randomization
@@ -111,26 +102,11 @@ async function selectProducts(supabase: any, niche: string, limit = 10) {
     .limit(30); // Fetch more for randomization
 
   if (error) {
-    console.error(`❌ Database error:`, error);
     throw new Error(`Failed to fetch products: ${error.message}`);
   }
 
   if (!data || data.length === 0) {
-    console.error(`❌ No products found for niche: ${niche}`);
-    console.log(`🔍 Available niches in database:`);
-    
-    // Let's check what niches are actually available
-    const { data: availableNiches } = await supabase
-      .from("product_data")
-      .select("niche")
-      .eq("is_active", true);
-    
-    if (availableNiches) {
-      const uniqueNiches = [...new Set(availableNiches.map(p => p.niche))];
-      console.log(`📋 Found niches:`, uniqueNiches);
-    }
-    
-    throw new Error(`No products found for niche: ${niche}. Please check if products exist for this niche.`);
+    throw new Error(`No products found for niche: ${niche}`);
   }
 
   // Shuffle array for randomization
@@ -147,22 +123,16 @@ async function selectProducts(supabase: any, niche: string, limit = 10) {
 
 // Build image URLs from storage paths
 async function buildImages(supabase: any, niche: string, folder: string, paths: string[]) {
-  console.log(`🖼️ Building images for ${niche}/${folder} with ${paths.length} paths`);
   const signedUrls = [];
   
   for (const path of paths) {
     const fullPath = `${folder}/${path}`;
-    console.log(`📸 Processing image path: ${fullPath}`);
     const signedUrl = await getSigned(supabase, niche, fullPath);
     if (signedUrl) {
       signedUrls.push(signedUrl);
-      console.log(`✅ Added signed URL for ${path}`);
-    } else {
-      console.warn(`⚠️ Skipped missing image: ${fullPath}`);
     }
   }
   
-  console.log(`🎯 Built ${signedUrls.length}/${paths.length} image URLs`);
   return signedUrls;
 }
 
@@ -179,7 +149,6 @@ serve(async (req) => {
       limit,
       themeColor,
       storeName,
-      shopifyUrl: shopifyUrl?.substring(0, 30) + '...',
       source: 'Supabase Database + Storage'
     });
 
@@ -187,32 +156,13 @@ serve(async (req) => {
       throw new Error('Shopify credentials are required');
     }
 
-    if (!niche) {
-      throw new Error('Niche is required');
-    }
-
     // Initialize Supabase client with service role key
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Supabase configuration missing');
-    }
-    
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Initialize Shopify client
     const shopifyClient = new ShopifyClient(shopifyUrl, shopifyAccessToken);
-
-    // Test Shopify connection first
-    try {
-      console.log('🔗 Testing Shopify connection...');
-      await shopifyClient.getThemes();
-      console.log('✅ Shopify connection successful');
-    } catch (error) {
-      console.error('❌ Shopify connection failed:', error);
-      throw new Error(`Shopify connection failed: ${error.message}`);
-    }
 
     // Select products from database
     const selectedProducts = await selectProducts(supabase, niche, limit);
@@ -224,7 +174,7 @@ serve(async (req) => {
 
     for (let i = 0; i < selectedProducts.length; i++) {
       const dbProduct = selectedProducts[i];
-      console.log(`\n📦 Processing product ${i + 1}/${selectedProducts.length}: ${dbProduct.title}`);
+      console.log(`📦 Processing product ${i + 1}/${selectedProducts.length}: ${dbProduct.title}`);
 
       try {
         // Build main images from storage
@@ -242,21 +192,17 @@ serve(async (req) => {
         const variantImageUrls = [];
 
         if (dbProduct.variants && Array.isArray(dbProduct.variants)) {
-          console.log(`🎯 Processing ${dbProduct.variants.length} variants`);
-          
           for (const variant of dbProduct.variants) {
             // Get variant image if specified
             let variantImageUrl = null;
             if (variant.image) {
               const fullPath = `${dbProduct.product_folder}/${variant.image}`;
-              console.log(`🖼️ Getting variant image: ${fullPath}`);
               variantImageUrl = await getSigned(supabase, niche, fullPath);
               if (variantImageUrl) {
                 variantImageUrls.push({
                   src: variantImageUrl,
                   alt: `${dbProduct.title} - ${variant.optionValues?.join(' ')}`
                 });
-                console.log(`✅ Added variant image for ${variant.optionValues?.join(' ')}`);
               }
             }
 
@@ -278,7 +224,6 @@ serve(async (req) => {
 
         // If no variants in DB, create default variant
         if (processedVariants.length === 0) {
-          console.log('📝 Creating default variant');
           processedVariants.push({
             title: 'Default',
             price: dbProduct.price.toString(),
@@ -306,8 +251,6 @@ serve(async (req) => {
             position: mainImageUrls.length + index + 1
           }))
         ];
-
-        console.log(`🎨 Total images for product: ${allImages.length}`);
 
         // Prepare tags with theme color
         const productTags = [
@@ -343,9 +286,6 @@ serve(async (req) => {
           }
         };
 
-        console.log(`🛒 Uploading to Shopify: ${dbProduct.title}`);
-        console.log(`📊 Product details: ${processedVariants.length} variants, ${allImages.length} images`);
-
         // Upload to Shopify
         const productResponse = await shopifyClient.createProduct(shopifyProduct);
         const createdProduct = productResponse.product;
@@ -372,8 +312,7 @@ serve(async (req) => {
         results.push({
           productFolder: dbProduct.product_folder,
           success: false,
-          error: error.message,
-          title: dbProduct.title
+          error: error.message
         });
       }
     }
@@ -389,7 +328,6 @@ serve(async (req) => {
         );
 
         if (refreshTheme) {
-          console.log(`🎯 Found theme: ${refreshTheme.name}`);
           const settingsResponse = await shopifyClient.getThemeAsset(refreshTheme.id, 'config/settings_data.json');
           
           if (settingsResponse.asset) {
@@ -424,7 +362,7 @@ serve(async (req) => {
       }
     }
 
-    console.log(`\n🎉 DATABASE-DRIVEN upload complete: ${successCount}/${results.length} products successful`);
+    console.log(`🎉 DATABASE-DRIVEN upload complete: ${successCount}/${results.length} products successful`);
 
     return new Response(JSON.stringify({
       success: true,
