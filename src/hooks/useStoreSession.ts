@@ -1,10 +1,10 @@
-
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface StoreSession {
   id?: string;
   session_id: string;
+  user_id?: string;
   niche: string;
   target_audience: string;
   business_type: string;
@@ -30,45 +30,71 @@ export const useStoreSession = () => {
     return id;
   });
 
-  const saveSessionData = async (data: Partial<StoreSession>) => {
+  const saveSessionData = async (sessionData: Partial<StoreSession>) => {
     try {
-      console.log('Saving session data:', data);
+      // Get current user
+      const userResponse = await supabase.auth.getUser();
+      const user = userResponse.data?.user;
+      
+      if (!user) {
+        console.error('User must be authenticated to save session data');
+        throw new Error('Authentication required');
+      }
+
+      console.log('Saving session data:', sessionData);
       
       // First try to update existing record
-      const { error: updateError } = await supabase
+      const updateData: Record<string, any> = {};
+      if (sessionData.niche !== undefined) updateData.niche = sessionData.niche;
+      if (sessionData.target_audience !== undefined) updateData.target_audience = sessionData.target_audience;
+      if (sessionData.business_type !== undefined) updateData.business_type = sessionData.business_type;
+      if (sessionData.store_style !== undefined) updateData.store_style = sessionData.store_style;
+      if (sessionData.additional_info !== undefined) updateData.additional_info = sessionData.additional_info;
+      if (sessionData.shopify_url !== undefined) updateData.shopify_url = sessionData.shopify_url;
+      if (sessionData.access_token !== undefined) updateData.access_token = sessionData.access_token;
+      if (sessionData.plan_activated !== undefined) updateData.plan_activated = sessionData.plan_activated;
+      if (sessionData.theme_color !== undefined) updateData.theme_color = sessionData.theme_color;
+      if (sessionData.products_added !== undefined) updateData.products_added = sessionData.products_added;
+      if (sessionData.mentorship_requested !== undefined) updateData.mentorship_requested = sessionData.mentorship_requested;
+      if (sessionData.completed_steps !== undefined) updateData.completed_steps = sessionData.completed_steps;
+      if (sessionData.created_via_affiliate !== undefined) updateData.created_via_affiliate = sessionData.created_via_affiliate;
+      updateData.updated_at = new Date().toISOString();
+
+      const updateResult = await (supabase as any)
         .from('store_builder_sessions')
-        .update({
-          ...data,
-          updated_at: new Date().toISOString()
-        })
-        .eq('session_id', sessionId);
+        .update(updateData)
+        .eq('session_id', sessionId)
+        .eq('user_id', user.id);
 
-      if (updateError) {
-        console.log('Update failed, trying insert:', updateError);
+      if (updateResult.error) {
+        console.log('Update failed, trying insert:', updateResult.error);
         // If update fails, try insert
-        const { error: insertError } = await supabase
+        const insertData = {
+          session_id: sessionId,
+          user_id: user.id,
+          niche: '',
+          target_audience: '',
+          business_type: '',
+          store_style: '',
+          additional_info: '',
+          shopify_url: '',
+          access_token: '',
+          plan_activated: false,
+          theme_color: '#1E40AF',
+          products_added: false,
+          mentorship_requested: false,
+          completed_steps: 0,
+          created_via_affiliate: false,
+          ...sessionData,
+          updated_at: new Date().toISOString()
+        };
+        
+        const insertResult = await (supabase as any)
           .from('store_builder_sessions')
-          .insert({
-            session_id: sessionId,
-            niche: '',
-            target_audience: '',
-            business_type: '',
-            store_style: '',
-            additional_info: '',
-            shopify_url: '',
-            access_token: '',
-            plan_activated: false,
-            theme_color: '#1E40AF',
-            products_added: false,
-            mentorship_requested: false,
-            completed_steps: 0,
-            created_via_affiliate: false,
-            ...data,
-            updated_at: new Date().toISOString()
-          });
+          .insert(insertData);
 
-        if (insertError) {
-          console.error('Error inserting session:', insertError);
+        if (insertResult.error) {
+          console.error('Error inserting session:', insertResult.error);
         } else {
           console.log('Session inserted successfully');
         }
@@ -82,20 +108,30 @@ export const useStoreSession = () => {
 
   const getSessionData = async (): Promise<StoreSession | null> => {
     try {
-      console.log('Getting session data for:', sessionId);
-      const { data, error } = await supabase
-        .from('store_builder_sessions')
-        .select('*')
-        .eq('session_id', sessionId)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error getting session:', error);
+      // Get current user
+      const userResponse = await supabase.auth.getUser();
+      const user = userResponse.data?.user;
+      
+      if (!user) {
+        console.error('User must be authenticated to access session data');
         return null;
       }
 
-      console.log('Session data retrieved:', data);
-      return data as StoreSession;
+      console.log('Getting session data for:', sessionId);
+      const result = await (supabase as any)
+        .from('store_builder_sessions')
+        .select('*')
+        .eq('session_id', sessionId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (result.error) {
+        console.error('Error getting session:', result.error);
+        return null;
+      }
+
+      console.log('Session data retrieved:', result.data);
+      return result.data as StoreSession;
     } catch (error) {
       console.error('Error getting session:', error);
       return null;

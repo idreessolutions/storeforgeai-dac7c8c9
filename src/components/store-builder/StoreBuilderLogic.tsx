@@ -115,8 +115,23 @@ export const useStoreBuilderLogic = () => {
 
   const saveSessionData = useCallback(async (stepToSave: number) => {
     try {
+      // Get current user
+      const userResponse = await supabase.auth.getUser();
+      const user = userResponse.data?.user;
+      
+      if (!user) {
+        console.error('User must be authenticated to save session data');
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to save your progress",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const sessionData = {
         session_id: sessionId,
+        user_id: user.id,
         completed_steps: stepToSave,
         niche: formData.niche,
         target_audience: formData.targetAudience,
@@ -134,7 +149,7 @@ export const useStoreBuilderLogic = () => {
 
       console.log('Saving session data:', sessionData);
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('store_builder_sessions')
         .upsert(sessionData);
 
@@ -146,7 +161,7 @@ export const useStoreBuilderLogic = () => {
     } catch (error) {
       console.error('Error saving session:', error);
     }
-  }, [formData, sessionId]);
+  }, [formData, sessionId, toast]);
 
   const handleNextStep = useCallback(async () => {
     console.log('🚀 Next step clicked, current step:', currentStep);
