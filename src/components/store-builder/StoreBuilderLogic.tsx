@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -116,19 +115,17 @@ export const useStoreBuilderLogic = () => {
 
   const saveSessionData = useCallback(async (stepToSave: number) => {
     try {
-      // Get current user (optional - don't require authentication)
+      // Get current user
       const userResponse = await supabase.auth.getUser();
       const user = userResponse.data?.user;
       
-      // If no user, just save to localStorage without showing error
       if (!user) {
-        console.log('No authenticated user - saving to localStorage only');
-        localStorage.setItem('storeBuilderProgress', JSON.stringify({
-          sessionId,
-          completedSteps: stepToSave,
-          formData,
-          timestamp: new Date().toISOString()
-        }));
+        console.error('User must be authenticated to save session data');
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to save your progress",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -158,27 +155,13 @@ export const useStoreBuilderLogic = () => {
 
       if (error) {
         console.error('Session save error:', error);
-        // Don't show error to user - just save to localStorage as fallback
-        localStorage.setItem('storeBuilderProgress', JSON.stringify({
-          sessionId,
-          completedSteps: stepToSave,
-          formData,
-          timestamp: new Date().toISOString()
-        }));
       } else {
         console.log('Session updated successfully');
       }
     } catch (error) {
       console.error('Error saving session:', error);
-      // Fallback to localStorage
-      localStorage.setItem('storeBuilderProgress', JSON.stringify({
-        sessionId,
-        completedSteps: stepToSave,
-        formData,
-        timestamp: new Date().toISOString()
-      }));
     }
-  }, [formData, sessionId]);
+  }, [formData, sessionId, toast]);
 
   const handleNextStep = useCallback(async () => {
     console.log('🚀 Next step clicked, current step:', currentStep);
