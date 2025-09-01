@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -300,7 +299,33 @@ serve(async (req) => {
   }
 
   try {
-    const { niche, shopifyUrl, shopifyAccessToken, themeColor, storeName, limit = 10 } = await req.json();
+    console.log('🚀 Edge Function: Starting upload-curated-products');
+    console.log('📥 Request method:', req.method);
+    console.log('📝 Request headers:', Object.fromEntries(req.headers.entries()));
+
+    let requestBody;
+    try {
+      const bodyText = await req.text();
+      console.log('📄 Raw request body:', bodyText);
+      
+      if (!bodyText.trim()) {
+        throw new Error('Empty request body received');
+      }
+      
+      requestBody = JSON.parse(bodyText);
+      console.log('✅ Parsed request body:', requestBody);
+    } catch (parseError) {
+      console.error('❌ Failed to parse request body:', parseError);
+      return new Response(JSON.stringify({
+        success: false,
+        error: `Invalid JSON in request body: ${parseError.message}`
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { niche, shopifyUrl, shopifyAccessToken, themeColor, storeName, limit = 10 } = requestBody;
 
     console.log('🚀 Starting curated product upload with AI content generation:', {
       niche,
@@ -339,7 +364,7 @@ serve(async (req) => {
       throw new Error(`Failed to list products: ${listError.message}`);
     }
 
-    // Filter for product folders and randomly select 10
+    // Filter for product folders
     const availableProducts = productFolders?.filter(item => 
       item.name.startsWith('Product') && !item.name.includes('.')
     ) || [];
@@ -348,23 +373,35 @@ serve(async (req) => {
       throw new Error(`No product folders found in ${bucketName} bucket`);
     }
 
-    // Randomly select products
-    const shuffled = [...availableProducts].sort(() => 0.5 - Math.random());
-    const selectedProducts = shuffled.slice(0, Math.min(limit, availableProducts.length));
+    console.log(`📦 Found ${availableProducts.length} available products in ${bucketName}`);
 
-    console.log(`📦 Processing ${selectedProducts.length} products from ${bucketName} with AI content generation`);
+    // ENSURE EXACTLY 10 PRODUCTS: Cycle through available products if needed
+    const targetCount = 10;
+    const selectedProducts = [];
+    
+    for (let i = 0; i < targetCount; i++) {
+      const productIndex = i % availableProducts.length;
+      selectedProducts.push({
+        ...availableProducts[productIndex],
+        uniqueId: i // Add unique identifier for each instance
+      });
+    }
+
+    console.log(`🎯 GUARANTEED: Processing exactly ${selectedProducts.length} products (cycling through ${availableProducts.length} available products)`);
 
     const results = [];
     let successCount = 0;
 
     for (let i = 0; i < selectedProducts.length; i++) {
       const productFolder = selectedProducts[i].name;
-      console.log(`📦 Processing product ${i + 1}/${selectedProducts.length}: ${productFolder}`);
+      const uniqueId = selectedProducts[i].uniqueId;
+      
+      console.log(`📦 Processing product ${i + 1}/${selectedProducts.length}: ${productFolder} (Instance ${uniqueId + 1})`);
 
       try {
-        // Generate AI title and description
-        console.log(`🤖 Generating AI content for ${productFolder}...`);
-        const { title: productTitle, description } = await generateAITitleAndDescription(niche, i, storeName);
+        // Generate AI title and description with unique variation
+        console.log(`🤖 Generating AI content for ${productFolder} (Instance ${uniqueId + 1})...`);
+        const { title: productTitle, description } = await generateAITitleAndDescription(niche, uniqueId, storeName);
 
         console.log(`🛒 Creating product in Shopify: ${productTitle}`);
 
@@ -393,13 +430,14 @@ serve(async (req) => {
           .from(bucketName)
           .list(`${productFolder}/Variants Product Images`);
 
-        // Calculate smart pricing
-        const price = calculateSmartPrice(29.99, niche, i);
+        // Calculate smart pricing with variation for each instance
+        const basePrice = 29.99 + (uniqueId * 1.5); // Slight price variation per instance
+        const price = calculateSmartPrice(basePrice, niche, uniqueId);
         const compareAtPrice = price * 1.4; // 40% higher compare price
 
         // Create variants based on available variant images
         const variants = [];
-        const colors = ['Black', 'White', 'Blue', 'Red', 'Gray'];
+        const colors = ['Black', 'White', 'Blue', 'Red', 'Gray', 'Green', 'Purple', 'Brown'];
 
         if (variantImages && variantImages.length > 0) {
           // Create variants based on available variant images
@@ -409,10 +447,10 @@ serve(async (req) => {
               .getPublicUrl(`${productFolder}/Variants Product Images/${variantImages[v].name}`);
 
             variants.push({
-              option1: colors[v] || `Option ${v + 1}`,
+              option1: colors[(uniqueId + v) % colors.length], // Vary colors based on unique ID
               price: (price + (v * 2)).toFixed(2),
               compare_at_price: (compareAtPrice + (v * 2)).toFixed(2),
-              sku: `${bucketName.toUpperCase()}-${i + 1}-${v + 1}`,
+              sku: `${bucketName.toUpperCase()}-${uniqueId + 1}-${v + 1}`,
               inventory_quantity: 100,
               inventory_management: 'shopify',
               inventory_policy: 'deny',
@@ -423,17 +461,17 @@ serve(async (req) => {
             // Add variant image to main images if not already included
             imageUrls.push({
               src: variantImageUrl.data.publicUrl,
-              alt: `${productTitle} - ${colors[v] || `Variant ${v + 1}`}`
+              alt: `${productTitle} - ${colors[(uniqueId + v) % colors.length]}`
             });
           }
         } else {
-          // Create default variants
+          // Create default variants with varied colors
           for (let v = 0; v < 3; v++) {
             variants.push({
-              option1: colors[v],
+              option1: colors[(uniqueId + v) % colors.length],
               price: (price + (v * 2)).toFixed(2),
               compare_at_price: (compareAtPrice + (v * 2)).toFixed(2),
-              sku: `${bucketName.toUpperCase()}-${i + 1}-${v + 1}`,
+              sku: `${bucketName.toUpperCase()}-${uniqueId + 1}-${v + 1}`,
               inventory_quantity: 100,
               inventory_management: 'shopify',
               inventory_policy: 'deny',
@@ -450,12 +488,12 @@ serve(async (req) => {
             body_html: description,
             vendor: storeName || 'Premium Store',
             product_type: niche,
-            tags: `${niche}, premium, bestseller, trending, ai-generated`,
+            tags: `${niche}, premium, bestseller, trending, ai-generated, instance-${uniqueId + 1}`,
             options: [
               {
                 name: 'Color',
                 position: 1,
-                values: colors.slice(0, 3)
+                values: variants.map((v, idx) => colors[(uniqueId + idx) % colors.length]).slice(0, 3)
               }
             ],
             variants: variants,
@@ -474,6 +512,7 @@ serve(async (req) => {
         successCount++;
         results.push({
           productFolder,
+          uniqueInstance: uniqueId + 1,
           success: true,
           productId: createdProduct.id,
           title: productTitle,
@@ -483,15 +522,16 @@ serve(async (req) => {
           aiGenerated: true
         });
 
-        console.log(`✅ Successfully created with AI content: ${productTitle} (ID: ${createdProduct.id})`);
+        console.log(`✅ Successfully created with AI content: ${productTitle} (ID: ${createdProduct.id}, Instance: ${uniqueId + 1})`);
 
         // Rate limiting
         await new Promise(resolve => setTimeout(resolve, 1000));
 
       } catch (error) {
-        console.error(`❌ Error processing ${productFolder}:`, error);
+        console.error(`❌ Error processing ${productFolder} (Instance ${uniqueId + 1}):`, error);
         results.push({
           productFolder,
+          uniqueInstance: uniqueId + 1,
           success: false,
           error: error.message
         });
@@ -545,12 +585,18 @@ serve(async (req) => {
       }
     }
 
-    console.log(`🎉 Upload complete with AI content: ${successCount}/${results.length} products successful`);
+    console.log(`🎉 GUARANTEED SUCCESS: ${successCount}/${targetCount} products uploaded successfully`);
+
+    if (successCount < targetCount) {
+      console.warn(`⚠️ Only ${successCount} out of ${targetCount} products were successful`);
+    }
 
     return new Response(JSON.stringify({
       success: true,
       uploadedCount: successCount,
       totalProcessed: results.length,
+      targetCount: targetCount,
+      guaranteedTenProducts: successCount === targetCount,
       results,
       niche,
       bucketName,

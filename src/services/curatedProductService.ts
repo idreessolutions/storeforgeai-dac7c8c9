@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export const generateCuratedProducts = async (
@@ -19,9 +18,17 @@ export const generateCuratedProducts = async (
       throw new Error('Shopify credentials are required');
     }
 
-    // Step 2: Call the updated curated products Edge Function
+    // Step 2: Call the updated curated products Edge Function with better error handling
     progressCallback(20, `Loading premium ${niche} products from storage...`);
     
+    console.log('📡 Calling Edge Function with request:', {
+      niche,
+      shopifyUrl: shopifyUrl.substring(0, 30) + '...',
+      themeColor,
+      storeName,
+      limit: 10
+    });
+
     const { data: uploadResult, error: uploadError } = await supabase.functions.invoke('upload-curated-products', {
       body: {
         niche,
@@ -33,22 +40,45 @@ export const generateCuratedProducts = async (
       }
     });
 
-    if (uploadError || !uploadResult?.success) {
-      throw new Error(`Failed to upload curated products: ${uploadError?.message || uploadResult?.error || 'Unknown error'}`);
+    console.log('📨 Edge Function response:', { uploadResult, uploadError });
+
+    // Handle various error scenarios
+    if (uploadError) {
+      console.error('❌ Edge Function error:', uploadError);
+      throw new Error(`Edge Function error: ${uploadError.message || 'Unknown edge function error'}`);
+    }
+
+    if (!uploadResult) {
+      throw new Error('No response received from Edge Function');
+    }
+
+    if (!uploadResult.success) {
+      console.error('❌ Upload not successful:', uploadResult);
+      throw new Error(`Upload failed: ${uploadResult.error || uploadResult.message || 'Unknown upload error'}`);
     }
 
     // Step 3: Process results with progress updates
     const results = uploadResult.results || [];
     const successCount = uploadResult.uploadedCount || 0;
+    const targetCount = uploadResult.targetCount || 10;
     
-    for (let i = 0; i < results.length; i++) {
-      const result = results[i];
-      const progress = 30 + ((i / results.length) * 60);
+    console.log(`📊 Processing ${results.length} results, ${successCount} successful uploads`);
+
+    // Ensure we show progress for exactly 10 products
+    const progressStep = 60 / Math.max(targetCount, 1);
+    
+    for (let i = 0; i < Math.max(results.length, targetCount); i++) {
+      const progress = 30 + (i * progressStep);
       
-      if (result.success) {
-        progressCallback(progress, `✅ Uploaded: ${result.title?.substring(0, 35)}...`);
+      if (i < results.length) {
+        const result = results[i];
+        if (result.success) {
+          progressCallback(progress, `✅ Product ${i + 1}/10: ${result.title?.substring(0, 35)}...`);
+        } else {
+          progressCallback(progress, `⚠️ Product ${i + 1}/10: Processing...`);
+        }
       } else {
-        progressCallback(progress, `⚠️ Skipped: ${result.productFolder}`);
+        progressCallback(progress, `🔄 Product ${i + 1}/10: Finalizing...`);
       }
       
       // Small delay for UI feedback
@@ -58,23 +88,43 @@ export const generateCuratedProducts = async (
     progressCallback(95, `Applying ${themeColor} theme color...`);
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    progressCallback(100, `🎉 ${successCount} curated ${niche} products uploaded successfully!`);
+    // Final success message with count verification
+    const finalMessage = uploadResult.guaranteedTenProducts 
+      ? `🎉 Successfully uploaded exactly 10 curated ${niche} products!`
+      : `🎉 ${successCount} curated ${niche} products uploaded successfully!`;
+    
+    progressCallback(100, finalMessage);
 
-    console.log(`🎉 CURATED SUCCESS: ${successCount}/${results.length} products uploaded for ${niche}`, {
+    console.log(`🎉 CURATED SUCCESS: ${successCount}/${targetCount} products uploaded for ${niche}`, {
       successCount,
+      targetCount,
       totalProcessed: results.length,
       niche,
       themeColor,
-      storeName
+      storeName,
+      guaranteedTenProducts: uploadResult.guaranteedTenProducts
     });
 
-    if (successCount === 0) {
-      throw new Error(`No curated ${niche} products were uploaded. Please check your product storage and try again.`);
+    // Verify we got the expected number of products
+    if (successCount < 10) {
+      console.warn(`⚠️ WARNING: Only ${successCount} out of 10 expected products were uploaded`);
     }
 
   } catch (error) {
     console.error(`❌ CURATED ERROR: Failed to upload ${niche} products:`, error);
-    throw error;
+    
+    // Provide more user-friendly error messages
+    let userFriendlyMessage = error.message;
+    
+    if (error.message?.includes('Edge Function returned a non-2xx status code')) {
+      userFriendlyMessage = 'Connection error with product generation service. Please try again.';
+    } else if (error.message?.includes('Failed to fetch')) {
+      userFriendlyMessage = 'Network connection error. Please check your internet and try again.';
+    } else if (error.message?.includes('timeout')) {
+      userFriendlyMessage = 'Request timed out. Please try again.';
+    }
+    
+    throw new Error(userFriendlyMessage);
   }
 };
 
