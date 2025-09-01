@@ -330,16 +330,16 @@ serve(async (req) => {
     // Initialize Shopify client
     const shopifyClient = new ShopifyClient(shopifyUrl, shopifyAccessToken);
 
-    // Get available product folders
+    // Get available product folders - ENSURE WE GET AT LEAST 10
     const { data: productFolders, error: listError } = await supabase.storage
       .from(bucketName)
-      .list('', { limit: 100 });
+      .list('', { limit: 200 }); // Get more to ensure we have enough
 
     if (listError) {
       throw new Error(`Failed to list products: ${listError.message}`);
     }
 
-    // Filter for product folders and randomly select 10
+    // Filter for product folders
     const availableProducts = productFolders?.filter(item => 
       item.name.startsWith('Product') && !item.name.includes('.')
     ) || [];
@@ -348,11 +348,30 @@ serve(async (req) => {
       throw new Error(`No product folders found in ${bucketName} bucket`);
     }
 
-    // Randomly select products
-    const shuffled = [...availableProducts].sort(() => 0.5 - Math.random());
-    const selectedProducts = shuffled.slice(0, Math.min(limit, availableProducts.length));
+    console.log(`📦 Found ${availableProducts.length} available products in ${bucketName}`);
 
-    console.log(`📦 Processing ${selectedProducts.length} products from ${bucketName} with AI content generation`);
+    // ALWAYS try to get exactly 10 products - if not enough, cycle through them
+    const selectedProducts = [];
+    const targetCount = Math.min(limit, 10); // Always aim for 10 max
+
+    if (availableProducts.length >= targetCount) {
+      // Randomly select from available products
+      const shuffled = [...availableProducts].sort(() => 0.5 - Math.random());
+      selectedProducts.push(...shuffled.slice(0, targetCount));
+    } else {
+      // If we have fewer than 10, use all and cycle through to get exactly 10
+      selectedProducts.push(...availableProducts);
+      
+      // Fill the rest by cycling through available products
+      while (selectedProducts.length < targetCount) {
+        const remaining = targetCount - selectedProducts.length;
+        const toAdd = Math.min(remaining, availableProducts.length);
+        const shuffled = [...availableProducts].sort(() => 0.5 - Math.random());
+        selectedProducts.push(...shuffled.slice(0, toAdd));
+      }
+    }
+
+    console.log(`📦 Processing exactly ${selectedProducts.length} products from ${bucketName} with AI content generation`);
 
     const results = [];
     let successCount = 0;
