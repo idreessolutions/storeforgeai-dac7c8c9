@@ -111,6 +111,39 @@ const NICHE_TO_BUCKET: { [key: string]: string } = {
   'trending_viral': 'trending_viral'
 };
 
+// Niche to Shopify Category mapping
+const NICHE_TO_CATEGORY: { [key: string]: string } = {
+  'Home & Living': 'Home & Living',
+  'home-living': 'Home & Living',
+  'home_living': 'Home & Living',
+  'Beauty & Personal Care': 'Beauty & Personal Care',
+  'beauty-personal-care': 'Beauty & Personal Care',
+  'beauty_personal_care': 'Beauty & Personal Care',
+  'Health & Fitness': 'Health & Fitness',
+  'health-fitness': 'Health & Fitness',
+  'health_fitness': 'Health & Fitness',
+  'Pets': 'Pet Supplies',
+  'pets': 'Pet Supplies',
+  'Fashion & Accessories': 'Fashion & Accessories',
+  'fashion-accessories': 'Fashion & Accessories',
+  'fashion_accessories': 'Fashion & Accessories',
+  'Electronics & Gadgets': 'Electronics',
+  'electronics-gadgets': 'Electronics',
+  'electronics_gadgets': 'Electronics',
+  'Kids & Babies': 'Baby & Kids',
+  'kids-babies': 'Baby & Kids',
+  'kids_babies': 'Baby & Kids',
+  'Seasonal & Events': 'Seasonal & Events',
+  'seasonal-events': 'Seasonal & Events',
+  'seasonal_events': 'Seasonal & Events',
+  'Hobbies & Lifestyle': 'Hobbies & Lifestyle',
+  'hobbies-lifestyle': 'Hobbies & Lifestyle',
+  'hobbies_lifestyle': 'Hobbies & Lifestyle',
+  'Trending Viral Products': 'Trending Products',
+  'trending-viral-products': 'Trending Products',
+  'trending_viral': 'Trending Products'
+};
+
 async function generateAITitleAndDescription(niche: string, productIndex: number, storeName: string): Promise<{title: string; description: string}> {
   const openaiKey = Deno.env.get('OPENAI_API_KEY_V2');
   
@@ -557,6 +590,9 @@ serve(async (req) => {
           }
         }
 
+        // Get the Shopify category for this niche
+        const shopifyCategory = NICHE_TO_CATEGORY[niche] || niche;
+
         // Create Shopify product
         const shopifyProduct = {
           product: {
@@ -564,6 +600,7 @@ serve(async (req) => {
             body_html: description,
             vendor: storeName || 'Premium Store',
             product_type: niche,
+            category: shopifyCategory,
             tags: `${niche}, premium, bestseller, trending, ai-generated, instance-${uniqueId + 1}`,
             options: [
               {
@@ -685,12 +722,16 @@ serve(async (req) => {
             }
           }
 
+          // Get the Shopify category for this niche
+          const shopifyCategory = NICHE_TO_CATEGORY[niche] || niche;
+
           const shopifyProduct = {
             product: {
               title: meta.title,
               body_html: meta.description,
               vendor: storeName || 'Premium Store',
               product_type: niche,
+              category: shopifyCategory,
               tags: `${niche}, curated, instance-${uniqueId + 1}`,
               options: [{ name: 'Color', position: 1, values: variants.map((v, idx) => colors[(uniqueId + idx) % colors.length]).slice(0, 3) }],
               variants,
