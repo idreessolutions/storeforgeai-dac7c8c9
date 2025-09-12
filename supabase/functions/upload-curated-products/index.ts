@@ -293,71 +293,6 @@ function calculateSmartPrice(basePrice: number, niche: string, index: number): n
   else return Math.floor(price) + 0.99;
 }
 
-
-// Lightweight helpers to read curated metadata from storage (title/description)
-async function readTextFromStorage(supabase: any, bucket: string, path: string): Promise<string | null> {
-  try {
-    const { data, error } = await supabase.storage.from(bucket).download(path);
-    if (error || !data) return null;
-    const text = await data.text();
-    return text.trim();
-  } catch (_e) {
-    return null;
-  }
-}
-
-async function getProductMetadata(supabase: any, bucket: string, productFolder: string, niche: string, uniqueId: number, storeName: string) {
-  // Try common curated file names first
-  const titleCandidates = [
-    `${productFolder}/title.txt`,
-    `${productFolder}/Title.txt`,
-    `${productFolder}/title.json`,
-  ];
-  const descCandidates = [
-    `${productFolder}/description.md`,
-    `${productFolder}/description.txt`,
-    `${productFolder}/Description.md`,
-    `${productFolder}/Description.txt`,
-  ];
-
-  let title: string | null = null;
-  for (const p of titleCandidates) {
-    const t = await readTextFromStorage(supabase, bucket, p);
-    if (t) {
-      try {
-        // If JSON, parse { title: "..." }
-        if (p.endsWith('.json')) {
-          const obj = JSON.parse(t);
-          title = obj.title || null;
-        } else {
-          title = t;
-        }
-      } catch { /* ignore */ }
-    }
-    if (title) break;
-  }
-
-  let description: string | null = null;
-  for (const p of descCandidates) {
-    const d = await readTextFromStorage(supabase, bucket, p);
-    if (d) {
-      description = d;
-      break;
-    }
-  }
-
-  if (!title) {
-    // Fallback to human-friendly title from folder name with unique suffix
-    const pretty = productFolder.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
-    title = `✨ ${pretty} — ${niche} Pick #${uniqueId + 1}`;
-  }
-  if (!description) {
-    description = generateFallbackDescription(niche, uniqueId, storeName);
-  }
-
-  return { title, description };
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -390,15 +325,14 @@ serve(async (req) => {
       });
     }
 
-    const { niche, shopifyUrl, shopifyAccessToken, themeColor, storeName, limit = 10, aiContent } = requestBody;
-    const useAI = Boolean(aiContent === true);
+    const { niche, shopifyUrl, shopifyAccessToken, themeColor, storeName, limit = 10 } = requestBody;
 
     console.log('🚀 Starting curated product upload with AI content generation:', {
       niche,
       limit,
       themeColor,
       storeName,
-      aiContentGeneration: useAI
+      aiContentGeneration: true
     });
 
     if (!shopifyUrl || !shopifyAccessToken) {
@@ -465,19 +399,9 @@ serve(async (req) => {
       console.log(`📦 Processing product ${i + 1}/${selectedProducts.length}: ${productFolder} (Instance ${uniqueId + 1})`);
 
       try {
-        // Get title and description (prefer curated storage, optionally AI)
-        let productTitle: string;
-        let description: string;
-        if (useAI) {
-          console.log(`🤖 Generating AI content for ${productFolder} (Instance ${uniqueId + 1})...`);
-          const ai = await generateAITitleAndDescription(niche, uniqueId, storeName);
-          productTitle = ai.title;
-          description = ai.description;
-        } else {
-          const meta = await getProductMetadata(supabase, bucketName, productFolder, niche, uniqueId, storeName);
-          productTitle = meta.title;
-          description = meta.description;
-        }
+        // Generate AI title and description with unique variation
+        console.log(`🤖 Generating AI content for ${productFolder} (Instance ${uniqueId + 1})...`);
+        const { title: productTitle, description } = await generateAITitleAndDescription(niche, uniqueId, storeName);
 
         console.log(`🛒 Creating product in Shopify: ${productTitle}`);
 
@@ -600,8 +524,8 @@ serve(async (req) => {
 
         console.log(`✅ Successfully created with AI content: ${productTitle} (ID: ${createdProduct.id}, Instance: ${uniqueId + 1})`);
 
-        // Optional tiny delay to be gentle on API (kept very small)
-        // await new Promise(resolve => setTimeout(resolve, 100));
+        // Rate limiting
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
       } catch (error) {
         console.error(`❌ Error processing ${productFolder} (Instance ${uniqueId + 1}):`, error);
@@ -611,110 +535,6 @@ serve(async (req) => {
           success: false,
           error: error.message
         });
-      }
-    }
-
-    // If we didn't reach the target yet, do another quick pass to guarantee 10
-    // This is fast because we skip AI generation and reuse curated assets
-    let extraPasses = 0;
-    while (successCount < targetCount && extraPasses < 2) {
-      extraPasses++;
-      console.log(`🔁 Guarantee pass #${extraPasses}: need ${targetCount - successCount} more products`);
-      for (let i = 0; i < selectedProducts.length && successCount < targetCount; i++) {
-        const productFolder = selectedProducts[i].name;
-        const uniqueId = selectedProducts[i].uniqueId + (extraPasses * 10);
-        try {
-          const meta = await getProductMetadata(supabase, bucketName, productFolder, niche, uniqueId, storeName);
-
-          // Recompute assets quickly
-          const { data: mainImages } = await supabase.storage
-            .from(bucketName)
-            .list(`${productFolder}/Products Images`);
-
-          const imageUrls: Array<{ src: string; alt: string }> = [];
-          if (mainImages && mainImages.length > 0) {
-            for (const img of mainImages.slice(0, 5)) {
-              const { data: imageUrl } = supabase.storage
-                .from(bucketName)
-                .getPublicUrl(`${productFolder}/Products Images/${img.name}`);
-              imageUrls.push({ src: imageUrl.publicUrl, alt: `${meta.title} - Image ${imageUrls.length + 1}` });
-            }
-          }
-
-          const { data: variantImages } = await supabase.storage
-            .from(bucketName)
-            .list(`${productFolder}/Variants Product Images`);
-
-          const basePrice = 29.99 + (uniqueId * 1.5);
-          const price = calculateSmartPrice(basePrice, niche, uniqueId);
-          const compareAtPrice = price * 1.4;
-
-          const variants = [] as any[];
-          const colors = ['Black', 'White', 'Blue', 'Red', 'Gray', 'Green', 'Purple', 'Brown'];
-          if (variantImages && variantImages.length > 0) {
-            for (let v = 0; v < Math.min(3, variantImages.length); v++) {
-              const variantImageUrl = supabase.storage
-                .from(bucketName)
-                .getPublicUrl(`${productFolder}/Variants Product Images/${variantImages[v].name}`);
-              variants.push({
-                option1: colors[(uniqueId + v) % colors.length],
-                price: (price + (v * 2)).toFixed(2),
-                compare_at_price: (compareAtPrice + (v * 2)).toFixed(2),
-                sku: `${bucketName.toUpperCase()}-${uniqueId + 1}-${v + 1}`,
-                inventory_quantity: 100,
-                inventory_management: 'shopify',
-                inventory_policy: 'deny',
-                requires_shipping: true,
-                taxable: true
-              });
-              imageUrls.push({ src: variantImageUrl.data.publicUrl, alt: `${meta.title} - ${colors[(uniqueId + v) % colors.length]}` });
-            }
-          } else {
-            for (let v = 0; v < 3; v++) {
-              variants.push({
-                option1: colors[(uniqueId + v) % colors.length],
-                price: (price + (v * 2)).toFixed(2),
-                compare_at_price: (compareAtPrice + (v * 2)).toFixed(2),
-                sku: `${bucketName.toUpperCase()}-${uniqueId + 1}-${v + 1}`,
-                inventory_quantity: 100,
-                inventory_management: 'shopify',
-                inventory_policy: 'deny',
-                requires_shipping: true,
-                taxable: true
-              });
-            }
-          }
-
-          const shopifyProduct = {
-            product: {
-              title: meta.title,
-              body_html: meta.description,
-              vendor: storeName || 'Premium Store',
-              product_type: niche,
-              tags: `${niche}, curated, instance-${uniqueId + 1}`,
-              options: [{ name: 'Color', position: 1, values: variants.map((v, idx) => colors[(uniqueId + idx) % colors.length]).slice(0, 3) }],
-              variants,
-              images: imageUrls.map((img, index) => ({ src: img.src, alt: img.alt, position: index + 1 }))
-            }
-          };
-
-          const productResponse = await shopifyClient.createProduct(shopifyProduct);
-          const createdProduct = productResponse.product;
-          successCount++;
-          results.push({
-            productFolder,
-            uniqueInstance: uniqueId + 1,
-            success: true,
-            productId: createdProduct.id,
-            title: meta.title,
-            shopifyUrl: `${shopifyUrl}/admin/products/${createdProduct.id}`,
-            imagesUploaded: imageUrls.length,
-            variantsCreated: createdProduct.variants.length,
-            aiGenerated: false
-          });
-        } catch (err) {
-          console.warn(`⚠️ Retry pass failed for ${productFolder} #${uniqueId + 1}:`, err?.message || err);
-        }
       }
     }
 

@@ -29,34 +29,16 @@ export const generateCuratedProducts = async (
       limit: 10
     });
 
-    let uploadResult: any = null; 
-    let uploadError: any = null;
-
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      const { data, error } = await supabase.functions.invoke('upload-curated-products', {
-        body: {
-          niche,
-          shopifyUrl,
-          shopifyAccessToken: accessToken,
-          themeColor,
-          storeName,
-          limit: 10,
-          aiContent: false // fast, curated content path to avoid timeouts
-        }
-      });
-      uploadResult = data;
-      uploadError = error;
-
-      if (!uploadError) break;
-
-      const msg = uploadError?.message || '';
-      if (msg.includes('Failed to send a request') || msg.includes('NetworkError') || msg.includes('timeout')) {
-        console.warn(`⚠️ Edge function timeout/network issue (attempt ${attempt}/3). Retrying...`);
-        await new Promise(r => setTimeout(r, 1000 * attempt));
-        continue;
+    const { data: uploadResult, error: uploadError } = await supabase.functions.invoke('upload-curated-products', {
+      body: {
+        niche,
+        shopifyUrl,
+        shopifyAccessToken: accessToken,
+        themeColor,
+        storeName,
+        limit: 10
       }
-      break; // other errors - don't keep retrying
-    }
+    });
 
     console.log('📨 Edge Function response:', { uploadResult, uploadError });
 
