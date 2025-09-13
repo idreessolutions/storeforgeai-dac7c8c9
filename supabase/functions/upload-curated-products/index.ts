@@ -34,6 +34,37 @@ class ShopifyClient {
     return await response.json();
   }
 
+  async createProductWithRetry(productData: any, retries = 3, baseDelayMs = 800): Promise<any> {
+    let attempt = 0;
+    let lastError: any = null;
+    let payload = JSON.parse(JSON.stringify(productData)); // clone
+    let removedStandardType = false;
+    while (attempt < retries) {
+      attempt++;
+      try {
+        return await this.createProduct(payload);
+      } catch (err: any) {
+        lastError = err;
+        const msg = String(err?.message || '');
+        // If Shopify rejects standard_product_type (422), retry once without it
+        if (!removedStandardType && /422/.test(msg) && msg.toLowerCase().includes('standard_product_type')) {
+          try {
+            if (payload?.product?.standard_product_type) {
+              delete payload.product.standard_product_type;
+              removedStandardType = true;
+              continue; // immediate retry without increasing delay
+            }
+          } catch {}
+        }
+        const delay = baseDelayMs * attempt;
+        const shouldRetry = /429|500|502|503|504/.test(msg) || msg.includes('Failed to fetch') || msg.includes('NetworkError');
+        if (attempt >= retries || !shouldRetry) break;
+        await new Promise(r => setTimeout(r, delay));
+      }
+    }
+    throw lastError || new Error('Failed to create product after retries');
+  }
+
   async getThemes(): Promise<any> {
     const response = await fetch(`${this.baseUrl}/admin/api/2024-10/themes.json`, {
       headers: {
@@ -110,6 +141,42 @@ const NICHE_TO_BUCKET: { [key: string]: string } = {
   'trending-viral-products': 'trending_viral',
   'trending_viral': 'trending_viral'
 };
+
+const NICHE_TO_CATEGORY_NAME: { [key: string]: string } = {
+  'Home & Living': 'Home & Living',
+  'home-living': 'Home & Living',
+  'home_living': 'Home & Living',
+  'Beauty & Personal Care': 'Beauty & Personal Care',
+  'beauty-personal-care': 'Beauty & Personal Care',
+  'beauty_personal_care': 'Beauty & Personal Care',
+  'Health & Fitness': 'Health & Fitness',
+  'health-fitness': 'Health & Fitness',
+  'health_fitness': 'Health & Fitness',
+  'Pets': 'Pet Supplies',
+  'pets': 'Pet Supplies',
+  'Fashion & Accessories': 'Fashion & Accessories',
+  'fashion-accessories': 'Fashion & Accessories',
+  'fashion_accessories': 'Fashion & Accessories',
+  'Electronics & Gadgets': 'Electronics',
+  'electronics-gadgets': 'Electronics',
+  'electronics_gadgets': 'Electronics',
+  'Kids & Babies': 'Baby & Kids',
+  'kids-babies': 'Baby & Kids',
+  'kids_babies': 'Baby & Kids',
+  'Seasonal & Events': 'Seasonal & Events',
+  'seasonal-events': 'Seasonal & Events',
+  'seasonal_events': 'Seasonal & Events',
+  'Hobbies & Lifestyle': 'Hobbies & Lifestyle',
+  'hobbies-lifestyle': 'Hobbies & Lifestyle',
+  'hobbies_lifestyle': 'Hobbies & Lifestyle',
+  'Trending Viral Products': 'Trending Products',
+  'trending-viral-products': 'Trending Products',
+  'trending_viral': 'Trending Products',
+};
+
+function getCategoryName(niche: string): string {
+  return NICHE_TO_CATEGORY_NAME[niche] || niche;
+}
 
 async function generateAITitleAndDescription(niche: string, productIndex: number, storeName: string): Promise<{title: string; description: string}> {
   const openaiKey = Deno.env.get('OPENAI_API_KEY_V2');
@@ -413,6 +480,8 @@ serve(async (req) => {
 
     console.log(`✅ Mapped niche "${niche}" to bucket "${bucketName}"`);
 
+    const categoryName = getCategoryName(niche);
+
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -421,39 +490,51 @@ serve(async (req) => {
     // Initialize Shopify client
     const shopifyClient = new ShopifyClient(shopifyUrl, shopifyAccessToken);
 
-    // Get available product folders
+    // Get available product folders (sorted numerically: Product 1..N)
     const { data: productFolders, error: listError } = await supabase.storage
       .from(bucketName)
-      .list('', { limit: 100 });
+      .list('', { limit: 200, sortBy: { column: 'name', order: 'asc' } });
 
     if (listError) {
       throw new Error(`Failed to list products: ${listError.message}`);
     }
 
-    // Filter for product folders
-    const availableProducts = productFolders?.filter(item => 
-      item.name.startsWith('Product') && !item.name.includes('.')
-    ) || [];
+    const productNames = (productFolders || [])
+      .filter((item) => item.name.startsWith('Product') && !item.name.includes('.'))
+      .map((item) => item.name)
+      .sort((a, b) => {
+        const an = parseInt((a.match(/\d+/)?.[0] || '0'), 10);
+        const bn = parseInt((b.match(/\d+/)?.[0] || '0'), 10);
+        return an - bn || a.localeCompare(b);
+      });
 
-    if (availableProducts.length === 0) {
+    if (productNames.length === 0) {
       throw new Error(`No product folders found in ${bucketName} bucket`);
     }
 
-    console.log(`📦 Found ${availableProducts.length} available products in ${bucketName}`);
+    console.log(`📦 Found ${productNames.length} available products in ${bucketName}: [${productNames.slice(0, 10).join(', ')}${productNames.length > 10 ? ', ...' : ''}]`);
 
-    // ENSURE EXACTLY 10 PRODUCTS: Cycle through available products if needed
     const targetCount = 10;
-    const selectedProducts = [];
-    
-    for (let i = 0; i < targetCount; i++) {
-      const productIndex = i % availableProducts.length;
-      selectedProducts.push({
-        ...availableProducts[productIndex],
-        uniqueId: i // Add unique identifier for each instance
-      });
+
+    // Prefer randomized unique set when we have enough products
+    let baseList: string[];
+    if (productNames.length >= targetCount) {
+      const shuffled = [...productNames];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      baseList = shuffled.slice(0, targetCount);
+    } else {
+      baseList = [];
+      for (let i = 0; i < targetCount; i++) {
+        baseList.push(productNames[i % productNames.length]);
+      }
     }
 
-    console.log(`🎯 GUARANTEED: Processing exactly ${selectedProducts.length} products (cycling through ${availableProducts.length} available products)`);
+    const selectedProducts = baseList.map((name, i) => ({ name, uniqueId: i }));
+
+    console.log(`🎯 Will process exactly ${selectedProducts.length} products (unique source folders: ${new Set(baseList).size})`);
 
     const results = [];
     let successCount = 0;
@@ -563,8 +644,9 @@ serve(async (req) => {
             title: productTitle,
             body_html: description,
             vendor: storeName || 'Premium Store',
-            product_type: niche,
-            tags: `${niche}, premium, bestseller, trending, ai-generated, instance-${uniqueId + 1}`,
+            product_type: categoryName,
+            standard_product_type: categoryName,
+            tags: `${categoryName}, ${niche}, premium, bestseller, trending, ai-generated, instance-${uniqueId + 1}`,
             options: [
               {
                 name: 'Color',
@@ -582,7 +664,7 @@ serve(async (req) => {
         };
 
         // Upload to Shopify
-        const productResponse = await shopifyClient.createProduct(shopifyProduct);
+        const productResponse = await shopifyClient.createProductWithRetry(shopifyProduct);
         const createdProduct = productResponse.product;
 
         successCount++;
@@ -690,15 +772,16 @@ serve(async (req) => {
               title: meta.title,
               body_html: meta.description,
               vendor: storeName || 'Premium Store',
-              product_type: niche,
-              tags: `${niche}, curated, instance-${uniqueId + 1}`,
+              product_type: categoryName,
+              standard_product_type: categoryName,
+              tags: `${categoryName}, ${niche}, curated, instance-${uniqueId + 1}`,
               options: [{ name: 'Color', position: 1, values: variants.map((v, idx) => colors[(uniqueId + idx) % colors.length]).slice(0, 3) }],
               variants,
               images: imageUrls.map((img, index) => ({ src: img.src, alt: img.alt, position: index + 1 }))
             }
           };
 
-          const productResponse = await shopifyClient.createProduct(shopifyProduct);
+          const productResponse = await shopifyClient.createProductWithRetry(shopifyProduct);
           const createdProduct = productResponse.product;
           successCount++;
           results.push({
@@ -788,11 +871,13 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('❌ Curated product upload with AI content failed:', error);
+    // Always return 2xx so the app can handle partial results gracefully
     return new Response(JSON.stringify({
       success: false,
-      error: error.message || 'Upload failed'
+      uploadedCount: 0,
+      error: error?.message || 'Upload failed',
     }), {
-      status: 500,
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
