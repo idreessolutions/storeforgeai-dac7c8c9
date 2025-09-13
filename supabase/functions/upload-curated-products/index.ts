@@ -143,39 +143,75 @@ const NICHE_TO_BUCKET: { [key: string]: string } = {
 };
 
 const NICHE_TO_CATEGORY_NAME: { [key: string]: string } = {
-  'Home & Living': 'Home & Living',
-  'home-living': 'Home & Living',
-  'home_living': 'Home & Living',
-  'Beauty & Personal Care': 'Beauty & Personal Care',
-  'beauty-personal-care': 'Beauty & Personal Care',
-  'beauty_personal_care': 'Beauty & Personal Care',
-  'Health & Fitness': 'Health & Fitness',
-  'health-fitness': 'Health & Fitness',
-  'health_fitness': 'Health & Fitness',
+  'Home & Living': 'Home & Garden',
+  'home-living': 'Home & Garden',
+  'home_living': 'Home & Garden',
+  'Beauty & Personal Care': 'Health & Beauty',
+  'beauty-personal-care': 'Health & Beauty',
+  'beauty_personal_care': 'Health & Beauty',
+  'Health & Fitness': 'Sporting Goods',
+  'health-fitness': 'Sporting Goods',
+  'health_fitness': 'Sporting Goods',
   'Pets': 'Pet Supplies',
   'pets': 'Pet Supplies',
-  'Fashion & Accessories': 'Fashion & Accessories',
-  'fashion-accessories': 'Fashion & Accessories',
-  'fashion_accessories': 'Fashion & Accessories',
-  'Electronics & Gadgets': 'Electronics',
-  'electronics-gadgets': 'Electronics',
-  'electronics_gadgets': 'Electronics',
-  'Kids & Babies': 'Baby & Kids',
-  'kids-babies': 'Baby & Kids',
-  'kids_babies': 'Baby & Kids',
-  'Seasonal & Events': 'Seasonal & Events',
-  'seasonal-events': 'Seasonal & Events',
-  'seasonal_events': 'Seasonal & Events',
-  'Hobbies & Lifestyle': 'Hobbies & Lifestyle',
-  'hobbies-lifestyle': 'Hobbies & Lifestyle',
-  'hobbies_lifestyle': 'Hobbies & Lifestyle',
-  'Trending Viral Products': 'Trending Products',
-  'trending-viral-products': 'Trending Products',
-  'trending_viral': 'Trending Products',
+  'Fashion & Accessories': 'Apparel & Accessories',
+  'fashion-accessories': 'Apparel & Accessories',
+  'fashion_accessories': 'Apparel & Accessories',
+  'Electronics & Gadgets': 'Consumer Electronics',
+  'electronics-gadgets': 'Consumer Electronics',
+  'electronics_gadgets': 'Consumer Electronics',
+  'Kids & Babies': 'Baby & Kids Products',
+  'kids-babies': 'Baby & Kids Products',
+  'kids_babies': 'Baby & Kids Products',
+  'Seasonal & Events': 'Seasonal Decor',
+  'seasonal-events': 'Seasonal Decor',
+  'seasonal_events': 'Seasonal Decor',
+  'Hobbies & Lifestyle': 'Hobby & Leisure Products',
+  'hobbies-lifestyle': 'Hobby & Leisure Products',
+  'hobbies_lifestyle': 'Hobby & Leisure Products',
+  'Trending Viral Products': 'General Merchandise',
+  'trending-viral-products': 'General Merchandise',
+  'trending_viral': 'General Merchandise',
+};
+
+const NICHE_TO_SHOPIFY_CATEGORY: { [key: string]: string } = {
+  'Home & Living': 'gid://shopify/TaxonomyCategory/sg-2-17-2-1',
+  'home-living': 'gid://shopify/TaxonomyCategory/sg-2-17-2-1',
+  'home_living': 'gid://shopify/TaxonomyCategory/sg-2-17-2-1',
+  'Beauty & Personal Care': 'gid://shopify/TaxonomyCategory/sg-4-17-2-1',
+  'beauty-personal-care': 'gid://shopify/TaxonomyCategory/sg-4-17-2-1',
+  'beauty_personal_care': 'gid://shopify/TaxonomyCategory/sg-4-17-2-1',
+  'Health & Fitness': 'gid://shopify/TaxonomyCategory/sg-3-12-2-1',
+  'health-fitness': 'gid://shopify/TaxonomyCategory/sg-3-12-2-1',
+  'health_fitness': 'gid://shopify/TaxonomyCategory/sg-3-12-2-1',
+  'Pets': 'gid://shopify/TaxonomyCategory/sg-6-18-2-1',
+  'pets': 'gid://shopify/TaxonomyCategory/sg-6-18-2-1',
+  'Fashion & Accessories': 'gid://shopify/TaxonomyCategory/sg-1-5-2-1',
+  'fashion-accessories': 'gid://shopify/TaxonomyCategory/sg-1-5-2-1',
+  'fashion_accessories': 'gid://shopify/TaxonomyCategory/sg-1-5-2-1',
+  'Electronics & Gadgets': 'gid://shopify/TaxonomyCategory/sg-5-7-1-1',
+  'electronics-gadgets': 'gid://shopify/TaxonomyCategory/sg-5-7-1-1',
+  'electronics_gadgets': 'gid://shopify/TaxonomyCategory/sg-5-7-1-1',
+  'Kids & Babies': 'gid://shopify/TaxonomyCategory/sg-8-26-2-1',
+  'kids-babies': 'gid://shopify/TaxonomyCategory/sg-8-26-2-1',
+  'kids_babies': 'gid://shopify/TaxonomyCategory/sg-8-26-2-1',
+  'Seasonal & Events': 'gid://shopify/TaxonomyCategory/sg-2-17-2-1',
+  'seasonal-events': 'gid://shopify/TaxonomyCategory/sg-2-17-2-1',
+  'seasonal_events': 'gid://shopify/TaxonomyCategory/sg-2-17-2-1',
+  'Hobbies & Lifestyle': 'gid://shopify/TaxonomyCategory/sg-7-1-1-1',
+  'hobbies-lifestyle': 'gid://shopify/TaxonomyCategory/sg-7-1-1-1',
+  'hobbies_lifestyle': 'gid://shopify/TaxonomyCategory/sg-7-1-1-1',
+  'Trending Viral Products': 'gid://shopify/TaxonomyCategory/sg-7-1-1-1',
+  'trending-viral-products': 'gid://shopify/TaxonomyCategory/sg-7-1-1-1',
+  'trending_viral': 'gid://shopify/TaxonomyCategory/sg-7-1-1-1',
 };
 
 function getCategoryName(niche: string): string {
   return NICHE_TO_CATEGORY_NAME[niche] || niche;
+}
+
+function getShopifyCategory(niche: string): string | undefined {
+  return NICHE_TO_SHOPIFY_CATEGORY[niche];
 }
 
 async function generateAITitleAndDescription(niche: string, productIndex: number, storeName: string): Promise<{title: string; description: string}> {
@@ -481,6 +517,7 @@ serve(async (req) => {
     console.log(`✅ Mapped niche "${niche}" to bucket "${bucketName}"`);
 
     const categoryName = getCategoryName(niche);
+    const shopifyCategory = getShopifyCategory(niche);
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -645,7 +682,7 @@ serve(async (req) => {
             body_html: description,
             vendor: storeName || 'Premium Store',
             product_type: categoryName,
-            standard_product_type: categoryName,
+            ...(shopifyCategory && { category: shopifyCategory }),
             tags: `${categoryName}, ${niche}, premium, bestseller, trending, ai-generated, instance-${uniqueId + 1}`,
             options: [
               {
@@ -773,7 +810,7 @@ serve(async (req) => {
               body_html: meta.description,
               vendor: storeName || 'Premium Store',
               product_type: categoryName,
-              standard_product_type: categoryName,
+              ...(shopifyCategory && { category: shopifyCategory }),
               tags: `${categoryName}, ${niche}, curated, instance-${uniqueId + 1}`,
               options: [{ name: 'Color', position: 1, values: variants.map((v, idx) => colors[(uniqueId + idx) % colors.length]).slice(0, 3) }],
               variants,
