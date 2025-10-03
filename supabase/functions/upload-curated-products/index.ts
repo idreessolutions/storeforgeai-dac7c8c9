@@ -397,68 +397,54 @@ function calculateSmartPrice(basePrice: number, niche: string, index: number): n
 }
 
 
-// Lightweight helpers to read curated metadata from storage (title/description)
-async function readTextFromStorage(supabase: any, bucket: string, path: string): Promise<string | null> {
+// Get product data from product_data table
+async function getProductDataFromTable(supabase: any, niche: string, productFolder: string, uniqueId: number, storeName: string) {
   try {
-    const { data, error } = await supabase.storage.from(bucket).download(path);
-    if (error || !data) return null;
-    const text = await data.text();
-    return text.trim();
-  } catch (_e) {
-    return null;
+    // Query product_data table for this specific product
+    const { data, error } = await supabase
+      .from('product_data')
+      .select('*')
+      .eq('niche', niche)
+      .eq('product_folder', productFolder)
+      .single();
+
+    if (error || !data) {
+      console.log(`⚠️ No data found in product_data table for ${niche}/${productFolder}, using fallback`);
+      return generateFallbackProductData(niche, productFolder, uniqueId, storeName);
+    }
+
+    console.log(`✅ Found product data in table for ${productFolder}`);
+    
+    return {
+      title: data.title || `✨ ${productFolder} — ${niche} Pick #${uniqueId + 1}`,
+      description: data.description_md || generateFallbackDescription(niche, uniqueId, storeName),
+      price: data.price || 29.99,
+      compareAtPrice: data.compare_at_price || (data.price * 1.4),
+      tags: data.tags || [],
+      productType: data.product_type || getCategoryName(niche),
+      options: data.options || [],
+      variants: data.variants || []
+    };
+  } catch (err) {
+    console.error(`❌ Error fetching product data from table:`, err);
+    return generateFallbackProductData(niche, productFolder, uniqueId, storeName);
   }
 }
 
-async function getProductMetadata(supabase: any, bucket: string, productFolder: string, niche: string, uniqueId: number, storeName: string) {
-  // Try common curated file names first
-  const titleCandidates = [
-    `${productFolder}/title.txt`,
-    `${productFolder}/Title.txt`,
-    `${productFolder}/title.json`,
-  ];
-  const descCandidates = [
-    `${productFolder}/description.md`,
-    `${productFolder}/description.txt`,
-    `${productFolder}/Description.md`,
-    `${productFolder}/Description.txt`,
-  ];
-
-  let title: string | null = null;
-  for (const p of titleCandidates) {
-    const t = await readTextFromStorage(supabase, bucket, p);
-    if (t) {
-      try {
-        // If JSON, parse { title: "..." }
-        if (p.endsWith('.json')) {
-          const obj = JSON.parse(t);
-          title = obj.title || null;
-        } else {
-          title = t;
-        }
-      } catch { /* ignore */ }
-    }
-    if (title) break;
-  }
-
-  let description: string | null = null;
-  for (const p of descCandidates) {
-    const d = await readTextFromStorage(supabase, bucket, p);
-    if (d) {
-      description = d;
-      break;
-    }
-  }
-
-  if (!title) {
-    // Fallback to human-friendly title from folder name with unique suffix
-    const pretty = productFolder.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
-    title = `✨ ${pretty} — ${niche} Pick #${uniqueId + 1}`;
-  }
-  if (!description) {
-    description = generateFallbackDescription(niche, uniqueId, storeName);
-  }
-
-  return { title, description };
+function generateFallbackProductData(niche: string, productFolder: string, uniqueId: number, storeName: string) {
+  const pretty = productFolder.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const basePrice = calculateSmartPrice(29.99 + (uniqueId * 1.5), niche, uniqueId);
+  
+  return {
+    title: `✨ ${pretty} — ${niche} Pick #${uniqueId + 1}`,
+    description: generateFallbackDescription(niche, uniqueId, storeName),
+    price: basePrice,
+    compareAtPrice: basePrice * 1.4,
+    tags: [getCategoryName(niche), niche, 'premium', 'bestseller'],
+    productType: getCategoryName(niche),
+    options: [],
+    variants: []
+  };
 }
 
 serve(async (req) => {
@@ -583,23 +569,33 @@ serve(async (req) => {
       console.log(`📦 Processing product ${i + 1}/${selectedProducts.length}: ${productFolder} (Instance ${uniqueId + 1})`);
 
       try {
-        // Get title and description (prefer curated storage, optionally AI)
-        let productTitle: string;
-        let description: string;
+        // Get product data from product_data table (or AI if requested)
+        let productData: any;
+        
         if (useAI) {
           console.log(`🤖 Generating AI content for ${productFolder} (Instance ${uniqueId + 1})...`);
           const ai = await generateAITitleAndDescription(niche, uniqueId, storeName);
-          productTitle = ai.title;
-          description = ai.description;
+          const basePrice = calculateSmartPrice(29.99 + (uniqueId * 1.5), niche, uniqueId);
+          
+          productData = {
+            title: ai.title,
+            description: ai.description,
+            price: basePrice,
+            compareAtPrice: basePrice * 1.4,
+            tags: [getCategoryName(niche), niche, 'premium', 'ai-generated'],
+            productType: getCategoryName(niche),
+            options: [],
+            variants: []
+          };
         } else {
-          const meta = await getProductMetadata(supabase, bucketName, productFolder, niche, uniqueId, storeName);
-          productTitle = meta.title;
-          description = meta.description;
+          // Pull from product_data table in Supabase
+          console.log(`📊 Fetching product data from product_data table for ${productFolder}...`);
+          productData = await getProductDataFromTable(supabase, bucketName, productFolder, uniqueId, storeName);
         }
 
-        console.log(`🛒 Creating product in Shopify: ${productTitle}`);
+        console.log(`🛒 Creating product in Shopify: ${productData.title}`);
 
-        // Get main product images
+        // Get main product images from storage
         const { data: mainImages } = await supabase.storage
           .from(bucketName)
           .list(`${productFolder}/Products Images`);
@@ -607,43 +603,52 @@ serve(async (req) => {
         const imageUrls: Array<{ src: string; alt: string }> = [];
         
         if (mainImages && mainImages.length > 0) {
-          for (const img of mainImages.slice(0, 5)) { // Limit to 5 images
+          for (const img of mainImages.slice(0, 8)) { // Increased to 8 images
             const { data: imageUrl } = supabase.storage
               .from(bucketName)
               .getPublicUrl(`${productFolder}/Products Images/${img.name}`);
             
             imageUrls.push({
               src: imageUrl.publicUrl,
-              alt: `${productTitle} - Image ${imageUrls.length + 1}`
+              alt: `${productData.title} - Image ${imageUrls.length + 1}`
             });
           }
         }
 
-        // Get variant images
+        // Get variant images from storage
         const { data: variantImages } = await supabase.storage
           .from(bucketName)
           .list(`${productFolder}/Variants Product Images`);
 
-        // Calculate smart pricing with variation for each instance
-        const basePrice = 29.99 + (uniqueId * 1.5); // Slight price variation per instance
-        const price = calculateSmartPrice(basePrice, niche, uniqueId);
-        const compareAtPrice = price * 1.4; // 40% higher compare price
-
-        // Create variants based on available variant images
-        const variants = [];
+        // Use variants from table data if available, otherwise create default variants
+        let variants = [];
         const colors = ['Black', 'White', 'Blue', 'Red', 'Gray', 'Green', 'Purple', 'Brown'];
-
-        if (variantImages && variantImages.length > 0) {
+        
+        if (productData.variants && productData.variants.length > 0) {
+          // Use variants from product_data table
+          variants = productData.variants.map((v: any, idx: number) => ({
+            ...v,
+            sku: v.sku || `${bucketName.toUpperCase()}-${uniqueId + 1}-${idx + 1}`,
+            inventory_quantity: v.inventory_quantity || 100,
+            inventory_management: 'shopify',
+            inventory_policy: 'deny',
+            requires_shipping: true,
+            taxable: true
+          }));
+        } else if (variantImages && variantImages.length > 0) {
           // Create variants based on available variant images
           for (let v = 0; v < Math.min(3, variantImages.length); v++) {
             const variantImageUrl = supabase.storage
               .from(bucketName)
               .getPublicUrl(`${productFolder}/Variants Product Images/${variantImages[v].name}`);
 
+            const variantPrice = productData.price + (v * 2);
+            const variantComparePrice = productData.compareAtPrice + (v * 2);
+
             variants.push({
-              option1: colors[(uniqueId + v) % colors.length], // Vary colors based on unique ID
-              price: (price + (v * 2)).toFixed(2),
-              compare_at_price: (compareAtPrice + (v * 2)).toFixed(2),
+              option1: colors[(uniqueId + v) % colors.length],
+              price: variantPrice.toFixed(2),
+              compare_at_price: variantComparePrice.toFixed(2),
               sku: `${bucketName.toUpperCase()}-${uniqueId + 1}-${v + 1}`,
               inventory_quantity: 100,
               inventory_management: 'shopify',
@@ -652,19 +657,22 @@ serve(async (req) => {
               taxable: true
             });
 
-            // Add variant image to main images if not already included
+            // Add variant image to main images
             imageUrls.push({
               src: variantImageUrl.data.publicUrl,
-              alt: `${productTitle} - ${colors[(uniqueId + v) % colors.length]}`
+              alt: `${productData.title} - ${colors[(uniqueId + v) % colors.length]}`
             });
           }
         } else {
           // Create default variants with varied colors
           for (let v = 0; v < 3; v++) {
+            const variantPrice = productData.price + (v * 2);
+            const variantComparePrice = productData.compareAtPrice + (v * 2);
+            
             variants.push({
               option1: colors[(uniqueId + v) % colors.length],
-              price: (price + (v * 2)).toFixed(2),
-              compare_at_price: (compareAtPrice + (v * 2)).toFixed(2),
+              price: variantPrice.toFixed(2),
+              compare_at_price: variantComparePrice.toFixed(2),
               sku: `${bucketName.toUpperCase()}-${uniqueId + 1}-${v + 1}`,
               inventory_quantity: 100,
               inventory_management: 'shopify',
@@ -675,22 +683,35 @@ serve(async (req) => {
           }
         }
 
-        // Create Shopify product
+        // Prepare tags - combine table tags with niche tags
+        const allTags = [
+          ...(productData.tags || []),
+          categoryName,
+          niche,
+          'premium',
+          `instance-${uniqueId + 1}`
+        ];
+        const uniqueTags = [...new Set(allTags)].join(', ');
+
+        // Prepare options - use from table data or default to Color
+        const productOptions = productData.options && productData.options.length > 0
+          ? productData.options
+          : [{
+              name: 'Color',
+              position: 1,
+              values: variants.map((v, idx) => colors[(uniqueId + idx) % colors.length]).slice(0, variants.length)
+            }];
+
+        // Create Shopify product with category always included
         const shopifyProduct = {
           product: {
-            title: productTitle,
-            body_html: description,
+            title: productData.title,
+            body_html: productData.description,
             vendor: storeName || 'Premium Store',
-            product_type: categoryName,
-            ...(shopifyCategory && { category: shopifyCategory }),
-            tags: `${categoryName}, ${niche}, premium, bestseller, trending, ai-generated, instance-${uniqueId + 1}`,
-            options: [
-              {
-                name: 'Color',
-                position: 1,
-                values: variants.map((v, idx) => colors[(uniqueId + idx) % colors.length]).slice(0, 3)
-              }
-            ],
+            product_type: productData.productType || categoryName,
+            category: shopifyCategory || undefined, // Always include category
+            tags: uniqueTags,
+            options: productOptions,
             variants: variants,
             images: imageUrls.map((img, index) => ({
               src: img.src,
@@ -699,6 +720,8 @@ serve(async (req) => {
             }))
           }
         };
+
+        console.log(`📦 Product payload - Category: ${shopifyProduct.product.category}, Type: ${shopifyProduct.product.product_type}`);
 
         // Upload to Shopify
         const productResponse = await shopifyClient.createProductWithRetry(shopifyProduct);
@@ -710,14 +733,15 @@ serve(async (req) => {
           uniqueInstance: uniqueId + 1,
           success: true,
           productId: createdProduct.id,
-          title: productTitle,
+          title: productData.title,
+          category: categoryName,
           shopifyUrl: `${shopifyUrl}/admin/products/${createdProduct.id}`,
           imagesUploaded: imageUrls.length,
           variantsCreated: createdProduct.variants.length,
-          aiGenerated: true
+          dataSource: useAI ? 'AI' : 'product_data table'
         });
 
-        console.log(`✅ Successfully created with AI content: ${productTitle} (ID: ${createdProduct.id}, Instance: ${uniqueId + 1})`);
+        console.log(`✅ Successfully created: ${productData.title} (ID: ${createdProduct.id}, Instance: ${uniqueId + 1}, Category: ${categoryName})`);
 
         // Optional tiny delay to be gentle on API (kept very small)
         // await new Promise(resolve => setTimeout(resolve, 100));
@@ -743,7 +767,8 @@ serve(async (req) => {
         const productFolder = selectedProducts[i].name;
         const uniqueId = selectedProducts[i].uniqueId + (extraPasses * 10);
         try {
-          const meta = await getProductMetadata(supabase, bucketName, productFolder, niche, uniqueId, storeName);
+          // Use product_data table for retry passes too
+          const productData = await getProductDataFromTable(supabase, bucketName, productFolder, uniqueId, storeName);
 
           // Recompute assets quickly
           const { data: mainImages } = await supabase.storage
@@ -752,11 +777,11 @@ serve(async (req) => {
 
           const imageUrls: Array<{ src: string; alt: string }> = [];
           if (mainImages && mainImages.length > 0) {
-            for (const img of mainImages.slice(0, 5)) {
+            for (const img of mainImages.slice(0, 8)) {
               const { data: imageUrl } = supabase.storage
                 .from(bucketName)
                 .getPublicUrl(`${productFolder}/Products Images/${img.name}`);
-              imageUrls.push({ src: imageUrl.publicUrl, alt: `${meta.title} - Image ${imageUrls.length + 1}` });
+              imageUrls.push({ src: imageUrl.publicUrl, alt: `${productData.title} - Image ${imageUrls.length + 1}` });
             }
           }
 
@@ -764,21 +789,34 @@ serve(async (req) => {
             .from(bucketName)
             .list(`${productFolder}/Variants Product Images`);
 
-          const basePrice = 29.99 + (uniqueId * 1.5);
-          const price = calculateSmartPrice(basePrice, niche, uniqueId);
-          const compareAtPrice = price * 1.4;
-
           const variants = [] as any[];
           const colors = ['Black', 'White', 'Blue', 'Red', 'Gray', 'Green', 'Purple', 'Brown'];
-          if (variantImages && variantImages.length > 0) {
+          
+          if (productData.variants && productData.variants.length > 0) {
+            for (const v of productData.variants) {
+              variants.push({
+                ...v,
+                sku: v.sku || `${bucketName.toUpperCase()}-${uniqueId + 1}-${variants.length + 1}`,
+                inventory_quantity: v.inventory_quantity || 100,
+                inventory_management: 'shopify',
+                inventory_policy: 'deny',
+                requires_shipping: true,
+                taxable: true
+              });
+            }
+          } else if (variantImages && variantImages.length > 0) {
             for (let v = 0; v < Math.min(3, variantImages.length); v++) {
               const variantImageUrl = supabase.storage
                 .from(bucketName)
                 .getPublicUrl(`${productFolder}/Variants Product Images/${variantImages[v].name}`);
+              
+              const variantPrice = productData.price + (v * 2);
+              const variantComparePrice = productData.compareAtPrice + (v * 2);
+              
               variants.push({
                 option1: colors[(uniqueId + v) % colors.length],
-                price: (price + (v * 2)).toFixed(2),
-                compare_at_price: (compareAtPrice + (v * 2)).toFixed(2),
+                price: variantPrice.toFixed(2),
+                compare_at_price: variantComparePrice.toFixed(2),
                 sku: `${bucketName.toUpperCase()}-${uniqueId + 1}-${v + 1}`,
                 inventory_quantity: 100,
                 inventory_management: 'shopify',
@@ -786,14 +824,17 @@ serve(async (req) => {
                 requires_shipping: true,
                 taxable: true
               });
-              imageUrls.push({ src: variantImageUrl.data.publicUrl, alt: `${meta.title} - ${colors[(uniqueId + v) % colors.length]}` });
+              imageUrls.push({ src: variantImageUrl.data.publicUrl, alt: `${productData.title} - ${colors[(uniqueId + v) % colors.length]}` });
             }
           } else {
             for (let v = 0; v < 3; v++) {
+              const variantPrice = productData.price + (v * 2);
+              const variantComparePrice = productData.compareAtPrice + (v * 2);
+              
               variants.push({
                 option1: colors[(uniqueId + v) % colors.length],
-                price: (price + (v * 2)).toFixed(2),
-                compare_at_price: (compareAtPrice + (v * 2)).toFixed(2),
+                price: variantPrice.toFixed(2),
+                compare_at_price: variantComparePrice.toFixed(2),
                 sku: `${bucketName.toUpperCase()}-${uniqueId + 1}-${v + 1}`,
                 inventory_quantity: 100,
                 inventory_management: 'shopify',
@@ -804,15 +845,28 @@ serve(async (req) => {
             }
           }
 
+          const allTags = [
+            ...(productData.tags || []),
+            categoryName,
+            niche,
+            'curated',
+            `instance-${uniqueId + 1}`
+          ];
+          const uniqueTags = [...new Set(allTags)].join(', ');
+          
+          const productOptions = productData.options && productData.options.length > 0
+            ? productData.options
+            : [{ name: 'Color', position: 1, values: variants.map((v, idx) => colors[(uniqueId + idx) % colors.length]).slice(0, variants.length) }];
+
           const shopifyProduct = {
             product: {
-              title: meta.title,
-              body_html: meta.description,
+              title: productData.title,
+              body_html: productData.description,
               vendor: storeName || 'Premium Store',
-              product_type: categoryName,
-              ...(shopifyCategory && { category: shopifyCategory }),
-              tags: `${categoryName}, ${niche}, curated, instance-${uniqueId + 1}`,
-              options: [{ name: 'Color', position: 1, values: variants.map((v, idx) => colors[(uniqueId + idx) % colors.length]).slice(0, 3) }],
+              product_type: productData.productType || categoryName,
+              category: shopifyCategory || undefined,
+              tags: uniqueTags,
+              options: productOptions,
               variants,
               images: imageUrls.map((img, index) => ({ src: img.src, alt: img.alt, position: index + 1 }))
             }
