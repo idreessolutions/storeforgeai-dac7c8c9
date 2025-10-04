@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -141,6 +141,7 @@ export type Database = {
           investment_amount: string | null
           phone_number: string | null
           session_id: string | null
+          user_id: string | null
           why_mentorship: string | null
         }
         Insert: {
@@ -155,6 +156,7 @@ export type Database = {
           investment_amount?: string | null
           phone_number?: string | null
           session_id?: string | null
+          user_id?: string | null
           why_mentorship?: string | null
         }
         Update: {
@@ -169,7 +171,62 @@ export type Database = {
           investment_amount?: string | null
           phone_number?: string | null
           session_id?: string | null
+          user_id?: string | null
           why_mentorship?: string | null
+        }
+        Relationships: []
+      }
+      product_data: {
+        Row: {
+          category: string | null
+          compare_at_price: number | null
+          created_at: string
+          currency: string
+          description_md: string
+          id: string
+          is_active: boolean
+          main_images: string[] | null
+          niche: string
+          options: Json | null
+          price: number
+          product_folder: string
+          tags: string[] | null
+          title: string
+          variants: Json | null
+        }
+        Insert: {
+          category?: string | null
+          compare_at_price?: number | null
+          created_at?: string
+          currency?: string
+          description_md: string
+          id?: string
+          is_active?: boolean
+          main_images?: string[] | null
+          niche: string
+          options?: Json | null
+          price?: number
+          product_folder: string
+          tags?: string[] | null
+          title: string
+          variants?: Json | null
+        }
+        Update: {
+          category?: string | null
+          compare_at_price?: number | null
+          created_at?: string
+          currency?: string
+          description_md?: string
+          id?: string
+          is_active?: boolean
+          main_images?: string[] | null
+          niche?: string
+          options?: Json | null
+          price?: number
+          product_folder?: string
+          tags?: string[] | null
+          title?: string
+          variants?: Json | null
         }
         Relationships: []
       }
@@ -264,6 +321,7 @@ export type Database = {
           target_audience: string | null
           theme_color: string | null
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           access_token?: string | null
@@ -283,6 +341,7 @@ export type Database = {
           target_audience?: string | null
           theme_color?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           access_token?: string | null
@@ -302,6 +361,7 @@ export type Database = {
           target_audience?: string | null
           theme_color?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
