@@ -624,7 +624,9 @@ serve(async (req) => {
         if (productData.variants && productData.variants.length > 0) {
           // Use variants from product_data table (jsonb field)
           variants = productData.variants.map((v: any, idx: number) => ({
-            ...v,
+            option1: v.optionValues?.[0] || colors[(i + idx) % colors.length],
+            price: String(v.price || productData.price || 29.99),
+            compare_at_price: String(v.compareAtPrice || productData.compareAtPrice || (v.price * 1.4)),
             sku: v.sku || `${bucketName.toUpperCase()}-${i + 1}-${idx + 1}`,
             inventory_quantity: v.inventory_quantity || 100,
             inventory_management: 'shopify',
