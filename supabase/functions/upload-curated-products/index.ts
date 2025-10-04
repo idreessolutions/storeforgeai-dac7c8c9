@@ -397,41 +397,33 @@ function calculateSmartPrice(basePrice: number, niche: string, index: number): n
 }
 
 
-// Get product data from product_data table - CRITICAL: This is the PRIMARY source for all text content
+// Get product data from product_data table
 async function getProductDataFromTable(supabase: any, niche: string, productFolder: string, uniqueId: number, storeName: string) {
   try {
-    console.log(`🔍 Querying product_data table for niche="${niche}", productFolder="${productFolder}"`);
-    
     // Query product_data table for this specific product
     const { data, error } = await supabase
       .from('product_data')
       .select('*')
       .eq('niche', niche)
       .eq('product_folder', productFolder)
-      .maybeSingle();
+      .single();
 
-    if (error) {
-      console.error(`❌ Database error fetching product data:`, error);
-      return generateFallbackProductData(niche, productFolder, uniqueId, storeName);
-    }
-
-    if (!data) {
+    if (error || !data) {
       console.log(`⚠️ No data found in product_data table for ${niche}/${productFolder}, using fallback`);
       return generateFallbackProductData(niche, productFolder, uniqueId, storeName);
     }
 
-    console.log(`✅ Found product data in table for ${productFolder}: "${data.title}"`);
+    console.log(`✅ Found product data in table for ${productFolder}`);
     
-    // CRITICAL: Use ALL data from product_data table as the primary source
     return {
       title: data.title || `✨ ${productFolder} — ${niche} Pick #${uniqueId + 1}`,
       description: data.description_md || generateFallbackDescription(niche, uniqueId, storeName),
       price: data.price || 29.99,
       compareAtPrice: data.compare_at_price || (data.price * 1.4),
-      tags: Array.isArray(data.tags) ? data.tags : [],
+      tags: data.tags || [],
       productType: data.product_type || getCategoryName(niche),
-      options: Array.isArray(data.options) ? data.options : [],
-      variants: Array.isArray(data.variants) ? data.variants : []
+      options: data.options || [],
+      variants: data.variants || []
     };
   } catch (err) {
     console.error(`❌ Error fetching product data from table:`, err);
@@ -547,14 +539,20 @@ serve(async (req) => {
 
     const targetCount = 10;
 
-    // ALWAYS select the first 10 products (Product 1-10) sequentially
-    // This ensures consistency: every niche uploads Product 1, 2, 3... 10
-    const baseList: string[] = productNames.slice(0, Math.min(targetCount, productNames.length));
-
-    // If we have fewer than 10 products, cycle through what's available
-    while (baseList.length < targetCount) {
-      const nextIndex = baseList.length % productNames.length;
-      baseList.push(productNames[nextIndex]);
+    // Prefer randomized unique set when we have enough products
+    let baseList: string[];
+    if (productNames.length >= targetCount) {
+      const shuffled = [...productNames];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      baseList = shuffled.slice(0, targetCount);
+    } else {
+      baseList = [];
+      for (let i = 0; i < targetCount; i++) {
+        baseList.push(productNames[i % productNames.length]);
+      }
     }
 
     const selectedProducts = baseList.map((name, i) => ({ name, uniqueId: i }));
@@ -704,17 +702,14 @@ serve(async (req) => {
               values: variants.map((v, idx) => colors[(uniqueId + idx) % colors.length]).slice(0, variants.length)
             }];
 
-        // CRITICAL: Create Shopify product with category MANDATORY
-        // Category must ALWAYS be included - fallback to niche-based category if needed
-        const finalCategory = shopifyCategory || NICHE_TO_SHOPIFY_CATEGORY['Home & Living']; // Ultimate fallback
-        
+        // Create Shopify product with category always included
         const shopifyProduct = {
           product: {
             title: productData.title,
             body_html: productData.description,
             vendor: storeName || 'Premium Store',
             product_type: productData.productType || categoryName,
-            category: finalCategory, // MANDATORY - never undefined
+            category: shopifyCategory || undefined, // Always include category
             tags: uniqueTags,
             options: productOptions,
             variants: variants,
@@ -863,16 +858,13 @@ serve(async (req) => {
             ? productData.options
             : [{ name: 'Color', position: 1, values: variants.map((v, idx) => colors[(uniqueId + idx) % colors.length]).slice(0, variants.length) }];
 
-          // CRITICAL: Category must ALWAYS be included in retry passes too
-          const finalCategory = shopifyCategory || NICHE_TO_SHOPIFY_CATEGORY['Home & Living'];
-          
           const shopifyProduct = {
             product: {
               title: productData.title,
               body_html: productData.description,
               vendor: storeName || 'Premium Store',
               product_type: productData.productType || categoryName,
-              category: finalCategory, // MANDATORY - never undefined
+              category: shopifyCategory || undefined,
               tags: uniqueTags,
               options: productOptions,
               variants,
