@@ -398,7 +398,7 @@ function calculateSmartPrice(basePrice: number, niche: string, index: number): n
 
 
 // Get product data from product_data table - CRITICAL: This is the PRIMARY source for all text content
-async function getProductDataFromTable(supabase: any, niche: string, productFolder: string, uniqueId: number, storeName: string) {
+async function getProductDataFromTable(supabase: any, niche: string, productFolder: string) {
   try {
     console.log(`🔍 Querying product_data table for niche="${niche}", productFolder="${productFolder}"`);
     
@@ -408,51 +408,90 @@ async function getProductDataFromTable(supabase: any, niche: string, productFold
       .select('*')
       .eq('niche', niche)
       .eq('product_folder', productFolder)
+      .eq('is_active', true)
       .maybeSingle();
 
     if (error) {
       console.error(`❌ Database error fetching product data:`, error);
-      return generateFallbackProductData(niche, productFolder, uniqueId, storeName);
+      return null;
     }
 
     if (!data) {
-      console.log(`⚠️ No data found in product_data table for ${niche}/${productFolder}, using fallback`);
-      return generateFallbackProductData(niche, productFolder, uniqueId, storeName);
+      console.log(`⚠️ No data found in product_data table for ${niche}/${productFolder}`);
+      return null;
+    }
+
+    // CRITICAL: Validate mandatory category field
+    if (!data.category || data.category.trim() === '') {
+      console.warn(`❌ SKIPPING ${productFolder}: Missing mandatory category field`);
+      return null;
     }
 
     console.log(`✅ Found product data in table for ${productFolder}: "${data.title}"`);
     
-    // CRITICAL: Use ALL data from product_data table as the primary source
+    // Apply "Being prepared" fallback for missing text fields (except category)
+    const FALLBACK = "Being prepared";
+    
     return {
-      title: data.title || `✨ ${productFolder} — ${niche} Pick #${uniqueId + 1}`,
-      description: data.description_md || generateFallbackDescription(niche, uniqueId, storeName),
-      price: data.price || 29.99,
-      compareAtPrice: data.compare_at_price || (data.price * 1.4),
-      tags: Array.isArray(data.tags) ? data.tags : [],
-      productType: data.product_type || getCategoryName(niche),
-      options: Array.isArray(data.options) ? data.options : [],
-      variants: Array.isArray(data.variants) ? data.variants : []
+      title: data.title && data.title.trim() !== '' ? data.title : FALLBACK,
+      description: data.description_md && data.description_md.trim() !== '' ? data.description_md : FALLBACK,
+      price: data.price || 0,
+      compareAtPrice: data.compare_at_price || null,
+      currency: data.currency || 'USD',
+      tags: Array.isArray(data.tags) && data.tags.length > 0 ? data.tags : [FALLBACK],
+      productType: data.product_type || null,
+      category: data.category, // Already validated as non-empty
+      options: Array.isArray(data.options) ? data.options.map((opt: any) => ({
+        ...opt,
+        name: opt.name && opt.name.trim() !== '' ? opt.name : FALLBACK,
+        values: Array.isArray(opt.values) ? opt.values.map((v: string) => v && v.trim() !== '' ? v : FALLBACK) : [FALLBACK]
+      })) : [],
+      variants: Array.isArray(data.variants) ? data.variants : [],
+      mainImages: Array.isArray(data.main_images) ? data.main_images : []
     };
   } catch (err) {
     console.error(`❌ Error fetching product data from table:`, err);
-    return generateFallbackProductData(niche, productFolder, uniqueId, storeName);
+    return null;
   }
 }
 
-function generateFallbackProductData(niche: string, productFolder: string, uniqueId: number, storeName: string) {
-  const pretty = productFolder.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
-  const basePrice = calculateSmartPrice(29.99 + (uniqueId * 1.5), niche, uniqueId);
-  
-  return {
-    title: `✨ ${pretty} — ${niche} Pick #${uniqueId + 1}`,
-    description: generateFallbackDescription(niche, uniqueId, storeName),
-    price: basePrice,
-    compareAtPrice: basePrice * 1.4,
-    tags: [getCategoryName(niche), niche, 'premium', 'bestseller'],
-    productType: getCategoryName(niche),
-    options: [],
-    variants: []
-  };
+// Fetch exactly 10 unique, active products randomly from product_data table
+async function fetchRandomProducts(supabase: any, niche: string, limit: number = 10) {
+  try {
+    console.log(`🎲 Fetching ${limit} random active products from product_data for niche: ${niche}`);
+    
+    // Get all active products for this niche that have a category
+    const { data, error } = await supabase
+      .from('product_data')
+      .select('product_folder, category')
+      .eq('niche', niche)
+      .eq('is_active', true)
+      .not('category', 'is', null)
+      .not('category', 'eq', '');
+
+    if (error) {
+      console.error(`❌ Error fetching products from product_data:`, error);
+      return [];
+    }
+
+    if (!data || data.length === 0) {
+      console.warn(`⚠️ No active products with categories found in product_data for ${niche}`);
+      return [];
+    }
+
+    console.log(`📊 Found ${data.length} eligible products in product_data table`);
+
+    // Shuffle the array and take exactly 'limit' products
+    const shuffled = [...data].sort(() => Math.random() - 0.5);
+    const selected = shuffled.slice(0, Math.min(limit, data.length));
+
+    console.log(`✅ Selected ${selected.length} unique products:`, selected.map(p => p.product_folder));
+    
+    return selected.map(p => p.product_folder);
+  } catch (err) {
+    console.error(`❌ Error in fetchRandomProducts:`, err);
+    return [];
+  }
 }
 
 serve(async (req) => {
@@ -521,78 +560,34 @@ serve(async (req) => {
     // Initialize Shopify client
     const shopifyClient = new ShopifyClient(shopifyUrl, shopifyAccessToken);
 
-    // Get available product folders (sorted numerically: Product 1..N)
-    const { data: productFolders, error: listError } = await supabase.storage
-      .from(bucketName)
-      .list('', { limit: 200, sortBy: { column: 'name', order: 'asc' } });
-
-    if (listError) {
-      throw new Error(`Failed to list products: ${listError.message}`);
-    }
-
-    const productNames = (productFolders || [])
-      .filter((item) => item.name.startsWith('Product') && !item.name.includes('.'))
-      .map((item) => item.name)
-      .sort((a, b) => {
-        const an = parseInt((a.match(/\d+/)?.[0] || '0'), 10);
-        const bn = parseInt((b.match(/\d+/)?.[0] || '0'), 10);
-        return an - bn || a.localeCompare(b);
-      });
-
-    if (productNames.length === 0) {
-      throw new Error(`No product folders found in ${bucketName} bucket`);
-    }
-
-    console.log(`📦 Found ${productNames.length} available products in ${bucketName}: [${productNames.slice(0, 10).join(', ')}${productNames.length > 10 ? ', ...' : ''}]`);
-
     const targetCount = 10;
 
-    // ALWAYS select the first 10 products (Product 1-10) sequentially
-    // This ensures consistency: every niche uploads Product 1, 2, 3... 10
-    const baseList: string[] = productNames.slice(0, Math.min(targetCount, productNames.length));
-
-    // If we have fewer than 10 products, cycle through what's available
-    while (baseList.length < targetCount) {
-      const nextIndex = baseList.length % productNames.length;
-      baseList.push(productNames[nextIndex]);
+    // Fetch exactly 10 random products from product_data table (table-driven selection)
+    const selectedProductFolders = await fetchRandomProducts(supabase, bucketName, targetCount);
+    
+    if (selectedProductFolders.length === 0) {
+      throw new Error(`No eligible products found in product_data table for ${bucketName}. Please ensure products have category field populated and is_active=true.`);
     }
 
-    const selectedProducts = baseList.map((name, i) => ({ name, uniqueId: i }));
-
-    console.log(`🎯 Will process exactly ${selectedProducts.length} products (unique source folders: ${new Set(baseList).size})`);
+    console.log(`🎯 Will process exactly ${selectedProductFolders.length} products from product_data table`);
 
     const results = [];
     let successCount = 0;
 
-    for (let i = 0; i < selectedProducts.length; i++) {
-      const productFolder = selectedProducts[i].name;
-      const uniqueId = selectedProducts[i].uniqueId;
+    for (let i = 0; i < selectedProductFolders.length; i++) {
+      const productFolder = selectedProductFolders[i];
       
-      console.log(`📦 Processing product ${i + 1}/${selectedProducts.length}: ${productFolder} (Instance ${uniqueId + 1})`);
+      console.log(`📦 Processing product ${i + 1}/${selectedProductFolders.length}: ${productFolder}`);
 
       try {
-        // Get product data from product_data table (or AI if requested)
-        let productData: any;
+        // Pull ONLY from product_data table in Supabase (no AI, no fallback)
+        console.log(`📊 Fetching product data from product_data table for ${productFolder}...`);
+        const productData = await getProductDataFromTable(supabase, bucketName, productFolder);
         
-        if (useAI) {
-          console.log(`🤖 Generating AI content for ${productFolder} (Instance ${uniqueId + 1})...`);
-          const ai = await generateAITitleAndDescription(niche, uniqueId, storeName);
-          const basePrice = calculateSmartPrice(29.99 + (uniqueId * 1.5), niche, uniqueId);
-          
-          productData = {
-            title: ai.title,
-            description: ai.description,
-            price: basePrice,
-            compareAtPrice: basePrice * 1.4,
-            tags: [getCategoryName(niche), niche, 'premium', 'ai-generated'],
-            productType: getCategoryName(niche),
-            options: [],
-            variants: []
-          };
-        } else {
-          // Pull from product_data table in Supabase
-          console.log(`📊 Fetching product data from product_data table for ${productFolder}...`);
-          productData = await getProductDataFromTable(supabase, bucketName, productFolder, uniqueId, storeName);
+        // Skip if product data is invalid (missing category or not found)
+        if (!productData) {
+          console.warn(`⚠️ Skipping ${productFolder}: Invalid or missing product data`);
+          continue;
         }
 
         console.log(`🛒 Creating product in Shopify: ${productData.title}`);
@@ -622,15 +617,15 @@ serve(async (req) => {
           .from(bucketName)
           .list(`${productFolder}/Variants Product Images`);
 
-        // Use variants from table data if available, otherwise create default variants
+        // Use variants from table data if available, otherwise create from variant images
         let variants = [];
         const colors = ['Black', 'White', 'Blue', 'Red', 'Gray', 'Green', 'Purple', 'Brown'];
         
         if (productData.variants && productData.variants.length > 0) {
-          // Use variants from product_data table
+          // Use variants from product_data table (jsonb field)
           variants = productData.variants.map((v: any, idx: number) => ({
             ...v,
-            sku: v.sku || `${bucketName.toUpperCase()}-${uniqueId + 1}-${idx + 1}`,
+            sku: v.sku || `${bucketName.toUpperCase()}-${i + 1}-${idx + 1}`,
             inventory_quantity: v.inventory_quantity || 100,
             inventory_management: 'shopify',
             inventory_policy: 'deny',
@@ -644,14 +639,14 @@ serve(async (req) => {
               .from(bucketName)
               .getPublicUrl(`${productFolder}/Variants Product Images/${variantImages[v].name}`);
 
-            const variantPrice = productData.price + (v * 2);
-            const variantComparePrice = productData.compareAtPrice + (v * 2);
+            const variantPrice = productData.price > 0 ? productData.price + (v * 2) : 29.99 + (v * 2);
+            const variantComparePrice = productData.compareAtPrice || (variantPrice * 1.4);
 
             variants.push({
-              option1: colors[(uniqueId + v) % colors.length],
+              option1: colors[(i + v) % colors.length],
               price: variantPrice.toFixed(2),
               compare_at_price: variantComparePrice.toFixed(2),
-              sku: `${bucketName.toUpperCase()}-${uniqueId + 1}-${v + 1}`,
+              sku: `${bucketName.toUpperCase()}-${i + 1}-${v + 1}`,
               inventory_quantity: 100,
               inventory_management: 'shopify',
               inventory_policy: 'deny',
@@ -662,20 +657,23 @@ serve(async (req) => {
             // Add variant image to main images
             imageUrls.push({
               src: variantImageUrl.data.publicUrl,
-              alt: `${productData.title} - ${colors[(uniqueId + v) % colors.length]}`
+              alt: `${productData.title} - ${colors[(i + v) % colors.length]}`
             });
           }
         } else {
           // Create default variants with varied colors
+          const defaultPrice = productData.price > 0 ? productData.price : 29.99;
+          const defaultComparePrice = productData.compareAtPrice || (defaultPrice * 1.4);
+          
           for (let v = 0; v < 3; v++) {
-            const variantPrice = productData.price + (v * 2);
-            const variantComparePrice = productData.compareAtPrice + (v * 2);
+            const variantPrice = defaultPrice + (v * 2);
+            const variantComparePrice = defaultComparePrice + (v * 2);
             
             variants.push({
-              option1: colors[(uniqueId + v) % colors.length],
+              option1: colors[(i + v) % colors.length],
               price: variantPrice.toFixed(2),
               compare_at_price: variantComparePrice.toFixed(2),
-              sku: `${bucketName.toUpperCase()}-${uniqueId + 1}-${v + 1}`,
+              sku: `${bucketName.toUpperCase()}-${i + 1}-${v + 1}`,
               inventory_quantity: 100,
               inventory_management: 'shopify',
               inventory_policy: 'deny',
@@ -685,13 +683,12 @@ serve(async (req) => {
           }
         }
 
-        // Prepare tags - combine table tags with niche tags
+        // Prepare tags - use from table or fallback
         const allTags = [
           ...(productData.tags || []),
           categoryName,
           niche,
-          'premium',
-          `instance-${uniqueId + 1}`
+          'curated'
         ];
         const uniqueTags = [...new Set(allTags)].join(', ');
 
@@ -701,20 +698,18 @@ serve(async (req) => {
           : [{
               name: 'Color',
               position: 1,
-              values: variants.map((v, idx) => colors[(uniqueId + idx) % colors.length]).slice(0, variants.length)
+              values: variants.map((v, idx) => colors[(i + idx) % colors.length]).slice(0, variants.length)
             }];
 
-        // CRITICAL: Create Shopify product with category MANDATORY
-        // Category must ALWAYS be included - fallback to niche-based category if needed
-        const finalCategory = shopifyCategory || NICHE_TO_SHOPIFY_CATEGORY['Home & Living']; // Ultimate fallback
-        
+        // CRITICAL: Use category from product_data table (already validated as non-empty)
+        // This is MANDATORY - we already skipped products without category
         const shopifyProduct = {
           product: {
             title: productData.title,
             body_html: productData.description,
             vendor: storeName || 'Premium Store',
             product_type: productData.productType || categoryName,
-            category: finalCategory, // MANDATORY - never undefined
+            category: productData.category, // From product_data table - MANDATORY
             tags: uniqueTags,
             options: productOptions,
             variants: variants,
@@ -735,170 +730,28 @@ serve(async (req) => {
         successCount++;
         results.push({
           productFolder,
-          uniqueInstance: uniqueId + 1,
           success: true,
           productId: createdProduct.id,
           title: productData.title,
-          category: categoryName,
+          category: productData.category,
           shopifyUrl: `${shopifyUrl}/admin/products/${createdProduct.id}`,
           imagesUploaded: imageUrls.length,
           variantsCreated: createdProduct.variants.length,
-          dataSource: useAI ? 'AI' : 'product_data table'
+          dataSource: 'product_data table'
         });
 
-        console.log(`✅ Successfully created: ${productData.title} (ID: ${createdProduct.id}, Instance: ${uniqueId + 1}, Category: ${categoryName})`);
-
-        // Optional tiny delay to be gentle on API (kept very small)
-        // await new Promise(resolve => setTimeout(resolve, 100));
+        console.log(`✅ Successfully created: ${productData.title} (ID: ${createdProduct.id}, Category: ${productData.category})`);
 
       } catch (error) {
-        console.error(`❌ Error processing ${productFolder} (Instance ${uniqueId + 1}):`, error);
+        console.error(`❌ Error processing ${productFolder}:`, error);
         results.push({
           productFolder,
-          uniqueInstance: uniqueId + 1,
           success: false,
           error: error.message
         });
       }
     }
 
-    // If we didn't reach the target yet, do another quick pass to guarantee 10
-    // This is fast because we skip AI generation and reuse curated assets
-    let extraPasses = 0;
-    while (successCount < targetCount && extraPasses < 2) {
-      extraPasses++;
-      console.log(`🔁 Guarantee pass #${extraPasses}: need ${targetCount - successCount} more products`);
-      for (let i = 0; i < selectedProducts.length && successCount < targetCount; i++) {
-        const productFolder = selectedProducts[i].name;
-        const uniqueId = selectedProducts[i].uniqueId + (extraPasses * 10);
-        try {
-          // Use product_data table for retry passes too
-          const productData = await getProductDataFromTable(supabase, bucketName, productFolder, uniqueId, storeName);
-
-          // Recompute assets quickly
-          const { data: mainImages } = await supabase.storage
-            .from(bucketName)
-            .list(`${productFolder}/Products Images`);
-
-          const imageUrls: Array<{ src: string; alt: string }> = [];
-          if (mainImages && mainImages.length > 0) {
-            for (const img of mainImages.slice(0, 8)) {
-              const { data: imageUrl } = supabase.storage
-                .from(bucketName)
-                .getPublicUrl(`${productFolder}/Products Images/${img.name}`);
-              imageUrls.push({ src: imageUrl.publicUrl, alt: `${productData.title} - Image ${imageUrls.length + 1}` });
-            }
-          }
-
-          const { data: variantImages } = await supabase.storage
-            .from(bucketName)
-            .list(`${productFolder}/Variants Product Images`);
-
-          const variants = [] as any[];
-          const colors = ['Black', 'White', 'Blue', 'Red', 'Gray', 'Green', 'Purple', 'Brown'];
-          
-          if (productData.variants && productData.variants.length > 0) {
-            for (const v of productData.variants) {
-              variants.push({
-                ...v,
-                sku: v.sku || `${bucketName.toUpperCase()}-${uniqueId + 1}-${variants.length + 1}`,
-                inventory_quantity: v.inventory_quantity || 100,
-                inventory_management: 'shopify',
-                inventory_policy: 'deny',
-                requires_shipping: true,
-                taxable: true
-              });
-            }
-          } else if (variantImages && variantImages.length > 0) {
-            for (let v = 0; v < Math.min(3, variantImages.length); v++) {
-              const variantImageUrl = supabase.storage
-                .from(bucketName)
-                .getPublicUrl(`${productFolder}/Variants Product Images/${variantImages[v].name}`);
-              
-              const variantPrice = productData.price + (v * 2);
-              const variantComparePrice = productData.compareAtPrice + (v * 2);
-              
-              variants.push({
-                option1: colors[(uniqueId + v) % colors.length],
-                price: variantPrice.toFixed(2),
-                compare_at_price: variantComparePrice.toFixed(2),
-                sku: `${bucketName.toUpperCase()}-${uniqueId + 1}-${v + 1}`,
-                inventory_quantity: 100,
-                inventory_management: 'shopify',
-                inventory_policy: 'deny',
-                requires_shipping: true,
-                taxable: true
-              });
-              imageUrls.push({ src: variantImageUrl.data.publicUrl, alt: `${productData.title} - ${colors[(uniqueId + v) % colors.length]}` });
-            }
-          } else {
-            for (let v = 0; v < 3; v++) {
-              const variantPrice = productData.price + (v * 2);
-              const variantComparePrice = productData.compareAtPrice + (v * 2);
-              
-              variants.push({
-                option1: colors[(uniqueId + v) % colors.length],
-                price: variantPrice.toFixed(2),
-                compare_at_price: variantComparePrice.toFixed(2),
-                sku: `${bucketName.toUpperCase()}-${uniqueId + 1}-${v + 1}`,
-                inventory_quantity: 100,
-                inventory_management: 'shopify',
-                inventory_policy: 'deny',
-                requires_shipping: true,
-                taxable: true
-              });
-            }
-          }
-
-          const allTags = [
-            ...(productData.tags || []),
-            categoryName,
-            niche,
-            'curated',
-            `instance-${uniqueId + 1}`
-          ];
-          const uniqueTags = [...new Set(allTags)].join(', ');
-          
-          const productOptions = productData.options && productData.options.length > 0
-            ? productData.options
-            : [{ name: 'Color', position: 1, values: variants.map((v, idx) => colors[(uniqueId + idx) % colors.length]).slice(0, variants.length) }];
-
-          // CRITICAL: Category must ALWAYS be included in retry passes too
-          const finalCategory = shopifyCategory || NICHE_TO_SHOPIFY_CATEGORY['Home & Living'];
-          
-          const shopifyProduct = {
-            product: {
-              title: productData.title,
-              body_html: productData.description,
-              vendor: storeName || 'Premium Store',
-              product_type: productData.productType || categoryName,
-              category: finalCategory, // MANDATORY - never undefined
-              tags: uniqueTags,
-              options: productOptions,
-              variants,
-              images: imageUrls.map((img, index) => ({ src: img.src, alt: img.alt, position: index + 1 }))
-            }
-          };
-
-          const productResponse = await shopifyClient.createProductWithRetry(shopifyProduct);
-          const createdProduct = productResponse.product;
-          successCount++;
-          results.push({
-            productFolder,
-            uniqueInstance: uniqueId + 1,
-            success: true,
-            productId: createdProduct.id,
-            title: meta.title,
-            shopifyUrl: `${shopifyUrl}/admin/products/${createdProduct.id}`,
-            imagesUploaded: imageUrls.length,
-            variantsCreated: createdProduct.variants.length,
-            aiGenerated: false
-          });
-        } catch (err) {
-          console.warn(`⚠️ Retry pass failed for ${productFolder} #${uniqueId + 1}:`, err?.message || err);
-        }
-      }
-    }
 
     // Apply theme color to Refresh theme
     if (themeColor && successCount > 0) {
@@ -947,23 +800,17 @@ serve(async (req) => {
       }
     }
 
-    console.log(`🎉 GUARANTEED SUCCESS: ${successCount}/${targetCount} products uploaded successfully`);
-
-    if (successCount < targetCount) {
-      console.warn(`⚠️ Only ${successCount} out of ${targetCount} products were successful`);
-    }
+    console.log(`🎉 Upload complete: ${successCount}/${targetCount} products uploaded successfully`);
 
     return new Response(JSON.stringify({
       success: true,
       uploadedCount: successCount,
       totalProcessed: results.length,
       targetCount: targetCount,
-      guaranteedTenProducts: successCount === targetCount,
       results,
       niche,
       bucketName,
-      aiContentGenerated: true,
-      message: `Successfully uploaded ${successCount} curated ${niche} products with AI-generated titles and descriptions${themeColor ? ' and applied theme color' : ''}`
+      message: `Successfully uploaded ${successCount} curated ${niche} products from product_data table${themeColor ? ' and applied theme color' : ''}`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
