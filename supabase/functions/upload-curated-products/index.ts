@@ -513,51 +513,41 @@ serve(async (req) => {
     // Initialize Shopify client
     const shopifyClient = new ShopifyClient(shopifyUrl, shopifyAccessToken);
 
-    // Get available product folders (sorted numerically: Product 1..N)
-    const { data: productFolders, error: listError } = await supabase.storage
-      .from(bucketName)
-      .list('', { limit: 200, sortBy: { column: 'name', order: 'asc' } });
-
-    if (listError) {
-      throw new Error(`Failed to list products: ${listError.message}`);
-    }
-
-    const productNames = (productFolders || [])
-      .filter((item) => item.name.startsWith('Product') && !item.name.includes('.'))
-      .map((item) => item.name)
-      .sort((a, b) => {
-        const an = parseInt((a.match(/\d+/)?.[0] || '0'), 10);
-        const bn = parseInt((b.match(/\d+/)?.[0] || '0'), 10);
-        return an - bn || a.localeCompare(b);
-      });
-
-    if (productNames.length === 0) {
-      throw new Error(`No product folders found in ${bucketName} bucket`);
-    }
-
-    console.log(`📦 Found ${productNames.length} available products in ${bucketName}: [${productNames.slice(0, 10).join(', ')}${productNames.length > 10 ? ', ...' : ''}]`);
-
+    // CRITICAL: Always upload exactly 10 products (Product 1 through Product 10)
+    // Pull data from product_data table and images from storage buckets
     const targetCount = 10;
+    const selectedProducts = [];
+    
+    // Query product_data table to get exactly 10 products for this niche
+    const { data: productsFromTable, error: tableError } = await supabase
+      .from('product_data')
+      .select('*')
+      .eq('niche', bucketName)
+      .eq('is_active', true)
+      .order('product_folder', { ascending: true })
+      .limit(targetCount);
 
-    // Prefer randomized unique set when we have enough products
-    let baseList: string[];
-    if (productNames.length >= targetCount) {
-      const shuffled = [...productNames];
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-      }
-      baseList = shuffled.slice(0, targetCount);
-    } else {
-      baseList = [];
-      for (let i = 0; i < targetCount; i++) {
-        baseList.push(productNames[i % productNames.length]);
-      }
+    if (tableError) {
+      console.error(`❌ Error querying product_data table:`, tableError);
+      throw new Error(`Failed to fetch products from product_data table: ${tableError.message}`);
     }
 
-    const selectedProducts = baseList.map((name, i) => ({ name, uniqueId: i }));
+    if (!productsFromTable || productsFromTable.length === 0) {
+      throw new Error(`No active products found in product_data table for niche: ${bucketName}`);
+    }
 
-    console.log(`🎯 Will process exactly ${selectedProducts.length} products (unique source folders: ${new Set(baseList).size})`);
+    console.log(`✅ Found ${productsFromTable.length} products in product_data table for ${bucketName}`);
+
+    // Use exactly the products from the table (Product 1 through Product 10)
+    for (let i = 0; i < Math.min(targetCount, productsFromTable.length); i++) {
+      selectedProducts.push({
+        name: productsFromTable[i].product_folder,
+        uniqueId: i,
+        tableData: productsFromTable[i]
+      });
+    }
+
+    console.log(`🎯 Will process exactly ${selectedProducts.length} unique products: [${selectedProducts.map(p => p.name).join(', ')}]`);
 
     const results = [];
     let successCount = 0;
@@ -569,29 +559,27 @@ serve(async (req) => {
       console.log(`📦 Processing product ${i + 1}/${selectedProducts.length}: ${productFolder} (Instance ${uniqueId + 1})`);
 
       try {
-        // Get product data from product_data table (or AI if requested)
-        let productData: any;
+        // CRITICAL: Use product data from product_data table (already fetched)
+        const tableData = selectedProducts[i].tableData;
         
-        if (useAI) {
-          console.log(`🤖 Generating AI content for ${productFolder} (Instance ${uniqueId + 1})...`);
-          const ai = await generateAITitleAndDescription(niche, uniqueId, storeName);
-          const basePrice = calculateSmartPrice(29.99 + (uniqueId * 1.5), niche, uniqueId);
-          
-          productData = {
-            title: ai.title,
-            description: ai.description,
-            price: basePrice,
-            compareAtPrice: basePrice * 1.4,
-            tags: [getCategoryName(niche), niche, 'premium', 'ai-generated'],
-            productType: getCategoryName(niche),
-            options: [],
-            variants: []
-          };
-        } else {
-          // Pull from product_data table in Supabase
-          console.log(`📊 Fetching product data from product_data table for ${productFolder}...`);
-          productData = await getProductDataFromTable(supabase, bucketName, productFolder, uniqueId, storeName);
+        console.log(`📊 Using product data from product_data table for ${productFolder}`);
+        
+        // Validate mandatory fields
+        if (!tableData.title || !tableData.description_md || !tableData.price) {
+          throw new Error(`Missing required fields in product_data for ${productFolder}`);
         }
+
+        const productData = {
+          title: tableData.title,
+          description: tableData.description_md,
+          price: tableData.price,
+          compareAtPrice: tableData.compare_at_price || (tableData.price * 1.67),
+          tags: tableData.tags || [],
+          productType: getCategoryName(niche),
+          options: tableData.options || [],
+          variants: tableData.variants || [],
+          currency: tableData.currency || 'USD'
+        };
 
         console.log(`🛒 Creating product in Shopify: ${productData.title}`);
 
@@ -702,14 +690,19 @@ serve(async (req) => {
               values: variants.map((v, idx) => colors[(uniqueId + idx) % colors.length]).slice(0, variants.length)
             }];
 
-        // Create Shopify product with category always included
+        // CRITICAL: Category is MANDATORY - never allow blank category
+        if (!shopifyCategory) {
+          throw new Error(`No Shopify category mapped for niche: ${niche}. Category assignment is mandatory.`);
+        }
+
+        // Create Shopify product with MANDATORY category
         const shopifyProduct = {
           product: {
             title: productData.title,
             body_html: productData.description,
             vendor: storeName || 'Premium Store',
             product_type: productData.productType || categoryName,
-            category: shopifyCategory || undefined, // Always include category
+            category: shopifyCategory, // MANDATORY - never undefined
             tags: uniqueTags,
             options: productOptions,
             variants: variants,
@@ -721,7 +714,7 @@ serve(async (req) => {
           }
         };
 
-        console.log(`📦 Product payload - Category: ${shopifyProduct.product.category}, Type: ${shopifyProduct.product.product_type}`);
+        console.log(`📦 Product payload - Category: ${shopifyProduct.product.category} (MANDATORY), Type: ${shopifyProduct.product.product_type}`);
 
         // Upload to Shopify
         const productResponse = await shopifyClient.createProductWithRetry(shopifyProduct);
@@ -757,10 +750,15 @@ serve(async (req) => {
       }
     }
 
-    // If we didn't reach the target yet, do another quick pass to guarantee 10
-    // This is fast because we skip AI generation and reuse curated assets
+    // No extra passes needed - we only upload exactly 10 products from product_data table
+    // If any failed, the results will show which ones
+    if (successCount < targetCount) {
+      console.log(`⚠️ Warning: Only ${successCount} out of ${targetCount} products uploaded successfully`);
+    }
+
+    // Remove the retry logic since we're being strict about exact product matching
     let extraPasses = 0;
-    while (successCount < targetCount && extraPasses < 2) {
+    while (false && successCount < targetCount && extraPasses < 2) {
       extraPasses++;
       console.log(`🔁 Guarantee pass #${extraPasses}: need ${targetCount - successCount} more products`);
       for (let i = 0; i < selectedProducts.length && successCount < targetCount; i++) {
