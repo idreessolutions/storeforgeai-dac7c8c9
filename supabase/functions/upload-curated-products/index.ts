@@ -612,34 +612,70 @@ serve(async (req) => {
           }
         }
 
-        // Get variant images from storage
-        const { data: variantImages } = await supabase.storage
+        // Get variant images from storage - for mapping to variants
+        const { data: variantImagesList } = await supabase.storage
           .from(bucketName)
           .list(`${productFolder}/Variants Product Images`);
 
         // Use variants from table data if available, otherwise create from variant images
         let variants = [];
+        const variantImageMapping: { [key: number]: string } = {}; // Track which image goes to which variant
         const colors = ['Black', 'White', 'Blue', 'Red', 'Gray', 'Green', 'Purple', 'Brown'];
         
         if (productData.variants && productData.variants.length > 0) {
+          console.log(`🔄 Processing ${productData.variants.length} variants from product_data table`);
+          
           // Use variants from product_data table (jsonb field)
-          variants = productData.variants.map((v: any, idx: number) => ({
-            option1: v.optionValues?.[0] || colors[(i + idx) % colors.length],
-            price: String(v.price || productData.price || 29.99),
-            compare_at_price: String(v.compareAtPrice || productData.compareAtPrice || (v.price * 1.4)),
-            sku: v.sku || `${bucketName.toUpperCase()}-${i + 1}-${idx + 1}`,
-            inventory_quantity: v.inventory_quantity || 100,
-            inventory_management: 'shopify',
-            inventory_policy: 'deny',
-            requires_shipping: true,
-            taxable: true
-          }));
-        } else if (variantImages && variantImages.length > 0) {
+          for (let idx = 0; idx < productData.variants.length; idx++) {
+            const v = productData.variants[idx];
+            
+            // Create the variant
+            variants.push({
+              option1: v.optionValues?.[0] || colors[(i + idx) % colors.length],
+              price: String(v.price || productData.price || 29.99),
+              compare_at_price: String(v.compareAtPrice || productData.compareAtPrice || (v.price * 1.4)),
+              sku: v.sku || `${bucketName.toUpperCase()}-${i + 1}-${idx + 1}`,
+              inventory_quantity: v.inventory_quantity || 100,
+              inventory_management: 'shopify',
+              inventory_policy: 'deny',
+              requires_shipping: true,
+              taxable: true
+            });
+            
+            // Add variant-specific image if specified in the table
+            if (v.image && typeof v.image === 'string') {
+              const variantImagePath = v.image.startsWith('Variants Product Images/') 
+                ? v.image 
+                : `Variants Product Images/${v.image}`;
+              
+              const { data: variantImageUrl } = supabase.storage
+                .from(bucketName)
+                .getPublicUrl(`${productFolder}/${variantImagePath}`);
+              
+              // Add variant image to imageUrls array
+              // The position in imageUrls determines which image ID will be assigned
+              const imagePosition = imageUrls.length + mainImages.length; // After main images
+              imageUrls.push({
+                src: variantImageUrl.publicUrl,
+                alt: `${productData.title} - ${v.optionValues?.[0] || colors[(i + idx) % colors.length]}`
+              });
+              
+              // Map this variant to its image position (will be used after product creation)
+              variantImageMapping[idx] = variantImageUrl.publicUrl;
+              
+              console.log(`🖼️ Added variant image for ${v.optionValues?.[0]}: ${variantImagePath}`);
+            }
+          }
+          
+          console.log(`✅ Created ${variants.length} variants with ${Object.keys(variantImageMapping).length} variant images`);
+        } else if (variantImagesList && variantImagesList.length > 0) {
+          console.log(`🔄 Creating variants from ${variantImagesList.length} variant images found in storage`);
+          
           // Create variants based on available variant images
-          for (let v = 0; v < Math.min(3, variantImages.length); v++) {
+          for (let v = 0; v < Math.min(10, variantImagesList.length); v++) {
             const variantImageUrl = supabase.storage
               .from(bucketName)
-              .getPublicUrl(`${productFolder}/Variants Product Images/${variantImages[v].name}`);
+              .getPublicUrl(`${productFolder}/Variants Product Images/${variantImagesList[v].name}`);
 
             const variantPrice = productData.price > 0 ? productData.price + (v * 2) : 29.99 + (v * 2);
             const variantComparePrice = productData.compareAtPrice || (variantPrice * 1.4);
@@ -656,13 +692,18 @@ serve(async (req) => {
               taxable: true
             });
 
-            // Add variant image to main images
+            // Add variant image to imageUrls
+            variantImageMapping[v] = variantImageUrl.data.publicUrl;
             imageUrls.push({
               src: variantImageUrl.data.publicUrl,
               alt: `${productData.title} - ${colors[(i + v) % colors.length]}`
             });
           }
+          
+          console.log(`✅ Created ${variants.length} variants from storage images`);
         } else {
+          console.log(`⚠️ No variants found in table or storage, creating default variants`);
+          
           // Create default variants with varied colors
           const defaultPrice = productData.price > 0 ? productData.price : 29.99;
           const defaultComparePrice = productData.compareAtPrice || (defaultPrice * 1.4);
@@ -729,6 +770,63 @@ serve(async (req) => {
         const productResponse = await shopifyClient.createProductWithRetry(shopifyProduct);
         const createdProduct = productResponse.product;
 
+        // 🖼️ CRITICAL: Link variant images to their variants
+        if (Object.keys(variantImageMapping).length > 0 && createdProduct.images && createdProduct.variants) {
+          console.log(`🔗 Linking ${Object.keys(variantImageMapping).length} variant images to variants...`);
+          
+          // Create a map of image URL to image ID from the created product
+          const imageUrlToId: { [url: string]: number } = {};
+          for (const img of createdProduct.images) {
+            if (img.src) {
+              imageUrlToId[img.src] = img.id;
+            }
+          }
+          
+          // Update each variant with its image
+          for (let variantIdx = 0; variantIdx < createdProduct.variants.length; variantIdx++) {
+            const variantImageUrl = variantImageMapping[variantIdx];
+            
+            if (variantImageUrl && imageUrlToId[variantImageUrl]) {
+              const variant = createdProduct.variants[variantIdx];
+              const imageId = imageUrlToId[variantImageUrl];
+              
+              try {
+                // Update the variant to link it to its image
+                const updateResponse = await fetch(
+                  `${shopifyUrl}/admin/api/2024-10/variants/${variant.id}.json`,
+                  {
+                    method: 'PUT',
+                    headers: {
+                      'X-Shopify-Access-Token': shopifyAccessToken,
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                      variant: {
+                        id: variant.id,
+                        image_id: imageId
+                      }
+                    })
+                  }
+                );
+                
+                if (updateResponse.ok) {
+                  console.log(`✅ Linked image ${imageId} to variant ${variant.id} (${variant.option1})`);
+                } else {
+                  const errorText = await updateResponse.text();
+                  console.warn(`⚠️ Failed to link image to variant ${variant.id}: ${errorText}`);
+                }
+                
+                // Rate limit protection
+                await new Promise(resolve => setTimeout(resolve, 300));
+              } catch (err) {
+                console.warn(`⚠️ Error linking image to variant ${variant.id}:`, err);
+              }
+            }
+          }
+          
+          console.log(`✅ Variant image linking complete`);
+        }
+
         successCount++;
         results.push({
           productFolder,
@@ -739,10 +837,11 @@ serve(async (req) => {
           shopifyUrl: `${shopifyUrl}/admin/products/${createdProduct.id}`,
           imagesUploaded: imageUrls.length,
           variantsCreated: createdProduct.variants.length,
+          variantImagesLinked: Object.keys(variantImageMapping).length,
           dataSource: 'product_data table'
         });
 
-        console.log(`✅ Successfully created: ${productData.title} (ID: ${createdProduct.id}, Category: ${productData.category})`);
+        console.log(`✅ Successfully created: ${productData.title} (ID: ${createdProduct.id}, Category: ${productData.category}, Variants: ${createdProduct.variants.length})`);
 
       } catch (error) {
         console.error(`❌ Error processing ${productFolder}:`, error);
