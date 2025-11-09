@@ -298,27 +298,6 @@ const LaunchStep = ({ formData }: LaunchStepProps) => {
               </p>
             </div>
 
-            {/* Social Share Section (UI only) */}
-            {formData.shopifyUrl && (
-              <div className="text-center pt-6 border-t border-border">
-                <p className="text-sm text-muted-foreground mb-3">Share your new store:</p>
-                <div className="flex flex-wrap justify-center gap-3">
-                  <Button variant="outline" size="sm" className="rounded-lg">
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy URL
-                  </Button>
-                  <Button variant="outline" size="sm" className="rounded-lg">
-                    📘 Facebook
-                  </Button>
-                  <Button variant="outline" size="sm" className="rounded-lg">
-                    🎵 TikTok
-                  </Button>
-                  <Button variant="outline" size="sm" className="rounded-lg">
-                    📸 Instagram
-                  </Button>
-                </div>
-              </div>
-            )}
 
             {/* Footer Note */}
             <div className="mt-8 text-center">
