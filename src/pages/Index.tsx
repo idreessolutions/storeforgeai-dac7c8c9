@@ -325,10 +325,10 @@ const Index = () => {
                   className="inline-flex items-center justify-center" 
                   dangerouslySetInnerHTML={{
                     __html: `<lord-icon
-                      src="https://cdn.lordicon.com/edkuxwya.json"
-                      trigger="in"
+                      src="https://cdn.lordicon.com/bdynvafa.json"
+                      trigger="hover"
                       stroke="bold"
-                      state="in-reveal"
+                      state="loop-cycle"
                       colors="primary:#ffffff,secondary:#ffffff"
                       style="width:24px;height:24px">
                     </lord-icon>`
