@@ -12,8 +12,10 @@ const Index = () => {
   const [showAuth, setShowAuth] = useState(false);
   const ctaButtonRef = useRef<HTMLButtonElement>(null);
   const arrowContainerRef = useRef<HTMLSpanElement>(null);
+  const badgeRef = useRef<HTMLDivElement>(null);
+  const badgeIconContainerRef = useRef<HTMLSpanElement>(null);
 
-  // Setup lord-icon animation triggers
+  // Setup lord-icon animation triggers for CTA button
   useEffect(() => {
     const button = ctaButtonRef.current;
     const container = arrowContainerRef.current;
@@ -40,6 +42,36 @@ const Index = () => {
     return () => {
       button.removeEventListener('mouseenter', triggerAnimation);
       button.removeEventListener('focus', triggerAnimation);
+    };
+  }, []);
+
+  // Setup lord-icon animation triggers for badge
+  useEffect(() => {
+    const badge = badgeRef.current;
+    const container = badgeIconContainerRef.current;
+    if (!badge || !container) return;
+
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    // Find the lord-icon element
+    const lordIcon = container.querySelector('lord-icon') as any;
+    if (!lordIcon) return;
+
+    const triggerAnimation = () => {
+      if (lordIcon && typeof lordIcon.play === 'function') {
+        lordIcon.play();
+      }
+    };
+
+    // Add event listeners to badge for hover and focus
+    badge.addEventListener('mouseenter', triggerAnimation);
+    badge.addEventListener('focus', triggerAnimation);
+
+    return () => {
+      badge.removeEventListener('mouseenter', triggerAnimation);
+      badge.removeEventListener('focus', triggerAnimation);
     };
   }, []);
 
@@ -74,10 +106,30 @@ const Index = () => {
         {/* Hero Content */}
         <div className="relative z-10 max-w-6xl mx-auto px-4 py-12 lg:px-6">
           <div className="text-center">
-            <Badge className="mb-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 text-sm px-4 py-2 shadow-lg">
-              <Award className="h-4 w-4 mr-2" />
-              Official Shopify Partner – AI-Powered Store Builder
-            </Badge>
+            <div 
+              ref={badgeRef}
+              tabIndex={0}
+              className="inline-block mb-4 focus:outline-none focus:ring-4 focus:ring-emerald-300 rounded-full cursor-pointer"
+            >
+              <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 text-sm px-4 py-2 shadow-lg">
+                <span 
+                  ref={badgeIconContainerRef}
+                  className="inline-flex items-center mr-2" 
+                  dangerouslySetInnerHTML={{
+                    __html: `<lord-icon
+                      src="https://cdn.lordicon.com/uetlzssd.json"
+                      trigger="in"
+                      delay="1000"
+                      stroke="bold"
+                      state="in-reveal"
+                      colors="primary:#ffffff"
+                      style="width:20px;height:20px">
+                    </lord-icon>`
+                  }}
+                />
+                Official Shopify Partner – AI-Powered Store Builder
+              </Badge>
+            </div>
             
             <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
               Build Your Entire{" "}
