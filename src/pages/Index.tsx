@@ -24,8 +24,28 @@ const Index = () => {
   const valueProp4IconRef = useRef<HTMLSpanElement>(null);
   const valueProp5Ref = useRef<HTMLDivElement>(null);
   const valueProp5IconRef = useRef<HTMLSpanElement>(null);
-  const trustIndicator3Ref = useRef<HTMLDivElement>(null);
-  const trustIndicator3IconRef = useRef<HTMLSpanElement>(null);
+  const valueProp6Ref = useRef<HTMLDivElement>(null);
+  const valueProp6IconRef = useRef<HTMLSpanElement>(null);
+  const featureCard1Ref = useRef<HTMLDivElement>(null);
+  const featureCard1IconRef = useRef<HTMLSpanElement>(null);
+  const featureCard2Ref = useRef<HTMLDivElement>(null);
+  const featureCard2IconRef = useRef<HTMLSpanElement>(null);
+  const featureCard3Ref = useRef<HTMLDivElement>(null);
+  const featureCard3IconRef = useRef<HTMLSpanElement>(null);
+  const featureCard4Ref = useRef<HTMLDivElement>(null);
+  const featureCard4IconRef = useRef<HTMLSpanElement>(null);
+  const featureCard5Ref = useRef<HTMLDivElement>(null);
+  const featureCard5IconRef = useRef<HTMLSpanElement>(null);
+  const featureCard6Ref = useRef<HTMLDivElement>(null);
+  const featureCard6IconRef = useRef<HTMLSpanElement>(null);
+  const howItWorksStep1Ref = useRef<HTMLDivElement>(null);
+  const howItWorksStep1IconRef = useRef<HTMLSpanElement>(null);
+  const howItWorksStep2Ref = useRef<HTMLDivElement>(null);
+  const howItWorksStep2IconRef = useRef<HTMLSpanElement>(null);
+  const howItWorksStep3Ref = useRef<HTMLDivElement>(null);
+  const howItWorksStep3IconRef = useRef<HTMLSpanElement>(null);
+  const trustIndicatorRef = useRef<HTMLDivElement>(null);
+  const trustIndicatorIconRef = useRef<HTMLSpanElement>(null);
 
   // Setup lord-icon animation triggers for CTA button
   useEffect(() => {
@@ -262,10 +282,360 @@ const Index = () => {
     return () => clearTimeout(initTimeout);
   }, []);
 
-  // Setup lord-icon animation triggers for trust indicator 3
+  // Setup lord-icon animation triggers for value prop 6
   useEffect(() => {
-    const card = trustIndicator3Ref.current;
-    const container = trustIndicator3IconRef.current;
+    const card = valueProp6Ref.current;
+    const container = valueProp6IconRef.current;
+    if (!card || !container) return;
+
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    // Wait for lord-icon to be fully initialized
+    const initTimeout = setTimeout(() => {
+      const lordIcon = container.querySelector('lord-icon') as any;
+      if (!lordIcon) return;
+
+      const triggerAnimation = () => {
+        if (lordIcon && typeof lordIcon.playFromBeginning === 'function') {
+          lordIcon.playFromBeginning();
+        }
+      };
+
+      // Add event listeners to card for hover and focus
+      card.addEventListener('mouseenter', triggerAnimation);
+      card.addEventListener('focus', triggerAnimation);
+
+      // Cleanup function
+      return () => {
+        card.removeEventListener('mouseenter', triggerAnimation);
+        card.removeEventListener('focus', triggerAnimation);
+      };
+    }, 100);
+
+    return () => clearTimeout(initTimeout);
+  }, []);
+
+  // Setup lord-icon animation triggers for feature card 1
+  useEffect(() => {
+    const card = featureCard1Ref.current;
+    const container = featureCard1IconRef.current;
+    if (!card || !container) return;
+
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    // Wait for lord-icon to be fully initialized
+    const initTimeout = setTimeout(() => {
+      const lordIcon = container.querySelector('lord-icon') as any;
+      if (!lordIcon) return;
+
+      const triggerAnimation = () => {
+        if (lordIcon && typeof lordIcon.playFromBeginning === 'function') {
+          lordIcon.playFromBeginning();
+        }
+      };
+
+      // Add event listeners to card for hover and focus
+      card.addEventListener('mouseenter', triggerAnimation);
+      card.addEventListener('focus', triggerAnimation);
+
+      // Cleanup function
+      return () => {
+        card.removeEventListener('mouseenter', triggerAnimation);
+        card.removeEventListener('focus', triggerAnimation);
+      };
+    }, 100);
+
+    return () => clearTimeout(initTimeout);
+  }, []);
+
+  // Setup lord-icon animation triggers for feature card 3
+  useEffect(() => {
+    const card = featureCard3Ref.current;
+    const container = featureCard3IconRef.current;
+    if (!card || !container) return;
+
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    // Wait for lord-icon to be fully initialized
+    const initTimeout = setTimeout(() => {
+      const lordIcon = container.querySelector('lord-icon') as any;
+      if (!lordIcon) return;
+
+      const triggerAnimation = () => {
+        if (lordIcon && typeof lordIcon.playFromBeginning === 'function') {
+          lordIcon.playFromBeginning();
+        }
+      };
+
+      // Add event listeners to card for hover and focus
+      card.addEventListener('mouseenter', triggerAnimation);
+      card.addEventListener('focus', triggerAnimation);
+
+      // Cleanup function
+      return () => {
+        card.removeEventListener('mouseenter', triggerAnimation);
+        card.removeEventListener('focus', triggerAnimation);
+      };
+    }, 100);
+
+    return () => clearTimeout(initTimeout);
+  }, []);
+
+  // Setup lord-icon animation triggers for feature card 4
+  useEffect(() => {
+    const card = featureCard4Ref.current;
+    const container = featureCard4IconRef.current;
+    if (!card || !container) return;
+
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    // Wait for lord-icon to be fully initialized
+    const initTimeout = setTimeout(() => {
+      const lordIcon = container.querySelector('lord-icon') as any;
+      if (!lordIcon) return;
+
+      const triggerAnimation = () => {
+        if (lordIcon && typeof lordIcon.playFromBeginning === 'function') {
+          lordIcon.playFromBeginning();
+        }
+      };
+
+      // Add event listeners to card for hover and focus
+      card.addEventListener('mouseenter', triggerAnimation);
+      card.addEventListener('focus', triggerAnimation);
+
+      // Cleanup function
+      return () => {
+        card.removeEventListener('mouseenter', triggerAnimation);
+        card.removeEventListener('focus', triggerAnimation);
+      };
+    }, 100);
+
+    return () => clearTimeout(initTimeout);
+  }, []);
+
+  // Setup lord-icon animation triggers for feature card 5
+  useEffect(() => {
+    const card = featureCard5Ref.current;
+    const container = featureCard5IconRef.current;
+    if (!card || !container) return;
+
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    // Wait for lord-icon to be fully initialized
+    const initTimeout = setTimeout(() => {
+      const lordIcon = container.querySelector('lord-icon') as any;
+      if (!lordIcon) return;
+
+      const triggerAnimation = () => {
+        if (lordIcon && typeof lordIcon.playFromBeginning === 'function') {
+          lordIcon.playFromBeginning();
+        }
+      };
+
+      // Add event listeners to card for hover and focus
+      card.addEventListener('mouseenter', triggerAnimation);
+      card.addEventListener('focus', triggerAnimation);
+
+      // Cleanup function
+      return () => {
+        card.removeEventListener('mouseenter', triggerAnimation);
+        card.removeEventListener('focus', triggerAnimation);
+      };
+    }, 100);
+
+    return () => clearTimeout(initTimeout);
+  }, []);
+
+  // Setup lord-icon animation triggers for feature card 6
+  useEffect(() => {
+    const card = featureCard6Ref.current;
+    const container = featureCard6IconRef.current;
+    if (!card || !container) return;
+
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    // Wait for lord-icon to be fully initialized
+    const initTimeout = setTimeout(() => {
+      const lordIcon = container.querySelector('lord-icon') as any;
+      if (!lordIcon) return;
+
+      const triggerAnimation = () => {
+        if (lordIcon && typeof lordIcon.playFromBeginning === 'function') {
+          lordIcon.playFromBeginning();
+        }
+      };
+
+      // Add event listeners to card for hover and focus
+      card.addEventListener('mouseenter', triggerAnimation);
+      card.addEventListener('focus', triggerAnimation);
+
+      // Cleanup function
+      return () => {
+        card.removeEventListener('mouseenter', triggerAnimation);
+        card.removeEventListener('focus', triggerAnimation);
+      };
+    }, 100);
+
+    return () => clearTimeout(initTimeout);
+  }, []);
+
+  // Setup lord-icon animation triggers for how it works step 1
+  useEffect(() => {
+    const card = howItWorksStep1Ref.current;
+    const container = howItWorksStep1IconRef.current;
+    if (!card || !container) return;
+
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    // Wait for lord-icon to be fully initialized
+    const initTimeout = setTimeout(() => {
+      const lordIcon = container.querySelector('lord-icon') as any;
+      if (!lordIcon) return;
+
+      const triggerAnimation = () => {
+        if (lordIcon && typeof lordIcon.playFromBeginning === 'function') {
+          lordIcon.playFromBeginning();
+        }
+      };
+
+      // Add event listeners to card for hover and focus
+      card.addEventListener('mouseenter', triggerAnimation);
+      card.addEventListener('focus', triggerAnimation);
+
+      // Cleanup function
+      return () => {
+        card.removeEventListener('mouseenter', triggerAnimation);
+        card.removeEventListener('focus', triggerAnimation);
+      };
+    }, 100);
+
+    return () => clearTimeout(initTimeout);
+  }, []);
+
+  // Setup lord-icon animation triggers for how it works step 2
+  useEffect(() => {
+    const card = howItWorksStep2Ref.current;
+    const container = howItWorksStep2IconRef.current;
+    if (!card || !container) return;
+
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    // Wait for lord-icon to be fully initialized
+    const initTimeout = setTimeout(() => {
+      const lordIcon = container.querySelector('lord-icon') as any;
+      if (!lordIcon) return;
+
+      const triggerAnimation = () => {
+        if (lordIcon && typeof lordIcon.playFromBeginning === 'function') {
+          lordIcon.playFromBeginning();
+        }
+      };
+
+      // Add event listeners to card for hover and focus
+      card.addEventListener('mouseenter', triggerAnimation);
+      card.addEventListener('focus', triggerAnimation);
+
+      // Cleanup function
+      return () => {
+        card.removeEventListener('mouseenter', triggerAnimation);
+        card.removeEventListener('focus', triggerAnimation);
+      };
+    }, 100);
+
+    return () => clearTimeout(initTimeout);
+  }, []);
+
+  // Setup lord-icon animation triggers for how it works step 3
+  useEffect(() => {
+    const card = howItWorksStep3Ref.current;
+    const container = howItWorksStep3IconRef.current;
+    if (!card || !container) return;
+
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    // Wait for lord-icon to be fully initialized
+    const initTimeout = setTimeout(() => {
+      const lordIcon = container.querySelector('lord-icon') as any;
+      if (!lordIcon) return;
+
+      const triggerAnimation = () => {
+        if (lordIcon && typeof lordIcon.playFromBeginning === 'function') {
+          lordIcon.playFromBeginning();
+        }
+      };
+
+      // Add event listeners to card for hover and focus
+      card.addEventListener('mouseenter', triggerAnimation);
+      card.addEventListener('focus', triggerAnimation);
+
+      // Cleanup function
+      return () => {
+        card.removeEventListener('mouseenter', triggerAnimation);
+        card.removeEventListener('focus', triggerAnimation);
+      };
+    }, 100);
+
+    return () => clearTimeout(initTimeout);
+  }, []);
+
+  // Setup lord-icon animation triggers for trust indicator
+  useEffect(() => {
+    const indicator = trustIndicatorRef.current;
+    const container = trustIndicatorIconRef.current;
+    if (!indicator || !container) return;
+
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    // Wait for lord-icon to be fully initialized
+    const initTimeout = setTimeout(() => {
+      const lordIcon = container.querySelector('lord-icon') as any;
+      if (!lordIcon) return;
+
+      const triggerAnimation = () => {
+        if (lordIcon && typeof lordIcon.play === 'function') {
+          lordIcon.play();
+        }
+      };
+
+      // Add event listeners to indicator for hover and focus
+      indicator.addEventListener('mouseenter', triggerAnimation);
+      indicator.addEventListener('focus', triggerAnimation);
+
+      // Cleanup function
+      return () => {
+        indicator.removeEventListener('mouseenter', triggerAnimation);
+        indicator.removeEventListener('focus', triggerAnimation);
+      };
+    }, 100);
+
+    return () => clearTimeout(initTimeout);
+  }, []);
+
+  // Setup lord-icon animation triggers for feature card 2
+  useEffect(() => {
+    const card = featureCard2Ref.current;
+    const container = featureCard2IconRef.current;
     if (!card || !container) return;
 
     // Check for reduced motion preference
@@ -414,12 +784,12 @@ const Index = () => {
               </div>
               <div className="h-4 w-px bg-gray-300 hidden sm:block" />
               <div 
-                ref={trustIndicator3Ref}
+                ref={trustIndicatorRef}
                 tabIndex={0}
-                className="flex items-center focus:outline-none focus:ring-2 focus:ring-green-300 rounded-md cursor-pointer"
+                className="flex items-center focus:outline-none focus:ring-2 focus:ring-green-300 rounded cursor-pointer"
               >
                 <span 
-                  ref={trustIndicator3IconRef}
+                  ref={trustIndicatorIconRef}
                   className="inline-flex items-center mr-2" 
                   dangerouslySetInnerHTML={{
                     __html: `<lord-icon
@@ -465,9 +835,8 @@ const Index = () => {
                   dangerouslySetInnerHTML={{
                     __html: `<lord-icon
                       src="https://cdn.lordicon.com/boconccx.json"
-                      trigger="loop"
+                      trigger="hover"
                       stroke="bold"
-                      state="loop-charging"
                       colors="primary:#ffffff,secondary:#ffffff"
                       style="width:24px;height:24px">
                     </lord-icon>`
@@ -517,7 +886,6 @@ const Index = () => {
                       src="https://cdn.lordicon.com/xyvcjevb.json"
                       trigger="hover"
                       stroke="bold"
-                      state="in-reveal"
                       colors="primary:#ffffff,secondary:#ffffff"
                       style="width:24px;height:24px">
                     </lord-icon>`
@@ -541,7 +909,6 @@ const Index = () => {
                       src="https://cdn.lordicon.com/mfpdszvl.json"
                       trigger="hover"
                       stroke="bold"
-                      state="in-reveal"
                       colors="primary:#ffffff,secondary:#ffffff"
                       style="width:24px;height:24px">
                     </lord-icon>`
@@ -575,16 +942,29 @@ const Index = () => {
               <span className="text-sm font-medium text-gray-700">AI Pricing & Profit</span>
             </div>
 
-            {[
-              { icon: Check, text: "Works for Beginners" }
-            ].map((item, i) => (
-              <div key={i} className="flex flex-col items-center text-center">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mb-3">
-                  <item.icon className="h-6 w-6 text-white" />
-                </div>
-                <span className="text-sm font-medium text-gray-700">{item.text}</span>
+            <div 
+              ref={valueProp6Ref}
+              tabIndex={0}
+              className="flex flex-col items-center text-center focus:outline-none focus:ring-4 focus:ring-blue-300 rounded-lg cursor-pointer"
+            >
+              <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mb-3">
+                <span 
+                  ref={valueProp6IconRef}
+                  className="inline-flex items-center justify-center" 
+                  dangerouslySetInnerHTML={{
+                    __html: `<lord-icon
+                      src="https://cdn.lordicon.com/ygymzvsj.json"
+                      trigger="hover"
+                      stroke="bold"
+                      state="hover-pinch"
+                      colors="primary:#ffffff,secondary:#ffffff"
+                      style="width:24px;height:24px">
+                    </lord-icon>`
+                  }}
+                />
               </div>
-            ))}
+              <span className="text-sm font-medium text-gray-700">Works for Beginners</span>
+            </div>
           </div>
         </div>
       </div>
@@ -602,50 +982,174 @@ const Index = () => {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                icon: Bot,
-                title: "AI Store Generator",
-                description: "Your entire Shopify store built in minutes — desktop + mobile theme, menus, policies, collections, branding, and 10 products uploaded instantly."
-              },
-              {
-                icon: TrendingUp,
-                title: "Real Winning Products",
-                description: "We analyze trending data from TikTok, AliExpress, Amazon, and viral stores to auto-select the best 10 items in your niche."
-              },
-              {
-                icon: Palette,
-                title: "Professional Branding",
-                description: "Get a custom logo, color palette, fonts, and description tone that matches your niche and audience."
-              },
-              {
-                icon: DollarSign,
-                title: "Profit Optimization",
-                description: "AI chooses pricing, product benefits, trust features, keywords, and SEO titles to help you convert customers from day one."
-              },
-              {
-                icon: Zap,
-                title: "1-Click Shopify Upload",
-                description: "No spreadsheets. No CSV. No manual work. Connect your Shopify store → click import → done."
-              },
-              {
-                icon: Sparkles,
-                title: "Beginner Friendly",
-                description: "Even if you've never used Shopify, our AI guides you step-by-step. Just choose a niche and press start."
-              }
-            ].map((feature, index) => (
-              <Card key={index} className="group hover:shadow-2xl transition-all duration-500 border-0 shadow-lg h-full bg-white/80 backdrop-blur-sm hover:bg-white transform hover:scale-105 rounded-2xl">
-                <CardHeader className="pb-4">
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg">
-                    <feature.icon className="h-8 w-8 text-white" />
-                  </div>
-                  <CardTitle className="text-xl font-bold">{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <p className="text-gray-600 text-base leading-relaxed">{feature.description}</p>
-                </CardContent>
-              </Card>
-            ))}
+            <Card 
+              ref={featureCard1Ref}
+              tabIndex={0}
+              className="group hover:shadow-2xl transition-all duration-500 border-0 shadow-lg h-full bg-white/80 backdrop-blur-sm hover:bg-white transform hover:scale-105 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-300"
+            >
+              <CardHeader className="pb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg">
+                  <span 
+                    ref={featureCard1IconRef}
+                    className="inline-flex items-center justify-center" 
+                    dangerouslySetInnerHTML={{
+                      __html: `<lord-icon
+                        src="https://cdn.lordicon.com/gztcjayb.json"
+                        trigger="hover"
+                        stroke="bold"
+                        colors="primary:#ffffff,secondary:#ffffff"
+                        style="width:32px;height:32px">
+                      </lord-icon>`
+                    }}
+                  />
+                </div>
+                <CardTitle className="text-xl font-bold">AI Store Generator</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-gray-600 text-base leading-relaxed">Your entire Shopify store built in minutes — desktop + mobile theme, menus, policies, collections, branding, and 10 products uploaded instantly.</p>
+              </CardContent>
+            </Card>
+
+            <Card 
+              ref={featureCard2Ref}
+              tabIndex={0}
+              className="group hover:shadow-2xl transition-all duration-500 border-0 shadow-lg h-full bg-white/80 backdrop-blur-sm hover:bg-white transform hover:scale-105 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-300"
+            >
+              <CardHeader className="pb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg">
+                  <span 
+                    ref={featureCard2IconRef}
+                    className="inline-flex items-center justify-center" 
+                    dangerouslySetInnerHTML={{
+                      __html: `<lord-icon
+                        src="https://cdn.lordicon.com/drepdftg.json"
+                        trigger="hover"
+                        stroke="bold"
+                        colors="primary:#ffffff,secondary:#ffffff"
+                        style="width:32px;height:32px">
+                      </lord-icon>`
+                    }}
+                  />
+                </div>
+                <CardTitle className="text-xl font-bold">Real Winning Products</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-gray-600 text-base leading-relaxed">We analyze trending data from TikTok, AliExpress, Amazon, and viral stores to auto-select the best 10 items in your niche.</p>
+              </CardContent>
+            </Card>
+
+            <Card 
+              ref={featureCard3Ref}
+              tabIndex={0}
+              className="group hover:shadow-2xl transition-all duration-500 border-0 shadow-lg h-full bg-white/80 backdrop-blur-sm hover:bg-white transform hover:scale-105 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-300"
+            >
+              <CardHeader className="pb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg">
+                  <span 
+                    ref={featureCard3IconRef}
+                    className="inline-flex items-center justify-center" 
+                    dangerouslySetInnerHTML={{
+                      __html: `<lord-icon
+                        src="https://cdn.lordicon.com/mfpdszvl.json"
+                        trigger="hover"
+                        stroke="bold"
+                        colors="primary:#ffffff,secondary:#ffffff"
+                        style="width:32px;height:32px">
+                      </lord-icon>`
+                    }}
+                  />
+                </div>
+                <CardTitle className="text-xl font-bold">Professional Branding</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-gray-600 text-base leading-relaxed">Get a custom logo, color palette, fonts, and description tone that matches your niche and audience.</p>
+              </CardContent>
+            </Card>
+
+            <Card 
+              ref={featureCard4Ref}
+              tabIndex={0}
+              className="group hover:shadow-2xl transition-all duration-500 border-0 shadow-lg h-full bg-white/80 backdrop-blur-sm hover:bg-white transform hover:scale-105 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-300"
+            >
+              <CardHeader className="pb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg">
+                  <span 
+                    ref={featureCard4IconRef}
+                    className="inline-flex items-center justify-center" 
+                    dangerouslySetInnerHTML={{
+                      __html: `<lord-icon
+                        src="https://cdn.lordicon.com/xaqshkdp.json"
+                        trigger="hover"
+                        stroke="bold"
+                        colors="primary:#ffffff,secondary:#ffffff"
+                        style="width:32px;height:32px">
+                      </lord-icon>`
+                    }}
+                  />
+                </div>
+                <CardTitle className="text-xl font-bold">Profit Optimization</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-gray-600 text-base leading-relaxed">AI chooses pricing, product benefits, trust features, keywords, and SEO titles to help you convert customers from day one.</p>
+              </CardContent>
+            </Card>
+
+            <Card 
+              ref={featureCard5Ref}
+              tabIndex={0}
+              className="group hover:shadow-2xl transition-all duration-500 border-0 shadow-lg h-full bg-white/80 backdrop-blur-sm hover:bg-white transform hover:scale-105 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-300"
+            >
+              <CardHeader className="pb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg">
+                  <span 
+                    ref={featureCard5IconRef}
+                    className="inline-flex items-center justify-center" 
+                    dangerouslySetInnerHTML={{
+                      __html: `<lord-icon
+                        src="https://cdn.lordicon.com/boconccx.json"
+                        trigger="hover"
+                        stroke="bold"
+                        colors="primary:#ffffff,secondary:#ffffff"
+                        style="width:32px;height:32px">
+                      </lord-icon>`
+                    }}
+                  />
+                </div>
+                <CardTitle className="text-xl font-bold">1-Click Shopify Upload</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-gray-600 text-base leading-relaxed">No spreadsheets. No CSV. No manual work. Connect your Shopify store → click import → done.</p>
+              </CardContent>
+            </Card>
+
+            <Card 
+              ref={featureCard6Ref}
+              tabIndex={0}
+              className="group hover:shadow-2xl transition-all duration-500 border-0 shadow-lg h-full bg-white/80 backdrop-blur-sm hover:bg-white transform hover:scale-105 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-300"
+            >
+              <CardHeader className="pb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg">
+                  <span 
+                    ref={featureCard6IconRef}
+                    className="inline-flex items-center justify-center" 
+                    dangerouslySetInnerHTML={{
+                      __html: `<lord-icon
+                        src="https://cdn.lordicon.com/gmypinsw.json"
+                        trigger="hover"
+                        stroke="bold"
+                        state="hover-rotation"
+                        colors="primary:#ffffff,secondary:#ffffff"
+                        style="width:32px;height:32px">
+                      </lord-icon>`
+                    }}
+                  />
+                </div>
+                <CardTitle className="text-xl font-bold">Beginner Friendly</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-gray-600 text-base leading-relaxed">Even if you've never used Shopify, our AI guides you step-by-step. Just choose a niche and press start.</p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
@@ -663,31 +1167,77 @@ const Index = () => {
           </div>
 
           <div className="grid md:grid-cols-3 gap-12 mb-12">
-            {[
-              {
-                step: "01",
-                title: "Choose Your Niche",
-                description: "Select your market — Pets, Beauty, Tech, Fitness, Gadgets, Kids, Home & Kitchen, Fashion, Seasonal, etc."
-              },
-              {
-                step: "02",
-                title: "AI Builds Your Store",
-                description: "Your store design, logo, branding, layout, collections, and 10 winning products are generated automatically."
-              },
-              {
-                step: "03",
-                title: "Connect & Launch",
-                description: "Click one button to import everything directly into your Shopify store. Start selling instantly."
-              }
-            ].map((step, index) => (
-              <div key={index} className="text-center group">
-                <div className="w-20 h-20 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl group-hover:scale-110 transition-transform">
-                  <span className="text-2xl font-bold text-white">{step.step}</span>
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">{step.title}</h3>
-                <p className="text-gray-600 text-lg leading-relaxed">{step.description}</p>
+            <div 
+              ref={howItWorksStep1Ref}
+              tabIndex={0}
+              className="text-center group focus:outline-none focus:ring-4 focus:ring-blue-300 rounded-lg"
+            >
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl group-hover:scale-110 transition-transform">
+                <span 
+                  ref={howItWorksStep1IconRef}
+                  className="inline-flex items-center justify-center" 
+                  dangerouslySetInnerHTML={{
+                    __html: `<lord-icon
+                      src="https://cdn.lordicon.com/rphlntpm.json"
+                      trigger="hover"
+                      stroke="bold"
+                      colors="primary:#ffffff,secondary:#ffffff"
+                      style="width:40px;height:40px">
+                    </lord-icon>`
+                  }}
+                />
               </div>
-            ))}
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Choose Your Niche</h3>
+              <p className="text-gray-600 text-lg leading-relaxed">Select your market — Pets, Beauty, Tech, Fitness, Gadgets, Kids, Home & Kitchen, Fashion, Seasonal, etc.</p>
+            </div>
+
+            <div 
+              ref={howItWorksStep2Ref}
+              tabIndex={0}
+              className="text-center group focus:outline-none focus:ring-4 focus:ring-blue-300 rounded-lg"
+            >
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl group-hover:scale-110 transition-transform">
+                <span 
+                  ref={howItWorksStep2IconRef}
+                  className="inline-flex items-center justify-center" 
+                  dangerouslySetInnerHTML={{
+                    __html: `<lord-icon
+                      src="https://cdn.lordicon.com/sjkqczvk.json"
+                      trigger="hover"
+                      stroke="bold"
+                      colors="primary:#ffffff,secondary:#ffffff"
+                      style="width:40px;height:40px">
+                    </lord-icon>`
+                  }}
+                />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">AI Builds Your Store</h3>
+              <p className="text-gray-600 text-lg leading-relaxed">Your store design, logo, branding, layout, collections, and 10 winning products are generated automatically.</p>
+            </div>
+
+            <div 
+              ref={howItWorksStep3Ref}
+              tabIndex={0}
+              className="text-center group focus:outline-none focus:ring-4 focus:ring-blue-300 rounded-lg"
+            >
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl group-hover:scale-110 transition-transform">
+                <span 
+                  ref={howItWorksStep3IconRef}
+                  className="inline-flex items-center justify-center" 
+                  dangerouslySetInnerHTML={{
+                    __html: `<lord-icon
+                      src="https://cdn.lordicon.com/wdimiuys.json"
+                      trigger="hover"
+                      stroke="bold"
+                      colors="primary:#ffffff,secondary:#ffffff"
+                      style="width:40px;height:40px">
+                    </lord-icon>`
+                  }}
+                />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Connect & Launch</h3>
+              <p className="text-gray-600 text-lg leading-relaxed">Click one button to import everything directly into your Shopify store. Start selling instantly.</p>
+            </div>
           </div>
 
           {/* Testimonial */}
