@@ -448,9 +448,9 @@ const Index = () => {
                   dangerouslySetInnerHTML={{
                     __html: `<lord-icon
                       src="https://cdn.lordicon.com/boconccx.json"
-                      trigger="loop"
+                      trigger="hover"
                       stroke="bold"
-                      state="loop-charging"
+                      state="in-reveal"
                       colors="primary:#ffffff,secondary:#ffffff"
                       style="width:24px;height:24px">
                     </lord-icon>`
