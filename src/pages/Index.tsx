@@ -36,6 +36,8 @@ const Index = () => {
   const featureCard4IconRef = useRef<HTMLSpanElement>(null);
   const featureCard5Ref = useRef<HTMLDivElement>(null);
   const featureCard5IconRef = useRef<HTMLSpanElement>(null);
+  const featureCard6Ref = useRef<HTMLDivElement>(null);
+  const featureCard6IconRef = useRef<HTMLSpanElement>(null);
 
   // Setup lord-icon animation triggers for CTA button
   useEffect(() => {
@@ -416,6 +418,41 @@ const Index = () => {
   useEffect(() => {
     const card = featureCard5Ref.current;
     const container = featureCard5IconRef.current;
+    if (!card || !container) return;
+
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    // Wait for lord-icon to be fully initialized
+    const initTimeout = setTimeout(() => {
+      const lordIcon = container.querySelector('lord-icon') as any;
+      if (!lordIcon) return;
+
+      const triggerAnimation = () => {
+        if (lordIcon && typeof lordIcon.playFromBeginning === 'function') {
+          lordIcon.playFromBeginning();
+        }
+      };
+
+      // Add event listeners to card for hover and focus
+      card.addEventListener('mouseenter', triggerAnimation);
+      card.addEventListener('focus', triggerAnimation);
+
+      // Cleanup function
+      return () => {
+        card.removeEventListener('mouseenter', triggerAnimation);
+        card.removeEventListener('focus', triggerAnimation);
+      };
+    }, 100);
+
+    return () => clearTimeout(initTimeout);
+  }, []);
+
+  // Setup lord-icon animation triggers for feature card 6
+  useEffect(() => {
+    const card = featureCard6Ref.current;
+    const container = featureCard6IconRef.current;
     if (!card || !container) return;
 
     // Check for reduced motion preference
@@ -920,25 +957,34 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            {[
-              {
-                icon: Sparkles,
-                title: "Beginner Friendly",
-                description: "Even if you've never used Shopify, our AI guides you step-by-step. Just choose a niche and press start."
-              }
-            ].map((feature, index) => (
-              <Card key={index} className="group hover:shadow-2xl transition-all duration-500 border-0 shadow-lg h-full bg-white/80 backdrop-blur-sm hover:bg-white transform hover:scale-105 rounded-2xl">
-                <CardHeader className="pb-4">
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg">
-                    <feature.icon className="h-8 w-8 text-white" />
-                  </div>
-                  <CardTitle className="text-xl font-bold">{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <p className="text-gray-600 text-base leading-relaxed">{feature.description}</p>
-                </CardContent>
-              </Card>
-            ))}
+            <Card 
+              ref={featureCard6Ref}
+              tabIndex={0}
+              className="group hover:shadow-2xl transition-all duration-500 border-0 shadow-lg h-full bg-white/80 backdrop-blur-sm hover:bg-white transform hover:scale-105 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-300"
+            >
+              <CardHeader className="pb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg">
+                  <span 
+                    ref={featureCard6IconRef}
+                    className="inline-flex items-center justify-center" 
+                    dangerouslySetInnerHTML={{
+                      __html: `<lord-icon
+                        src="https://cdn.lordicon.com/gmypinsw.json"
+                        trigger="hover"
+                        stroke="bold"
+                        state="in-reveal"
+                        colors="primary:#ffffff,secondary:#ffffff"
+                        style="width:32px;height:32px">
+                      </lord-icon>`
+                    }}
+                  />
+                </div>
+                <CardTitle className="text-xl font-bold">Beginner Friendly</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-gray-600 text-base leading-relaxed">Even if you've never used Shopify, our AI guides you step-by-step. Just choose a niche and press start.</p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
