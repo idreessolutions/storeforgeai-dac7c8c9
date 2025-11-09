@@ -1,5 +1,5 @@
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,38 @@ import AuthModal from "@/components/AuthModal";
 const Index = () => {
   const [showBuilder, setShowBuilder] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
-  const arrowIconRef = useRef<any>(null);
+  const ctaButtonRef = useRef<HTMLButtonElement>(null);
+  const arrowContainerRef = useRef<HTMLSpanElement>(null);
+
+  // Setup lord-icon animation triggers
+  useEffect(() => {
+    const button = ctaButtonRef.current;
+    const container = arrowContainerRef.current;
+    if (!button || !container) return;
+
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    // Find the lord-icon element
+    const lordIcon = container.querySelector('lord-icon') as any;
+    if (!lordIcon) return;
+
+    const triggerAnimation = () => {
+      if (lordIcon && typeof lordIcon.playFromBeginning === 'function') {
+        lordIcon.playFromBeginning();
+      }
+    };
+
+    // Add event listeners to button for hover and focus
+    button.addEventListener('mouseenter', triggerAnimation);
+    button.addEventListener('focus', triggerAnimation);
+
+    return () => {
+      button.removeEventListener('mouseenter', triggerAnimation);
+      button.removeEventListener('focus', triggerAnimation);
+    };
+  }, []);
 
   if (showBuilder) {
     return <StoreBuilder onBack={() => setShowBuilder(false)} />;
@@ -62,18 +93,15 @@ const Index = () => {
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
               <Button 
+                ref={ctaButtonRef}
                 size="lg" 
-                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white text-lg px-8 py-6 shadow-xl transform hover:scale-105 transition-all group"
+                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white text-lg px-8 py-6 shadow-xl transform hover:scale-105 transition-all"
                 onClick={() => setShowBuilder(true)}
-                onMouseEnter={() => {
-                  if (arrowIconRef.current) {
-                    arrowIconRef.current.playFromBeginning();
-                  }
-                }}
               >
                 Start My AI Store (Free)
                 <span 
-                  className="ml-2 inline-block" 
+                  ref={arrowContainerRef}
+                  className="ml-2 inline-flex items-center" 
                   dangerouslySetInnerHTML={{
                     __html: `<lord-icon
                       src="https://cdn.lordicon.com/sfwdicbq.json"
@@ -81,10 +109,9 @@ const Index = () => {
                       stroke="bold"
                       state="hover-slide"
                       colors="primary:#ffffff"
-                      style="width:40px;height:40px">
+                      style="width:24px;height:24px">
                     </lord-icon>`
                   }}
-                  ref={arrowIconRef}
                 />
               </Button>
               <Button 
