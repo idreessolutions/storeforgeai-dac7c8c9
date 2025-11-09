@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Package, CheckCircle, XCircle, RefreshCw, Star, Users, Camera, Sparkles } from "lucide-react";
+import { Loader2, Package, CheckCircle, XCircle, RefreshCw, Star, Users, Camera, Sparkles, Shield, Lock, DollarSign, FileText, Zap, Image } from "lucide-react";
 import { generateCuratedProducts } from "@/services/curatedProductService";
 import { toast } from "sonner";
 
@@ -144,73 +144,134 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-2 sm:p-4">
-      <div className="max-w-4xl mx-auto pt-4 sm:pt-8">
-        <Card className="bg-white shadow-2xl border-0">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-2 sm:p-4 relative overflow-hidden">
+      {/* Floating decorative shapes */}
+      <div className="absolute top-20 left-10 w-32 h-32 bg-purple-200 rounded-full opacity-20 animate-float"></div>
+      <div className="absolute bottom-20 right-10 w-40 h-40 bg-pink-200 rounded-full opacity-20 animate-float-delayed"></div>
+      
+      <div className="max-w-4xl mx-auto pt-4 sm:pt-8 relative z-10">
+        <Card className="bg-white shadow-2xl border-0 rounded-2xl">
           <CardContent className="p-6 sm:p-8 lg:p-12">
             {/* Header */}
             <div className="text-center mb-8">
-              <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Package className="h-10 w-10 text-white" />
+              <div className="w-24 h-24 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                <Package className="h-12 w-12 text-white" />
               </div>
-              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
-                🗂️ Launch From YOUR Supabase Buckets
+              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+                Add Winning Products Automatically
               </h1>
-              <p className="text-gray-600 text-lg">
-                Generate 10 products for {nicheCapitalized} directly from YOUR Supabase bucket folders with real images and AI-enhanced descriptions
+              <p className="text-gray-600 text-lg mb-6">
+                Our AI will add 10 premium, niche-specific products directly into your Shopify store — complete with images, variations, pricing, and SEO-optimized descriptions.
               </p>
+              
+              {/* Trust Badges */}
+              <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
+                <div className="flex items-center gap-2 text-green-600">
+                  <CheckCircle className="h-4 w-4" />
+                  <span>Real Product Images</span>
+                </div>
+                <div className="flex items-center gap-2 text-blue-600">
+                  <Shield className="h-4 w-4" />
+                  <span>AI-Powered Selection</span>
+                </div>
+                <div className="flex items-center gap-2 text-purple-600">
+                  <Sparkles className="h-4 w-4" />
+                  <span>SEO Optimized</span>
+                </div>
+              </div>
             </div>
 
             {!hasStarted && (
               <>
-                {/* Enhanced Supabase Product Generation Section */}
-                <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 mb-8">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-6 text-center">
-                    🗂️ Premium Products from YOUR Supabase Storage Buckets
+                {/* What You'll Get Section */}
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-8 mb-8">
+                  <h3 className="text-2xl font-semibold text-gray-900 mb-6 text-center">
+                    ✨ What You'll Get
                   </h3>
                   
-                  {/* Feature Boxes - Supabase focused */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-white rounded-lg p-4 text-center shadow-sm border">
-                      <Star className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
-                      <div className="font-semibold text-gray-900">Your Folders</div>
-                      <div className="text-sm text-gray-600">Product 1-20</div>
+                  {/* Feature Boxes */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <div className="bg-white rounded-xl p-5 text-center shadow-md border-2 border-transparent hover:border-purple-300 transition-all">
+                      <div className="w-14 h-14 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <Star className="h-7 w-7 text-white" />
+                      </div>
+                      <div className="font-bold text-gray-900 mb-1">AI-Picked Products</div>
+                      <div className="text-sm text-gray-600">Selected by AI from top suppliers</div>
                     </div>
-                    <div className="bg-white rounded-lg p-4 text-center shadow-sm border">
-                      <Users className="h-8 w-8 text-blue-500 mx-auto mb-2" />
-                      <div className="font-semibold text-gray-900">Real Titles</div>
-                      <div className="text-sm text-gray-600">From Titles folder</div>
+                    <div className="bg-white rounded-xl p-5 text-center shadow-md border-2 border-transparent hover:border-blue-300 transition-all">
+                      <div className="w-14 h-14 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <Image className="h-7 w-7 text-white" />
+                      </div>
+                      <div className="font-bold text-gray-900 mb-1">Real Product Images</div>
+                      <div className="text-sm text-gray-600">Real product photos</div>
                     </div>
-                    <div className="bg-white rounded-lg p-4 text-center shadow-sm border">
-                      <Camera className="h-8 w-8 text-green-500 mx-auto mb-2" />
-                      <div className="font-semibold text-gray-900">Your Images</div>
-                      <div className="text-sm text-gray-600">From bucket folders</div>
+                    <div className="bg-white rounded-xl p-5 text-center shadow-md border-2 border-transparent hover:border-green-300 transition-all">
+                      <div className="w-14 h-14 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <DollarSign className="h-7 w-7 text-white" />
+                      </div>
+                      <div className="font-bold text-gray-900 mb-1">Smart Pricing</div>
+                      <div className="text-sm text-gray-600">Competitive pricing powered by AI</div>
                     </div>
-                    <div className="bg-white rounded-lg p-4 text-center shadow-sm border">
-                      <Sparkles className="h-8 w-8 text-purple-500 mx-auto mb-2" />
-                      <div className="font-semibold text-gray-900">AI Descriptions</div>
-                      <div className="text-sm text-gray-600">500-800 words</div>
+                    <div className="bg-white rounded-xl p-5 text-center shadow-md border-2 border-transparent hover:border-purple-300 transition-all">
+                      <div className="w-14 h-14 bg-gradient-to-br from-purple-400 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <FileText className="h-7 w-7 text-white" />
+                      </div>
+                      <div className="font-bold text-gray-900 mb-1">SEO Descriptions</div>
+                      <div className="text-sm text-gray-600">500–800 word story-based copy</div>
                     </div>
                   </div>
 
+                  {/* Main CTA Button */}
                   <div className="text-center">
                     <Button
                       onClick={handleGenerateProducts}
                       disabled={isGenerating}
-                      className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-4 rounded-lg text-lg font-semibold h-auto"
+                      className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-10 py-6 rounded-xl text-lg font-bold h-auto shadow-xl hover:shadow-2xl transition-all hover:scale-105"
                     >
                       {isGenerating ? (
                         <>
-                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                          Loading from YOUR Supabase Buckets...
+                          <Loader2 className="mr-3 h-6 w-6 animate-spin" />
+                          Adding Products to Your Store...
                         </>
                       ) : (
                         <>
-                          <Package className="mr-2 h-5 w-5" />
-                          Generate From YOUR {nicheCapitalized} Bucket
+                          🚀 Add 10 Winning Products to My Store
                         </>
                       )}
                     </Button>
+                  </div>
+
+                  {/* Process Info */}
+                  <div className="mt-6 bg-white rounded-xl p-5 border border-purple-200">
+                    <h4 className="font-semibold text-gray-900 mb-3 text-center">Once you click the button, our AI:</h4>
+                    <div className="space-y-2 text-sm text-gray-700">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                        <span>Uploads products</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                        <span>Adds variations & images</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                        <span>Writes descriptions</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                        <span>Categorizes everything automatically</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Trust Box */}
+                <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-5 border-2 border-green-200">
+                  <div className="flex items-start gap-3">
+                    <Lock className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-gray-700">
+                      <span className="font-semibold text-gray-900">You stay in full control</span> — you can edit or remove anything later inside Shopify.
+                    </div>
                   </div>
                 </div>
               </>
@@ -218,30 +279,35 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
 
             {isGenerating && (
               <div className="mb-8">
-                <div className="bg-blue-50 rounded-xl p-6">
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6 border-2 border-blue-200">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      🗂️ Loading {formData.niche} products from YOUR Supabase bucket...
+                    <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                      <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
+                      Adding {formData.niche} products to your store...
                     </h3>
-                    <span className="text-sm text-gray-600">{Math.round(progress)}%</span>
+                    <span className="text-lg font-bold text-purple-600">{Math.round(progress)}%</span>
                   </div>
                   
-                  <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
+                  <div className="w-full bg-gray-200 rounded-full h-4 mb-4">
                     <div 
-                      className="bg-gradient-to-r from-purple-600 to-pink-600 h-3 rounded-full transition-all duration-500 ease-out"
+                      className="bg-gradient-to-r from-purple-600 to-pink-600 h-4 rounded-full transition-all duration-500 ease-out"
                       style={{ width: `${progress}%` }}
                     ></div>
                   </div>
 
-                  <div className="text-sm text-gray-600 space-y-1">
-                    <div>📦 {currentProductName || `Reading from YOUR ${formData.niche} bucket...`}</div>
-                    <div>🗂️ Accessing Product 1-20 folders in YOUR Supabase</div>
-                    <div>📝 Reading titles from YOUR Titles folders</div>
-                    <div>🖼️ Using YOUR real images from Products Images folders</div>
-                    <div>🎨 Getting YOUR variant images from Variants Product Images</div>
-                    <div>🤖 Generating unique 500-800 word descriptions with AI</div>
-                    <div>💰 Applying smart pricing ($15-$80 range)</div>
-                    <div>🛒 Uploading to your Shopify store</div>
+                  <div className="text-sm text-gray-700 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Package className="h-4 w-4 text-purple-600" />
+                      <span className="font-medium">{currentProductName || `Selecting winning ${formData.niche} products...`}</span>
+                    </div>
+                    <div className="ml-6 space-y-1 text-gray-600">
+                      <div>✨ AI selecting best products</div>
+                      <div>🖼️ Processing real product images</div>
+                      <div>💰 Applying smart pricing strategy</div>
+                      <div>✍️ Generating SEO descriptions (500-800 words)</div>
+                      <div>🎨 Adding variations and options</div>
+                      <div>🛒 Uploading to your Shopify store</div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -249,24 +315,33 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
 
             {formData.productsAdded && (
               <div className="text-center">
-                <div className="bg-green-50 rounded-xl p-6">
-                  <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-green-900 mb-2">
-                    🎉 Products Generated from YOUR Supabase Buckets!
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-8 border-2 border-green-300">
+                  <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="h-10 w-10 text-white" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-green-900 mb-3">
+                    🎉 Products Successfully Added!
                   </h3>
-                  <p className="text-green-700">
-                    Your {formData.niche} store now has 10 products generated from YOUR Supabase bucket folders with YOUR real images and AI-enhanced descriptions.
+                  <p className="text-green-700 text-lg mb-4">
+                    Your {formData.niche} store now has 10 premium products with real images, smart pricing, and SEO-optimized descriptions.
                   </p>
+                  
+                  <div className="bg-white rounded-xl p-4 mb-4 inline-block">
+                    <div className="flex items-center gap-2 text-sm text-gray-700">
+                      <Zap className="h-4 w-4 text-yellow-500" />
+                      <span>You can edit everything later in Shopify</span>
+                    </div>
+                  </div>
                   
                   {hasStarted && (
                     <div className="mt-4 pt-4 border-t border-green-200">
                       <Button
                         onClick={retryGeneration}
                         variant="outline"
-                        className="w-full border-green-300 text-green-700 hover:bg-green-100"
+                        className="w-full sm:w-auto border-green-400 text-green-700 hover:bg-green-100 font-semibold"
                       >
                         <RefreshCw className="mr-2 h-4 w-4" />
-                        Generate Different Products from YOUR Buckets
+                        Add Different Products
                       </Button>
                     </div>
                   )}
