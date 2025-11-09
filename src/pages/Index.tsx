@@ -597,40 +597,6 @@ const Index = () => {
     return () => clearTimeout(initTimeout);
   }, []);
 
-  // Setup lord-icon animation triggers for trust indicator
-  useEffect(() => {
-    const indicator = trustIndicatorRef.current;
-    const container = trustIndicatorIconRef.current;
-    if (!indicator || !container) return;
-
-    // Check for reduced motion preference
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) return;
-
-    // Wait for lord-icon to be fully initialized
-    const initTimeout = setTimeout(() => {
-      const lordIcon = container.querySelector('lord-icon') as any;
-      if (!lordIcon) return;
-
-      const triggerAnimation = () => {
-        if (lordIcon && typeof lordIcon.play === 'function') {
-          lordIcon.play();
-        }
-      };
-
-      // Add event listeners to indicator for hover and focus
-      indicator.addEventListener('mouseenter', triggerAnimation);
-      indicator.addEventListener('focus', triggerAnimation);
-
-      // Cleanup function
-      return () => {
-        indicator.removeEventListener('mouseenter', triggerAnimation);
-        indicator.removeEventListener('focus', triggerAnimation);
-      };
-    }, 100);
-
-    return () => clearTimeout(initTimeout);
-  }, []);
 
   // Setup lord-icon animation triggers for feature card 2
   useEffect(() => {
@@ -794,7 +760,7 @@ const Index = () => {
                   dangerouslySetInnerHTML={{
                     __html: `<lord-icon
                       src="https://cdn.lordicon.com/utdckhgo.json"
-                      trigger="hover"
+                      trigger="loop"
                       stroke="bold"
                       state="loop-cycle"
                       colors="primary:#16a34a,secondary:#16a34a"
