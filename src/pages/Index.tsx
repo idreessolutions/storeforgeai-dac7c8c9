@@ -1,5 +1,5 @@
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,6 @@ import AuthModal from "@/components/AuthModal";
 const Index = () => {
   const [showBuilder, setShowBuilder] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
-  const arrowIconRef = useRef<HTMLElement>(null);
 
   if (showBuilder) {
     return <StoreBuilder onBack={() => setShowBuilder(false)} />;
@@ -65,16 +64,10 @@ const Index = () => {
               size="lg" 
               className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white text-lg px-8 py-6 shadow-xl transform hover:scale-105 transition-all group"
               onClick={() => setShowBuilder(true)}
-              onMouseEnter={() => {
-                const icon = document.querySelector('.hero-arrow-icon') as any;
-                if (icon && icon.playerInstance) {
-                  icon.playerInstance.playFromBeginning();
-                }
-              }}
             >
               Start My AI Store (Free)
-              <span className="ml-2 inline-block hero-arrow-icon" dangerouslySetInnerHTML={{
-                __html: '<lord-icon src="https://cdn.lordicon.com/sfwdicbq.json" trigger="hover" stroke="bold" colors="primary:#ffffff" style="width:48px;height:48px"></lord-icon>'
+              <span className="ml-2 inline-block" dangerouslySetInnerHTML={{
+                __html: '<lord-icon src="https://cdn.lordicon.com/sfwdicbq.json" trigger="hover" stroke="bold" style="width:24px;height:24px"></lord-icon>'
               }} />
             </Button>
               <Button 
