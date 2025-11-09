@@ -26,6 +26,8 @@ const Index = () => {
   const valueProp5IconRef = useRef<HTMLSpanElement>(null);
   const valueProp6Ref = useRef<HTMLDivElement>(null);
   const valueProp6IconRef = useRef<HTMLSpanElement>(null);
+  const featureCard1Ref = useRef<HTMLDivElement>(null);
+  const featureCard1IconRef = useRef<HTMLSpanElement>(null);
 
   // Setup lord-icon animation triggers for CTA button
   useEffect(() => {
@@ -266,6 +268,41 @@ const Index = () => {
   useEffect(() => {
     const card = valueProp6Ref.current;
     const container = valueProp6IconRef.current;
+    if (!card || !container) return;
+
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    // Wait for lord-icon to be fully initialized
+    const initTimeout = setTimeout(() => {
+      const lordIcon = container.querySelector('lord-icon') as any;
+      if (!lordIcon) return;
+
+      const triggerAnimation = () => {
+        if (lordIcon && typeof lordIcon.playFromBeginning === 'function') {
+          lordIcon.playFromBeginning();
+        }
+      };
+
+      // Add event listeners to card for hover and focus
+      card.addEventListener('mouseenter', triggerAnimation);
+      card.addEventListener('focus', triggerAnimation);
+
+      // Cleanup function
+      return () => {
+        card.removeEventListener('mouseenter', triggerAnimation);
+        card.removeEventListener('focus', triggerAnimation);
+      };
+    }, 100);
+
+    return () => clearTimeout(initTimeout);
+  }, []);
+
+  // Setup lord-icon animation triggers for feature card 1
+  useEffect(() => {
+    const card = featureCard1Ref.current;
+    const container = featureCard1IconRef.current;
     if (!card || !container) return;
 
     // Check for reduced motion preference
@@ -595,12 +632,35 @@ const Index = () => {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <Card 
+              ref={featureCard1Ref}
+              tabIndex={0}
+              className="group hover:shadow-2xl transition-all duration-500 border-0 shadow-lg h-full bg-white/80 backdrop-blur-sm hover:bg-white transform hover:scale-105 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-300"
+            >
+              <CardHeader className="pb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg">
+                  <span 
+                    ref={featureCard1IconRef}
+                    className="inline-flex items-center justify-center" 
+                    dangerouslySetInnerHTML={{
+                      __html: `<lord-icon
+                        src="https://cdn.lordicon.com/gztcjayb.json"
+                        trigger="hover"
+                        stroke="bold"
+                        colors="primary:#ffffff,secondary:#ffffff"
+                        style="width:32px;height:32px">
+                      </lord-icon>`
+                    }}
+                  />
+                </div>
+                <CardTitle className="text-xl font-bold">AI Store Generator</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-gray-600 text-base leading-relaxed">Your entire Shopify store built in minutes — desktop + mobile theme, menus, policies, collections, branding, and 10 products uploaded instantly.</p>
+              </CardContent>
+            </Card>
+
             {[
-              {
-                icon: Bot,
-                title: "AI Store Generator",
-                description: "Your entire Shopify store built in minutes — desktop + mobile theme, menus, policies, collections, branding, and 10 products uploaded instantly."
-              },
               {
                 icon: TrendingUp,
                 title: "Real Winning Products",
