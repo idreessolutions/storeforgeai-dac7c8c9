@@ -972,7 +972,7 @@ const Index = () => {
                         src="https://cdn.lordicon.com/gmypinsw.json"
                         trigger="hover"
                         stroke="bold"
-                        state="in-reveal"
+                        state="hover-rotation"
                         colors="primary:#ffffff,secondary:#ffffff"
                         style="width:32px;height:32px">
                       </lord-icon>`
