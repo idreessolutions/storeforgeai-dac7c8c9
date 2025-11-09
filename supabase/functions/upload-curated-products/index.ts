@@ -496,6 +496,12 @@ async function fetchRandomProducts(supabase: any, niche: string, limit: number =
   }
 }
 
+// Add shutdown handler to log progress
+addEventListener('beforeunload', (ev) => {
+  console.log('⚠️ Function shutdown detected:', ev.detail?.reason);
+  console.log('💾 Any in-progress uploads will continue in background');
+});
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -661,300 +667,271 @@ serve(async (req) => {
 
     console.log(`🎯 Will process exactly ${selectedProductFolders.length} products from product_data table`);
 
-    const results = [];
-    let successCount = 0;
+    // 🚀 BACKGROUND TASK: Process products without blocking response
+    const processProducts = async () => {
+      const results = [];
+      let successCount = 0;
 
-    for (let i = 0; i < selectedProductFolders.length; i++) {
-      const productFolder = selectedProductFolders[i];
-      
-      console.log(`📦 Processing product ${i + 1}/${selectedProductFolders.length}: ${productFolder}`);
-
-      try {
-        // Pull ONLY from product_data table in Supabase (no AI, no fallback)
-        console.log(`📊 Fetching product data from product_data table for ${productFolder}...`);
-        const productData = await getProductDataFromTable(supabase, bucketName, productFolder);
+      for (let i = 0; i < selectedProductFolders.length; i++) {
+        const productFolder = selectedProductFolders[i];
         
-        // Skip if product data is invalid (missing category or not found)
-        if (!productData) {
-          console.warn(`⚠️ Skipping ${productFolder}: Invalid or missing product data`);
-          continue;
-        }
+        console.log(`📦 Processing product ${i + 1}/${selectedProductFolders.length}: ${productFolder}`);
 
-        console.log(`🛒 Creating product in Shopify: ${productData.title}`);
-
-        // Get main product images from storage
-        const { data: mainImages } = await supabase.storage
-          .from(bucketName)
-          .list(`${productFolder}/Products Images`);
-
-        const imageUrls: Array<{ src: string; alt: string }> = [];
-        
-        if (mainImages && mainImages.length > 0) {
-          for (const img of mainImages.slice(0, 8)) { // Increased to 8 images
-            const { data: imageUrl } = supabase.storage
-              .from(bucketName)
-              .getPublicUrl(`${productFolder}/Products Images/${img.name}`);
-            
-            imageUrls.push({
-              src: imageUrl.publicUrl,
-              alt: `${productData.title} - Image ${imageUrls.length + 1}`
-            });
-          }
-        }
-
-        // Get variant images from storage - for mapping to variants
-        const { data: variantImagesList } = await supabase.storage
-          .from(bucketName)
-          .list(`${productFolder}/Variants Product Images`);
-
-        // Use variants from table data if available, otherwise create from variant images
-        let variants = [];
-        const variantImageMapping: { [key: number]: string } = {}; // Track which image goes to which variant
-        const colors = ['Black', 'White', 'Blue', 'Red', 'Gray', 'Green', 'Purple', 'Brown'];
-        
-        if (productData.variants && productData.variants.length > 0) {
-          console.log(`🔄 Processing ${productData.variants.length} variants from product_data table`);
+        try {
+          // Pull ONLY from product_data table in Supabase (no AI, no fallback)
+          console.log(`📊 Fetching product data from product_data table for ${productFolder}...`);
+          const productData = await getProductDataFromTable(supabase, bucketName, productFolder);
           
-          // Use variants from product_data table (jsonb field)
-          for (let idx = 0; idx < productData.variants.length; idx++) {
-            const v = productData.variants[idx];
-            
-            // Create the variant
-            variants.push({
-              option1: v.optionValues?.[0] || colors[(i + idx) % colors.length],
-              price: String(v.price || productData.price || 29.99),
-              compare_at_price: String(v.compareAtPrice || productData.compareAtPrice || (v.price * 1.4)),
-              sku: v.sku || `${bucketName.toUpperCase()}-${i + 1}-${idx + 1}`,
-              inventory_quantity: v.inventory_quantity || 100,
-              inventory_management: 'shopify',
-              inventory_policy: 'deny',
-              requires_shipping: true,
-              taxable: true
-            });
-            
-            // Add variant-specific image if specified in the table
-            if (v.image && typeof v.image === 'string') {
-              const variantImagePath = v.image.startsWith('Variants Product Images/') 
-                ? v.image 
-                : `Variants Product Images/${v.image}`;
-              
-              const { data: variantImageUrl } = supabase.storage
+          // Skip if product data is invalid (missing category or not found)
+          if (!productData) {
+            console.warn(`⚠️ Skipping ${productFolder}: Invalid or missing product data`);
+            continue;
+          }
+
+          console.log(`🛒 Creating product in Shopify: ${productData.title}`);
+
+          // Get main product images from storage
+          const { data: mainImages } = await supabase.storage
+            .from(bucketName)
+            .list(`${productFolder}/Products Images`);
+
+          const imageUrls: Array<{ src: string; alt: string }> = [];
+          
+          if (mainImages && mainImages.length > 0) {
+            for (const img of mainImages.slice(0, 8)) { // Increased to 8 images
+              const { data: imageUrl } = supabase.storage
                 .from(bucketName)
-                .getPublicUrl(`${productFolder}/${variantImagePath}`);
+                .getPublicUrl(`${productFolder}/Products Images/${img.name}`);
               
-              // Add variant image to imageUrls array
-              // The position in imageUrls determines which image ID will be assigned
-              const imagePosition = imageUrls.length + mainImages.length; // After main images
               imageUrls.push({
-                src: variantImageUrl.publicUrl,
-                alt: `${productData.title} - ${v.optionValues?.[0] || colors[(i + idx) % colors.length]}`
+                src: imageUrl.publicUrl,
+                alt: `${productData.title} - Image ${imageUrls.length + 1}`
+              });
+            }
+          }
+
+          // Get variant images from storage - for mapping to variants
+          const { data: variantImagesList } = await supabase.storage
+            .from(bucketName)
+            .list(`${productFolder}/Variants Product Images`);
+
+          // Use variants from table data if available, otherwise create from variant images
+          let variants = [];
+          const variantImageMapping: { [key: number]: string } = {}; // Track which image goes to which variant
+          const colors = ['Black', 'White', 'Blue', 'Red', 'Gray', 'Green', 'Purple', 'Brown'];
+          
+          if (productData.variants && productData.variants.length > 0) {
+            console.log(`🔄 Processing ${productData.variants.length} variants from product_data table`);
+            
+            // Use variants from product_data table (jsonb field)
+            for (let idx = 0; idx < productData.variants.length; idx++) {
+              const v = productData.variants[idx];
+              
+              // Create the variant
+              variants.push({
+                option1: v.optionValues?.[0] || colors[(i + idx) % colors.length],
+                price: String(v.price || productData.price || 29.99),
+                compare_at_price: String(v.compareAtPrice || productData.compareAtPrice || (v.price * 1.4)),
+                sku: v.sku || `${bucketName.toUpperCase()}-${i + 1}-${idx + 1}`,
+                inventory_quantity: v.inventory_quantity || 100,
+                inventory_management: 'shopify',
+                inventory_policy: 'deny',
+                requires_shipping: true,
+                taxable: true
               });
               
-              // Map this variant to its image position (will be used after product creation)
-              variantImageMapping[idx] = variantImageUrl.publicUrl;
-              
-              console.log(`🖼️ Added variant image for ${v.optionValues?.[0]}: ${variantImagePath}`);
-            }
-          }
-          
-          console.log(`✅ Created ${variants.length} variants with ${Object.keys(variantImageMapping).length} variant images`);
-        } else if (variantImagesList && variantImagesList.length > 0) {
-          console.log(`🔄 Creating variants from ${variantImagesList.length} variant images found in storage`);
-          
-          // Create variants based on available variant images
-          for (let v = 0; v < Math.min(10, variantImagesList.length); v++) {
-            const variantImageUrl = supabase.storage
-              .from(bucketName)
-              .getPublicUrl(`${productFolder}/Variants Product Images/${variantImagesList[v].name}`);
-
-            const variantPrice = productData.price > 0 ? productData.price + (v * 2) : 29.99 + (v * 2);
-            const variantComparePrice = productData.compareAtPrice || (variantPrice * 1.4);
-
-            variants.push({
-              option1: colors[(i + v) % colors.length],
-              price: variantPrice.toFixed(2),
-              compare_at_price: variantComparePrice.toFixed(2),
-              sku: `${bucketName.toUpperCase()}-${i + 1}-${v + 1}`,
-              inventory_quantity: 100,
-              inventory_management: 'shopify',
-              inventory_policy: 'deny',
-              requires_shipping: true,
-              taxable: true
-            });
-
-            // Add variant image to imageUrls
-            variantImageMapping[v] = variantImageUrl.data.publicUrl;
-            imageUrls.push({
-              src: variantImageUrl.data.publicUrl,
-              alt: `${productData.title} - ${colors[(i + v) % colors.length]}`
-            });
-          }
-          
-          console.log(`✅ Created ${variants.length} variants from storage images`);
-        } else {
-          console.log(`⚠️ No variants found in table or storage, creating default variants`);
-          
-          // Create default variants with varied colors
-          const defaultPrice = productData.price > 0 ? productData.price : 29.99;
-          const defaultComparePrice = productData.compareAtPrice || (defaultPrice * 1.4);
-          
-          for (let v = 0; v < 3; v++) {
-            const variantPrice = defaultPrice + (v * 2);
-            const variantComparePrice = defaultComparePrice + (v * 2);
-            
-            variants.push({
-              option1: colors[(i + v) % colors.length],
-              price: variantPrice.toFixed(2),
-              compare_at_price: variantComparePrice.toFixed(2),
-              sku: `${bucketName.toUpperCase()}-${i + 1}-${v + 1}`,
-              inventory_quantity: 100,
-              inventory_management: 'shopify',
-              inventory_policy: 'deny',
-              requires_shipping: true,
-              taxable: true
-            });
-          }
-        }
-
-        // Prepare tags - use from table or fallback
-        const allTags = [
-          ...(productData.tags || []),
-          categoryName,
-          niche,
-          'curated'
-        ];
-        const uniqueTags = [...new Set(allTags)].join(', ');
-
-        // Prepare options - use from table data or default to Color
-        const productOptions = productData.options && productData.options.length > 0
-          ? productData.options
-          : [{
-              name: 'Color',
-              position: 1,
-              values: variants.map((v, idx) => colors[(i + idx) % colors.length]).slice(0, variants.length)
-            }];
-
-        // CRITICAL: Use category from product_data table (already validated as non-empty)
-        // This is MANDATORY - we already skipped products without category
-        const shopifyProduct = {
-          product: {
-            title: productData.title,
-            body_html: productData.description,
-            vendor: storeName || 'Premium Store',
-            product_type: productData.productType || categoryName,
-            category: productData.category, // From product_data table - MANDATORY
-            tags: uniqueTags,
-            options: productOptions,
-            variants: variants,
-            images: imageUrls.map((img, index) => ({
-              src: img.src,
-              alt: img.alt,
-              position: index + 1
-            }))
-          }
-        };
-
-        console.log(`📦 Product payload - Category: ${shopifyProduct.product.category}, Type: ${shopifyProduct.product.product_type}`);
-
-        // Upload to Shopify
-        const productResponse = await shopifyClient.createProductWithRetry(shopifyProduct);
-        const createdProduct = productResponse.product;
-
-        // 🖼️ CRITICAL: Link variant images to their variants
-        if (Object.keys(variantImageMapping).length > 0 && createdProduct.images && createdProduct.variants) {
-          console.log(`🔗 Linking ${Object.keys(variantImageMapping).length} variant images to variants...`);
-          
-          // Create a map of image URL to image ID from the created product
-          const imageUrlToId: { [url: string]: number } = {};
-          for (const img of createdProduct.images) {
-            if (img.src) {
-              imageUrlToId[img.src] = img.id;
-            }
-          }
-          
-          // Update each variant with its image
-          for (let variantIdx = 0; variantIdx < createdProduct.variants.length; variantIdx++) {
-            const variantImageUrl = variantImageMapping[variantIdx];
-            
-            if (variantImageUrl && imageUrlToId[variantImageUrl]) {
-              const variant = createdProduct.variants[variantIdx];
-              const imageId = imageUrlToId[variantImageUrl];
-              
-              try {
-                // Update the variant to link it to its image
-                const updateResponse = await fetch(
-                  `${shopifyUrl}/admin/api/2024-10/variants/${variant.id}.json`,
-                  {
-                    method: 'PUT',
-                    headers: {
-                      'X-Shopify-Access-Token': shopifyAccessToken,
-                      'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                      variant: {
-                        id: variant.id,
-                        image_id: imageId
-                      }
-                    })
-                  }
-                );
+              // Add variant-specific image if specified in the table
+              if (v.image && typeof v.image === 'string') {
+                const variantImagePath = v.image.startsWith('Variants Product Images/') 
+                  ? v.image 
+                  : `Variants Product Images/${v.image}`;
                 
-                if (updateResponse.ok) {
-                  console.log(`✅ Linked image ${imageId} to variant ${variant.id} (${variant.option1})`);
-                } else {
-                  const errorText = await updateResponse.text();
-                  console.warn(`⚠️ Failed to link image to variant ${variant.id}: ${errorText}`);
-                }
+                const { data: variantImageUrl } = supabase.storage
+                  .from(bucketName)
+                  .getPublicUrl(`${productFolder}/${variantImagePath}`);
                 
-                // Reduced delay for better performance
-                await new Promise(resolve => setTimeout(resolve, 150));
-              } catch (err) {
-                console.warn(`⚠️ Error linking image to variant ${variant.id}:`, err);
+                // Add variant image to imageUrls array
+                const imagePosition = imageUrls.length;
+                imageUrls.push({
+                  src: variantImageUrl.publicUrl,
+                  alt: `${productData.title} - ${v.optionValues?.[0] || colors[(i + idx) % colors.length]}`
+                });
+                
+                variantImageMapping[idx] = variantImageUrl.publicUrl;
+                console.log(`🖼️ Added variant image for ${v.optionValues?.[0] || colors[(i + idx) % colors.length]}: ${variantImagePath}`);
               }
             }
+          } else if (variantImagesList && variantImagesList.length > 0) {
+            // Fallback: Create variants from variant images
+            console.log(`🔄 Creating ${variantImagesList.length} variants from variant images`);
+            
+            for (let idx = 0; idx < Math.min(variantImagesList.length, 8); idx++) {
+              const variantImg = variantImagesList[idx];
+              const { data: variantImageUrl } = supabase.storage
+                .from(bucketName)
+                .getPublicUrl(`${productFolder}/Variants Product Images/${variantImg.name}`);
+              
+              const colorName = colors[(i + idx) % colors.length];
+              
+              variants.push({
+                option1: colorName,
+                price: String(productData.price || 29.99),
+                compare_at_price: String(productData.compareAtPrice || (productData.price * 1.4) || 41.99),
+                sku: `${bucketName.toUpperCase()}-${i + 1}-${idx + 1}`,
+                inventory_quantity: 100,
+                inventory_management: 'shopify',
+                inventory_policy: 'deny',
+                requires_shipping: true,
+                taxable: true
+              });
+              
+              const imagePosition = imageUrls.length;
+              imageUrls.push({
+                src: variantImageUrl.publicUrl,
+                alt: `${productData.title} - ${colorName}`
+              });
+              
+              variantImageMapping[idx] = variantImageUrl.publicUrl;
+            }
           }
-          
-          console.log(`✅ Variant image linking complete`);
+
+          console.log(`✅ Created ${variants.length} variants with ${Object.keys(variantImageMapping).length} variant images`);
+
+          // Build Shopify product payload
+          const shopifyProduct = {
+            product: {
+              title: productData.title,
+              body_html: productData.description,
+              vendor: storeName || 'My Store',
+              product_type: productData.productType || categoryName,
+              category: productData.category,
+              tags: Array.isArray(productData.tags) ? productData.tags.join(', ') : '',
+              status: 'active',
+              published: true,
+              variants: variants,
+              options: productData.options && productData.options.length > 0 ? productData.options : [
+                {
+                  name: 'Color',
+                  values: variants.map(v => v.option1)
+                }
+              ],
+              images: imageUrls.map((img, index) => ({
+                src: img.src,
+                alt: img.alt,
+                position: index + 1
+              }))
+            }
+          };
+
+          console.log(`📦 Product payload - Category: ${shopifyProduct.product.category}, Type: ${shopifyProduct.product.product_type}`);
+
+          // Upload to Shopify
+          const productResponse = await shopifyClient.createProductWithRetry(shopifyProduct);
+          const createdProduct = productResponse.product;
+
+          // 🖼️ CRITICAL: Link variant images to their variants
+          if (Object.keys(variantImageMapping).length > 0 && createdProduct.images && createdProduct.variants) {
+            console.log(`🔗 Linking ${Object.keys(variantImageMapping).length} variant images to variants...`);
+            
+            // Create a map of image URL to image ID from the created product
+            const imageUrlToId: { [url: string]: number } = {};
+            for (const img of createdProduct.images) {
+              if (img.src) {
+                imageUrlToId[img.src] = img.id;
+              }
+            }
+            
+            // Update each variant with its image
+            for (let variantIdx = 0; variantIdx < createdProduct.variants.length; variantIdx++) {
+              const variantImageUrl = variantImageMapping[variantIdx];
+              
+              if (variantImageUrl && imageUrlToId[variantImageUrl]) {
+                const variant = createdProduct.variants[variantIdx];
+                const imageId = imageUrlToId[variantImageUrl];
+                
+                try {
+                  // Update the variant to link it to its image
+                  const updateResponse = await fetch(
+                    `${shopifyUrl}/admin/api/2024-10/variants/${variant.id}.json`,
+                    {
+                      method: 'PUT',
+                      headers: {
+                        'X-Shopify-Access-Token': shopifyAccessToken,
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({
+                        variant: {
+                          id: variant.id,
+                          image_id: imageId
+                        }
+                      })
+                    }
+                  );
+                  
+                  if (updateResponse.ok) {
+                    console.log(`✅ Linked image ${imageId} to variant ${variant.id} (${variant.option1})`);
+                  } else {
+                    const errorText = await updateResponse.text();
+                    console.warn(`⚠️ Failed to link image to variant ${variant.id}: ${errorText}`);
+                  }
+                  
+                  // Small delay to avoid rate limits
+                  await new Promise(resolve => setTimeout(resolve, 100));
+                } catch (err) {
+                  console.warn(`⚠️ Error linking image to variant ${variant.id}:`, err);
+                }
+              }
+            }
+            
+            console.log(`✅ Variant image linking complete`);
+          }
+
+          successCount++;
+          results.push({
+            productFolder,
+            success: true,
+            productId: createdProduct.id,
+            title: productData.title,
+            category: productData.category,
+            shopifyUrl: `${shopifyUrl}/admin/products/${createdProduct.id}`,
+            imagesUploaded: imageUrls.length,
+            variantsCreated: createdProduct.variants.length,
+            variantImagesLinked: Object.keys(variantImageMapping).length,
+            dataSource: 'product_data table'
+          });
+
+          console.log(`✅ Successfully created: ${productData.title} (ID: ${createdProduct.id}, Category: ${productData.category}, Variants: ${createdProduct.variants.length})`);
+
+        } catch (error) {
+          console.error(`❌ Error processing ${productFolder}:`, error);
+          results.push({
+            productFolder,
+            success: false,
+            error: error.message
+          });
         }
-
-        successCount++;
-        results.push({
-          productFolder,
-          success: true,
-          productId: createdProduct.id,
-          title: productData.title,
-          category: productData.category,
-          shopifyUrl: `${shopifyUrl}/admin/products/${createdProduct.id}`,
-          imagesUploaded: imageUrls.length,
-          variantsCreated: createdProduct.variants.length,
-          variantImagesLinked: Object.keys(variantImageMapping).length,
-          dataSource: 'product_data table'
-        });
-
-        console.log(`✅ Successfully created: ${productData.title} (ID: ${createdProduct.id}, Category: ${productData.category}, Variants: ${createdProduct.variants.length})`);
-
-      } catch (error) {
-        console.error(`❌ Error processing ${productFolder}:`, error);
-        results.push({
-          productFolder,
-          success: false,
-          error: error.message
-        });
       }
+
+      console.log(`🎉 Upload complete: ${successCount}/${targetCount} products uploaded successfully`);
+      return { successCount, results };
+    };
+
+    // Start background processing
+    const backgroundTask = processProducts();
+    
+    // Use EdgeRuntime.waitUntil to keep function alive
+    if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
+      EdgeRuntime.waitUntil(backgroundTask);
     }
 
-
-    console.log(`🎉 Upload complete: ${successCount}/${targetCount} products uploaded successfully`);
-
+    // Return immediate success response
     return new Response(JSON.stringify({
       success: true,
-      uploadedCount: successCount,
-      totalProcessed: results.length,
-      targetCount: targetCount,
-      results,
+      message: `Product upload started for ${selectedProductFolders.length} products. Processing in background...`,
       niche,
       bucketName,
-      message: `Successfully uploaded ${successCount} curated ${niche} products from product_data table${themeColor ? ' with theme color applied' : ''}`
+      productsToProcess: selectedProductFolders.length,
+      themeColorApplied: !!themeColor
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
