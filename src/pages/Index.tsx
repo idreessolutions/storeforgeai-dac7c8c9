@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Zap, Store, Palette, Bot, Users, Crown, ArrowRight, Check, Star, Rocket, ShoppingCart, TrendingUp, Target, DollarSign, Sparkles, Clock, Shield, Award, Play, ExternalLink } from "lucide-react";
+import shoppingCartGif from "@/assets/shopping-cart.gif";
 import StoreBuilder from "@/components/StoreBuilder";
 import AuthModal from "@/components/AuthModal";
 
@@ -16,8 +17,6 @@ const Index = () => {
   const badgeIconContainerRef = useRef<HTMLSpanElement>(null);
   const valuePropRef = useRef<HTMLDivElement>(null);
   const valuePropIconRef = useRef<HTMLSpanElement>(null);
-  const valueProp2Ref = useRef<HTMLDivElement>(null);
-  const valueProp2IconRef = useRef<HTMLSpanElement>(null);
 
   // Setup lord-icon animation triggers for CTA button
   useEffect(() => {
@@ -114,40 +113,6 @@ const Index = () => {
     return () => clearTimeout(initTimeout);
   }, []);
 
-  // Setup lord-icon animation triggers for value prop 2
-  useEffect(() => {
-    const card = valueProp2Ref.current;
-    const container = valueProp2IconRef.current;
-    if (!card || !container) return;
-
-    // Check for reduced motion preference
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) return;
-
-    // Wait for lord-icon to be fully initialized
-    const initTimeout = setTimeout(() => {
-      const lordIcon = container.querySelector('lord-icon') as any;
-      if (!lordIcon) return;
-
-      const triggerAnimation = () => {
-        if (lordIcon && typeof lordIcon.playFromBeginning === 'function') {
-          lordIcon.playFromBeginning();
-        }
-      };
-
-      // Add event listeners to card for hover and focus
-      card.addEventListener('mouseenter', triggerAnimation);
-      card.addEventListener('focus', triggerAnimation);
-
-      // Cleanup function
-      return () => {
-        card.removeEventListener('mouseenter', triggerAnimation);
-        card.removeEventListener('focus', triggerAnimation);
-      };
-    }, 100);
-
-    return () => clearTimeout(initTimeout);
-  }, []);
 
   if (showBuilder) {
     return <StoreBuilder onBack={() => setShowBuilder(false)} />;
@@ -313,27 +278,10 @@ const Index = () => {
               <span className="text-sm font-medium text-gray-700">Launch in &lt; 10 Minutes</span>
             </div>
 
-            {/* Second item with animated lord-icon */}
-            <div 
-              ref={valueProp2Ref}
-              tabIndex={0}
-              className="flex flex-col items-center text-center focus:outline-none focus:ring-4 focus:ring-blue-300 rounded-lg cursor-pointer"
-            >
+            {/* Second item with animated GIF */}
+            <div className="flex flex-col items-center text-center">
               <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mb-3">
-                <span 
-                  ref={valueProp2IconRef}
-                  className="inline-flex items-center justify-center" 
-                  dangerouslySetInnerHTML={{
-                    __html: `<lord-icon
-                      src="https://cdn.lordicon.com/edkuxwya.json"
-                      trigger="in"
-                      stroke="bold"
-                      state="in-reveal"
-                      colors="primary:#ffffff,secondary:#ffffff"
-                      style="width:24px;height:24px">
-                    </lord-icon>`
-                  }}
-                />
+                <img src={shoppingCartGif} alt="Shopping cart" className="w-6 h-6" />
               </div>
               <span className="text-sm font-medium text-gray-700">10 Hot & Winning Products</span>
             </div>
