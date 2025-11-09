@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Zap, Store, Palette, Bot, Users, Crown, ArrowRight, Check, Star, Rocket, ShoppingCart, TrendingUp } from "lucide-react";
+import { Zap, Store, Palette, Bot, Users, Crown, ArrowRight, Check, Star, Rocket, ShoppingCart, TrendingUp, Target, DollarSign, Sparkles, Clock, Shield, Award, Play, ExternalLink } from "lucide-react";
 import StoreBuilder from "@/components/StoreBuilder";
 import AuthModal from "@/components/AuthModal";
 
@@ -16,18 +16,18 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 overflow-x-hidden">
       {/* Hero Section */}
       <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-indigo-600/10" />
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-pink-600/5" />
         
         {/* Navigation */}
         <nav className="relative z-10 flex items-center justify-between px-4 py-3 lg:px-6">
           <div className="flex items-center space-x-2">
-            <div className="w-7 h-7 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+            <div className="w-7 h-7 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
               <Store className="h-4 w-4 text-white" />
             </div>
-            <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            <span className="text-lg font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
               StoreForge AI
             </span>
           </div>
@@ -36,108 +36,153 @@ const Index = () => {
         {/* Hero Content */}
         <div className="relative z-10 max-w-6xl mx-auto px-4 py-12 lg:px-6">
           <div className="text-center">
-            <Badge className="mb-4 bg-blue-100 text-blue-700 hover:bg-blue-200 text-xs">
-              <Rocket className="h-3 w-3 mr-1" />
-              AI-Powered Store Generation
+            <Badge className="mb-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 text-sm px-4 py-2 shadow-lg">
+              <Award className="h-4 w-4 mr-2" />
+              Official Shopify Partner – AI-Powered Store Builder
             </Badge>
             
-            <h1 className="text-3xl lg:text-5xl font-bold text-gray-900 mb-4 leading-tight">
-              Build Your Dream{" "}
-              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+              Build Your Entire{" "}
+              <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
                 Shopify Store
               </span>{" "}
-              in Minutes
+              in Minutes with AI
             </h1>
             
-            <p className="text-lg text-gray-600 mb-6 max-w-2xl mx-auto leading-relaxed">
-              Let AI create your complete store setup - from branding and products to descriptions and launch. 
-              No technical skills required, just your vision.
+            <p className="text-xl text-gray-700 mb-8 max-w-3xl mx-auto leading-relaxed">
+              Launch a fully-branded store with logo, theme, menus, policies, and 10 hot winning products — automatically imported to your Shopify dashboard.
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
               <Button 
                 size="lg" 
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-base px-6 py-3"
+                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white text-lg px-8 py-6 shadow-xl transform hover:scale-105 transition-all"
                 onClick={() => setShowBuilder(true)}
               >
-                Start Building Your Store Now
-                <ArrowRight className="ml-2 h-4 w-4" />
+                Start My AI Store (Free)
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+              <Button 
+                size="lg" 
+                variant="outline"
+                className="border-2 border-purple-600 text-purple-600 hover:bg-purple-50 text-lg px-8 py-6"
+              >
+                <Play className="mr-2 h-5 w-5" />
+                Watch Demo
               </Button>
             </div>
 
             {/* Trust Indicators */}
-            <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-gray-500">
+            <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-gray-600 mb-6">
               <div className="flex items-center">
                 <div className="flex -space-x-1 mr-2">
                   {[1, 2, 3, 4, 5].map((i) => (
-                    <Star key={i} className="h-3 w-3 text-yellow-400 fill-current" />
+                    <Star key={i} className="h-4 w-4 text-yellow-400 fill-current" />
                   ))}
                 </div>
-                <span className="text-xs">4.9/5 from 2,000+ users</span>
+                <span className="font-semibold">4.9/5 based on 2,000+ users</span>
               </div>
-              <div className="h-3 w-px bg-gray-300 hidden sm:block" />
-              <span className="text-xs">500+ stores launched</span>
-              <div className="h-3 w-px bg-gray-300 hidden sm:block" />
-              <span className="text-xs">24/7 support</span>
+              <div className="h-4 w-px bg-gray-300 hidden sm:block" />
+              <div className="flex items-center">
+                <Rocket className="h-4 w-4 mr-2 text-blue-600" />
+                <span className="font-semibold">500+ Shopify stores launched</span>
+              </div>
+              <div className="h-4 w-px bg-gray-300 hidden sm:block" />
+              <div className="flex items-center">
+                <TrendingUp className="h-4 w-4 mr-2 text-green-600" />
+                <span className="font-semibold">Real viral & winning products imported directly</span>
+              </div>
+            </div>
+
+            {/* Shopify Badge */}
+            <div className="inline-flex items-center bg-white/80 backdrop-blur-sm rounded-full px-6 py-3 shadow-lg border border-gray-200">
+              <svg className="w-6 h-6 mr-3" viewBox="0 0 32 32" fill="none">
+                <path d="M25.7 7.8c-.1-.3-.3-.4-.6-.4-.1 0-2.9-.1-2.9-.1s-1.9-1.9-2.1-2.1c-.2-.2-.5-.1-.6-.1l-.8.2c-.2-.6-.6-1.4-1.2-1.9C16.3 2.6 14.9 2.3 14 2.8c0 0 0 0-.1 0-.2.1-.4.2-.6.4-.7-1.2-1.8-1.7-2.4-1.2C9.7 2.6 9.4 4.1 9.6 6.1l-2.3.7c-.7.2-1.2.4-1.3 1.2-.1.6-2.6 20.3-2.6 20.3L24.5 30s4.7-24.7 4.7-25.1c.1-.1 0-.1 0-.1zM17 4.4c-.4.1-.8.3-1.3.4V4.4c0-.8-.1-1.5-.4-2 .6-.1 1.1.4 1.7 2zM14.5 2.9c.2.4.3 1 .3 1.7v.2c-.5.2-1.1.3-1.7.5.2-1.1.6-1.9 1.4-2.4zM12.6 3.6c.1 0 .1 0 .2.1-.6.4-.9 1.1-1.1 2.1l-1.4.4c.4-1.3 1.4-2.3 2.3-2.6z" fill="#95BF47"/>
+                <path d="m24.5 30-3.4-26.2c-.1-.3-.3-.4-.6-.4-.1 0-2.9-.1-2.9-.1s-1.9-1.9-2.1-2.1c-.1-.1-.2-.1-.3-.1L14 30h10.5z" fill="#5E8E3E"/>
+              </svg>
+              <span className="text-gray-700 font-semibold">Powered by Shopify Partner Integration</span>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Value Prop Strip */}
+      <div className="bg-white border-y border-gray-200 py-8">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+            {[
+              { icon: Zap, text: "Launch in < 10 Minutes" },
+              { icon: ShoppingCart, text: "10 Hot & Winning Products" },
+              { icon: Target, text: "Real Shopify Integration" },
+              { icon: Palette, text: "Auto Branding: Logo, Themes" },
+              { icon: DollarSign, text: "AI Pricing & Profit" },
+              { icon: Check, text: "Works for Beginners" }
+            ].map((item, i) => (
+              <div key={i} className="flex flex-col items-center text-center">
+                <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mb-3">
+                  <item.icon className="h-6 w-6 text-white" />
+                </div>
+                <span className="text-sm font-medium text-gray-700">{item.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Features Section */}
-      <div className="py-16 bg-white">
-        <div className="max-w-6xl mx-auto px-4 lg:px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-3">
-              Everything You Need to Launch Successfully
+      <div className="py-20 bg-gradient-to-br from-gray-50 to-white">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
+              Everything Built For You, Automatically
             </h2>
-            <p className="text-lg text-gray-600 max-w-xl mx-auto">
-              Our AI handles every aspect of store creation, so you can focus on growing your business.
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Professional features that usually take weeks and cost thousands—ready in minutes with AI
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
               {
                 icon: Bot,
-                title: "AI Store Generation",
-                description: "Complete store setup with AI-generated branding and winning product catalogs."
+                title: "AI Store Generator",
+                description: "Your entire Shopify store built in minutes — desktop + mobile theme, menus, policies, collections, branding, and 10 products uploaded instantly."
+              },
+              {
+                icon: TrendingUp,
+                title: "Real Winning Products",
+                description: "We analyze trending data from TikTok, AliExpress, Amazon, and viral stores to auto-select the best 10 items in your niche."
               },
               {
                 icon: Palette,
                 title: "Professional Branding",
-                description: "Custom themes and brand identity created to match your business vision."
+                description: "Get a custom logo, color palette, fonts, and description tone that matches your niche and audience."
               },
               {
-                icon: ShoppingCart,
-                title: "Winning Products",
-                description: "20 hand-picked products with descriptions and pricing strategies."
+                icon: DollarSign,
+                title: "Profit Optimization",
+                description: "AI chooses pricing, product benefits, trust features, keywords, and SEO titles to help you convert customers from day one."
               },
               {
                 icon: Zap,
-                title: "Lightning Fast Setup",
-                description: "Generate complete stores in minutes. Launch faster than competition."
+                title: "1-Click Shopify Upload",
+                description: "No spreadsheets. No CSV. No manual work. Connect your Shopify store → click import → done."
               },
               {
-                icon: TrendingUp,
-                title: "Profit Optimization",
-                description: "Built-in strategies for maximum conversions from day one."
-              },
-              {
-                icon: Users,
-                title: "1-on-1 Mentorship",
-                description: "Get personal guidance from successful entrepreneurs."
+                icon: Sparkles,
+                title: "Beginner Friendly",
+                description: "Even if you've never used Shopify, our AI guides you step-by-step. Just choose a niche and press start."
               }
             ].map((feature, index) => (
-              <Card key={index} className="group hover:shadow-lg transition-all duration-300 border-0 shadow-md h-full">
-                <CardHeader className="pb-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                    <feature.icon className="h-5 w-5 text-white" />
+              <Card key={index} className="group hover:shadow-2xl transition-all duration-500 border-0 shadow-lg h-full bg-white/80 backdrop-blur-sm hover:bg-white transform hover:scale-105 rounded-2xl">
+                <CardHeader className="pb-4">
+                  <div className="w-16 h-16 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg">
+                    <feature.icon className="h-8 w-8 text-white" />
                   </div>
-                  <CardTitle className="text-lg">{feature.title}</CardTitle>
+                  <CardTitle className="text-xl font-bold">{feature.title}</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <p className="text-gray-600 text-sm leading-relaxed">{feature.description}</p>
+                  <p className="text-gray-600 text-base leading-relaxed">{feature.description}</p>
                 </CardContent>
               </Card>
             ))}
@@ -146,64 +191,227 @@ const Index = () => {
       </div>
 
       {/* How It Works */}
-      <div className="py-16 bg-gradient-to-br from-blue-50 to-indigo-50">
+      <div className="py-20 bg-white">
         <div className="max-w-6xl mx-auto px-4 lg:px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-3">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
               How It Works
             </h2>
-            <p className="text-lg text-gray-600">
-              Three simple steps to your profitable Shopify store
+            <p className="text-xl text-gray-600">
+              Three simple steps to launch your store
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-3 gap-12 mb-12">
             {[
               {
                 step: "01",
-                title: "Describe Your Vision",
-                description: "Tell us your niche and business goals. Our AI understands what you need to succeed."
+                title: "Choose Your Niche",
+                description: "Select your market — Pets, Beauty, Tech, Fitness, Gadgets, Kids, Home & Kitchen, Fashion, Seasonal, etc."
               },
               {
                 step: "02",
-                title: "AI Generates Everything",
-                description: "Watch as AI creates your store, products, and complete setup with profit-focused strategies."
+                title: "AI Builds Your Store",
+                description: "Your store design, logo, branding, layout, collections, and 10 winning products are generated automatically."
               },
               {
                 step: "03",
-                title: "Launch & Scale",
-                description: "Your store is ready to accept customers and generate revenue immediately."
+                title: "Connect & Launch",
+                description: "Click one button to import everything directly into your Shopify store. Start selling instantly."
               }
             ].map((step, index) => (
-              <div key={index} className="text-center">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-lg font-bold text-white">{step.step}</span>
+              <div key={index} className="text-center group">
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl group-hover:scale-110 transition-transform">
+                  <span className="text-2xl font-bold text-white">{step.step}</span>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{step.title}</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">{step.description}</p>
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">{step.title}</h3>
+                <p className="text-gray-600 text-lg leading-relaxed">{step.description}</p>
               </div>
+            ))}
+          </div>
+
+          {/* Testimonial */}
+          <div className="max-w-2xl mx-auto text-center bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-8 shadow-lg">
+            <div className="flex justify-center mb-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Star key={i} className="h-6 w-6 text-yellow-400 fill-current" />
+              ))}
+            </div>
+            <p className="text-xl text-gray-700 italic mb-4">
+              "I built my store in 6 minutes and already made sales on day 1."
+            </p>
+            <p className="text-gray-600 font-semibold">— Daniel R.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Live Store Examples */}
+      <div className="py-20 bg-gradient-to-br from-gray-50 to-white">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
+              Stores Built with Our AI
+            </h2>
+            <p className="text-xl text-gray-600">
+              Real examples of profitable stores created in minutes
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {[
+              { title: "Pet Store", subtitle: "10 Viral Pet Gadgets", gradient: "from-orange-500 to-pink-500" },
+              { title: "Beauty Store", subtitle: "Trending Skincare Products", gradient: "from-pink-500 to-rose-500" },
+              { title: "Tech Store", subtitle: "Smart Gadgets That Sell Fast", gradient: "from-blue-500 to-cyan-500" },
+              { title: "Kids Store", subtitle: "Educational Toys & Baby Items", gradient: "from-purple-500 to-indigo-500" }
+            ].map((store, i) => (
+              <Card key={i} className="group hover:shadow-2xl transition-all duration-500 border-0 shadow-lg overflow-hidden">
+                <div className={`h-48 bg-gradient-to-br ${store.gradient} flex items-center justify-center`}>
+                  <Store className="h-20 w-20 text-white opacity-80" />
+                </div>
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">{store.title}</h3>
+                  <p className="text-gray-600 mb-4">{store.subtitle}</p>
+                  <Button variant="outline" className="w-full group-hover:bg-gray-900 group-hover:text-white transition-colors">
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    View Demo
+                  </Button>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </div>
       </div>
 
-      {/* CTA Section */}
-      <div className="py-16 bg-gradient-to-r from-blue-600 to-indigo-600">
+      {/* Social Proof */}
+      <div className="py-20 bg-white">
+        <div className="max-w-6xl mx-auto px-4 lg:px-6">
+          <div className="text-center mb-12">
+            <div className="flex justify-center mb-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Star key={i} className="h-8 w-8 text-yellow-400 fill-current" />
+              ))}
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">
+              ⭐ 4.9/5 rating — Trusted by over 2,000 store owners
+            </h3>
+            
+            {/* Brand Icons */}
+            <div className="flex flex-wrap justify-center items-center gap-8 mb-12">
+              {["Shopify", "Stripe", "PayPal", "TikTok", "Facebook Ads"].map((brand) => (
+                <div key={brand} className="px-6 py-3 bg-gray-100 rounded-lg">
+                  <span className="text-gray-700 font-semibold">{brand}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Testimonials */}
+            <div className="grid md:grid-cols-3 gap-8">
+              {[
+                "Best AI Shopify builder I've ever used.",
+                "Better than hiring a $500 designer.",
+                "I got my first sale in 48 hours."
+              ].map((quote, i) => (
+                <Card key={i} className="p-6 border-0 shadow-lg">
+                  <div className="flex justify-center mb-3">
+                    {[1, 2, 3, 4, 5].map((j) => (
+                      <Star key={j} className="h-4 w-4 text-yellow-400 fill-current" />
+                    ))}
+                  </div>
+                  <p className="text-gray-700 italic">"{quote}"</p>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Pricing Section */}
+      <div className="py-20 bg-gradient-to-br from-blue-50 to-purple-50">
+        <div className="max-w-5xl mx-auto px-4 lg:px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
+              Start for Free — Pay Only When You're Ready
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            <Card className="p-8 border-2 border-gray-200 shadow-lg">
+              <div className="mb-6">
+                <Check className="h-12 w-12 text-green-600 mb-4" />
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Starter</h3>
+                <p className="text-4xl font-bold text-gray-900 mb-4">Free</p>
+              </div>
+              <ul className="space-y-3 mb-6">
+                {[
+                  "10 winning products",
+                  "Full store build",
+                  "AI branding",
+                  "Shopify upload"
+                ].map((feature, i) => (
+                  <li key={i} className="flex items-center text-gray-700">
+                    <Check className="h-5 w-5 text-green-600 mr-3" />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+              <Button 
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-6 text-lg"
+                onClick={() => setShowBuilder(true)}
+              >
+                Start My Free Store Build
+              </Button>
+            </Card>
+
+            <Card className="p-8 border-2 border-purple-600 shadow-2xl relative">
+              <Badge className="absolute top-4 right-4 bg-purple-600 text-white">Coming Soon</Badge>
+              <div className="mb-6">
+                <Rocket className="h-12 w-12 text-purple-600 mb-4" />
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Pro</h3>
+                <p className="text-gray-600 mb-4">Premium features</p>
+              </div>
+              <ul className="space-y-3 mb-6">
+                {[
+                  "Unlimited products",
+                  "Upsells & cross-sells",
+                  "Email templates",
+                  "Sales funnels"
+                ].map((feature, i) => (
+                  <li key={i} className="flex items-center text-gray-700">
+                    <Check className="h-5 w-5 text-purple-600 mr-3" />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+              <Button className="w-full" variant="outline" disabled>
+                Coming Soon
+              </Button>
+            </Card>
+          </div>
+        </div>
+      </div>
+
+      {/* Final CTA Section */}
+      <div className="py-24 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
         <div className="max-w-4xl mx-auto text-center px-4 lg:px-6">
-          <h2 className="text-2xl lg:text-3xl font-bold text-white mb-4">
-            Ready to Start Your Profitable Store?
+          <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">
+            Ready to Launch Your Shopify Store Today?
           </h2>
-          <p className="text-lg text-blue-100 mb-6">
-            Join thousands of entrepreneurs who've launched successful stores with StoreForge AI
+          <p className="text-xl text-white/90 mb-8">
+            Join thousands of entrepreneurs launching real Shopify businesses with AI.
           </p>
           <Button 
             size="lg" 
-            className="bg-white text-blue-600 hover:bg-gray-100 text-base px-6 py-3"
+            className="bg-white text-purple-600 hover:bg-gray-100 text-xl px-12 py-8 shadow-2xl transform hover:scale-105 transition-all"
             onClick={() => setShowBuilder(true)}
           >
-            Start Your Free Store Build
-            <ArrowRight className="ml-2 h-4 w-4" />
+            <Store className="mr-3 h-7 w-7" />
+            Create My Store Now – It's Free
+            <ArrowRight className="ml-3 h-7 w-7" />
           </Button>
+          <p className="text-white/80 mt-6 text-lg">
+            <Shield className="inline h-5 w-5 mr-2" />
+            No credit card required. Works with all Shopify plans.
+          </p>
         </div>
       </div>
 
