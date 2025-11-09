@@ -44,8 +44,6 @@ const Index = () => {
   const howItWorksStep2IconRef = useRef<HTMLSpanElement>(null);
   const howItWorksStep3Ref = useRef<HTMLDivElement>(null);
   const howItWorksStep3IconRef = useRef<HTMLSpanElement>(null);
-  const trustIndicator3Ref = useRef<HTMLDivElement>(null);
-  const trustIndicator3IconRef = useRef<HTMLSpanElement>(null);
 
   // Setup lord-icon animation triggers for CTA button
   useEffect(() => {
@@ -632,41 +630,6 @@ const Index = () => {
     return () => clearTimeout(initTimeout);
   }, []);
 
-  // Setup lord-icon animation triggers for trust indicator 3
-  useEffect(() => {
-    const element = trustIndicator3Ref.current;
-    const container = trustIndicator3IconRef.current;
-    if (!element || !container) return;
-
-    // Check for reduced motion preference
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) return;
-
-    // Wait for lord-icon to be fully initialized
-    const initTimeout = setTimeout(() => {
-      const lordIcon = container.querySelector('lord-icon') as any;
-      if (!lordIcon) return;
-
-      const triggerAnimation = () => {
-        if (lordIcon && typeof lordIcon.playFromBeginning === 'function') {
-          lordIcon.playFromBeginning();
-        }
-      };
-
-      // Add event listeners to element for hover and focus
-      element.addEventListener('mouseenter', triggerAnimation);
-      element.addEventListener('focus', triggerAnimation);
-
-      // Cleanup function
-      return () => {
-        element.removeEventListener('mouseenter', triggerAnimation);
-        element.removeEventListener('focus', triggerAnimation);
-      };
-    }, 100);
-
-    return () => clearTimeout(initTimeout);
-  }, []);
-
   if (showBuilder) {
     return <StoreBuilder onBack={() => setShowBuilder(false)} />;
   }
@@ -783,25 +746,8 @@ const Index = () => {
                 <span className="font-semibold">500+ Shopify stores launched</span>
               </div>
               <div className="h-4 w-px bg-gray-300 hidden sm:block" />
-              <div 
-                ref={trustIndicator3Ref}
-                tabIndex={0}
-                className="flex items-center focus:outline-none focus:ring-2 focus:ring-green-300 rounded cursor-pointer"
-              >
-                <span 
-                  ref={trustIndicator3IconRef}
-                  className="inline-flex items-center mr-2" 
-                  dangerouslySetInnerHTML={{
-                    __html: `<lord-icon
-                      src="https://cdn.lordicon.com/utdckhgo.json"
-                      trigger="hover"
-                      stroke="bold"
-                      state="loop-cycle"
-                      colors="primary:#16a34a,secondary:#16a34a"
-                      style="width:16px;height:16px">
-                    </lord-icon>`
-                  }}
-                />
+              <div className="flex items-center">
+                <TrendingUp className="h-4 w-4 mr-2 text-green-600" />
                 <span className="font-semibold">Real viral & winning products imported directly</span>
               </div>
             </div>
