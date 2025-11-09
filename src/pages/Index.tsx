@@ -16,6 +16,8 @@ const Index = () => {
   const badgeIconContainerRef = useRef<HTMLSpanElement>(null);
   const valuePropRef = useRef<HTMLDivElement>(null);
   const valuePropIconRef = useRef<HTMLSpanElement>(null);
+  const valueProp2Ref = useRef<HTMLDivElement>(null);
+  const valueProp2IconRef = useRef<HTMLSpanElement>(null);
 
   // Setup lord-icon animation triggers for CTA button
   useEffect(() => {
@@ -81,6 +83,36 @@ const Index = () => {
   useEffect(() => {
     const card = valuePropRef.current;
     const container = valuePropIconRef.current;
+    if (!card || !container) return;
+
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    // Find the lord-icon element
+    const lordIcon = container.querySelector('lord-icon') as any;
+    if (!lordIcon) return;
+
+    const triggerAnimation = () => {
+      if (lordIcon && typeof lordIcon.play === 'function') {
+        lordIcon.play();
+      }
+    };
+
+    // Add event listeners to card for hover and focus
+    card.addEventListener('mouseenter', triggerAnimation);
+    card.addEventListener('focus', triggerAnimation);
+
+    return () => {
+      card.removeEventListener('mouseenter', triggerAnimation);
+      card.removeEventListener('focus', triggerAnimation);
+    };
+  }, []);
+
+  // Setup lord-icon animation triggers for value prop 2
+  useEffect(() => {
+    const card = valueProp2Ref.current;
+    const container = valueProp2IconRef.current;
     if (!card || !container) return;
 
     // Check for reduced motion preference
@@ -271,9 +303,33 @@ const Index = () => {
               <span className="text-sm font-medium text-gray-700">Launch in &lt; 10 Minutes</span>
             </div>
 
+            {/* Second item with animated lord-icon */}
+            <div 
+              ref={valueProp2Ref}
+              tabIndex={0}
+              className="flex flex-col items-center text-center focus:outline-none focus:ring-4 focus:ring-blue-300 rounded-lg cursor-pointer"
+            >
+              <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mb-3">
+                <span 
+                  ref={valueProp2IconRef}
+                  className="inline-flex items-center justify-center" 
+                  dangerouslySetInnerHTML={{
+                    __html: `<lord-icon
+                      src="https://cdn.lordicon.com/edkuxwya.json"
+                      trigger="in"
+                      stroke="bold"
+                      state="in-reveal"
+                      colors="primary:#ffffff,secondary:#ffffff"
+                      style="width:24px;height:24px">
+                    </lord-icon>`
+                  }}
+                />
+              </div>
+              <span className="text-sm font-medium text-gray-700">10 Hot & Winning Products</span>
+            </div>
+
             {/* Rest of the items */}
             {[
-              { icon: ShoppingCart, text: "10 Hot & Winning Products" },
               { icon: Target, text: "Real Shopify Integration" },
               { icon: Palette, text: "Auto Branding: Logo, Themes" },
               { icon: DollarSign, text: "AI Pricing & Profit" },
