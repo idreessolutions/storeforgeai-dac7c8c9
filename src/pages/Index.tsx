@@ -22,6 +22,8 @@ const Index = () => {
   const valueProp3IconRef = useRef<HTMLSpanElement>(null);
   const valueProp4Ref = useRef<HTMLDivElement>(null);
   const valueProp4IconRef = useRef<HTMLSpanElement>(null);
+  const valueProp5Ref = useRef<HTMLDivElement>(null);
+  const valueProp5IconRef = useRef<HTMLSpanElement>(null);
 
   // Setup lord-icon animation triggers for CTA button
   useEffect(() => {
@@ -192,6 +194,41 @@ const Index = () => {
   useEffect(() => {
     const card = valueProp4Ref.current;
     const container = valueProp4IconRef.current;
+    if (!card || !container) return;
+
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    // Wait for lord-icon to be fully initialized
+    const initTimeout = setTimeout(() => {
+      const lordIcon = container.querySelector('lord-icon') as any;
+      if (!lordIcon) return;
+
+      const triggerAnimation = () => {
+        if (lordIcon && typeof lordIcon.playFromBeginning === 'function') {
+          lordIcon.playFromBeginning();
+        }
+      };
+
+      // Add event listeners to card for hover and focus
+      card.addEventListener('mouseenter', triggerAnimation);
+      card.addEventListener('focus', triggerAnimation);
+
+      // Cleanup function
+      return () => {
+        card.removeEventListener('mouseenter', triggerAnimation);
+        card.removeEventListener('focus', triggerAnimation);
+      };
+    }, 100);
+
+    return () => clearTimeout(initTimeout);
+  }, []);
+
+  // Setup lord-icon animation triggers for value prop 5
+  useEffect(() => {
+    const card = valueProp5Ref.current;
+    const container = valueProp5IconRef.current;
     if (!card || !container) return;
 
     // Check for reduced motion preference
@@ -460,8 +497,31 @@ const Index = () => {
               <span className="text-sm font-medium text-gray-700">Auto Branding: Logo, Themes</span>
             </div>
 
+            <div 
+              ref={valueProp5Ref}
+              tabIndex={0}
+              className="flex flex-col items-center text-center focus:outline-none focus:ring-4 focus:ring-blue-300 rounded-lg cursor-pointer"
+            >
+              <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mb-3">
+                <span 
+                  ref={valueProp5IconRef}
+                  className="inline-flex items-center justify-center" 
+                  dangerouslySetInnerHTML={{
+                    __html: `<lord-icon
+                      src="https://cdn.lordicon.com/hyuxspcq.json"
+                      trigger="hover"
+                      stroke="bold"
+                      state="loop-spin"
+                      colors="primary:#ffffff,secondary:#ffffff"
+                      style="width:24px;height:24px">
+                    </lord-icon>`
+                  }}
+                />
+              </div>
+              <span className="text-sm font-medium text-gray-700">AI Pricing & Profit</span>
+            </div>
+
             {[
-              { icon: DollarSign, text: "AI Pricing & Profit" },
               { icon: Check, text: "Works for Beginners" }
             ].map((item, i) => (
               <div key={i} className="flex flex-col items-center text-center">
