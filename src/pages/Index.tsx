@@ -31,6 +31,12 @@ const Index = () => {
               StoreForge AI
             </span>
           </div>
+          <div className="hidden md:flex items-center space-x-6">
+            <a href="/about" className="text-gray-700 hover:text-purple-600 font-medium transition-colors">About</a>
+            <a href="/pricing" className="text-gray-700 hover:text-purple-600 font-medium transition-colors">Pricing</a>
+            <a href="/faq" className="text-gray-700 hover:text-purple-600 font-medium transition-colors">FAQ</a>
+            <a href="/contact" className="text-gray-700 hover:text-purple-600 font-medium transition-colors">Contact</a>
+          </div>
         </nav>
 
         {/* Hero Content */}
@@ -414,6 +420,49 @@ const Index = () => {
           </p>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="max-w-6xl mx-auto px-4 lg:px-6">
+          <div className="grid md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-7 h-7 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
+                  <Store className="h-4 w-4 text-white" />
+                </div>
+                <span className="text-lg font-bold">StoreForge AI</span>
+              </div>
+              <p className="text-gray-400 text-sm">
+                Build your entire Shopify store in minutes with AI-powered automation.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Product</h4>
+              <ul className="space-y-2 text-sm">
+                <li><a href="/pricing" className="text-gray-400 hover:text-white transition-colors">Pricing</a></li>
+                <li><a href="/faq" className="text-gray-400 hover:text-white transition-colors">FAQ</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Company</h4>
+              <ul className="space-y-2 text-sm">
+                <li><a href="/about" className="text-gray-400 hover:text-white transition-colors">About</a></li>
+                <li><a href="/contact" className="text-gray-400 hover:text-white transition-colors">Contact</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Legal</h4>
+              <ul className="space-y-2 text-sm">
+                <li><a href="/terms" className="text-gray-400 hover:text-white transition-colors">Terms of Service</a></li>
+                <li><a href="/terms" className="text-gray-400 hover:text-white transition-colors">Privacy Policy</a></li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-gray-800 pt-8 text-center text-sm text-gray-400">
+            <p>&copy; 2025 StoreForge AI. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
 
       <AuthModal open={showAuth} onOpenChange={setShowAuth} />
     </div>
