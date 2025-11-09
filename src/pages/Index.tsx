@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Zap, Store, Palette, Bot, Users, Crown, ArrowRight, Check, Star, Rocket, ShoppingCart, TrendingUp, Target, DollarSign, Sparkles, Clock, Shield, Award, Play, ExternalLink } from "lucide-react";
 import StoreBuilder from "@/components/StoreBuilder";
 import AuthModal from "@/components/AuthModal";
+import starsAnimation from "@/assets/stars-animation.gif";
 
 const Index = () => {
   const [showBuilder, setShowBuilder] = useState(false);
@@ -737,11 +738,11 @@ const Index = () => {
             {/* Trust Indicators */}
             <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-gray-600 mb-6">
               <div className="flex items-center">
-                <div className="flex -space-x-1 mr-2">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <Star key={i} className="h-4 w-4 text-yellow-400 fill-current" />
-                  ))}
-                </div>
+                <img 
+                  src={starsAnimation} 
+                  alt="5 star rating" 
+                  className="h-4 mr-2"
+                />
                 <span className="font-semibold">4.9/5 based on 2,000+ users</span>
               </div>
               <div className="h-4 w-px bg-gray-300 hidden sm:block" />
