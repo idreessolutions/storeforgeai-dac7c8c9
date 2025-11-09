@@ -450,7 +450,6 @@ const Index = () => {
                       src="https://cdn.lordicon.com/boconccx.json"
                       trigger="hover"
                       stroke="bold"
-                      state="in-reveal"
                       colors="primary:#ffffff,secondary:#ffffff"
                       style="width:24px;height:24px">
                     </lord-icon>`
