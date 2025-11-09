@@ -8,6 +8,7 @@ import StoreBuilder from "@/components/StoreBuilder";
 import AuthModal from "@/components/AuthModal";
 import starsAnimation from "@/assets/stars-animation.gif";
 import shopifyLogo from "@/assets/shopify.png";
+import certifiedShopifyPartner from "@/assets/certified-shopify-partner.png";
 
 const Index = () => {
   const [showBuilder, setShowBuilder] = useState(false);
@@ -789,9 +790,12 @@ const Index = () => {
             </div>
 
             {/* Shopify Badge */}
-            <div className="inline-flex items-center bg-white/80 backdrop-blur-sm rounded-full px-6 py-3 shadow-lg border border-gray-200">
-              <img src={shopifyLogo} alt="Shopify" className="w-6 h-6 mr-3" />
-              <span className="text-gray-700 font-semibold">Powered by Shopify Partner Integration</span>
+            <div className="flex items-center gap-4">
+              <img src={certifiedShopifyPartner} alt="Certified Shopify Partner" className="h-24 w-24" />
+              <div className="inline-flex items-center bg-white/80 backdrop-blur-sm rounded-full px-6 py-3 shadow-lg border border-gray-200">
+                <img src={shopifyLogo} alt="Shopify" className="w-6 h-6 mr-3" />
+                <span className="text-gray-700 font-semibold">Powered by Shopify Partner Integration</span>
+              </div>
             </div>
           </div>
         </div>
