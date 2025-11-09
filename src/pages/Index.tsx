@@ -89,24 +89,29 @@ const Index = () => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) return;
 
-    // Find the lord-icon element
-    const lordIcon = container.querySelector('lord-icon') as any;
-    if (!lordIcon) return;
+    // Wait for lord-icon to be fully initialized
+    const initTimeout = setTimeout(() => {
+      const lordIcon = container.querySelector('lord-icon') as any;
+      if (!lordIcon) return;
 
-    const triggerAnimation = () => {
-      if (lordIcon && typeof lordIcon.play === 'function') {
-        lordIcon.play();
-      }
-    };
+      const triggerAnimation = () => {
+        if (lordIcon && typeof lordIcon.playFromBeginning === 'function') {
+          lordIcon.playFromBeginning();
+        }
+      };
 
-    // Add event listeners to card for hover and focus
-    card.addEventListener('mouseenter', triggerAnimation);
-    card.addEventListener('focus', triggerAnimation);
+      // Add event listeners to card for hover and focus
+      card.addEventListener('mouseenter', triggerAnimation);
+      card.addEventListener('focus', triggerAnimation);
 
-    return () => {
-      card.removeEventListener('mouseenter', triggerAnimation);
-      card.removeEventListener('focus', triggerAnimation);
-    };
+      // Cleanup function
+      return () => {
+        card.removeEventListener('mouseenter', triggerAnimation);
+        card.removeEventListener('focus', triggerAnimation);
+      };
+    }, 100);
+
+    return () => clearTimeout(initTimeout);
   }, []);
 
   // Setup lord-icon animation triggers for value prop 2
@@ -119,24 +124,29 @@ const Index = () => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) return;
 
-    // Find the lord-icon element
-    const lordIcon = container.querySelector('lord-icon') as any;
-    if (!lordIcon) return;
+    // Wait for lord-icon to be fully initialized
+    const initTimeout = setTimeout(() => {
+      const lordIcon = container.querySelector('lord-icon') as any;
+      if (!lordIcon) return;
 
-    const triggerAnimation = () => {
-      if (lordIcon && typeof lordIcon.play === 'function') {
-        lordIcon.play();
-      }
-    };
+      const triggerAnimation = () => {
+        if (lordIcon && typeof lordIcon.playFromBeginning === 'function') {
+          lordIcon.playFromBeginning();
+        }
+      };
 
-    // Add event listeners to card for hover and focus
-    card.addEventListener('mouseenter', triggerAnimation);
-    card.addEventListener('focus', triggerAnimation);
+      // Add event listeners to card for hover and focus
+      card.addEventListener('mouseenter', triggerAnimation);
+      card.addEventListener('focus', triggerAnimation);
 
-    return () => {
-      card.removeEventListener('mouseenter', triggerAnimation);
-      card.removeEventListener('focus', triggerAnimation);
-    };
+      // Cleanup function
+      return () => {
+        card.removeEventListener('mouseenter', triggerAnimation);
+        card.removeEventListener('focus', triggerAnimation);
+      };
+    }, 100);
+
+    return () => clearTimeout(initTimeout);
   }, []);
 
   if (showBuilder) {
