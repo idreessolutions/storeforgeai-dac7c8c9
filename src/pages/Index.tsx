@@ -232,8 +232,8 @@ const Index = () => {
                       src="https://cdn.lordicon.com/sfwdicbq.json"
                       trigger="hover"
                       stroke="bold"
-                      state="hover-slide"
-                      colors="primary:#ffffff"
+                      state="loop-slide"
+                      colors="primary:#ffffff,secondary:#ffffff"
                       style="width:24px;height:24px">
                     </lord-icon>`
                   }}
