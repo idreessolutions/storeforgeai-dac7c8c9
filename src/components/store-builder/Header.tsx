@@ -37,7 +37,7 @@ const Header = ({ onBack, currentStep, totalSteps, onViewAutomation }: HeaderPro
               </div>
               <div>
                 <h1 className="text-2xl font-bold">Elite Store Builder</h1>
-                <p className="text-indigo-200 text-sm">Create your winning Shopify store with AI-powered excellence</p>
+                <p className="text-indigo-200 text-sm">✅ Official Shopify Partner – AI-Powered Store Creation</p>
               </div>
             </div>
           </div>
