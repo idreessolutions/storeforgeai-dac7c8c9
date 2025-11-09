@@ -7,6 +7,7 @@ import { Zap, Store, Palette, Bot, Users, Crown, ArrowRight, Check, Star, Rocket
 import StoreBuilder from "@/components/StoreBuilder";
 import AuthModal from "@/components/AuthModal";
 import starsAnimation from "@/assets/stars-animation.gif";
+import shopifyLogo from "@/assets/shopify.png";
 
 const Index = () => {
   const [showBuilder, setShowBuilder] = useState(false);
@@ -789,10 +790,7 @@ const Index = () => {
 
             {/* Shopify Badge */}
             <div className="inline-flex items-center bg-white/80 backdrop-blur-sm rounded-full px-6 py-3 shadow-lg border border-gray-200">
-              <svg className="w-6 h-6 mr-3" viewBox="0 0 32 32" fill="none">
-                <path d="M25.7 7.8c-.1-.3-.3-.4-.6-.4-.1 0-2.9-.1-2.9-.1s-1.9-1.9-2.1-2.1c-.2-.2-.5-.1-.6-.1l-.8.2c-.2-.6-.6-1.4-1.2-1.9C16.3 2.6 14.9 2.3 14 2.8c0 0 0 0-.1 0-.2.1-.4.2-.6.4-.7-1.2-1.8-1.7-2.4-1.2C9.7 2.6 9.4 4.1 9.6 6.1l-2.3.7c-.7.2-1.2.4-1.3 1.2-.1.6-2.6 20.3-2.6 20.3L24.5 30s4.7-24.7 4.7-25.1c.1-.1 0-.1 0-.1zM17 4.4c-.4.1-.8.3-1.3.4V4.4c0-.8-.1-1.5-.4-2 .6-.1 1.1.4 1.7 2zM14.5 2.9c.2.4.3 1 .3 1.7v.2c-.5.2-1.1.3-1.7.5.2-1.1.6-1.9 1.4-2.4zM12.6 3.6c.1 0 .1 0 .2.1-.6.4-.9 1.1-1.1 2.1l-1.4.4c.4-1.3 1.4-2.3 2.3-2.6z" fill="#95BF47"/>
-                <path d="m24.5 30-3.4-26.2c-.1-.3-.3-.4-.6-.4-.1 0-2.9-.1-2.9-.1s-1.9-1.9-2.1-2.1c-.1-.1-.2-.1-.3-.1L14 30h10.5z" fill="#5E8E3E"/>
-              </svg>
+              <img src={shopifyLogo} alt="Shopify" className="w-6 h-6 mr-3" />
               <span className="text-gray-700 font-semibold">Powered by Shopify Partner Integration</span>
             </div>
           </div>
