@@ -38,6 +38,8 @@ const Index = () => {
   const featureCard5IconRef = useRef<HTMLSpanElement>(null);
   const featureCard6Ref = useRef<HTMLDivElement>(null);
   const featureCard6IconRef = useRef<HTMLSpanElement>(null);
+  const howItWorksStep1Ref = useRef<HTMLDivElement>(null);
+  const howItWorksStep1IconRef = useRef<HTMLSpanElement>(null);
 
   // Setup lord-icon animation triggers for CTA button
   useEffect(() => {
@@ -453,6 +455,41 @@ const Index = () => {
   useEffect(() => {
     const card = featureCard6Ref.current;
     const container = featureCard6IconRef.current;
+    if (!card || !container) return;
+
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    // Wait for lord-icon to be fully initialized
+    const initTimeout = setTimeout(() => {
+      const lordIcon = container.querySelector('lord-icon') as any;
+      if (!lordIcon) return;
+
+      const triggerAnimation = () => {
+        if (lordIcon && typeof lordIcon.playFromBeginning === 'function') {
+          lordIcon.playFromBeginning();
+        }
+      };
+
+      // Add event listeners to card for hover and focus
+      card.addEventListener('mouseenter', triggerAnimation);
+      card.addEventListener('focus', triggerAnimation);
+
+      // Cleanup function
+      return () => {
+        card.removeEventListener('mouseenter', triggerAnimation);
+        card.removeEventListener('focus', triggerAnimation);
+      };
+    }, 100);
+
+    return () => clearTimeout(initTimeout);
+  }, []);
+
+  // Setup lord-icon animation triggers for how it works step 1
+  useEffect(() => {
+    const card = howItWorksStep1Ref.current;
+    const container = howItWorksStep1IconRef.current;
     if (!card || !container) return;
 
     // Check for reduced motion preference
@@ -1002,12 +1039,31 @@ const Index = () => {
           </div>
 
           <div className="grid md:grid-cols-3 gap-12 mb-12">
+            <div 
+              ref={howItWorksStep1Ref}
+              tabIndex={0}
+              className="text-center group focus:outline-none focus:ring-4 focus:ring-blue-300 rounded-lg"
+            >
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl group-hover:scale-110 transition-transform">
+                <span 
+                  ref={howItWorksStep1IconRef}
+                  className="inline-flex items-center justify-center" 
+                  dangerouslySetInnerHTML={{
+                    __html: `<lord-icon
+                      src="https://cdn.lordicon.com/rphlntpm.json"
+                      trigger="hover"
+                      stroke="bold"
+                      colors="primary:#ffffff,secondary:#ffffff"
+                      style="width:40px;height:40px">
+                    </lord-icon>`
+                  }}
+                />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Choose Your Niche</h3>
+              <p className="text-gray-600 text-lg leading-relaxed">Select your market — Pets, Beauty, Tech, Fitness, Gadgets, Kids, Home & Kitchen, Fashion, Seasonal, etc.</p>
+            </div>
+
             {[
-              {
-                step: "01",
-                title: "Choose Your Niche",
-                description: "Select your market — Pets, Beauty, Tech, Fitness, Gadgets, Kids, Home & Kitchen, Fashion, Seasonal, etc."
-              },
               {
                 step: "02",
                 title: "AI Builds Your Store",
