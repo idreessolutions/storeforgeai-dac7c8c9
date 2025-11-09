@@ -284,7 +284,7 @@ const APIConfigStep = ({ formData, handleInputChange, onNext }: APIConfigStepPro
                   ref={inputRef}
                   id="accessToken"
                   type="text"
-                  placeholder="Example: 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3833448"
+                  placeholder="Example: shpat_123456789xxxx"
                   value={formData.accessToken}
                   onChange={(e) => handleTokenChange(e.target.value)}
                   onPaste={handleTokenPaste}
