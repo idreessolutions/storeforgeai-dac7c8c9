@@ -62,11 +62,16 @@ const Index = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
               <Button 
                 size="lg" 
-                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white text-lg px-8 py-6 shadow-xl transform hover:scale-105 transition-all"
+                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white text-lg px-8 py-6 shadow-xl transform hover:scale-105 transition-all flex items-center"
                 onClick={() => setShowBuilder(true)}
               >
                 Start My AI Store (Free)
-                <ArrowRight className="ml-2 h-5 w-5" />
+                <span 
+                  className="ml-2"
+                  dangerouslySetInnerHTML={{
+                    __html: '<lord-icon src="https://cdn.lordicon.com/sfwdicbq.json" trigger="hover" stroke="bold" style="width:32px;height:32px"></lord-icon>'
+                  }}
+                />
               </Button>
               <Button 
                 size="lg" 
