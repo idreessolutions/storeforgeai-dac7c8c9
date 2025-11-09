@@ -30,6 +30,8 @@ const Index = () => {
   const featureCard1IconRef = useRef<HTMLSpanElement>(null);
   const featureCard2Ref = useRef<HTMLDivElement>(null);
   const featureCard2IconRef = useRef<HTMLSpanElement>(null);
+  const featureCard3Ref = useRef<HTMLDivElement>(null);
+  const featureCard3IconRef = useRef<HTMLSpanElement>(null);
 
   // Setup lord-icon animation triggers for CTA button
   useEffect(() => {
@@ -305,6 +307,41 @@ const Index = () => {
   useEffect(() => {
     const card = featureCard1Ref.current;
     const container = featureCard1IconRef.current;
+    if (!card || !container) return;
+
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    // Wait for lord-icon to be fully initialized
+    const initTimeout = setTimeout(() => {
+      const lordIcon = container.querySelector('lord-icon') as any;
+      if (!lordIcon) return;
+
+      const triggerAnimation = () => {
+        if (lordIcon && typeof lordIcon.playFromBeginning === 'function') {
+          lordIcon.playFromBeginning();
+        }
+      };
+
+      // Add event listeners to card for hover and focus
+      card.addEventListener('mouseenter', triggerAnimation);
+      card.addEventListener('focus', triggerAnimation);
+
+      // Cleanup function
+      return () => {
+        card.removeEventListener('mouseenter', triggerAnimation);
+        card.removeEventListener('focus', triggerAnimation);
+      };
+    }, 100);
+
+    return () => clearTimeout(initTimeout);
+  }, []);
+
+  // Setup lord-icon animation triggers for feature card 3
+  useEffect(() => {
+    const card = featureCard3Ref.current;
+    const container = featureCard3IconRef.current;
     if (!card || !container) return;
 
     // Check for reduced motion preference
@@ -725,12 +762,35 @@ const Index = () => {
               </CardContent>
             </Card>
 
+            <Card 
+              ref={featureCard3Ref}
+              tabIndex={0}
+              className="group hover:shadow-2xl transition-all duration-500 border-0 shadow-lg h-full bg-white/80 backdrop-blur-sm hover:bg-white transform hover:scale-105 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-300"
+            >
+              <CardHeader className="pb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg">
+                  <span 
+                    ref={featureCard3IconRef}
+                    className="inline-flex items-center justify-center" 
+                    dangerouslySetInnerHTML={{
+                      __html: `<lord-icon
+                        src="https://cdn.lordicon.com/mfpdszvl.json"
+                        trigger="hover"
+                        stroke="bold"
+                        colors="primary:#ffffff,secondary:#ffffff"
+                        style="width:32px;height:32px">
+                      </lord-icon>`
+                    }}
+                  />
+                </div>
+                <CardTitle className="text-xl font-bold">Professional Branding</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-gray-600 text-base leading-relaxed">Get a custom logo, color palette, fonts, and description tone that matches your niche and audience.</p>
+              </CardContent>
+            </Card>
+
             {[
-              {
-                icon: Palette,
-                title: "Professional Branding",
-                description: "Get a custom logo, color palette, fonts, and description tone that matches your niche and audience."
-              },
               {
                 icon: DollarSign,
                 title: "Profit Optimization",
