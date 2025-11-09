@@ -40,6 +40,8 @@ const Index = () => {
   const featureCard6IconRef = useRef<HTMLSpanElement>(null);
   const howItWorksStep1Ref = useRef<HTMLDivElement>(null);
   const howItWorksStep1IconRef = useRef<HTMLSpanElement>(null);
+  const howItWorksStep2Ref = useRef<HTMLDivElement>(null);
+  const howItWorksStep2IconRef = useRef<HTMLSpanElement>(null);
 
   // Setup lord-icon animation triggers for CTA button
   useEffect(() => {
@@ -490,6 +492,41 @@ const Index = () => {
   useEffect(() => {
     const card = howItWorksStep1Ref.current;
     const container = howItWorksStep1IconRef.current;
+    if (!card || !container) return;
+
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    // Wait for lord-icon to be fully initialized
+    const initTimeout = setTimeout(() => {
+      const lordIcon = container.querySelector('lord-icon') as any;
+      if (!lordIcon) return;
+
+      const triggerAnimation = () => {
+        if (lordIcon && typeof lordIcon.playFromBeginning === 'function') {
+          lordIcon.playFromBeginning();
+        }
+      };
+
+      // Add event listeners to card for hover and focus
+      card.addEventListener('mouseenter', triggerAnimation);
+      card.addEventListener('focus', triggerAnimation);
+
+      // Cleanup function
+      return () => {
+        card.removeEventListener('mouseenter', triggerAnimation);
+        card.removeEventListener('focus', triggerAnimation);
+      };
+    }, 100);
+
+    return () => clearTimeout(initTimeout);
+  }, []);
+
+  // Setup lord-icon animation triggers for how it works step 2
+  useEffect(() => {
+    const card = howItWorksStep2Ref.current;
+    const container = howItWorksStep2IconRef.current;
     if (!card || !container) return;
 
     // Check for reduced motion preference
@@ -1063,12 +1100,31 @@ const Index = () => {
               <p className="text-gray-600 text-lg leading-relaxed">Select your market — Pets, Beauty, Tech, Fitness, Gadgets, Kids, Home & Kitchen, Fashion, Seasonal, etc.</p>
             </div>
 
+            <div 
+              ref={howItWorksStep2Ref}
+              tabIndex={0}
+              className="text-center group focus:outline-none focus:ring-4 focus:ring-blue-300 rounded-lg"
+            >
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl group-hover:scale-110 transition-transform">
+                <span 
+                  ref={howItWorksStep2IconRef}
+                  className="inline-flex items-center justify-center" 
+                  dangerouslySetInnerHTML={{
+                    __html: `<lord-icon
+                      src="https://cdn.lordicon.com/sjkqczvk.json"
+                      trigger="hover"
+                      stroke="bold"
+                      colors="primary:#ffffff,secondary:#ffffff"
+                      style="width:40px;height:40px">
+                    </lord-icon>`
+                  }}
+                />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">AI Builds Your Store</h3>
+              <p className="text-gray-600 text-lg leading-relaxed">Your store design, logo, branding, layout, collections, and 10 winning products are generated automatically.</p>
+            </div>
+
             {[
-              {
-                step: "02",
-                title: "AI Builds Your Store",
-                description: "Your store design, logo, branding, layout, collections, and 10 winning products are generated automatically."
-              },
               {
                 step: "03",
                 title: "Connect & Launch",
