@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Store, Shield, FileText } from "lucide-react";
+import { Store, Shield, FileText, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Terms = () => {
@@ -15,6 +15,16 @@ const Terms = () => {
             StoreForge AI
           </span>
         </Link>
+        <div className="flex items-center gap-6">
+          <Link to="/" className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Home
+          </Link>
+          <Link to="/about" className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">About</Link>
+          <Link to="/pricing" className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">Pricing</Link>
+          <Link to="/faq" className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">FAQ</Link>
+          <Link to="/contact" className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">Contact</Link>
+        </div>
       </nav>
 
       <div className="max-w-4xl mx-auto px-4 py-12 lg:px-6">

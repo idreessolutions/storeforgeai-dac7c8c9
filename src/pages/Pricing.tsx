@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Store, Check, Sparkles, ArrowRight, Clock } from "lucide-react";
+import { Store, Check, Sparkles, ArrowRight, Clock, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Pricing = () => {
@@ -17,6 +17,16 @@ const Pricing = () => {
             StoreForge AI
           </span>
         </Link>
+        <div className="flex items-center gap-6">
+          <Link to="/" className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Home
+          </Link>
+          <Link to="/about" className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">About</Link>
+          <Link to="/pricing" className="text-sm font-medium text-blue-600">Pricing</Link>
+          <Link to="/faq" className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">FAQ</Link>
+          <Link to="/contact" className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors">Contact</Link>
+        </div>
       </nav>
 
       <div className="max-w-6xl mx-auto px-4 py-12 lg:px-6">
