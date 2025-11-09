@@ -46,6 +46,7 @@ const Index = () => {
   const howItWorksStep3IconRef = useRef<HTMLSpanElement>(null);
   const trustIndicatorRef = useRef<HTMLDivElement>(null);
   const trustIndicatorIconRef = useRef<HTMLSpanElement>(null);
+  const trustIndicator2IconRef = useRef<HTMLSpanElement>(null);
 
   // Setup lord-icon animation triggers for CTA button
   useEffect(() => {
@@ -745,7 +746,20 @@ const Index = () => {
               </div>
               <div className="h-4 w-px bg-gray-300 hidden sm:block" />
               <div className="flex items-center">
-                <Rocket className="h-4 w-4 mr-2 text-blue-600" />
+                <span 
+                  ref={trustIndicator2IconRef}
+                  className="inline-flex items-center mr-2" 
+                  dangerouslySetInnerHTML={{
+                    __html: `<lord-icon
+                      src="https://cdn.lordicon.com/pmtkscxd.json"
+                      trigger="loop"
+                      stroke="bold"
+                      state="loop-roll"
+                      colors="primary:#2563eb,secondary:#2563eb"
+                      style="width:16px;height:16px">
+                    </lord-icon>`
+                  }}
+                />
                 <span className="font-semibold">500+ Shopify stores launched</span>
               </div>
               <div className="h-4 w-px bg-gray-300 hidden sm:block" />
