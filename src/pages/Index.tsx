@@ -42,6 +42,8 @@ const Index = () => {
   const howItWorksStep1IconRef = useRef<HTMLSpanElement>(null);
   const howItWorksStep2Ref = useRef<HTMLDivElement>(null);
   const howItWorksStep2IconRef = useRef<HTMLSpanElement>(null);
+  const howItWorksStep3Ref = useRef<HTMLDivElement>(null);
+  const howItWorksStep3IconRef = useRef<HTMLSpanElement>(null);
 
   // Setup lord-icon animation triggers for CTA button
   useEffect(() => {
@@ -527,6 +529,41 @@ const Index = () => {
   useEffect(() => {
     const card = howItWorksStep2Ref.current;
     const container = howItWorksStep2IconRef.current;
+    if (!card || !container) return;
+
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    // Wait for lord-icon to be fully initialized
+    const initTimeout = setTimeout(() => {
+      const lordIcon = container.querySelector('lord-icon') as any;
+      if (!lordIcon) return;
+
+      const triggerAnimation = () => {
+        if (lordIcon && typeof lordIcon.playFromBeginning === 'function') {
+          lordIcon.playFromBeginning();
+        }
+      };
+
+      // Add event listeners to card for hover and focus
+      card.addEventListener('mouseenter', triggerAnimation);
+      card.addEventListener('focus', triggerAnimation);
+
+      // Cleanup function
+      return () => {
+        card.removeEventListener('mouseenter', triggerAnimation);
+        card.removeEventListener('focus', triggerAnimation);
+      };
+    }, 100);
+
+    return () => clearTimeout(initTimeout);
+  }, []);
+
+  // Setup lord-icon animation triggers for how it works step 3
+  useEffect(() => {
+    const card = howItWorksStep3Ref.current;
+    const container = howItWorksStep3IconRef.current;
     if (!card || !container) return;
 
     // Check for reduced motion preference
@@ -1124,21 +1161,29 @@ const Index = () => {
               <p className="text-gray-600 text-lg leading-relaxed">Your store design, logo, branding, layout, collections, and 10 winning products are generated automatically.</p>
             </div>
 
-            {[
-              {
-                step: "03",
-                title: "Connect & Launch",
-                description: "Click one button to import everything directly into your Shopify store. Start selling instantly."
-              }
-            ].map((step, index) => (
-              <div key={index} className="text-center group">
-                <div className="w-20 h-20 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl group-hover:scale-110 transition-transform">
-                  <span className="text-2xl font-bold text-white">{step.step}</span>
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">{step.title}</h3>
-                <p className="text-gray-600 text-lg leading-relaxed">{step.description}</p>
+            <div 
+              ref={howItWorksStep3Ref}
+              tabIndex={0}
+              className="text-center group focus:outline-none focus:ring-4 focus:ring-blue-300 rounded-lg"
+            >
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl group-hover:scale-110 transition-transform">
+                <span 
+                  ref={howItWorksStep3IconRef}
+                  className="inline-flex items-center justify-center" 
+                  dangerouslySetInnerHTML={{
+                    __html: `<lord-icon
+                      src="https://cdn.lordicon.com/wdimiuys.json"
+                      trigger="hover"
+                      stroke="bold"
+                      colors="primary:#ffffff,secondary:#ffffff"
+                      style="width:40px;height:40px">
+                    </lord-icon>`
+                  }}
+                />
               </div>
-            ))}
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Connect & Launch</h3>
+              <p className="text-gray-600 text-lg leading-relaxed">Click one button to import everything directly into your Shopify store. Start selling instantly.</p>
+            </div>
           </div>
 
           {/* Testimonial */}
