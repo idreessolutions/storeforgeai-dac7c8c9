@@ -402,13 +402,15 @@ async function getProductDataFromTable(supabase: any, niche: string, productFold
   try {
     console.log(`🔍 Querying product_data table for niche="${niche}", productFolder="${productFolder}"`);
     
-    // Query product_data table for this specific product
+    // Query product_data table for this specific product - FIX: Handle duplicates by taking the first one
     const { data, error } = await supabase
       .from('product_data')
       .select('*')
       .eq('niche', niche)
       .eq('product_folder', productFolder)
       .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
 
     if (error) {
@@ -559,6 +561,94 @@ serve(async (req) => {
 
     // Initialize Shopify client
     const shopifyClient = new ShopifyClient(shopifyUrl, shopifyAccessToken);
+
+    // 🎨 Apply theme color FIRST (before product processing to prevent timeout)
+    if (themeColor && shopifyUrl && shopifyAccessToken) {
+      try {
+        console.log(`🎨 Step 1: Finding Refresh theme...`);
+        
+        const themesResponse = await shopifyClient.getThemes();
+        console.log(`📋 Found ${themesResponse.themes?.length || 0} themes`);
+        
+        // Find Refresh theme specifically by name
+        let refreshTheme = themesResponse.themes.find((theme: any) => 
+          theme.name?.toLowerCase().includes('refresh')
+        );
+        
+        if (refreshTheme) {
+          console.log(`✅ Found Refresh theme (ID: ${refreshTheme.id}, Role: ${refreshTheme.role})`);
+          
+          // If Refresh is not the main theme, publish it FIRST
+          if (refreshTheme.role !== 'main') {
+            console.log(`🚀 Publishing Refresh as main theme...`);
+            
+            const publishResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/themes/${refreshTheme.id}.json`, {
+              method: 'PUT',
+              headers: {
+                'X-Shopify-Access-Token': shopifyAccessToken,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                theme: { id: refreshTheme.id, role: 'main' }
+              })
+            });
+            
+            if (publishResponse.ok) {
+              console.log(`✅ Refresh theme published successfully as main theme!`);
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            } else {
+              const errorText = await publishResponse.text();
+              console.error(`❌ Failed to publish Refresh:`, errorText);
+            }
+          } else {
+            console.log(`✅ Refresh is already the main theme`);
+          }
+          
+          // Now apply theme color
+          console.log(`🎨 Step 2: Applying color ${themeColor} to Refresh theme...`);
+          
+          const settingsAsset = await shopifyClient.getThemeAsset(refreshTheme.id, 'config/settings_data.json');
+          
+          if (settingsAsset.asset?.value) {
+            const settings = JSON.parse(settingsAsset.asset.value);
+            
+            settings.current = settings.current || {};
+            settings.current.colors_accent_1 = themeColor;
+            settings.current.colors_accent_2 = themeColor;
+            settings.current.colors_button_primary = themeColor;
+
+            await shopifyClient.updateThemeAsset(refreshTheme.id, {
+              key: 'config/settings_data.json',
+              value: JSON.stringify(settings)
+            });
+
+            console.log(`✅ Theme color ${themeColor} applied to Refresh theme!`);
+          }
+        } else {
+          console.warn(`⚠️ Refresh theme not found - applying color to main theme`);
+          const mainTheme = themesResponse.themes.find((theme: any) => theme.role === 'main');
+          
+          if (mainTheme) {
+            const settingsAsset = await shopifyClient.getThemeAsset(mainTheme.id, 'config/settings_data.json');
+            if (settingsAsset.asset?.value) {
+              const settings = JSON.parse(settingsAsset.asset.value);
+              settings.current = settings.current || {};
+              settings.current.colors_accent_1 = themeColor;
+              settings.current.colors_accent_2 = themeColor;
+              
+              await shopifyClient.updateThemeAsset(mainTheme.id, {
+                key: 'config/settings_data.json',
+                value: JSON.stringify(settings)
+              });
+              
+              console.log(`✅ Theme color applied to ${mainTheme.name}`);
+            }
+          }
+        }
+      } catch (error) {
+        console.warn(`⚠️ Theme setup failed (will continue with products):`, error);
+      }
+    }
 
     const targetCount = 10;
 
@@ -816,8 +906,8 @@ serve(async (req) => {
                   console.warn(`⚠️ Failed to link image to variant ${variant.id}: ${errorText}`);
                 }
                 
-                // Rate limit protection
-                await new Promise(resolve => setTimeout(resolve, 300));
+                // Reduced delay for better performance
+                await new Promise(resolve => setTimeout(resolve, 150));
               } catch (err) {
                 console.warn(`⚠️ Error linking image to variant ${variant.id}:`, err);
               }
@@ -854,95 +944,6 @@ serve(async (req) => {
     }
 
 
-    // 🎨 PUBLISH Refresh theme and apply color
-    if (themeColor && successCount > 0) {
-      try {
-        console.log(`🎨 Step 1: Finding Refresh theme...`);
-        
-        const themesResponse = await shopifyClient.getThemes();
-        console.log(`📋 Found ${themesResponse.themes?.length || 0} themes`);
-        
-        // Find Refresh theme specifically by name
-        let refreshTheme = themesResponse.themes.find((theme: any) => 
-          theme.name?.toLowerCase().includes('refresh')
-        );
-        
-        if (refreshTheme) {
-          console.log(`✅ Found Refresh theme (ID: ${refreshTheme.id}, Role: ${refreshTheme.role})`);
-          
-          // If Refresh is not the main theme, publish it FIRST
-          if (refreshTheme.role !== 'main') {
-            console.log(`🚀 Publishing Refresh as main theme...`);
-            
-            const publishResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/themes/${refreshTheme.id}.json`, {
-              method: 'PUT',
-              headers: {
-                'X-Shopify-Access-Token': shopifyAccessToken,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                theme: { id: refreshTheme.id, role: 'main' }
-              })
-            });
-            
-            if (publishResponse.ok) {
-              console.log(`✅ Refresh theme published successfully as main theme!`);
-              // Wait for theme to be fully published
-              await new Promise(resolve => setTimeout(resolve, 2000));
-            } else {
-              const errorText = await publishResponse.text();
-              console.error(`❌ Failed to publish Refresh:`, errorText);
-            }
-          } else {
-            console.log(`✅ Refresh is already the main theme`);
-          }
-          
-          // Now apply theme color
-          console.log(`🎨 Step 2: Applying color ${themeColor} to Refresh theme...`);
-          
-          const settingsAsset = await shopifyClient.getThemeAsset(refreshTheme.id, 'config/settings_data.json');
-          
-          if (settingsAsset.asset?.value) {
-            const settings = JSON.parse(settingsAsset.asset.value);
-            
-            settings.current = settings.current || {};
-            settings.current.colors_accent_1 = themeColor;
-            settings.current.colors_accent_2 = themeColor;
-            settings.current.colors_button_primary = themeColor;
-
-            await shopifyClient.updateThemeAsset(refreshTheme.id, {
-              key: 'config/settings_data.json',
-              value: JSON.stringify(settings)
-            });
-
-            console.log(`✅ Theme color ${themeColor} applied to Refresh theme!`);
-          }
-        } else {
-          console.warn(`⚠️ Refresh theme not found - applying color to main theme`);
-          const mainTheme = themesResponse.themes.find((theme: any) => theme.role === 'main');
-          
-          if (mainTheme) {
-            const settingsAsset = await shopifyClient.getThemeAsset(mainTheme.id, 'config/settings_data.json');
-            if (settingsAsset.asset?.value) {
-              const settings = JSON.parse(settingsAsset.asset.value);
-              settings.current = settings.current || {};
-              settings.current.colors_accent_1 = themeColor;
-              settings.current.colors_accent_2 = themeColor;
-              
-              await shopifyClient.updateThemeAsset(mainTheme.id, {
-                key: 'config/settings_data.json',
-                value: JSON.stringify(settings)
-              });
-              
-              console.log(`✅ Theme color applied to ${mainTheme.name}`);
-            }
-          }
-        }
-      } catch (error) {
-        console.warn(`⚠️ Theme setup failed:`, error);
-      }
-    }
-
     console.log(`🎉 Upload complete: ${successCount}/${targetCount} products uploaded successfully`);
 
     return new Response(JSON.stringify({
@@ -953,7 +954,7 @@ serve(async (req) => {
       results,
       niche,
       bucketName,
-      message: `Successfully uploaded ${successCount} curated ${niche} products from product_data table${themeColor ? ' and applied theme color' : ''}`
+      message: `Successfully uploaded ${successCount} curated ${niche} products from product_data table${themeColor ? ' with theme color applied' : ''}`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
