@@ -28,7 +28,7 @@ const Header = ({
             </Button>
             
             <div className="flex items-center space-x-3">
-              <img src={storeForgeLogoFull} alt="StoreForge AI Logo" className="h-12 w-auto" />
+              <img src={storeForgeLogoFull} alt="StoreForge AI Logo" className="h-20 w-auto" />
               <div>
                 <p className="text-indigo-200 text-sm">✅ Official Shopify Partner – AI-Powered Store Creation</p>
               </div>
