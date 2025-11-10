@@ -790,7 +790,7 @@ const Index = () => {
             </div>
 
             {/* Shopify Badge */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center justify-center gap-4">
               <img src={certifiedShopifyPartner} alt="Certified Shopify Partner" className="h-24 w-24" />
               <div className="inline-flex items-center bg-white/80 backdrop-blur-sm rounded-full px-6 py-3 shadow-lg border border-gray-200">
                 <img src={shopifyLogo} alt="Shopify" className="w-6 h-6 mr-3" />
