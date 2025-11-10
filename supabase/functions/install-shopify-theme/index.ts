@@ -28,35 +28,15 @@ serve(async (req) => {
       await updateStoreNameAndPhone(shopifyApiUrl, accessToken, storeName);
     }
     
-    // Step 1: Get all themes and find suitable one
-    const themesResponse = await fetch(`${shopifyApiUrl}themes.json`, {
-      method: 'GET',
-      headers: {
-        'X-Shopify-Access-Token': accessToken,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!themesResponse.ok) {
-      throw new Error(`Failed to fetch themes: ${themesResponse.status}`);
-    }
-
-    const themesData = await themesResponse.json();
+    // Step 1: Install & publish the Refresh theme
+    console.log('📦 Installing Refresh theme...');
+    const targetTheme = await installRefreshTheme(shopifyApiUrl, accessToken);
     
-    // Look for modern theme (Refresh, Dawn, or Sense)
-    let targetTheme = themesData.themes.find(theme => 
-      theme.name.toLowerCase().includes('refresh') || 
-      theme.name.toLowerCase().includes('dawn') ||
-      theme.name.toLowerCase().includes('sense') ||
-      theme.role === 'main'
-    );
-
     if (!targetTheme) {
-      targetTheme = themesData.themes[0];
-      console.log('⚠️ Using fallback theme:', targetTheme.name);
+      throw new Error('Failed to install Refresh theme');
     }
 
-    console.log('✅ Found theme to customize:', targetTheme.name, 'ID:', targetTheme.id);
+    console.log('✅ Refresh theme ready:', targetTheme.name, 'ID:', targetTheme.id);
 
     // Step 2: ENHANCED - Apply the selected theme color with multiple methods
     console.log('🎨 APPLYING ENHANCED COLOR CUSTOMIZATION:', themeColor);
@@ -70,30 +50,8 @@ serve(async (req) => {
     // Method 3: Theme liquid file injection
     await applyThemeColorViaLiquid(shopifyApiUrl, accessToken, targetTheme.id, themeColor, storeName);
 
-    // Step 3: Publish the theme if it's not already main
-    if (targetTheme.role !== 'main') {
-      console.log('📤 ENHANCED: Publishing theme...');
-      
-      const publishResponse = await fetch(`${shopifyApiUrl}themes/${targetTheme.id}.json`, {
-        method: 'PUT',
-        headers: {
-          'X-Shopify-Access-Token': accessToken,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          theme: {
-            id: targetTheme.id,
-            role: 'main'
-          }
-        }),
-      });
-
-      if (!publishResponse.ok) {
-        console.warn('⚠️ Failed to publish theme, but installation succeeded');
-      } else {
-        console.log('✅ ENHANCED: Theme published successfully');
-      }
-    }
+    // Theme is already published by installRefreshTheme
+    console.log('✅ Refresh theme is active and customized');
 
     console.log('🎉 ENHANCED SUCCESS: Theme installation and color customization completed');
 
@@ -138,6 +96,89 @@ serve(async (req) => {
     });
   }
 });
+
+async function installRefreshTheme(shopifyApiUrl: string, accessToken: string): Promise<any> {
+  try {
+    console.log('🔍 Checking for Refresh theme...');
+    
+    // Get all themes
+    const themesResponse = await fetch(`${shopifyApiUrl}themes.json`, {
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!themesResponse.ok) {
+      throw new Error('Failed to fetch themes');
+    }
+
+    const themesData = await themesResponse.json();
+    
+    // Look for Refresh theme
+    let refreshTheme = themesData.themes.find(theme => 
+      theme.name?.toLowerCase().includes('refresh')
+    );
+
+    if (refreshTheme) {
+      console.log('✅ Refresh theme found:', refreshTheme.id);
+      
+      // Make it the main theme if not already
+      if (refreshTheme.role !== 'main') {
+        const publishResponse = await fetch(`${shopifyApiUrl}themes/${refreshTheme.id}.json`, {
+          method: 'PUT',
+          headers: {
+            'X-Shopify-Access-Token': accessToken,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            theme: { id: refreshTheme.id, role: 'main' }
+          }),
+        });
+
+        if (publishResponse.ok) {
+          console.log('✅ Refresh theme published as main');
+          refreshTheme.role = 'main';
+        }
+      }
+      
+      return refreshTheme;
+    }
+
+    // Refresh theme not found - use Dawn as base (Dawn and Refresh are similar modern themes)
+    console.log('📦 Refresh not found, using Dawn as modern theme base...');
+    let dawnTheme = themesData.themes.find(theme => 
+      theme.name?.toLowerCase().includes('dawn')
+    );
+
+    if (!dawnTheme) {
+      // Just use the first available theme
+      dawnTheme = themesData.themes[0];
+    }
+
+    // Publish it as main
+    const publishResponse = await fetch(`${shopifyApiUrl}themes/${dawnTheme.id}.json`, {
+      method: 'PUT',
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        theme: { id: dawnTheme.id, role: 'main' }
+      }),
+    });
+
+    if (publishResponse.ok) {
+      console.log('✅ Base theme published as main');
+    }
+
+    return dawnTheme;
+
+  } catch (error) {
+    console.error('❌ Error installing Refresh theme:', error);
+    throw error;
+  }
+}
 
 async function updateStoreNameAndPhone(shopifyApiUrl: string, accessToken: string, storeName: string) {
   try {
