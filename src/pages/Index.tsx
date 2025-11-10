@@ -1410,7 +1410,9 @@ const Index = () => {
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center space-x-2 mb-4">
-                <img src={storeForgeLogoNew} alt="StoreForge AI Logo" className="h-10 w-auto" />
+                <div className="bg-white rounded-lg px-3 py-2 inline-block">
+                  <img src={storeForgeLogoNew} alt="StoreForge AI Logo" className="h-10 w-auto" />
+                </div>
               </div>
               <p className="text-gray-400 text-sm">
                 Build your entire Shopify store in minutes with AI-powered automation.
