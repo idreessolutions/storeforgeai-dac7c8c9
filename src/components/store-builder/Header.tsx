@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Crown, Star, Eye } from "lucide-react";
+import { ArrowLeft, Star, Eye } from "lucide-react";
+import storeForgeLogoFull from "@/assets/storeforge-logo.png";
 interface HeaderProps {
   onBack: () => void;
   currentStep: number;
@@ -27,12 +28,8 @@ const Header = ({
             </Button>
             
             <div className="flex items-center space-x-3">
-              <div className="relative">
-                <Crown className="h-8 w-8 text-yellow-400 animate-pulse" />
-                <Star className="absolute -top-1 -right-1 h-4 w-4 text-yellow-300" />
-              </div>
+              <img src={storeForgeLogoFull} alt="StoreForge AI Logo" className="h-12 w-auto" />
               <div>
-                <h1 className="text-2xl font-bold text-slate-50">StoreForge AI</h1>
                 <p className="text-indigo-200 text-sm">✅ Official Shopify Partner – AI-Powered Store Creation</p>
               </div>
             </div>
