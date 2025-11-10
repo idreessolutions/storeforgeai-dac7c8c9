@@ -9,7 +9,6 @@ import AuthModal from "@/components/AuthModal";
 import starsAnimation from "@/assets/stars-animation.gif";
 import shopifyLogo from "@/assets/shopify.png";
 import certifiedShopifyPartner from "@/assets/certified-shopify-partner.png";
-import storeForgeLogoHomepage from "@/assets/storeforge-logo-homepage.png";
 
 const Index = () => {
   const [showBuilder, setShowBuilder] = useState(false);
@@ -651,7 +650,12 @@ const Index = () => {
         {/* Navigation */}
         <nav className="relative z-10 flex items-center justify-between px-4 py-3 lg:px-6">
           <div className="flex items-center space-x-2">
-            <img src={storeForgeLogoHomepage} alt="StoreForge AI Logo" className="h-10 w-auto" />
+            <div className="w-7 h-7 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
+              <Store className="h-4 w-4 text-white" />
+            </div>
+            <span className="text-lg font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              StoreForge AI
+            </span>
           </div>
           <div className="hidden md:flex items-center space-x-6">
             <a href="/about" className="text-gray-700 hover:text-purple-600 font-medium transition-colors">About</a>
