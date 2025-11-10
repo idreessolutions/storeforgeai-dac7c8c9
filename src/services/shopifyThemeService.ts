@@ -65,7 +65,9 @@ export const installAndConfigureSenseTheme = async (config: ThemeConfiguration):
     // Step 1: Update store name in Shopify admin settings
     await updateShopifyStoreName(config.storeName, config.accessToken, shopifyUrl);
 
-    // Step 2: Use Supabase edge function to install and configure theme with full personalization
+    // Step 2: Use Supabase edge function to install and configure theme with COMPREHENSIVE color application
+    console.log('🎨 APPLYING THEME COLOR TO ALL SHOPIFY ELEMENTS:', config.themeColor);
+    
     const { data, error } = await supabase.functions.invoke('install-shopify-theme', {
       body: {
         shopifyUrl: shopifyUrl,
@@ -77,6 +79,7 @@ export const installAndConfigureSenseTheme = async (config: ThemeConfiguration):
         businessType: config.businessType,
         storeStyle: config.storeStyle,
         customInfo: config.customInfo,
+        applyColorToAllElements: true, // NEW: Force comprehensive color application
         storePersonalization: {
           store_name: config.storeName,
           niche: config.niche,

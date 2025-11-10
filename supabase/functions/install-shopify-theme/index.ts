@@ -173,63 +173,90 @@ async function updateStoreNameAndPhone(shopifyApiUrl: string, accessToken: strin
 
 async function applyThemeColorViaSettings(shopifyApiUrl: string, accessToken: string, themeId: string, themeColor: string, storeName?: string, niche?: string) {
   try {
-    console.log('🎨 ENHANCED METHOD 1: Applying color via settings data');
+    console.log('🎨 COMPREHENSIVE METHOD 1: Applying color via settings data to ALL elements');
     
-    const enhancedColorSettings = {
+    const comprehensiveColorSettings = {
       current: {
-        // GUARANTEED: Primary color scheme
+        // ===== PRIMARY BRAND COLORS =====
         colors_accent_1: themeColor,
         colors_accent_2: adjustColorBrightness(themeColor, -15),
         color_accent: themeColor,
         accent_color: themeColor,
         primary_color: themeColor,
+        brand_color: themeColor,
         
-        // GUARANTEED: Button colors
+        // ===== BUTTON COLORS =====
         colors_solid_button_labels: '#ffffff',
         colors_outline_button_labels: themeColor,
         color_button: themeColor,
         color_button_text: '#ffffff',
         button_color: themeColor,
         button_background_color: themeColor,
+        button_text_color: '#ffffff',
         
-        // GUARANTEED: Header colors  
+        // ===== HEADER & NAVIGATION COLORS =====
         colors_header: themeColor,
         color_header: themeColor,
         header_background_color: themeColor,
         header_color: themeColor,
+        header_text_color: '#ffffff',
+        navigation_color: themeColor,
+        menu_background_color: themeColor,
         
-        // GUARANTEED: Link colors
+        // ===== FOOTER COLORS =====
+        footer_background_color: adjustColorBrightness(themeColor, -30),
+        footer_text_color: '#ffffff',
+        footer_heading_color: '#ffffff',
+        
+        // ===== LINK COLORS =====
         colors_text: '#121212',
         color_links: themeColor,
         link_color: themeColor,
         
-        // GUARANTEED: Background and text
+        // ===== BADGE COLORS =====
+        badge_background_color: themeColor,
+        badge_text_color: '#ffffff',
+        sale_badge_color: themeColor,
+        
+        // ===== BACKGROUND COLORS =====
         colors_background_1: '#ffffff',
         colors_background_2: '#f8f8f8',
         background_color: '#ffffff',
         
-        // Enhanced branding
+        // ===== BRANDING TEXT =====
         brand_headline: `Welcome to ${storeName || 'Your Store'}`,
         brand_description: `Discover premium ${niche || 'products'} at ${storeName || 'our store'}`,
+        store_name: storeName || 'Your Store',
         
-        // Enhanced gradients
+        // ===== GRADIENTS =====
         gradient_accent_1: `linear-gradient(135deg, ${themeColor} 0%, ${adjustColorBrightness(themeColor, -20)} 100%)`,
         gradient_accent_2: `linear-gradient(135deg, ${adjustColorBrightness(themeColor, 15)} 0%, ${themeColor} 100%)`,
         
-        // Typography and layout
+        // ===== TYPOGRAPHY =====
         type_header_font: 'assistant_n4',
         type_body_font: 'assistant_n4',
         page_width: '1200',
         
-        // Enhanced button styling
+        // ===== BUTTON STYLING =====
         buttons_border_thickness: '2',
         buttons_radius: '6',
         buttons_shadow_opacity: '15',
+        buttons_border_opacity: '100',
         
-        // Card and badge styling
+        // ===== CARD & BADGE STYLING =====
         card_style: 'standard',
         badge_position: 'bottom left',
-        badge_corner_radius: '6'
+        badge_corner_radius: '6',
+        
+        // ===== PRODUCT OPTIONS =====
+        variant_pills_border_width: '2',
+        variant_pills_border_opacity: '100',
+        variant_pills_radius: '6',
+        variant_pills_shadow_opacity: '10',
+        
+        // ===== SOCIAL & SHARE =====
+        social_icons_color: themeColor,
+        share_buttons_color: themeColor
       }
     };
 
@@ -242,13 +269,13 @@ async function applyThemeColorViaSettings(shopifyApiUrl: string, accessToken: st
       body: JSON.stringify({
         asset: {
           key: 'config/settings_data.json',
-          value: JSON.stringify(enhancedColorSettings)
+          value: JSON.stringify(comprehensiveColorSettings)
         }
       }),
     });
 
     if (settingsResponse.ok) {
-      console.log('✅ ENHANCED METHOD 1 SUCCESS: Settings data updated with guaranteed colors');
+      console.log('✅ COMPREHENSIVE METHOD 1 SUCCESS: All color settings applied to theme');
     } else {
       console.warn('⚠️ Settings data update failed, trying other methods');
     }
@@ -260,65 +287,147 @@ async function applyThemeColorViaSettings(shopifyApiUrl: string, accessToken: st
 
 async function applyThemeColorViaCSS(shopifyApiUrl: string, accessToken: string, themeId: string, themeColor: string, storeName?: string) {
   try {
-    console.log('🎨 ENHANCED METHOD 2: Applying color via CSS injection');
+    console.log('🎨 COMPREHENSIVE METHOD 2: Applying color to ALL store elements via CSS');
     
-    const guaranteedCSS = `
-/* ENHANCED GUARANTEED COLOR APPLICATION FOR ${storeName || 'STORE'} */
+    const comprehensiveCSS = `
+/* COMPREHENSIVE COLOR APPLICATION FOR ${storeName || 'STORE'} */
 :root {
-  --enhanced-primary: ${themeColor} !important;
-  --enhanced-primary-hover: ${adjustColorBrightness(themeColor, -10)} !important;
-  --enhanced-primary-light: ${adjustColorBrightness(themeColor, 20)} !important;
+  --primary-brand: ${themeColor} !important;
+  --primary-hover: ${adjustColorBrightness(themeColor, -10)} !important;
+  --primary-light: ${adjustColorBrightness(themeColor, 20)} !important;
+  --primary-dark: ${adjustColorBrightness(themeColor, -20)} !important;
 }
 
-/* GUARANTEED BUTTONS - HIGHEST PRIORITY */
-.btn, button, [type="submit"], .shopify-payment-button__button, 
-.product-form__buttons button, .btn--secondary,
-input[type="submit"], .cart__checkout-button,
-.product-form__cart-submit, .checkout-button,
-.button, .Button, .btn-primary {
+/* ===== HEADER & NAVIGATION ===== */
+.header, .header__wrapper, .site-header, 
+.header-wrapper, .header__menu, .Header, 
+.site-nav, .navigation, nav[role="navigation"],
+.shopify-section-header, header[role="banner"] {
+  background: ${themeColor} !important;
+  background-color: ${themeColor} !important;
+}
+
+.header__menu-item a, .site-nav__link, 
+.header__heading-link, .header a,
+.menu__item a, nav a, .navigation a {
+  color: white !important;
+}
+
+.header__icon, .site-header__icon,
+.header svg, nav svg {
+  color: white !important;
+  fill: white !important;
+}
+
+/* ===== ALL BUTTONS ===== */
+.btn, button:not(.variant-button), 
+[type="submit"], [type="button"],
+.shopify-payment-button__button,
+.product-form__buttons button,
+.btn--secondary, .btn--primary,
+input[type="submit"], 
+.cart__checkout-button,
+.product-form__cart-submit,
+.checkout-button, .button,
+.Button, .btn-primary,
+.continue-button, .view-product-button,
+.add-to-cart, [name="add"],
+.product-form__submit,
+.payment-button {
   background: ${themeColor} !important;
   background-color: ${themeColor} !important;
   border-color: ${themeColor} !important;
   color: white !important;
 }
 
-.btn:hover, button:hover, [type="submit"]:hover,
+.btn:hover, button:hover:not(.variant-button),
+[type="submit"]:hover, [type="button"]:hover,
 .shopify-payment-button__button:hover {
   background: ${adjustColorBrightness(themeColor, -10)} !important;
   background-color: ${adjustColorBrightness(themeColor, -10)} !important;
 }
 
-/* GUARANTEED HEADER - HIGHEST PRIORITY */
-.header, .header__wrapper, .site-header, 
-.header__menu, .Header, .site-nav {
-  background: ${themeColor} !important;
-  background-color: ${themeColor} !important;
+/* ===== PAYPAL & PAYMENT BUTTONS ===== */
+.paypal-button, .payment-buttons,
+.dynamic-checkout__content button {
+  border: 2px solid ${themeColor} !important;
 }
 
-.header__menu-item a, .site-nav__link, 
-.header__heading-link, .header a {
+/* ===== BADGES (Sale, New, etc.) ===== */
+.badge, .label, .product__badge, 
+.Badge, .sale-badge, .new-badge,
+.product-badge, .card__badge,
+[class*="badge"], [class*="Badge"] {
+  background: ${themeColor} !important;
+  background-color: ${themeColor} !important;
   color: white !important;
 }
 
-/* GUARANTEED LINKS - HIGHEST PRIORITY */  
-a, .link, .product__title a, .Link {
+/* ===== PRODUCT OPTION BUTTONS (Color/Size) ===== */
+.product-form__input input[type="radio"]:checked + label,
+.variant-input-wrapper input:checked + label,
+.product-option input:checked + label,
+.swatch input:checked + label,
+.variant-button.selected,
+.option-value.selected {
+  background: ${themeColor} !important;
+  border-color: ${themeColor} !important;
+  color: white !important;
+}
+
+/* ===== SHARE BUTTON ===== */
+.share-button, .product__share,
+[class*="share"], button[aria-label*="Share"],
+.social-sharing__link {
+  color: ${themeColor} !important;
+  border-color: ${themeColor} !important;
+}
+
+.share-button:hover {
+  background: ${themeColor} !important;
+  color: white !important;
+}
+
+/* ===== FOOTER ===== */
+.footer, .site-footer, footer[role="contentinfo"],
+.shopify-section-footer, .footer-wrapper {
+  background: ${adjustColorBrightness(themeColor, -30)} !important;
+  background-color: ${adjustColorBrightness(themeColor, -30)} !important;
+  color: white !important;
+}
+
+.footer a, .site-footer a,
+.footer__heading, .footer__link,
+.footer p, .footer h2, .footer h3 {
+  color: white !important;
+}
+
+/* ===== LINKS ===== */
+a:not(.btn):not(button), .link, 
+.product__title a, .Link,
+.view-details, .view-more {
   color: ${themeColor} !important;
 }
 
-/* GUARANTEED PRICES - HIGHEST PRIORITY */
+a:not(.btn):not(button):hover {
+  color: ${adjustColorBrightness(themeColor, -15)} !important;
+}
+
+/* ===== PRICES ===== */
 .price, .price__current, .product__price, 
-.price--current, .Price {
+.price--current, .Price, .money {
   color: ${themeColor} !important;
   font-weight: 600 !important;
 }
 
-/* GUARANTEED ACCENTS - HIGHEST PRIORITY */
-.badge, .label, .product__badge, .Badge {
-  background: ${themeColor} !important;
-  color: white !important;
+/* ===== ICONS & SVG ===== */
+.icon-accent, svg.accent,
+[class*="icon-"] {
+  color: ${themeColor} !important;
+  fill: ${themeColor} !important;
 }
 
-/* MOBILE GUARANTEE */
+/* ===== MOBILE RESPONSIVE ===== */
 @media (max-width: 768px) {
   .btn, button, [type="submit"] {
     background: ${themeColor} !important;
@@ -327,13 +436,20 @@ a, .link, .product__title a, .Link {
   .header, .site-header {
     background: ${themeColor} !important;
   }
+  .footer, .site-footer {
+    background: ${adjustColorBrightness(themeColor, -30)} !important;
+  }
 }
 
-/* ULTIMATE FALLBACK - FORCE APPLICATION */
+/* ===== CSS VARIABLES OVERRIDE ===== */
 * {
   --color-accent: ${themeColor} !important;
   --color-button: ${themeColor} !important;
   --color-header: ${themeColor} !important;
+  --color-footer: ${adjustColorBrightness(themeColor, -30)} !important;
+  --color-badge: ${themeColor} !important;
+  --accent-color: ${themeColor} !important;
+  --primary-color: ${themeColor} !important;
 }
 `;
 
@@ -345,14 +461,14 @@ a, .link, .product__title a, .Link {
       },
       body: JSON.stringify({
         asset: {
-          key: 'assets/enhanced-guaranteed-colors.css',
-          value: guaranteedCSS
+          key: 'assets/comprehensive-brand-colors.css',
+          value: comprehensiveCSS
         }
       }),
     });
 
     if (cssResponse.ok) {
-      console.log('✅ ENHANCED METHOD 2 SUCCESS: CSS injection with guaranteed colors');
+      console.log('✅ COMPREHENSIVE METHOD 2 SUCCESS: All store elements styled with brand color');
     } else {
       console.warn('⚠️ CSS injection failed, trying liquid injection');
     }
@@ -364,7 +480,7 @@ a, .link, .product__title a, .Link {
 
 async function applyThemeColorViaLiquid(shopifyApiUrl: string, accessToken: string, themeId: string, themeColor: string, storeName?: string) {
   try {
-    console.log('🎨 ENHANCED METHOD 3: Applying color via liquid file injection');
+    console.log('🎨 COMPREHENSIVE METHOD 3: Injecting complete color styling via liquid');
     
     // Get the current theme.liquid file
     const themeResponse = await fetch(`${shopifyApiUrl}themes/${themeId}/assets.json?asset[key]=layout/theme.liquid`, {
@@ -379,49 +495,79 @@ async function applyThemeColorViaLiquid(shopifyApiUrl: string, accessToken: stri
       const themeData = await themeResponse.json();
       let themeContent = themeData.asset.value;
       
-      const guaranteedInlineCSS = `
-<style id="enhanced-guaranteed-colors">
-/* ENHANCED GUARANTEED COLORS - DIRECTLY INJECTED INTO HEAD */
+      // Add CSS file reference + comprehensive inline styles
+      const comprehensiveStyleInjection = `
+<!-- COMPREHENSIVE BRAND COLOR STYLING -->
+{{ 'comprehensive-brand-colors.css' | asset_url | stylesheet_tag }}
+
+<style id="comprehensive-brand-colors-inline">
+/* COMPREHENSIVE COLOR APPLICATION - ALL ELEMENTS */
 :root { 
-  --guaranteed-brand-color: ${themeColor} !important;
-  --guaranteed-brand-hover: ${adjustColorBrightness(themeColor, -10)} !important;
+  --brand-primary: ${themeColor} !important;
+  --brand-hover: ${adjustColorBrightness(themeColor, -10)} !important;
+  --brand-light: ${adjustColorBrightness(themeColor, 20)} !important;
+  --brand-dark: ${adjustColorBrightness(themeColor, -30)} !important;
 }
 
-/* ULTIMATE BUTTON GUARANTEE */
-.btn, button, [type="submit"], .shopify-payment-button__button,
-.product-form__buttons button, input[type="submit"] {
+/* HEADER & NAVIGATION */
+.header, .header__wrapper, .site-header, 
+header, nav, .navigation {
+  background-color: ${themeColor} !important;
+}
+.header a, nav a, .menu__item a {
+  color: white !important;
+}
+
+/* ALL BUTTONS */
+.btn, button:not(.variant-button), [type="submit"], [type="button"],
+.shopify-payment-button__button, .product-form__submit,
+.add-to-cart, .checkout-button, .continue-button {
   background-color: ${themeColor} !important;
   border-color: ${themeColor} !important;
   color: white !important;
 }
 
-/* ULTIMATE HEADER GUARANTEE */
-.header, .site-header, .header__wrapper {
+/* BADGES */
+.badge, .label, .sale-badge, .new-badge,
+[class*="badge"], [class*="Badge"] {
   background-color: ${themeColor} !important;
+  color: white !important;
 }
 
-/* ULTIMATE LINK AND PRICE GUARANTEE */
-a { color: ${themeColor} !important; }
-.price, .product__price { color: ${themeColor} !important; }
+/* PRODUCT OPTIONS */
+.product-form__input input:checked + label,
+.variant-button.selected {
+  background-color: ${themeColor} !important;
+  border-color: ${themeColor} !important;
+  color: white !important;
+}
 
-/* FORCE APPLICATION ON ALL ELEMENTS */
-[class*="btn"], [class*="button"], [class*="Button"] {
-  background-color: ${themeColor} !important;
-}
-[class*="header"], [class*="Header"] {
-  background-color: ${themeColor} !important;
-}
-[class*="price"], [class*="Price"] {
+/* SHARE BUTTON */
+.share-button, [class*="share"] {
   color: ${themeColor} !important;
+  border-color: ${themeColor} !important;
 }
+
+/* FOOTER */
+.footer, .site-footer, footer[role="contentinfo"] {
+  background-color: ${adjustColorBrightness(themeColor, -30)} !important;
+  color: white !important;
+}
+.footer a, .footer__link {
+  color: white !important;
+}
+
+/* LINKS & PRICES */
+a:not(.btn) { color: ${themeColor} !important; }
+.price, .product__price { color: ${themeColor} !important; font-weight: 600 !important; }
 </style>
 `;
       
-      // Insert the CSS right before </head> or at the beginning if no </head>
+      // Insert before </head> or at the beginning
       if (themeContent.includes('</head>')) {
-        themeContent = themeContent.replace('</head>', guaranteedInlineCSS + '\n</head>');
+        themeContent = themeContent.replace('</head>', comprehensiveStyleInjection + '\n</head>');
       } else {
-        themeContent = guaranteedInlineCSS + '\n' + themeContent;
+        themeContent = comprehensiveStyleInjection + '\n' + themeContent;
       }
       
       // Update the theme file

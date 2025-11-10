@@ -68,7 +68,10 @@ export const useStoreBuilderLogic = () => {
         if (!formData.businessType.trim()) missingFields.push("Business Type");
         break;
       case 2: // Store Identity (Color Selection)
-        if (!formData.selectedColor.trim()) missingFields.push("Theme Color");
+        // CRITICAL: Color selection is REQUIRED before proceeding
+        if (!formData.selectedColor?.trim() && !formData.themeColor?.trim()) {
+          missingFields.push("Theme Color - Please select a brand color");
+        }
         break;
       case 3: // Theme Color (Shopify Setup)
         if (!formData.shopifyUrl.trim()) missingFields.push("Shopify URL");
@@ -141,7 +144,7 @@ export const useStoreBuilderLogic = () => {
         shopify_url: formData.shopifyUrl,
         access_token: formData.accessToken,
         plan_activated: formData.planActivated,
-        theme_color: formData.selectedColor,
+        theme_color: formData.themeColor || formData.selectedColor,
         products_added: formData.productsAdded,
         mentorship_requested: formData.mentorshipRequested,
         created_via_affiliate: formData.createdViaAffiliate,
