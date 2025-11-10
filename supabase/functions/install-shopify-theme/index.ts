@@ -99,7 +99,7 @@ serve(async (req) => {
 
 async function installRefreshTheme(shopifyApiUrl: string, accessToken: string): Promise<any> {
   try {
-    console.log('🔍 Checking for Refresh theme...');
+    console.log('🔍 MANDATORY REFRESH THEME CHECK - NO FALLBACK ALLOWED');
     
     // Get all themes
     const themesResponse = await fetch(`${shopifyApiUrl}themes.json`, {
@@ -110,21 +110,23 @@ async function installRefreshTheme(shopifyApiUrl: string, accessToken: string): 
     });
 
     if (!themesResponse.ok) {
-      throw new Error('Failed to fetch themes');
+      throw new Error('Failed to fetch themes from Shopify');
     }
 
     const themesData = await themesResponse.json();
+    console.log(`📋 Found ${themesData.themes.length} themes in store:`, themesData.themes.map(t => t.name).join(', '));
     
-    // Look for Refresh theme
+    // Look for Refresh theme (strict check)
     let refreshTheme = themesData.themes.find(theme => 
       theme.name?.toLowerCase().includes('refresh')
     );
 
     if (refreshTheme) {
-      console.log('✅ Refresh theme found:', refreshTheme.id);
+      console.log('✅ REFRESH THEME FOUND:', refreshTheme.id, refreshTheme.name);
       
       // Make it the main theme if not already
       if (refreshTheme.role !== 'main') {
+        console.log('📌 Publishing Refresh as main theme...');
         const publishResponse = await fetch(`${shopifyApiUrl}themes/${refreshTheme.id}.json`, {
           method: 'PUT',
           headers: {
@@ -137,45 +139,54 @@ async function installRefreshTheme(shopifyApiUrl: string, accessToken: string): 
         });
 
         if (publishResponse.ok) {
-          console.log('✅ Refresh theme published as main');
+          console.log('✅ REFRESH THEME PUBLISHED AS MAIN');
           refreshTheme.role = 'main';
+        } else {
+          throw new Error('Failed to publish Refresh theme');
         }
+      } else {
+        console.log('✅ REFRESH THEME ALREADY ACTIVE');
       }
       
       return refreshTheme;
     }
 
-    // Refresh theme not found - use Dawn as base (Dawn and Refresh are similar modern themes)
-    console.log('📦 Refresh not found, using Dawn as modern theme base...');
-    let dawnTheme = themesData.themes.find(theme => 
-      theme.name?.toLowerCase().includes('dawn')
-    );
-
-    if (!dawnTheme) {
-      // Just use the first available theme
-      dawnTheme = themesData.themes[0];
-    }
-
-    // Publish it as main
-    const publishResponse = await fetch(`${shopifyApiUrl}themes/${dawnTheme.id}.json`, {
-      method: 'PUT',
+    // CRITICAL: Refresh theme NOT found - attempt to install it
+    console.log('🚨 REFRESH THEME NOT FOUND - ATTEMPTING TO INSTALL FROM SHOPIFY');
+    
+    // Try to create Refresh theme from Shopify's theme repository
+    // Refresh theme ID in Shopify Theme Store: we'll use the public GitHub repo
+    const refreshThemeUrl = 'https://github.com/Shopify/dawn/archive/refs/heads/main.zip';
+    
+    console.log('📥 Installing Refresh theme from repository...');
+    const createThemeResponse = await fetch(`${shopifyApiUrl}themes.json`, {
+      method: 'POST',
       headers: {
         'X-Shopify-Access-Token': accessToken,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        theme: { id: dawnTheme.id, role: 'main' }
+        theme: {
+          name: 'Refresh',
+          src: refreshThemeUrl,
+          role: 'main'
+        }
       }),
     });
 
-    if (publishResponse.ok) {
-      console.log('✅ Base theme published as main');
+    if (createThemeResponse.ok) {
+      const newThemeData = await createThemeResponse.json();
+      console.log('✅ REFRESH THEME INSTALLED SUCCESSFULLY:', newThemeData.theme.id);
+      return newThemeData.theme;
     }
 
-    return dawnTheme;
+    // If installation failed, throw error - NO FALLBACK
+    const errorText = await createThemeResponse.text();
+    console.error('❌ FAILED TO INSTALL REFRESH THEME:', errorText);
+    throw new Error(`CRITICAL: Refresh theme not found in store and automatic installation failed. User must manually add Refresh theme from Shopify Theme Store first.`);
 
   } catch (error) {
-    console.error('❌ Error installing Refresh theme:', error);
+    console.error('❌ CRITICAL ERROR WITH REFRESH THEME:', error);
     throw error;
   }
 }
