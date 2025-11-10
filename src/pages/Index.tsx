@@ -9,6 +9,7 @@ import AuthModal from "@/components/AuthModal";
 import starsAnimation from "@/assets/stars-animation.gif";
 import shopifyLogo from "@/assets/shopify.png";
 import certifiedShopifyPartner from "@/assets/certified-shopify-partner.png";
+import storeForgeLogoNew from "@/assets/storeforge-logo-new.png";
 
 const Index = () => {
   const [showBuilder, setShowBuilder] = useState(false);
@@ -650,12 +651,7 @@ const Index = () => {
         {/* Navigation */}
         <nav className="relative z-10 flex items-center justify-between px-4 py-3 lg:px-6">
           <div className="flex items-center space-x-2">
-            <div className="w-7 h-7 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
-              <Store className="h-4 w-4 text-white" />
-            </div>
-            <span className="text-lg font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-              StoreForge AI
-            </span>
+            <img src={storeForgeLogoNew} alt="StoreForge AI Logo" className="h-10 w-auto" />
           </div>
           <div className="hidden md:flex items-center space-x-6">
             <a href="/about" className="text-gray-700 hover:text-purple-600 font-medium transition-colors">About</a>
@@ -1414,10 +1410,7 @@ const Index = () => {
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center space-x-2 mb-4">
-                <div className="w-7 h-7 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
-                  <Store className="h-4 w-4 text-white" />
-                </div>
-                <span className="text-lg font-bold">StoreForge AI</span>
+                <img src={storeForgeLogoNew} alt="StoreForge AI Logo" className="h-10 w-auto" />
               </div>
               <p className="text-gray-400 text-sm">
                 Build your entire Shopify store in minutes with AI-powered automation.
