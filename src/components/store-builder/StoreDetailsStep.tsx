@@ -69,7 +69,11 @@ const StoreDetailsStep = ({
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-3 text-blue-700 text-xl">
               <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
-                <div className="text-2xl">🏬</div>
+                <div 
+                  dangerouslySetInnerHTML={{
+                    __html: '<lord-icon src="https://cdn.lordicon.com/zquqhgki.json" trigger="morph" stroke="bold" state="morph-growth" style="width:32px;height:32px"></lord-icon>'
+                  }}
+                />
               </div>
               <div>
                 <div className="text-xl font-bold">Store Identity</div>
