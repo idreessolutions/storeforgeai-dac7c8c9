@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,30 +5,17 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { FormData } from "./StoreBuilderLogic";
-
 interface StoreDetailsStepProps {
   formData: FormData;
   onInputChange: (field: keyof FormData, value: string) => void;
 }
-
-const predefinedNiches = [
-  "Home & Living",
-  "Beauty & Personal Care", 
-  "Health & Fitness",
-  "Pets",
-  "Fashion & Accessories",
-  "Electronics & Gadgets",
-  "Kids & Babies",
-  "Seasonal & Events",
-  "Hobbies & Lifestyle",
-  "Trending Viral Products"
-];
-
-const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) => {
+const predefinedNiches = ["Home & Living", "Beauty & Personal Care", "Health & Fitness", "Pets", "Fashion & Accessories", "Electronics & Gadgets", "Kids & Babies", "Seasonal & Events", "Hobbies & Lifestyle", "Trending Viral Products"];
+const StoreDetailsStep = ({
+  formData,
+  onInputChange
+}: StoreDetailsStepProps) => {
   const characterCount = formData.storeName.length;
-  
-  return (
-    <div className="space-y-12 relative">
+  return <div className="space-y-12 relative">
       {/* Floating decorative shapes */}
       <div className="absolute top-10 left-10 w-20 h-20 bg-blue-200 rounded-full opacity-20 animate-pulse"></div>
       <div className="absolute top-40 right-16 w-16 h-16 bg-purple-200 rounded-full opacity-20 animate-pulse delay-75"></div>
@@ -83,7 +69,7 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-3 text-blue-700 text-xl">
               <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
-                <div className="text-2xl">🏬⭐</div>
+                <div className="text-2xl">🏬</div>
               </div>
               <div>
                 <div className="text-xl font-bold">Store Identity</div>
@@ -98,13 +84,7 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
                 Store Name
                 <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200">Required</Badge>
               </Label>
-              <Input
-                id="storeName"
-                placeholder="Enter your amazing store name..."
-                value={formData.storeName}
-                onChange={(e) => onInputChange('storeName', e.target.value)}
-                className="focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-lg py-3 hover:shadow-md"
-              />
+              <Input id="storeName" placeholder="Enter your amazing store name..." value={formData.storeName} onChange={e => onInputChange('storeName', e.target.value)} className="focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-lg py-3 hover:shadow-md" />
               <div className="flex justify-between items-center">
                 <p className="text-xs text-gray-500 mt-1">This will be your official Shopify store name</p>
                 <p className={`text-xs mt-1 ${characterCount >= 8 && characterCount <= 20 ? 'text-green-600' : 'text-gray-400'}`}>
@@ -121,19 +101,14 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
                 Store Niche
                 <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">Required</Badge>
               </Label>
-              <Select 
-                value={formData.niche} 
-                onValueChange={(value) => onInputChange('niche', value)}
-              >
+              <Select value={formData.niche} onValueChange={value => onInputChange('niche', value)}>
                 <SelectTrigger className="focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-lg py-3 hover:shadow-md animate-fade-in">
                   <SelectValue placeholder="Choose your store niche ✨" />
                 </SelectTrigger>
                 <SelectContent className="bg-white z-50">
-                  {predefinedNiches.map((niche) => (
-                    <SelectItem key={niche} value={niche.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-')}>
+                  {predefinedNiches.map(niche => <SelectItem key={niche} value={niche.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-')}>
                       {niche}
-                    </SelectItem>
-                  ))}
+                    </SelectItem>)}
                 </SelectContent>
               </Select>
               <div className="space-y-1">
@@ -148,10 +123,7 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
                 How will you sell?
                 <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">Required</Badge>
               </Label>
-              <Select 
-                value={formData.businessType} 
-                onValueChange={(value) => onInputChange('businessType', value)}
-              >
+              <Select value={formData.businessType} onValueChange={value => onInputChange('businessType', value)}>
                 <SelectTrigger className="focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-lg py-3 hover:shadow-md animate-fade-in">
                   <SelectValue placeholder="Choose your business model ✨" />
                 </SelectTrigger>
@@ -200,8 +172,6 @@ const StoreDetailsStep = ({ formData, onInputChange }: StoreDetailsStepProps) =>
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default StoreDetailsStep;
