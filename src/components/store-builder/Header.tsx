@@ -42,7 +42,11 @@ const Header = ({
               </Button>}
             
             {showProgress && <div className="flex items-center space-x-3 bg-white/10 backdrop-blur-sm rounded-full px-6 py-3">
-                <Star className="h-5 w-5 text-yellow-400" />
+                <div 
+                  dangerouslySetInnerHTML={{
+                    __html: '<lord-icon src="https://cdn.lordicon.com/tetzmwxb.json" trigger="morph" stroke="bold" state="morph-select" style="width:20px;height:20px"></lord-icon>'
+                  }}
+                />
                 <div className="text-right">
                   <div className="text-sm font-semibold">
                     Step {displayStep} of {totalSteps}
