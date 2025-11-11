@@ -30,8 +30,19 @@ const StepNavigation = ({ steps, currentStep }: StepNavigationProps) => {
           <h2 className="text-xl font-bold text-gray-800">
             Step {displayStep} of {totalSteps}
           </h2>
-          <p className="text-sm text-gray-600 mt-1">
-            {displayStep === 9 ? '🎉 Your Store is Live!' : '🚀 Building Your Dream Store'}
+          <p className="text-sm text-gray-600 mt-1 flex items-center justify-center gap-1">
+            {displayStep === 9 ? (
+              '🎉 Your Store is Live!'
+            ) : (
+              <>
+                <span 
+                  dangerouslySetInnerHTML={{
+                    __html: '<lord-icon src="https://cdn.lordicon.com/mjwccpnv.json" trigger="morph" stroke="bold" state="morph-launch" style="width:16px;height:16px"></lord-icon>'
+                  }}
+                />
+                <span>Building Your Dream Store</span>
+              </>
+            )}
           </p>
         </div>
         
