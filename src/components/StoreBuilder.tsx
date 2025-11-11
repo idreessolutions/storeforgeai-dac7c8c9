@@ -45,8 +45,8 @@ const StoreBuilder = ({ onBack, onViewAutomation }: StoreBuilderProps) => {
         onViewAutomation={onViewAutomation}
       />
 
-      {/* Step Navigation Component - show for steps 2-9 */}
-      {currentStep >= 2 && currentStep <= 9 && (
+      {/* Step Navigation Component - show for all steps 1-9 */}
+      {currentStep >= 1 && currentStep <= 9 && (
         <StepNavigation steps={storeSteps} currentStep={currentStep} />
       )}
 
