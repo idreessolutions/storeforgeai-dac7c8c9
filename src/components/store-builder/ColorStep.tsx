@@ -9,9 +9,9 @@ interface ColorStepProps {
 }
 
 const ColorStep = ({ formData, handleInputChange }: ColorStepProps) => {
-  // Ensure we use themeColor for consistency with the rest of the app
+  // No default fallback - force user to select a color
   const colorData = {
-    selectedColor: formData.themeColor || formData.selectedColor || '#3B82F6'
+    selectedColor: formData.themeColor || formData.selectedColor || ''
   };
 
   const handleColorChange = (field: string, value: string) => {

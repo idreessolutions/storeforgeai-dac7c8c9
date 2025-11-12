@@ -173,8 +173,8 @@ const ColorSelectionStep = ({ formData, handleInputChange }: ColorSelectionStepP
         </div>
       )}
 
-      {/* Selected Color Summary */}
-      {formData.selectedColor && (
+      {/* Selected Color Summary or Warning */}
+      {formData.selectedColor ? (
         <div className="text-center">
           <p className="text-sm text-gray-500 mb-2">Selected color:</p>
           <div className="flex items-center justify-center gap-3">
@@ -185,6 +185,15 @@ const ColorSelectionStep = ({ formData, handleInputChange }: ColorSelectionStepP
             <span className="font-semibold text-gray-900">
               {selectedColorData?.name} ({formData.selectedColor})
             </span>
+          </div>
+        </div>
+      ) : (
+        <div className="text-center">
+          <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4 inline-flex items-center gap-2">
+            <span className="text-2xl">⚠️</span>
+            <p className="text-sm font-semibold text-yellow-800">
+              Please select a color above to continue
+            </p>
           </div>
         </div>
       )}
