@@ -423,7 +423,14 @@ const MentorshipStep = ({ formData, handleInputChange }: MentorshipStepProps) =>
                 Optional step — you can continue without mentorship
               </p>
               <p className="text-xs text-gray-500 flex items-center justify-center gap-1">
-                ✅ Request received! A mentor will contact you within 24 hours.
+                <lord-icon
+                  src="https://cdn.lordicon.com/gupbzvaj.json"
+                  trigger="hover"
+                  stroke="bold"
+                  colors="primary:#30e849,secondary:#bcee66"
+                  style={{width: '16px', height: '16px'}}
+                />
+                Request received! A mentor will contact you within 24 hours.
               </p>
             </div>
           </div>
