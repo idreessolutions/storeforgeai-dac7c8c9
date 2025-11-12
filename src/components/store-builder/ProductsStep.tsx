@@ -186,7 +186,11 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                 {/* What You'll Get Section */}
                 <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-8 mb-8">
                   <h3 className="text-2xl font-semibold text-gray-900 mb-6 text-center">
-                    ✨ What You'll Get
+                    <span 
+                      dangerouslySetInnerHTML={{
+                        __html: '<lord-icon src="https://cdn.lordicon.com/gmypinsw.json" trigger="hover" stroke="bold" state="hover-burst" colors="primary:#e8e230,secondary:#e8e230" style="width:24px;height:24px"></lord-icon>'
+                      }}
+                    /> What You'll Get
                   </h3>
                   
                   {/* Feature Boxes */}
