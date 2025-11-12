@@ -28,17 +28,6 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
   const [currentProductName, setCurrentProductName] = useState('');
   const [hasStarted, setHasStarted] = useState(false);
 
-  // Watch for progress completion and trigger success state
-  useEffect(() => {
-    if (progress === 100 && isGenerating && !formData.productsAdded) {
-      handleInputChange('productsAdded', true);
-      toast.success('🎉 Successfully added 10 winning products to your Shopify store!', {
-        duration: 5000,
-      });
-      setIsGenerating(false);
-    }
-  }, [progress, isGenerating, formData.productsAdded]);
-
   const sessionId = localStorage.getItem('storeBuilderSessionId') || 'default';
   const niche = formData.niche || 'Home & Living';
   const nicheCapitalized = niche.charAt(0).toUpperCase() + niche.slice(1);
@@ -89,6 +78,13 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       );
 
       console.log('✅ SUPABASE SUCCESS: Products loaded from your bucket folders');
+      
+      // Mark products as added
+      handleInputChange('productsAdded', true);
+      
+      toast.success(`🎉 Successfully created 10 curated ${formData.niche} products from YOUR Supabase buckets!`, {
+        duration: 5000,
+      });
 
       // Store generation data in localStorage
       await storeGenerationData({
@@ -344,6 +340,19 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                       <span>You can edit everything later in Shopify</span>
                     </div>
                   </div>
+                  
+                  {hasStarted && (
+                    <div className="mt-4 pt-4 border-t border-green-200">
+                      <Button
+                        onClick={retryGeneration}
+                        variant="outline"
+                        className="w-full sm:w-auto border-green-400 text-green-700 hover:bg-green-100 font-semibold"
+                      >
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Add Different Products
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

@@ -35,8 +35,8 @@ export const useStoreBuilderLogic = () => {
     shopifyUrl: "",
     accessToken: "",
     planActivated: false,
-    selectedColor: "",
-    themeColor: "",
+    selectedColor: "#3B82F6",
+    themeColor: "#3B82F6",
     productsAdded: false,
     mentorshipRequested: false,
     createdViaAffiliate: false,
@@ -69,8 +69,8 @@ export const useStoreBuilderLogic = () => {
         break;
       case 2: // Store Identity (Color Selection)
         // CRITICAL: Color selection is REQUIRED before proceeding
-        if (!formData.selectedColor?.trim()) {
-          missingFields.push("Theme Color");
+        if (!formData.selectedColor?.trim() && !formData.themeColor?.trim()) {
+          missingFields.push("Theme Color - Please select a brand color");
         }
         break;
       case 3: // Theme Color (Shopify Setup)

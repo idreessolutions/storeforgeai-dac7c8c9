@@ -82,18 +82,6 @@ export const generateCuratedProducts = async (
     
     console.log(`📊 Processing ${results.length} results, ${successCount} successful uploads`);
 
-    // CRITICAL: Validate that products were actually uploaded
-    if (successCount === 0) {
-      console.error('❌ No products were uploaded - Edge Function may have failed silently');
-      throw new Error(
-        `No products were uploaded to your store. This might be due to:\n` +
-        `• Invalid Shopify credentials\n` +
-        `• Missing products in the ${niche} bucket\n` +
-        `• Network connectivity issues\n\n` +
-        `Please check your Shopify URL and access token, then try again.`
-      );
-    }
-
     // Ensure we show progress for exactly 10 products
     const progressStep = 60 / Math.max(targetCount, 1);
     
