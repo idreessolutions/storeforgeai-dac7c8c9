@@ -76,7 +76,10 @@ const ColorSelectionStep = ({ formData, handleInputChange }: ColorSelectionStepP
               {colors.map((color) => (
                 <button
                   key={color.name}
-                  onClick={() => handleInputChange('selectedColor', color.value)}
+                  onClick={() => {
+                    handleInputChange('selectedColor', color.value);
+                    handleInputChange('themeColor', color.value);
+                  }}
                   className={`
                     w-full aspect-square rounded-xl transition-all duration-200 
                     hover:scale-105 hover:-translate-y-0.5 hover:shadow-xl
