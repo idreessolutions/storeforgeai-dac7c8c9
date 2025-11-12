@@ -427,66 +427,7 @@ export type Database = {
       }
     }
     Views: {
-      store_builder_sessions_safe: {
-        Row: {
-          additional_info: string | null
-          business_type: string | null
-          completed_steps: number | null
-          created_at: string | null
-          created_via_affiliate: boolean | null
-          id: string | null
-          mentorship_requested: boolean | null
-          niche: string | null
-          plan_activated: boolean | null
-          products_added: boolean | null
-          session_id: string | null
-          shopify_url: string | null
-          store_style: string | null
-          target_audience: string | null
-          theme_color: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          additional_info?: string | null
-          business_type?: string | null
-          completed_steps?: number | null
-          created_at?: string | null
-          created_via_affiliate?: boolean | null
-          id?: string | null
-          mentorship_requested?: boolean | null
-          niche?: string | null
-          plan_activated?: boolean | null
-          products_added?: boolean | null
-          session_id?: string | null
-          shopify_url?: string | null
-          store_style?: string | null
-          target_audience?: string | null
-          theme_color?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          additional_info?: string | null
-          business_type?: string | null
-          completed_steps?: number | null
-          created_at?: string | null
-          created_via_affiliate?: boolean | null
-          id?: string | null
-          mentorship_requested?: boolean | null
-          niche?: string | null
-          plan_activated?: boolean | null
-          products_added?: boolean | null
-          session_id?: string | null
-          shopify_url?: string | null
-          store_style?: string | null
-          target_audience?: string | null
-          theme_color?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       get_store_access_token: {

@@ -118,10 +118,10 @@ export const useStoreSession = () => {
       }
 
       console.log('Getting session data for:', sessionId);
-      // Use safe view to exclude access_token from client queries
+      // Explicitly select columns excluding access_token for security
       const result = await (supabase as any)
-        .from('store_builder_sessions_safe')
-        .select('*')
+        .from('store_builder_sessions')
+        .select('id, session_id, user_id, niche, target_audience, business_type, store_style, additional_info, shopify_url, theme_color, plan_activated, products_added, mentorship_requested, completed_steps, created_via_affiliate, created_at, updated_at')
         .eq('session_id', sessionId)
         .eq('user_id', user.id)
         .maybeSingle();
