@@ -413,7 +413,14 @@ const MentorshipStep = ({ formData, handleInputChange }: MentorshipStepProps) =>
             {/* Reassurance Text */}
             <div className="mt-4 space-y-2 text-center">
               <p className="text-xs text-gray-600 flex items-center justify-center gap-1">
-                ⚡ Optional step — you can continue without mentorship
+                <lord-icon
+                  src="https://cdn.lordicon.com/boconccx.json"
+                  trigger="hover"
+                  stroke="bold"
+                  colors="primary:#e83a30,secondary:#e8e230"
+                  style={{width: '16px', height: '16px'}}
+                />
+                Optional step — you can continue without mentorship
               </p>
               <p className="text-xs text-gray-500 flex items-center justify-center gap-1">
                 ✅ Request received! A mentor will contact you within 24 hours.
