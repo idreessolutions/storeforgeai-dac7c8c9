@@ -82,7 +82,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       // Mark products as added
       handleInputChange('productsAdded', true);
       
-      toast.success(`🎉 Successfully created 10 curated ${formData.niche} products from YOUR Supabase buckets!`, {
+      toast.success('🎉 Successfully added 10 winning products to your Shopify store!', {
         duration: 5000,
       });
 
