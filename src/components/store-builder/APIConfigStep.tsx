@@ -171,7 +171,11 @@ const APIConfigStep = ({ formData, handleInputChange, onNext }: APIConfigStepPro
             {/* How to Set Up Section */}
             <div className="mb-8 sm:mb-10 bg-gradient-to-br from-blue-50/50 to-purple-50/50 rounded-2xl p-6 sm:p-8">
               <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <span className="text-2xl">✅</span>
+                <div 
+                  dangerouslySetInnerHTML={{
+                    __html: '<lord-icon src="https://cdn.lordicon.com/gupbzvaj.json" trigger="hover" stroke="bold" state="hover-roll" colors="primary:#30e849,secondary:#e8e230" style="width:24px;height:24px"></lord-icon>'
+                  }}
+                />
                 How to Set Up API Access
               </h2>
               
