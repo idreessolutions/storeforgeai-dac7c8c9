@@ -218,7 +218,14 @@ const APIConfigStep = ({ formData, handleInputChange, onNext }: APIConfigStepPro
                   <span className="flex-shrink-0 w-7 h-7 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full flex items-center justify-center font-bold text-xs">
                     6
                   </span>
-                  <span className="text-base pt-0.5">Check <strong>ALL API Scopes</strong> ✅</span>
+                  <span className="text-base pt-0.5 flex items-center gap-1">
+                    Check <strong>ALL API Scopes</strong>
+                    <span 
+                      dangerouslySetInnerHTML={{
+                        __html: '<lord-icon src="https://cdn.lordicon.com/gupbzvaj.json" trigger="hover" stroke="bold" state="hover-pinch" colors="primary:#30e849,secondary:#b4b4b4" style="width:18px;height:18px"></lord-icon>'
+                      }}
+                    />
+                  </span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="flex-shrink-0 w-7 h-7 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full flex items-center justify-center font-bold text-xs">
