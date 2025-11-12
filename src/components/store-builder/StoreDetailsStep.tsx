@@ -131,7 +131,11 @@ const StoreDetailsStep = ({
 
             <div className="space-y-2">
               <Label htmlFor="businessType" className="text-sm font-semibold flex items-center gap-2 text-gray-700">
-                <span className="text-lg">💼</span>
+                <div 
+                  dangerouslySetInnerHTML={{
+                    __html: '<lord-icon src="https://cdn.lordicon.com/uiigekiw.json" trigger="morph" stroke="bold" state="morph-open" colors="primary:#e8b730,secondary:#c67d53" style="width:20px;height:20px"></lord-icon>'
+                  }}
+                />
                 How will you sell?
                 <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">Required</Badge>
               </Label>
