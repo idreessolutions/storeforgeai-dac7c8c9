@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Store, ExternalLink, CheckCircle, Timer, Lightbulb, Shield, Lock } from "lucide-react";
+import { ExternalLink, CheckCircle, Timer, Lightbulb, Shield, Lock } from "lucide-react";
 import { toast } from "sonner";
 
 interface ShopifySetupStepProps {
@@ -130,7 +130,11 @@ const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps
             {/* Header */}
             <div className="text-center mb-8 sm:mb-10">
               <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-                <Store className="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 text-white" />
+                <div 
+                  dangerouslySetInnerHTML={{
+                    __html: '<lord-icon src="https://cdn.lordicon.com/zquqhgki.json" trigger="morph" stroke="bold" state="morph-growth" colors="primary:#ffffff,secondary:#ffffff" style="width:48px;height:48px"></lord-icon>'
+                  }}
+                />
               </div>
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
                 Connect Your Shopify Store
@@ -256,8 +260,12 @@ const ShopifySetupStep = ({ formData, handleInputChange }: ShopifySetupStepProps
                   </>
                 ) : (
                   <>
-                    <Store className="mr-3 h-5 w-5" />
-                    🔗 Connect My Shopify Store
+                    <div className="mr-3"
+                      dangerouslySetInnerHTML={{
+                        __html: '<lord-icon src="https://cdn.lordicon.com/zquqhgki.json" trigger="morph" stroke="bold" state="morph-growth" colors="primary:#ffffff,secondary:#ffffff" style="width:20px;height:20px"></lord-icon>'
+                      }}
+                    />
+                    Connect My Shopify Store
                   </>
                 )}
               </Button>
