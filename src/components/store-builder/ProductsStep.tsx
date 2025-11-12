@@ -239,7 +239,11 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
                         </>
                       ) : (
                         <>
-                          🚀 Add 10 Winning Products to My Store
+                          <span 
+                            dangerouslySetInnerHTML={{
+                              __html: '<lord-icon src="https://cdn.lordicon.com/pmtkscxd.json" trigger="hover" stroke="bold" colors="primary:#e83a30,secondary:#e8e230" style="width:20px;height:20px"></lord-icon>'
+                            }}
+                          /> Add 10 Winning Products to My Store
                         </>
                       )}
                     </Button>
