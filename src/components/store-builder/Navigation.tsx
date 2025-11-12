@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, CheckCircle, Crown } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle } from "lucide-react";
 
 interface NavigationProps {
   currentStep: number;
@@ -45,7 +45,11 @@ const Navigation = ({
         </Button>
 
         <div className="flex items-center space-x-3 text-sm text-gray-500">
-          <Crown className="h-4 w-4 text-yellow-500" />
+          <div 
+            dangerouslySetInnerHTML={{
+              __html: '<lord-icon src="https://cdn.lordicon.com/tbvnefhm.json" trigger="hover" stroke="bold" colors="primary:#e8e230,secondary:#ee6d66" style="width:16px;height:16px"></lord-icon>'
+            }}
+          />
           <span className="font-medium">
             Step {currentStep} of {totalSteps} — Store Identity ✅
           </span>
