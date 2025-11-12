@@ -64,7 +64,7 @@ const StepNavigation = ({ steps, currentStep }: StepNavigationProps) => {
             const isLaunchStep = stepNumber === 9;
             
             return (
-              <div key={stepNumber} className="relative z-20 flex flex-col items-center">
+              <div key={stepNumber} className="relative z-20 flex flex-col items-center pt-8">
                 <div className={`
                   w-16 h-16 rounded-full flex items-center justify-center shadow-lg transition-all duration-500 transform
                   ${isActive && isLaunchStep ? 'bg-gradient-to-br from-green-500 to-emerald-600 scale-125 shadow-2xl animate-pulse' :
