@@ -46,11 +46,11 @@ const StepNavigation = ({ steps, currentStep }: StepNavigationProps) => {
           </p>
         </div>
         
-        <div className="flex items-center justify-between relative">
+        <div className="flex items-start justify-between relative">
           {/* Progress line */}
-          <div className="absolute top-1/2 left-0 right-0 h-1 bg-gradient-to-r from-gray-200 via-blue-200 to-purple-200 rounded-full -translate-y-1/2 z-0"></div>
+          <div className="absolute top-12 left-0 right-0 h-1 bg-gradient-to-r from-gray-200 via-blue-200 to-purple-200 rounded-full z-0"></div>
           <div 
-            className="absolute top-1/2 left-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full -translate-y-1/2 z-10 transition-all duration-700"
+            className="absolute top-12 left-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full z-10 transition-all duration-700"
             style={{ width: `${Math.max(0, ((displayStep - 1) / (totalSteps - 1)) * 100)}%` }}
           ></div>
           
