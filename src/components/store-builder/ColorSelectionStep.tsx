@@ -101,8 +101,13 @@ const ColorSelectionStep = ({ formData, handleInputChange }: ColorSelectionStepP
               ))}
             </div>
 
-            <p className="text-xs text-gray-500 italic">
-              💡 Tip: Keep it bold and simple for the best conversion.
+            <p className="text-xs text-gray-500 italic flex items-center gap-1">
+              <span 
+                dangerouslySetInnerHTML={{
+                  __html: '<lord-icon src="https://cdn.lordicon.com/fomgzoeg.json" trigger="hover" stroke="bold" colors="primary:#e8e230,secondary:#66a1ee" style="width:14px;height:14px"></lord-icon>'
+                }}
+              />
+              <span>Tip: Keep it bold and simple for the best conversion.</span>
             </p>
           </div>
         </CardContent>
