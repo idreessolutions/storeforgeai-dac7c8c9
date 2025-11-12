@@ -122,13 +122,9 @@ export const useStoreBuilderLogic = () => {
       const userResponse = await supabase.auth.getUser();
       const user = userResponse.data?.user;
       
+      // Silently skip saving if user is not authenticated
       if (!user) {
-        console.error('User must be authenticated to save session data');
-        toast({
-          title: "Authentication Required",
-          description: "Please log in to save your progress",
-          variant: "destructive",
-        });
+        console.log('User not authenticated - skipping session save');
         return;
       }
 
