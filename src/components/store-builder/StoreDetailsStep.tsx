@@ -84,7 +84,11 @@ const StoreDetailsStep = ({
           <CardContent className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="storeName" className="text-sm font-semibold flex items-center gap-2 text-gray-700">
-                <span className="text-lg">🏷️</span>
+                <div 
+                  dangerouslySetInnerHTML={{
+                    __html: '<lord-icon src="https://cdn.lordicon.com/hepdwhfz.json" trigger="hover" stroke="bold" colors="primary:#e8e230,secondary:#e8e230" style="width:20px;height:20px"></lord-icon>'
+                  }}
+                />
                 Store Name
                 <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200">Required</Badge>
               </Label>
