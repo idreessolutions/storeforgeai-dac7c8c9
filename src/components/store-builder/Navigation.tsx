@@ -94,7 +94,14 @@ const Navigation = ({
       
       {/* Reassurance text */}
       <div className="text-center pt-2">
-        <p className="text-xs text-gray-500 italic">💡 You can edit everything later in Shopify</p>
+        <p className="text-xs text-gray-500 italic flex items-center justify-center gap-1">
+          <span 
+            dangerouslySetInnerHTML={{
+              __html: '<lord-icon src="https://cdn.lordicon.com/fomgzoeg.json" trigger="hover" stroke="bold" colors="primary:#e8e230,secondary:#66a1ee" style="width:14px;height:14px"></lord-icon>'
+            }}
+          />
+          <span>You can edit everything later in Shopify</span>
+        </p>
       </div>
     </div>
   );
