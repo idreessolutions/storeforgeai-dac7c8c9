@@ -341,7 +341,7 @@ const APIConfigStep = ({ formData, handleInputChange, onNext }: APIConfigStepPro
               <ExternalLink className="mr-3 h-5 w-5" />
               <span 
                 dangerouslySetInnerHTML={{
-                  __html: '<lord-icon src="https://cdn.lordicon.com/rehjfnou.json" trigger="hover" stroke="bold" state="hover-slide" colors="primary:#ffffff,secondary:#ffffff" style="width:20px;height:20px"></lord-icon>'
+                  __html: '<lord-icon src="https://cdn.lordicon.com/ijhuniiu.json" trigger="hover" stroke="bold" colors="primary:#ffffff,secondary:#ffffff" style="width:20px;height:20px"></lord-icon>'
                 }}
               />
               Access Shopify Apps
