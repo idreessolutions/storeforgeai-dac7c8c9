@@ -160,7 +160,12 @@ const ActivateTrialStep = ({ formData, handleInputChange }: ActivateTrialStepPro
 
                 {/* Required Note */}
                 <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-4 mb-4 flex items-start gap-3">
-                  <span className="text-2xl flex-shrink-0">⚠️</span>
+                  <span 
+                    className="flex-shrink-0"
+                    dangerouslySetInnerHTML={{
+                      __html: '<lord-icon src="https://cdn.lordicon.com/gdfrsvpt.json" trigger="hover" stroke="bold" state="hover-oscillate" colors="primary:#242424,secondary:#e8e230" style="width:24px;height:24px"></lord-icon>'
+                    }}
+                  />
                   <div>
                     <p className="text-orange-900 font-semibold mb-1">Required by Shopify:</p>
                     <p className="text-orange-800 text-sm">
