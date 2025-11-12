@@ -176,7 +176,12 @@ const ActivateTrialStep = ({ formData, handleInputChange }: ActivateTrialStepPro
 
                 {/* Reminder */}
                 <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 flex items-start gap-3">
-                  <span className="text-2xl flex-shrink-0">💡</span>
+                  <span 
+                    className="flex-shrink-0"
+                    dangerouslySetInnerHTML={{
+                      __html: '<lord-icon src="https://cdn.lordicon.com/fomgzoeg.json" trigger="morph" stroke="bold" state="morph-turn-on" colors="primary:#e8e230,secondary:#848484" style="width:24px;height:24px"></lord-icon>'
+                    }}
+                  />
                   <p className="text-blue-800 text-sm">
                     After activation, return here and click <strong>"I've Activated My Plan"</strong>
                   </p>
