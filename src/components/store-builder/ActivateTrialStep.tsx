@@ -147,7 +147,12 @@ const ActivateTrialStep = ({ formData, handleInputChange }: ActivateTrialStepPro
                 </ul>
 
                 <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4 mb-4 flex items-start gap-3">
-                  <span className="text-2xl flex-shrink-0">✅</span>
+                  <span 
+                    className="flex-shrink-0"
+                    dangerouslySetInnerHTML={{
+                      __html: '<lord-icon src="https://cdn.lordicon.com/gupbzvaj.json" trigger="hover" stroke="bold" state="hover-pinch" colors="primary:#30e849,secondary:#e8e230" style="width:24px;height:24px"></lord-icon>'
+                    }}
+                  />
                   <p className="text-green-800 text-sm">
                     <strong>Shopify includes a free trial</strong> — nothing is charged immediately.
                   </p>
