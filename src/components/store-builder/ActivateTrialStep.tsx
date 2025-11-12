@@ -105,7 +105,11 @@ const ActivateTrialStep = ({ formData, handleInputChange }: ActivateTrialStepPro
               {/* How to Activate Section */}
               <div className="mb-8 sm:mb-10 bg-gradient-to-br from-blue-50/50 to-purple-50/50 rounded-2xl p-6 sm:p-8">
                 <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                  <span className="text-2xl">✅</span>
+                  <span 
+                    dangerouslySetInnerHTML={{
+                      __html: '<lord-icon src="https://cdn.lordicon.com/gupbzvaj.json" trigger="hover" stroke="bold" colors="primary:#30e849,secondary:#e8e230" style="width:24px;height:24px"></lord-icon>'
+                    }}
+                  />
                   How to Activate
                 </h2>
                 
