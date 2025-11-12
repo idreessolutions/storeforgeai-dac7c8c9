@@ -204,7 +204,12 @@ const ActivateTrialStep = ({ formData, handleInputChange }: ActivateTrialStepPro
                   className="w-full h-12 sm:h-14 text-base sm:text-lg font-bold rounded-xl bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
                   onClick={handleAccessPlans}
                 >
-                  <span className="text-xl mr-2">⭐</span>
+                  <span 
+                    className="mr-2"
+                    dangerouslySetInnerHTML={{
+                      __html: '<lord-icon src="https://cdn.lordicon.com/tetzmwxb.json" trigger="morph" stroke="bold" state="morph-select" colors="primary:#e8e230,secondary:#e8e230" style="width:20px;height:20px"></lord-icon>'
+                    }}
+                  />
                   Access Plans
                   <ExternalLink className="ml-3 h-5 w-5" />
                 </Button>
