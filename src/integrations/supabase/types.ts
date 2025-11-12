@@ -430,6 +430,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      decrypt_token: { Args: { encrypted_token: string }; Returns: string }
+      encrypt_token: { Args: { token: string }; Returns: string }
       get_store_access_token: {
         Args: { p_session_id: string }
         Returns: string
