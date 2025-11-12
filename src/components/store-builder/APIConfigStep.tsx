@@ -333,14 +333,19 @@ const APIConfigStep = ({ formData, handleInputChange, onNext }: APIConfigStepPro
 
             {/* Action Button */}
             <div className="text-center">
-              <Button
-                onClick={openShopifyApps}
-                className="w-full h-12 sm:h-14 text-base sm:text-lg font-bold rounded-xl bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
-                disabled={!formData.shopifyUrl}
-              >
-                <ExternalLink className="mr-3 h-5 w-5" />
-                🔗 Access Shopify Apps
-              </Button>
+            <Button
+              onClick={openShopifyApps}
+              className="w-full h-12 sm:h-14 text-base sm:text-lg font-bold rounded-xl bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+              disabled={!formData.shopifyUrl}
+            >
+              <ExternalLink className="mr-3 h-5 w-5" />
+              <span 
+                dangerouslySetInnerHTML={{
+                  __html: '<lord-icon src="https://cdn.lordicon.com/rehjfnou.json" trigger="hover" stroke="bold" state="hover-slide" colors="primary:#ffffff,secondary:#ffffff" style="width:20px;height:20px"></lord-icon>'
+                }}
+              />
+              Access Shopify Apps
+            </Button>
             </div>
           </CardContent>
         </Card>
