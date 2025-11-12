@@ -11,7 +11,7 @@ interface StoreSession {
   store_style: string;
   additional_info: string;
   shopify_url: string;
-  access_token: string;
+  access_token?: string; // Optional - not exposed in client queries for security
   plan_activated: boolean;
   theme_color: string;
   products_added: boolean;
@@ -118,8 +118,9 @@ export const useStoreSession = () => {
       }
 
       console.log('Getting session data for:', sessionId);
+      // Use safe view to exclude access_token from client queries
       const result = await (supabase as any)
-        .from('store_builder_sessions')
+        .from('store_builder_sessions_safe')
         .select('*')
         .eq('session_id', sessionId)
         .eq('user_id', user.id)
