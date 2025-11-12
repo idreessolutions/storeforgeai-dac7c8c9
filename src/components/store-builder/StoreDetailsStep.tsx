@@ -105,7 +105,11 @@ const StoreDetailsStep = ({
             
             <div className="space-y-2">
               <Label htmlFor="niche" className="text-sm font-semibold flex items-center gap-2 text-gray-700">
-                <span className="text-lg">🎯</span>
+                <div 
+                  dangerouslySetInnerHTML={{
+                    __html: '<lord-icon src="https://cdn.lordicon.com/zlyeoiyv.json" trigger="hover" stroke="bold" colors="primary:#848484,secondary:#e83a30" style="width:20px;height:20px"></lord-icon>'
+                  }}
+                />
                 Store Niche
                 <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">Required</Badge>
               </Label>
