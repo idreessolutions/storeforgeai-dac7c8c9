@@ -397,7 +397,16 @@ const MentorshipStep = ({ formData, handleInputChange }: MentorshipStepProps) =>
                   <span>Submitting Application...</span>
                 </div>
               ) : (
-                <span>🚀 Apply for Personal Mentorship</span>
+                <span className="flex items-center gap-2">
+                  <lord-icon
+                    src="https://cdn.lordicon.com/pmtkscxd.json"
+                    trigger="hover"
+                    stroke="bold"
+                    colors="primary:#e83a30,secondary:#e8e230"
+                    style={{width: '24px', height: '24px'}}
+                  />
+                  Apply for Personal Mentorship
+                </span>
               )}
             </Button>
 
