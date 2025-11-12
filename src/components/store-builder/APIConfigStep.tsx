@@ -276,7 +276,11 @@ const APIConfigStep = ({ formData, handleInputChange, onNext }: APIConfigStepPro
 
               {/* Tip */}
               <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 flex items-start gap-3">
-                <span className="text-2xl flex-shrink-0">💡</span>
+                <div className="flex-shrink-0"
+                  dangerouslySetInnerHTML={{
+                    __html: '<lord-icon src="https://cdn.lordicon.com/fomgzoeg.json" trigger="morph" stroke="bold" state="morph-turn-on" colors="primary:#e8e230,secondary:#30c9e8" style="width:24px;height:24px"></lord-icon>'
+                  }}
+                />
                 <div>
                   <p className="text-blue-900 font-semibold mb-1">Tip:</p>
                   <p className="text-blue-800 text-sm">
