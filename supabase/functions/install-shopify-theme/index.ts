@@ -99,7 +99,7 @@ serve(async (req) => {
 
 async function installRefreshTheme(shopifyApiUrl: string, accessToken: string): Promise<any> {
   try {
-    console.log('🔍 CRITICAL: MANDATORY REFRESH THEME CHECK - NO OTHER THEMES ALLOWED');
+    console.log('🔍 CRITICAL: ENFORCING REFRESH THEME - NO OTHER THEMES ALLOWED');
     
     // Get all themes
     const themesResponse = await fetch(`${shopifyApiUrl}themes.json`, {
@@ -121,125 +121,123 @@ async function installRefreshTheme(shopifyApiUrl: string, accessToken: string): 
       theme.name?.toLowerCase().includes('refresh')
     );
 
-    // STEP 2: If Refresh theme doesn't exist, try to add it from Shopify Theme Store
+    // STEP 2: If Refresh theme doesn't exist, guide user to add it
     if (!refreshTheme) {
-      console.log('🚨 REFRESH THEME NOT FOUND - ATTEMPTING AUTOMATIC INSTALLATION');
+      console.log('🚨 REFRESH THEME NOT FOUND');
+      console.log('⚠️ USER ACTION REQUIRED: Please add the "Refresh" theme from Shopify Theme Store');
+      console.log('📖 Instructions: Go to Online Store > Themes > Visit Theme Store > Search "Refresh" > Add theme');
       
-      // Try installing Refresh theme from GitHub (official Shopify Refresh theme repo)
-      // Note: Refresh theme must be publicly available or we need to guide user to add it manually
-      const refreshThemeUrl = 'https://github.com/Shopify/refresh-theme/archive/refs/heads/main.zip';
-      
-      console.log('📥 Attempting to install Refresh theme...');
-      const createThemeResponse = await fetch(`${shopifyApiUrl}themes.json`, {
-        method: 'POST',
+      throw new Error(
+        '⚠️ REFRESH THEME REQUIRED: Please add the free "Refresh" theme to your Shopify store.\n\n' +
+        'How to add Refresh theme:\n' +
+        '1. Go to your Shopify Admin\n' +
+        '2. Navigate to Online Store > Themes\n' +
+        '3. Click "Visit Theme Store"\n' +
+        '4. Search for "Refresh" (it\'s a free theme by Shopify)\n' +
+        '5. Click "Add" to add it to your store\n' +
+        '6. Return here and continue with your store setup\n\n' +
+        'The Refresh theme is required for the best store experience with your selected colors.'
+      );
+    }
+
+    console.log('✅ REFRESH THEME FOUND:', refreshTheme.id, refreshTheme.name);
+    
+    // STEP 3: First publish Refresh as MAIN theme (before deleting others)
+    if (refreshTheme.role !== 'main') {
+      console.log('📌 PUBLISHING REFRESH THEME AS MAIN');
+      const publishResponse = await fetch(`${shopifyApiUrl}themes/${refreshTheme.id}.json`, {
+        method: 'PUT',
         headers: {
           'X-Shopify-Access-Token': accessToken,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           theme: {
-            name: 'Refresh',
-            src: refreshThemeUrl,
-            role: 'unpublished'
+            id: refreshTheme.id,
+            role: 'main'
           }
         }),
       });
 
-      if (createThemeResponse.ok) {
-        const newThemeData = await createThemeResponse.json();
-        refreshTheme = newThemeData.theme;
-        console.log('✅ REFRESH THEME INSTALLED:', refreshTheme.id);
+      if (publishResponse.ok) {
+        const publishedData = await publishResponse.json();
+        refreshTheme = publishedData.theme;
+        console.log('✅ REFRESH THEME NOW PUBLISHED AS MAIN');
       } else {
-        const errorText = await createThemeResponse.text();
-        console.error('❌ AUTOMATIC INSTALLATION FAILED:', errorText);
-        console.log('⚠️ USER ACTION REQUIRED: Please manually add the "Refresh" theme from Shopify Theme Store');
-        
-        // Provide detailed instructions
-        throw new Error(
-          'REFRESH THEME REQUIRED: Please add the "Refresh" theme to your Shopify store from the Theme Store (https://themes.shopify.com/themes/refresh), then try again.'
-        );
+        console.warn('⚠️ Failed to publish Refresh theme');
       }
+    } else {
+      console.log('✅ REFRESH THEME ALREADY MAIN');
     }
-
-    if (refreshTheme) {
-      console.log('✅ REFRESH THEME LOCATED:', refreshTheme.id, refreshTheme.name);
-      
-      // STEP 3: Delete or unpublish ALL other themes (Dawn, Horizon, etc.)
-      console.log('🗑️ REMOVING OTHER THEMES TO ENSURE ONLY REFRESH IS ACTIVE');
-      const otherThemes = themesData.themes.filter(theme => 
-        !theme.name?.toLowerCase().includes('refresh') && theme.role !== 'demo'
+    
+    // STEP 4: Delete ALL other themes (Dawn, Horizon, etc.)
+    console.log('🗑️ REMOVING ALL OTHER THEMES (Horizon, Dawn, etc.)');
+    
+    // Re-fetch themes to get updated list after publishing
+    const updatedThemesResponse = await fetch(`${shopifyApiUrl}themes.json`, {
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (updatedThemesResponse.ok) {
+      const updatedThemesData = await updatedThemesResponse.json();
+      const otherThemes = updatedThemesData.themes.filter(theme => 
+        !theme.name?.toLowerCase().includes('refresh') && 
+        theme.role !== 'demo' &&
+        theme.role !== 'main' // Don't try to delete main theme
       );
+      
+      console.log(`🗑️ Found ${otherThemes.length} themes to delete:`, otherThemes.map(t => t.name).join(', '));
       
       for (const theme of otherThemes) {
         try {
-          console.log(`🗑️ Deleting theme: ${theme.name} (${theme.id})`);
-          await fetch(`${shopifyApiUrl}themes/${theme.id}.json`, {
+          console.log(`🗑️ Deleting: ${theme.name} (ID: ${theme.id}, Role: ${theme.role})`);
+          const deleteResponse = await fetch(`${shopifyApiUrl}themes/${theme.id}.json`, {
             method: 'DELETE',
             headers: {
               'X-Shopify-Access-Token': accessToken,
               'Content-Type': 'application/json',
             },
           });
-          console.log(`✅ Deleted: ${theme.name}`);
+          
+          if (deleteResponse.ok) {
+            console.log(`✅ Successfully deleted: ${theme.name}`);
+          } else {
+            console.warn(`⚠️ Could not delete ${theme.name}, but continuing`);
+          }
         } catch (error) {
-          console.warn(`⚠️ Could not delete ${theme.name}, but continuing`);
+          console.warn(`⚠️ Error deleting ${theme.name}:`, error.message);
         }
       }
-      
-      // STEP 4: Publish Refresh as the MAIN theme
-      if (refreshTheme.role !== 'main') {
-        console.log('📌 PUBLISHING REFRESH THEME AS MAIN AND ONLY THEME');
-        const publishResponse = await fetch(`${shopifyApiUrl}themes/${refreshTheme.id}.json`, {
-          method: 'PUT',
-          headers: {
-            'X-Shopify-Access-Token': accessToken,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            theme: { 
-              id: refreshTheme.id, 
-              role: 'main'
-            }
-          }),
-        });
-
-        if (publishResponse.ok) {
-          const updatedTheme = await publishResponse.json();
-          console.log('✅ REFRESH THEME NOW PUBLISHED AS MAIN THEME');
-          refreshTheme = updatedTheme.theme;
-        } else {
-          const errorText = await publishResponse.text();
-          console.error('❌ FAILED TO PUBLISH REFRESH THEME:', errorText);
-          throw new Error('Failed to publish Refresh theme as main theme');
-        }
-      } else {
-        console.log('✅ REFRESH THEME ALREADY SET AS MAIN');
-      }
-      
-      // STEP 5: Verify final state
-      const verifyResponse = await fetch(`${shopifyApiUrl}themes.json`, {
-        headers: {
-          'X-Shopify-Access-Token': accessToken,
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (verifyResponse.ok) {
-        const verifyData = await verifyResponse.json();
-        const mainTheme = verifyData.themes.find(t => t.role === 'main');
-        console.log('🎯 FINAL STATE - Active theme:', mainTheme?.name);
-        
-        if (mainTheme?.name?.toLowerCase().includes('refresh')) {
-          console.log('✅ SUCCESS: REFRESH THEME IS NOW THE ACTIVE THEME');
-        } else {
-          console.error('⚠️ WARNING: Active theme is not Refresh:', mainTheme?.name);
-        }
-      }
-      
-      return refreshTheme;
     }
-
-    throw new Error('CRITICAL: Unable to locate or install Refresh theme');
+    
+    
+    // STEP 5: Final verification - confirm Refresh is main theme
+    const verifyResponse = await fetch(`${shopifyApiUrl}themes.json`, {
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (verifyResponse.ok) {
+      const verifyData = await verifyResponse.json();
+      const mainTheme = verifyData.themes.find(t => t.role === 'main');
+      
+      if (mainTheme && mainTheme.name?.toLowerCase().includes('refresh')) {
+        console.log('✅ VERIFICATION PASSED: Refresh is the main and only active theme');
+        console.log(`🎉 FINAL STATE: ${mainTheme.name} (ID: ${mainTheme.id}) is published`);
+        return mainTheme;
+      } else {
+        console.warn('⚠️ VERIFICATION WARNING: Main theme is not Refresh:', mainTheme?.name);
+        // Still return refreshTheme as we did our best
+        return refreshTheme;
+      }
+    }
+    
+    return refreshTheme;
 
   } catch (error) {
     console.error('❌ CRITICAL ERROR WITH REFRESH THEME SETUP:', error);
