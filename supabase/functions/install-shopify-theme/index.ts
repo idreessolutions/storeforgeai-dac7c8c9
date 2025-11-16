@@ -36,7 +36,7 @@ serve(async (req) => {
 
     console.log('✅ Refresh theme is now Current:', targetTheme.name, 'ID:', targetTheme.id);
 
-    // Step 2: Apply the selected color
+    // Step 2: Apply the selected color comprehensively
     console.log('🎨 Applying color customization:', themeColor);
     
     await applyThemeColorViaSettings(shopifyApiUrl, accessToken, targetTheme.id, themeColor, storeName, niche);
@@ -129,7 +129,7 @@ async function installRefreshTheme(shopifyApiUrl: string, accessToken: string): 
       console.log('🔧 Refresh theme not found, attempting automatic installation...');
       
       try {
-        // Try to install from Shopify's Dawn theme (as a fallback for testing)
+        // Try to install Refresh from Shopify's official GitHub
         const installResponse = await fetchWithRetry(`${shopifyApiUrl}themes.json`, {
           method: 'POST',
           headers: {
@@ -139,7 +139,7 @@ async function installRefreshTheme(shopifyApiUrl: string, accessToken: string): 
           body: JSON.stringify({
             theme: {
               name: 'Refresh',
-              src: 'https://github.com/Shopify/dawn/archive/refs/tags/v12.0.0.zip',
+              src: 'https://github.com/Shopify/refresh-theme/archive/refs/heads/main.zip',
               role: 'unpublished'
             }
           }),
@@ -220,7 +220,7 @@ async function installRefreshTheme(shopifyApiUrl: string, accessToken: string): 
       throw new Error('Failed to publish Refresh theme as main');
     }
     
-    // STEP 5: Delete ALL other themes (Pitch, Horizon, Dawn, etc.)
+    // STEP 5: Delete ALL other themes
     console.log('🗑️ Removing all other themes...');
     
     // Re-fetch to get updated theme list
@@ -338,15 +338,16 @@ async function applyThemeColorViaSettings(shopifyApiUrl: string, accessToken: st
     
     const colorSettings = {
       current: {
-        // Primary brand colors
+        // Primary brand colors - comprehensive coverage
         colors_accent_1: themeColor,
         colors_accent_2: adjustColorBrightness(themeColor, -15),
         color_accent: themeColor,
         accent_color: themeColor,
         primary_color: themeColor,
         brand_color: themeColor,
+        theme_color: themeColor,
         
-        // Button colors
+        // Button colors - all variations
         colors_solid_button_labels: '#ffffff',
         colors_outline_button_labels: themeColor,
         color_button: themeColor,
@@ -356,8 +357,10 @@ async function applyThemeColorViaSettings(shopifyApiUrl: string, accessToken: st
         button_text_color: '#ffffff',
         colors_button_primary: themeColor,
         button_primary_color: themeColor,
+        button_primary_background: themeColor,
+        colors_solid_button_background: themeColor,
         
-        // Header & navigation
+        // Header & navigation - comprehensive
         colors_header: themeColor,
         color_header: themeColor,
         header_background_color: themeColor,
@@ -365,30 +368,42 @@ async function applyThemeColorViaSettings(shopifyApiUrl: string, accessToken: st
         header_background: themeColor,
         nav_background_color: themeColor,
         navigation_color: themeColor,
+        navigation_background: themeColor,
+        menu_background_color: themeColor,
+        header_text_color: '#ffffff',
         
-        // Footer
+        // Footer - comprehensive
         colors_footer: adjustColorBrightness(themeColor, -30),
         color_footer: adjustColorBrightness(themeColor, -30),
         footer_background_color: adjustColorBrightness(themeColor, -30),
         footer_color: adjustColorBrightness(themeColor, -30),
         footer_background: adjustColorBrightness(themeColor, -30),
+        footer_text_color: '#ffffff',
         
-        // Links
+        // Links - comprehensive
         colors_link: themeColor,
         color_link: themeColor,
         link_color: themeColor,
+        link_hover_color: adjustColorBrightness(themeColor, -15),
+        colors_link_hover: adjustColorBrightness(themeColor, -15),
         
-        // Price & product
+        // Price & product - comprehensive
         color_price: themeColor,
         price_color: themeColor,
         sale_price_color: themeColor,
         product_sale_price_color: themeColor,
+        colors_price: themeColor,
+        product_price_color: themeColor,
         
-        // Badges & labels
+        // Badges & labels - comprehensive
         badge_background_color: themeColor,
         badge_color: themeColor,
         label_sale_color: themeColor,
         sale_badge_background: themeColor,
+        colors_badge_background: themeColor,
+        badge_sale_background: themeColor,
+        badge_text_color: '#ffffff',
+        label_background_color: themeColor,
         
         // Announcement bar
         announcement_background: themeColor,
@@ -399,6 +414,7 @@ async function applyThemeColorViaSettings(shopifyApiUrl: string, accessToken: st
         // Additional theme-specific
         colors_outline_button_labels_hover: adjustColorBrightness(themeColor, -10),
         gradient_accent_1: `linear-gradient(135deg, ${themeColor} 0%, ${adjustColorBrightness(themeColor, -20)} 100%)`,
+        gradient_accent_2: `linear-gradient(180deg, ${themeColor} 0%, ${adjustColorBrightness(themeColor, -25)} 100%)`,
       }
     };
 
@@ -452,7 +468,7 @@ async function applyThemeColorViaSettings(shopifyApiUrl: string, accessToken: st
     });
 
     if (updateResponse.ok) {
-      console.log('✅ Settings data updated with color');
+      console.log('✅ Settings data updated with comprehensive color scheme');
     } else {
       console.warn('⚠️ Failed to update settings data');
     }
@@ -467,73 +483,223 @@ async function applyThemeColorViaCSS(shopifyApiUrl: string, accessToken: string,
     console.log('🎨 METHOD 2: Applying color via CSS injection');
 
     const css = `
+/* ============================================
+   BRAND COLOR OVERRIDES - COMPREHENSIVE
+   ============================================ */
+
 /* Brand Color Variables */
 :root {
   --primary-brand: ${themeColor} !important;
   --primary-hover: ${adjustColorBrightness(themeColor, -10)} !important;
+  --primary-dark: ${adjustColorBrightness(themeColor, -30)} !important;
+  --color-accent: ${themeColor} !important;
+  --color-primary: ${themeColor} !important;
 }
 
-/* Header & Navigation */
-.header, .header__wrapper, .site-header, header[role="banner"] {
+/* ============================================
+   HEADER & NAVIGATION
+   ============================================ */
+.header, 
+.header__wrapper, 
+.site-header, 
+header[role="banner"],
+.header-wrapper,
+.shopify-section-header,
+.header__heading,
+nav.header__inline-menu,
+.header__menu,
+.menu-drawer__navigation {
   background: ${themeColor} !important;
+  background-color: ${themeColor} !important;
 }
 
-.header a, nav a {
+.header a, 
+.header__heading-link,
+nav a,
+.header__menu-item,
+.menu-drawer__menu-item,
+.list-menu__item a {
   color: white !important;
 }
 
-/* All Buttons */
-.btn, button:not(.variant-button), [type="submit"], 
-.product-form__cart-submit, .shopify-payment-button__button {
-  background: ${themeColor} !important;
-  border-color: ${themeColor} !important;
+.header__icon,
+.header__icon--menu,
+.header__icon--cart {
   color: white !important;
 }
 
-.btn:hover, button:hover:not(.variant-button) {
-  background: ${adjustColorBrightness(themeColor, -10)} !important;
-}
-
-/* Badges (Sale, New) */
-.badge, .label, .product__badge, .Badge {
-  background: ${themeColor} !important;
-  color: white !important;
-}
-
-/* Footer */
-.footer, .site-footer, footer[role="contentinfo"] {
-  background: ${adjustColorBrightness(themeColor, -30)} !important;
-  color: white !important;
-}
-
-.footer a {
-  color: white !important;
-}
-
-/* Links */
-a:not(.btn):not(button) {
-  color: ${themeColor} !important;
-}
-
-/* Prices */
-.price, .price__current, .product__price {
-  color: ${themeColor} !important;
-}
-
-/* Announcement Bar */
-.announcement-bar {
-  background: ${themeColor} !important;
-  color: white !important;
-}
-
-/* Add to Cart Button - Extra Targeting */
-.product-form__submit, 
-[name="add"], 
+/* ============================================
+   ALL BUTTONS - COMPREHENSIVE
+   ============================================ */
+.btn, 
+button:not(.variant-button):not(.quantity__button), 
+[type="submit"], 
+.product-form__cart-submit,
+.product-form__submit,
+.shopify-payment-button__button,
+.shopify-payment-button__button--unbranded,
+.button,
+.button--primary,
+input[type="submit"],
+.cart__checkout-button,
+.cart__dynamic-checkout-buttons,
+[name="add"],
 .add-to-cart,
-.cart__checkout-button {
+.product__submit-button,
+.quick-add__submit {
+  background: ${themeColor} !important;
+  background-color: ${themeColor} !important;
+  border-color: ${themeColor} !important;
+  color: white !important;
+}
+
+.btn:hover, 
+button:hover:not(.variant-button):not(.quantity__button),
+.button:hover,
+.product-form__submit:hover {
+  background: ${adjustColorBrightness(themeColor, -10)} !important;
+  background-color: ${adjustColorBrightness(themeColor, -10)} !important;
+}
+
+/* ============================================
+   BADGES & SALE LABELS
+   ============================================ */
+.badge, 
+.label, 
+.product__badge,
+.card__badge,
+.Badge,
+.price__badge-sale,
+.price__badge-sold-out,
+.card-wrapper .badge,
+.product__media .badge {
+  background: ${themeColor} !important;
+  background-color: ${themeColor} !important;
+  color: white !important;
+}
+
+/* ============================================
+   FOOTER
+   ============================================ */
+.footer, 
+.site-footer, 
+footer[role="contentinfo"],
+.footer-block,
+.shopify-section-footer {
+  background: ${adjustColorBrightness(themeColor, -30)} !important;
+  background-color: ${adjustColorBrightness(themeColor, -30)} !important;
+  color: white !important;
+}
+
+.footer a,
+.footer__heading,
+.footer__list-social a,
+.footer__content-top a {
+  color: white !important;
+}
+
+/* ============================================
+   LINKS & ACCENTS
+   ============================================ */
+a:not(.btn):not(button):not(.header a):not(.footer a),
+.link,
+.product__title a,
+.card__heading a {
+  color: ${themeColor} !important;
+}
+
+a:not(.btn):not(button):hover {
+  color: ${adjustColorBrightness(themeColor, -15)} !important;
+}
+
+/* ============================================
+   PRICES - COMPREHENSIVE
+   ============================================ */
+.price, 
+.price__current,
+.price__regular,
+.product__price,
+.price-item,
+.price--on-sale,
+.price__sale,
+.card__price,
+.product__info-container .price {
+  color: ${themeColor} !important;
+}
+
+.price--on-sale .price-item--sale,
+.price__sale .price-item--regular {
+  color: ${themeColor} !important;
+}
+
+/* ============================================
+   PRODUCT PAGES
+   ============================================ */
+.product__title,
+.product-form__buttons {
+  color: inherit;
+}
+
+.product__info-wrapper .price {
+  color: ${themeColor} !important;
+}
+
+/* ============================================
+   ANNOUNCEMENT BAR
+   ============================================ */
+.announcement-bar,
+.shopify-section-announcement-bar {
+  background: ${themeColor} !important;
+  background-color: ${themeColor} !important;
+  color: white !important;
+}
+
+.announcement-bar__message {
+  color: white !important;
+}
+
+/* ============================================
+   COLLECTION & PRODUCT GRIDS
+   ============================================ */
+.card__badge,
+.card-wrapper .badge {
+  background: ${themeColor} !important;
+  color: white !important;
+}
+
+/* ============================================
+   QUANTITY SELECTORS & VARIANTS
+   ============================================ */
+.quantity__button:focus,
+.color-swatch:focus,
+.product-option-value:focus {
+  box-shadow: 0 0 0 2px ${themeColor} !important;
+}
+
+/* ============================================
+   ACTIVE STATES & SELECTIONS
+   ============================================ */
+.product-form__input input:checked + label,
+.swatch input:checked + label,
+.color-swatch input:checked + label {
+  border-color: ${themeColor} !important;
+  box-shadow: 0 0 0 2px ${themeColor} !important;
+}
+
+/* ============================================
+   CART & CHECKOUT
+   ============================================ */
+.cart__checkout-button,
+.cart-drawer__checkout-button {
   background: ${themeColor} !important;
   border-color: ${themeColor} !important;
   color: white !important;
+}
+
+.cart__price,
+.cart-item__price,
+.totals__subtotal-value {
+  color: ${themeColor} !important;
 }
 `;
 
@@ -552,7 +718,7 @@ a:not(.btn):not(button) {
     });
 
     if (updateResponse.ok) {
-      console.log('✅ CSS file created with brand colors');
+      console.log('✅ CSS file created with comprehensive brand colors');
     } else {
       console.warn('⚠️ Failed to create CSS file');
     }
@@ -591,16 +757,40 @@ async function applyThemeColorViaLiquid(shopifyApiUrl: string, accessToken: stri
       return;
     }
 
-    // Inject styles in <head>
+    // Inject comprehensive styles in <head>
     const styleInjection = `
   <!-- CUSTOM_BRAND_COLORS_INJECTION -->
   <style>
-    :root { --brand-primary: ${themeColor}; }
-    .header, header { background: ${themeColor} !important; }
-    .btn, button:not(.variant-button) { background: ${themeColor} !important; color: white !important; }
-    .badge { background: ${themeColor} !important; }
-    .footer { background: ${adjustColorBrightness(themeColor, -30)} !important; }
-    a:not(.btn) { color: ${themeColor} !important; }
+    :root { 
+      --brand-primary: ${themeColor}; 
+      --brand-primary-dark: ${adjustColorBrightness(themeColor, -30)};
+      --brand-primary-hover: ${adjustColorBrightness(themeColor, -10)};
+    }
+    /* Header */
+    .header, header, .site-header { background: ${themeColor} !important; }
+    .header a, header a { color: white !important; }
+    
+    /* Buttons */
+    .btn, button:not(.variant-button):not(.quantity__button), .product-form__submit { 
+      background: ${themeColor} !important; 
+      color: white !important; 
+    }
+    
+    /* Badges */
+    .badge, .label { background: ${themeColor} !important; color: white !important; }
+    
+    /* Footer */
+    .footer, footer { background: ${adjustColorBrightness(themeColor, -30)} !important; color: white !important; }
+    .footer a { color: white !important; }
+    
+    /* Links */
+    a:not(.btn):not(button):not(.header a):not(.footer a) { color: ${themeColor} !important; }
+    
+    /* Prices */
+    .price, .price__current, .product__price { color: ${themeColor} !important; }
+    
+    /* Announcement */
+    .announcement-bar { background: ${themeColor} !important; color: white !important; }
   </style>
   <link rel="stylesheet" href="{{ 'custom-brand-colors.css' | asset_url }}" />
   <!-- END_CUSTOM_BRAND_COLORS_INJECTION -->
@@ -624,7 +814,7 @@ async function applyThemeColorViaLiquid(shopifyApiUrl: string, accessToken: stri
     });
 
     if (updateResponse.ok) {
-      console.log('✅ theme.liquid updated with color injection');
+      console.log('✅ theme.liquid updated with comprehensive color injection');
     } else {
       console.warn('⚠️ Failed to update theme.liquid');
     }
