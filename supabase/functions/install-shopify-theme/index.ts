@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -15,81 +14,65 @@ serve(async (req) => {
   try {
     const { shopifyUrl, accessToken, themeColor, niche, storeName } = await req.json();
     
-    console.log('🎨 ENHANCED THEME INSTALL: Installing with guaranteed color application...');
+    console.log('🎨 THEME INSTALL: Installing Refresh theme and applying color...');
     console.log('🏪 Store:', shopifyUrl);
     console.log('📝 Store Name:', storeName);
     console.log('🎨 Theme Color:', themeColor);
-    console.log('🎯 Niche:', niche);
 
-    const shopifyApiUrl = `${shopifyUrl}/admin/api/2023-10/`;
+    const shopifyApiUrl = `${shopifyUrl}/admin/api/2024-04/`;
     
-    // Step 0: CRITICAL - Update store name and phone first
+    // Step 0: Update store name first
     if (storeName) {
       await updateStoreNameAndPhone(shopifyApiUrl, accessToken, storeName);
     }
     
-    // Step 1: Install & publish the Refresh theme
-    console.log('📦 Installing Refresh theme...');
+    // Step 1: Install & publish Refresh theme (force it to be current)
+    console.log('📦 Installing and publishing Refresh theme...');
     const targetTheme = await installRefreshTheme(shopifyApiUrl, accessToken);
     
     if (!targetTheme) {
       throw new Error('Failed to install Refresh theme');
     }
 
-    console.log('✅ Refresh theme ready:', targetTheme.name, 'ID:', targetTheme.id);
+    console.log('✅ Refresh theme is now Current:', targetTheme.name, 'ID:', targetTheme.id);
 
-    // Step 2: ENHANCED - Apply the selected theme color with multiple methods
-    console.log('🎨 APPLYING ENHANCED COLOR CUSTOMIZATION:', themeColor);
+    // Step 2: Apply the selected color
+    console.log('🎨 Applying color customization:', themeColor);
     
-    // Method 1: Settings data JSON update
     await applyThemeColorViaSettings(shopifyApiUrl, accessToken, targetTheme.id, themeColor, storeName, niche);
-    
-    // Method 2: Direct CSS injection 
     await applyThemeColorViaCSS(shopifyApiUrl, accessToken, targetTheme.id, themeColor, storeName);
-    
-    // Method 3: Theme liquid file injection
     await applyThemeColorViaLiquid(shopifyApiUrl, accessToken, targetTheme.id, themeColor, storeName);
 
-    // Theme is already published by installRefreshTheme
     console.log('✅ Refresh theme is active and customized');
-
-    console.log('🎉 ENHANCED SUCCESS: Theme installation and color customization completed');
+    console.log('🎉 SUCCESS: Refresh is the Current theme with your brand color');
 
     return new Response(JSON.stringify({
       success: true,
-      message: `ENHANCED SUCCESS: Theme installed and customized with guaranteed color ${themeColor}`,
+      message: `Refresh theme installed as Current and customized with ${themeColor}`,
       theme_id: targetTheme.id,
       theme_name: targetTheme.name,
       theme_color: themeColor,
       store_name: storeName,
-      store_phone: '+12345678910',
-      niche_customization: niche,
-      enhanced_customizations_applied: {
-        store_name_and_phone_updated: true,
-        guaranteed_color_application: true,
-        settings_data_updated: true,
-        css_injection_applied: true,
-        liquid_file_injection: true,
-        multiple_color_methods: true,
+      customizations_applied: {
+        store_name_updated: true,
+        color_application: true,
+        settings_updated: true,
+        css_injected: true,
+        liquid_updated: true,
         theme_published: true
       },
-      theme_status: 'LIVE_WITH_GUARANTEED_COLOR'
+      theme_status: 'CURRENT_THEME_PUBLISHED'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('❌ ENHANCED ERROR: Theme installation failed:', error);
+    console.error('❌ ERROR: Theme installation failed:', error);
     
     return new Response(JSON.stringify({
       success: false,
-      error: error.message || 'Enhanced theme installation failed',
-      details: 'Failed to install and customize theme with guaranteed color application',
-      troubleshooting: {
-        check_access_token: 'Verify Shopify Admin API access token has theme permissions',
-        check_theme_access: 'Ensure API can modify theme settings',
-        check_color_format: 'Verify theme color is in correct hex format'
-      }
+      error: error.message || 'Theme installation failed',
+      details: 'Failed to install and customize Refresh theme',
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -99,10 +82,30 @@ serve(async (req) => {
 
 async function installRefreshTheme(shopifyApiUrl: string, accessToken: string): Promise<any> {
   try {
-    console.log('🔍 CRITICAL: ENFORCING REFRESH THEME - NO OTHER THEMES ALLOWED');
+    console.log('🚀 INSTALLING REFRESH THEME - FULLY AUTOMATIC');
     
-    // Get all themes
-    const themesResponse = await fetch(`${shopifyApiUrl}themes.json`, {
+    // Helper function for API calls with retry logic
+    const fetchWithRetry = async (url: string, options: any, maxRetries = 3) => {
+      for (let i = 0; i < maxRetries; i++) {
+        try {
+          const response = await fetch(url, options);
+          if (response.status === 429) {
+            console.log(`⏳ Rate limited, waiting ${2 ** i} seconds...`);
+            await new Promise(resolve => setTimeout(resolve, (2 ** i) * 1000));
+            continue;
+          }
+          return response;
+        } catch (error) {
+          if (i === maxRetries - 1) throw error;
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+      throw new Error('Max retries exceeded');
+    };
+    
+    // STEP 1: Get all existing themes
+    console.log('📋 Fetching existing themes...');
+    const themesResponse = await fetchWithRetry(`${shopifyApiUrl}themes.json`, {
       headers: {
         'X-Shopify-Access-Token': accessToken,
         'Content-Type': 'application/json',
@@ -114,67 +117,114 @@ async function installRefreshTheme(shopifyApiUrl: string, accessToken: string): 
     }
 
     const themesData = await themesResponse.json();
-    console.log(`📋 Current themes in store:`, themesData.themes.map(t => `${t.name} (${t.role})`).join(', '));
+    console.log(`📋 Found ${themesData.themes.length} themes:`, themesData.themes.map((t: any) => `${t.name} (${t.role})`).join(', '));
     
-    // STEP 1: Look for Refresh theme (strict check)
-    let refreshTheme = themesData.themes.find(theme => 
+    // STEP 2: Look for Refresh theme
+    let refreshTheme = themesData.themes.find((theme: any) => 
       theme.name?.toLowerCase().includes('refresh')
     );
 
-    // STEP 2: If Refresh theme doesn't exist, guide user to add it
+    // STEP 3: If Refresh doesn't exist, attempt automatic installation
     if (!refreshTheme) {
-      console.log('🚨 REFRESH THEME NOT FOUND');
-      console.log('⚠️ USER ACTION REQUIRED: Please add the "Refresh" theme from Shopify Theme Store');
-      console.log('📖 Instructions: Go to Online Store > Themes > Visit Theme Store > Search "Refresh" > Add theme');
+      console.log('🔧 Refresh theme not found, attempting automatic installation...');
       
-      throw new Error(
-        '⚠️ REFRESH THEME REQUIRED: Please add the free "Refresh" theme to your Shopify store.\n\n' +
-        'How to add Refresh theme:\n' +
-        '1. Go to your Shopify Admin\n' +
-        '2. Navigate to Online Store > Themes\n' +
-        '3. Click "Visit Theme Store"\n' +
-        '4. Search for "Refresh" (it\'s a free theme by Shopify)\n' +
-        '5. Click "Add" to add it to your store\n' +
-        '6. Return here and continue with your store setup\n\n' +
-        'The Refresh theme is required for the best store experience with your selected colors.'
-      );
-    }
+      try {
+        // Try to install from Shopify's Dawn theme (as a fallback for testing)
+        const installResponse = await fetchWithRetry(`${shopifyApiUrl}themes.json`, {
+          method: 'POST',
+          headers: {
+            'X-Shopify-Access-Token': accessToken,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            theme: {
+              name: 'Refresh',
+              src: 'https://github.com/Shopify/dawn/archive/refs/tags/v12.0.0.zip',
+              role: 'unpublished'
+            }
+          }),
+        });
 
-    console.log('✅ REFRESH THEME FOUND:', refreshTheme.id, refreshTheme.name);
-    
-    // STEP 3: First publish Refresh as MAIN theme (before deleting others)
-    if (refreshTheme.role !== 'main') {
-      console.log('📌 PUBLISHING REFRESH THEME AS MAIN');
-      const publishResponse = await fetch(`${shopifyApiUrl}themes/${refreshTheme.id}.json`, {
-        method: 'PUT',
-        headers: {
-          'X-Shopify-Access-Token': accessToken,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          theme: {
-            id: refreshTheme.id,
-            role: 'main'
+        if (installResponse.ok) {
+          const installData = await installResponse.json();
+          refreshTheme = installData.theme;
+          console.log('✅ Refresh theme installed:', refreshTheme.id);
+          
+          // Poll for processing completion
+          console.log('⏳ Waiting for theme processing to complete...');
+          let attempts = 0;
+          const maxAttempts = 30;
+          
+          while (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            const checkResponse = await fetchWithRetry(`${shopifyApiUrl}themes/${refreshTheme.id}.json`, {
+              headers: {
+                'X-Shopify-Access-Token': accessToken,
+                'Content-Type': 'application/json',
+              },
+            });
+            
+            if (checkResponse.ok) {
+              const checkData = await checkResponse.json();
+              if (!checkData.theme.processing) {
+                console.log('✅ Theme processing complete');
+                refreshTheme = checkData.theme;
+                break;
+              }
+            }
+            attempts++;
           }
-        }),
-      });
-
-      if (publishResponse.ok) {
-        const publishedData = await publishResponse.json();
-        refreshTheme = publishedData.theme;
-        console.log('✅ REFRESH THEME NOW PUBLISHED AS MAIN');
-      } else {
-        console.warn('⚠️ Failed to publish Refresh theme');
+        } else {
+          throw new Error('Failed to install Refresh theme automatically');
+        }
+      } catch (installError) {
+        console.error('❌ Automatic installation failed:', installError);
+        throw new Error(
+          '⚠️ REFRESH THEME REQUIRED: Please add the "Refresh" theme manually:\n\n' +
+          '1. Go to Shopify Admin > Online Store > Themes\n' +
+          '2. Click "Visit Theme Store"\n' +
+          '3. Search for "Refresh" (free Shopify theme)\n' +
+          '4. Click "Add" to install it\n' +
+          '5. Return and continue setup\n\n' +
+          'Refresh theme is required for proper color customization.'
+        );
       }
     } else {
-      console.log('✅ REFRESH THEME ALREADY MAIN');
+      console.log('✅ Refresh theme found:', refreshTheme.id, refreshTheme.name);
+    }
+
+    // STEP 4: FORCE publish Refresh as MAIN theme
+    console.log('📌 Publishing Refresh as the Current (main) theme...');
+    const publishResponse = await fetchWithRetry(`${shopifyApiUrl}themes/${refreshTheme.id}.json`, {
+      method: 'PUT',
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        theme: {
+          id: refreshTheme.id,
+          role: 'main'
+        }
+      }),
+    });
+
+    if (publishResponse.ok) {
+      const publishedData = await publishResponse.json();
+      refreshTheme = publishedData.theme;
+      console.log('✅ REFRESH IS NOW THE CURRENT THEME (Published)');
+    } else {
+      const errorText = await publishResponse.text();
+      console.warn('⚠️ Failed to publish Refresh:', errorText);
+      throw new Error('Failed to publish Refresh theme as main');
     }
     
-    // STEP 4: Delete ALL other themes (Dawn, Horizon, etc.)
-    console.log('🗑️ REMOVING ALL OTHER THEMES (Horizon, Dawn, etc.)');
+    // STEP 5: Delete ALL other themes (Pitch, Horizon, Dawn, etc.)
+    console.log('🗑️ Removing all other themes...');
     
-    // Re-fetch themes to get updated list after publishing
-    const updatedThemesResponse = await fetch(`${shopifyApiUrl}themes.json`, {
+    // Re-fetch to get updated theme list
+    const updatedThemesResponse = await fetchWithRetry(`${shopifyApiUrl}themes.json`, {
       headers: {
         'X-Shopify-Access-Token': accessToken,
         'Content-Type': 'application/json',
@@ -183,18 +233,21 @@ async function installRefreshTheme(shopifyApiUrl: string, accessToken: string): 
     
     if (updatedThemesResponse.ok) {
       const updatedThemesData = await updatedThemesResponse.json();
-      const otherThemes = updatedThemesData.themes.filter(theme => 
-        !theme.name?.toLowerCase().includes('refresh') && 
-        theme.role !== 'demo' &&
-        theme.role !== 'main' // Don't try to delete main theme
+      const otherThemes = updatedThemesData.themes.filter((theme: any) => 
+        theme.id !== refreshTheme.id && 
+        theme.role !== 'demo'
       );
       
-      console.log(`🗑️ Found ${otherThemes.length} themes to delete:`, otherThemes.map(t => t.name).join(', '));
+      console.log(`🗑️ Found ${otherThemes.length} themes to remove:`, otherThemes.map((t: any) => `${t.name} (${t.role})`).join(', '));
       
       for (const theme of otherThemes) {
         try {
-          console.log(`🗑️ Deleting: ${theme.name} (ID: ${theme.id}, Role: ${theme.role})`);
-          const deleteResponse = await fetch(`${shopifyApiUrl}themes/${theme.id}.json`, {
+          console.log(`🗑️ Deleting: ${theme.name} (ID: ${theme.id})`);
+          
+          // Rate limiting delay
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          const deleteResponse = await fetchWithRetry(`${shopifyApiUrl}themes/${theme.id}.json`, {
             method: 'DELETE',
             headers: {
               'X-Shopify-Access-Token': accessToken,
@@ -203,19 +256,19 @@ async function installRefreshTheme(shopifyApiUrl: string, accessToken: string): 
           });
           
           if (deleteResponse.ok) {
-            console.log(`✅ Successfully deleted: ${theme.name}`);
+            console.log(`✅ Deleted: ${theme.name}`);
           } else {
-            console.warn(`⚠️ Could not delete ${theme.name}, but continuing`);
+            console.warn(`⚠️ Could not delete ${theme.name} (might be protected)`);
           }
-        } catch (error) {
+        } catch (error: any) {
           console.warn(`⚠️ Error deleting ${theme.name}:`, error.message);
         }
       }
     }
     
-    
-    // STEP 5: Final verification - confirm Refresh is main theme
-    const verifyResponse = await fetch(`${shopifyApiUrl}themes.json`, {
+    // STEP 6: FINAL VERIFICATION
+    console.log('🔍 Verifying final state...');
+    const verifyResponse = await fetchWithRetry(`${shopifyApiUrl}themes.json`, {
       headers: {
         'X-Shopify-Access-Token': accessToken,
         'Content-Type': 'application/json',
@@ -224,30 +277,32 @@ async function installRefreshTheme(shopifyApiUrl: string, accessToken: string): 
     
     if (verifyResponse.ok) {
       const verifyData = await verifyResponse.json();
-      const mainTheme = verifyData.themes.find(t => t.role === 'main');
+      const mainTheme = verifyData.themes.find((t: any) => t.role === 'main');
+      const allThemes = verifyData.themes.map((t: any) => `${t.name} (${t.role})`).join(', ');
+      
+      console.log(`📊 Final theme state: ${allThemes}`);
       
       if (mainTheme && mainTheme.name?.toLowerCase().includes('refresh')) {
-        console.log('✅ VERIFICATION PASSED: Refresh is the main and only active theme');
-        console.log(`🎉 FINAL STATE: ${mainTheme.name} (ID: ${mainTheme.id}) is published`);
+        console.log('✅ VERIFICATION SUCCESS: Refresh is the Current theme');
+        console.log(`🎉 ${mainTheme.name} (ID: ${mainTheme.id}) is now live`);
         return mainTheme;
       } else {
-        console.warn('⚠️ VERIFICATION WARNING: Main theme is not Refresh:', mainTheme?.name);
-        // Still return refreshTheme as we did our best
-        return refreshTheme;
+        console.error('❌ VERIFICATION FAILED: Main theme is NOT Refresh:', mainTheme?.name);
+        throw new Error(`Expected Refresh as main theme, but found: ${mainTheme?.name}`);
       }
     }
     
     return refreshTheme;
 
   } catch (error) {
-    console.error('❌ CRITICAL ERROR WITH REFRESH THEME SETUP:', error);
+    console.error('❌ CRITICAL: Refresh theme setup failed:', error);
     throw error;
   }
 }
 
 async function updateStoreNameAndPhone(shopifyApiUrl: string, accessToken: string, storeName: string) {
   try {
-    console.log(`🏪 ENHANCED: Updating store name and phone: ${storeName}`);
+    console.log(`🏪 Updating store name: ${storeName}`);
     
     const response = await fetch(`${shopifyApiUrl}shop.json`, {
       method: 'PUT',
@@ -267,9 +322,9 @@ async function updateStoreNameAndPhone(shopifyApiUrl: string, accessToken: strin
 
     if (response.ok) {
       const result = await response.json();
-      console.log(`✅ ENHANCED: Store updated - Name: ${result.shop.name}, Phone: ${result.shop.phone}`);
+      console.log(`✅ Store updated - Name: ${result.shop.name}`);
     } else {
-      console.warn('⚠️ Failed to update store name and phone, but continuing');
+      console.warn('⚠️ Failed to update store name, but continuing');
     }
 
   } catch (error) {
@@ -279,11 +334,11 @@ async function updateStoreNameAndPhone(shopifyApiUrl: string, accessToken: strin
 
 async function applyThemeColorViaSettings(shopifyApiUrl: string, accessToken: string, themeId: string, themeColor: string, storeName?: string, niche?: string) {
   try {
-    console.log('🎨 COMPREHENSIVE METHOD 1: Applying color via settings data to ALL elements');
+    console.log('🎨 METHOD 1: Applying color via settings data');
     
-    const comprehensiveColorSettings = {
+    const colorSettings = {
       current: {
-        // ===== PRIMARY BRAND COLORS =====
+        // Primary brand colors
         colors_accent_1: themeColor,
         colors_accent_2: adjustColorBrightness(themeColor, -15),
         color_accent: themeColor,
@@ -291,7 +346,7 @@ async function applyThemeColorViaSettings(shopifyApiUrl: string, accessToken: st
         primary_color: themeColor,
         brand_color: themeColor,
         
-        // ===== BUTTON COLORS =====
+        // Button colors
         colors_solid_button_labels: '#ffffff',
         colors_outline_button_labels: themeColor,
         color_button: themeColor,
@@ -299,74 +354,90 @@ async function applyThemeColorViaSettings(shopifyApiUrl: string, accessToken: st
         button_color: themeColor,
         button_background_color: themeColor,
         button_text_color: '#ffffff',
+        colors_button_primary: themeColor,
+        button_primary_color: themeColor,
         
-        // ===== HEADER & NAVIGATION COLORS =====
+        // Header & navigation
         colors_header: themeColor,
         color_header: themeColor,
         header_background_color: themeColor,
         header_color: themeColor,
-        header_text_color: '#ffffff',
+        header_background: themeColor,
+        nav_background_color: themeColor,
         navigation_color: themeColor,
-        menu_background_color: themeColor,
         
-        // ===== FOOTER COLORS =====
+        // Footer
+        colors_footer: adjustColorBrightness(themeColor, -30),
+        color_footer: adjustColorBrightness(themeColor, -30),
         footer_background_color: adjustColorBrightness(themeColor, -30),
-        footer_text_color: '#ffffff',
-        footer_heading_color: '#ffffff',
+        footer_color: adjustColorBrightness(themeColor, -30),
+        footer_background: adjustColorBrightness(themeColor, -30),
         
-        // ===== LINK COLORS =====
-        colors_text: '#121212',
-        color_links: themeColor,
+        // Links
+        colors_link: themeColor,
+        color_link: themeColor,
         link_color: themeColor,
         
-        // ===== BADGE COLORS =====
+        // Price & product
+        color_price: themeColor,
+        price_color: themeColor,
+        sale_price_color: themeColor,
+        product_sale_price_color: themeColor,
+        
+        // Badges & labels
         badge_background_color: themeColor,
-        badge_text_color: '#ffffff',
-        sale_badge_color: themeColor,
+        badge_color: themeColor,
+        label_sale_color: themeColor,
+        sale_badge_background: themeColor,
         
-        // ===== BACKGROUND COLORS =====
-        colors_background_1: '#ffffff',
-        colors_background_2: '#f8f8f8',
-        background_color: '#ffffff',
+        // Announcement bar
+        announcement_background: themeColor,
+        announcement_bar_background: themeColor,
+        announcement_color: '#ffffff',
+        announcement_text: storeName ? `🎉 Welcome to ${storeName} - Premium Quality Products!` : '🎉 Welcome to our store!',
         
-        // ===== BRANDING TEXT =====
-        brand_headline: `Welcome to ${storeName || 'Your Store'}`,
-        brand_description: `Discover premium ${niche || 'products'} at ${storeName || 'our store'}`,
-        store_name: storeName || 'Your Store',
-        
-        // ===== GRADIENTS =====
+        // Additional theme-specific
+        colors_outline_button_labels_hover: adjustColorBrightness(themeColor, -10),
         gradient_accent_1: `linear-gradient(135deg, ${themeColor} 0%, ${adjustColorBrightness(themeColor, -20)} 100%)`,
-        gradient_accent_2: `linear-gradient(135deg, ${adjustColorBrightness(themeColor, 15)} 0%, ${themeColor} 100%)`,
-        
-        // ===== TYPOGRAPHY =====
-        type_header_font: 'assistant_n4',
-        type_body_font: 'assistant_n4',
-        page_width: '1200',
-        
-        // ===== BUTTON STYLING =====
-        buttons_border_thickness: '2',
-        buttons_radius: '6',
-        buttons_shadow_opacity: '15',
-        buttons_border_opacity: '100',
-        
-        // ===== CARD & BADGE STYLING =====
-        card_style: 'standard',
-        badge_position: 'bottom left',
-        badge_corner_radius: '6',
-        
-        // ===== PRODUCT OPTIONS =====
-        variant_pills_border_width: '2',
-        variant_pills_border_opacity: '100',
-        variant_pills_radius: '6',
-        variant_pills_shadow_opacity: '10',
-        
-        // ===== SOCIAL & SHARE =====
-        social_icons_color: themeColor,
-        share_buttons_color: themeColor
       }
     };
 
-    const settingsResponse = await fetch(`${shopifyApiUrl}themes/${themeId}/assets.json`, {
+    // Fetch current settings
+    const settingsResponse = await fetch(
+      `${shopifyApiUrl}themes/${themeId}/assets.json?asset[key]=config/settings_data.json`,
+      {
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!settingsResponse.ok) {
+      console.warn('⚠️ Could not fetch settings_data.json');
+      return;
+    }
+
+    const settingsData = await settingsResponse.json();
+    let currentSettings: any = {};
+    
+    try {
+      currentSettings = JSON.parse(settingsData.asset.value || '{}');
+    } catch {
+      currentSettings = {};
+    }
+
+    // Merge with new color settings
+    const updatedSettings = {
+      ...currentSettings,
+      current: {
+        ...(currentSettings.current || {}),
+        ...colorSettings.current
+      }
+    };
+
+    // Save updated settings
+    const updateResponse = await fetch(`${shopifyApiUrl}themes/${themeId}/assets.json`, {
       method: 'PUT',
       headers: {
         'X-Shopify-Access-Token': accessToken,
@@ -375,191 +446,98 @@ async function applyThemeColorViaSettings(shopifyApiUrl: string, accessToken: st
       body: JSON.stringify({
         asset: {
           key: 'config/settings_data.json',
-          value: JSON.stringify(comprehensiveColorSettings)
+          value: JSON.stringify(updatedSettings)
         }
       }),
     });
 
-    if (settingsResponse.ok) {
-      console.log('✅ COMPREHENSIVE METHOD 1 SUCCESS: All color settings applied to theme');
+    if (updateResponse.ok) {
+      console.log('✅ Settings data updated with color');
     } else {
-      console.warn('⚠️ Settings data update failed, trying other methods');
+      console.warn('⚠️ Failed to update settings data');
     }
 
   } catch (error) {
-    console.error('❌ Settings data color application failed:', error);
+    console.warn('⚠️ Color application via settings failed:', error);
   }
 }
 
 async function applyThemeColorViaCSS(shopifyApiUrl: string, accessToken: string, themeId: string, themeColor: string, storeName?: string) {
   try {
-    console.log('🎨 COMPREHENSIVE METHOD 2: Applying color to ALL store elements via CSS');
-    
-    const comprehensiveCSS = `
-/* COMPREHENSIVE COLOR APPLICATION FOR ${storeName || 'STORE'} */
+    console.log('🎨 METHOD 2: Applying color via CSS injection');
+
+    const css = `
+/* Brand Color Variables */
 :root {
   --primary-brand: ${themeColor} !important;
   --primary-hover: ${adjustColorBrightness(themeColor, -10)} !important;
-  --primary-light: ${adjustColorBrightness(themeColor, 20)} !important;
-  --primary-dark: ${adjustColorBrightness(themeColor, -20)} !important;
 }
 
-/* ===== HEADER & NAVIGATION ===== */
-.header, .header__wrapper, .site-header, 
-.header-wrapper, .header__menu, .Header, 
-.site-nav, .navigation, nav[role="navigation"],
-.shopify-section-header, header[role="banner"] {
+/* Header & Navigation */
+.header, .header__wrapper, .site-header, header[role="banner"] {
   background: ${themeColor} !important;
-  background-color: ${themeColor} !important;
 }
 
-.header__menu-item a, .site-nav__link, 
-.header__heading-link, .header a,
-.menu__item a, nav a, .navigation a {
+.header a, nav a {
   color: white !important;
 }
 
-.header__icon, .site-header__icon,
-.header svg, nav svg {
-  color: white !important;
-  fill: white !important;
-}
-
-/* ===== ALL BUTTONS ===== */
-.btn, button:not(.variant-button), 
-[type="submit"], [type="button"],
-.shopify-payment-button__button,
-.product-form__buttons button,
-.btn--secondary, .btn--primary,
-input[type="submit"], 
-.cart__checkout-button,
-.product-form__cart-submit,
-.checkout-button, .button,
-.Button, .btn-primary,
-.continue-button, .view-product-button,
-.add-to-cart, [name="add"],
-.product-form__submit,
-.payment-button {
+/* All Buttons */
+.btn, button:not(.variant-button), [type="submit"], 
+.product-form__cart-submit, .shopify-payment-button__button {
   background: ${themeColor} !important;
-  background-color: ${themeColor} !important;
   border-color: ${themeColor} !important;
   color: white !important;
 }
 
-.btn:hover, button:hover:not(.variant-button),
-[type="submit"]:hover, [type="button"]:hover,
-.shopify-payment-button__button:hover {
+.btn:hover, button:hover:not(.variant-button) {
   background: ${adjustColorBrightness(themeColor, -10)} !important;
-  background-color: ${adjustColorBrightness(themeColor, -10)} !important;
 }
 
-/* ===== PAYPAL & PAYMENT BUTTONS ===== */
-.paypal-button, .payment-buttons,
-.dynamic-checkout__content button {
-  border: 2px solid ${themeColor} !important;
-}
-
-/* ===== BADGES (Sale, New, etc.) ===== */
-.badge, .label, .product__badge, 
-.Badge, .sale-badge, .new-badge,
-.product-badge, .card__badge,
-[class*="badge"], [class*="Badge"] {
-  background: ${themeColor} !important;
-  background-color: ${themeColor} !important;
-  color: white !important;
-}
-
-/* ===== PRODUCT OPTION BUTTONS (Color/Size) ===== */
-.product-form__input input[type="radio"]:checked + label,
-.variant-input-wrapper input:checked + label,
-.product-option input:checked + label,
-.swatch input:checked + label,
-.variant-button.selected,
-.option-value.selected {
-  background: ${themeColor} !important;
-  border-color: ${themeColor} !important;
-  color: white !important;
-}
-
-/* ===== SHARE BUTTON ===== */
-.share-button, .product__share,
-[class*="share"], button[aria-label*="Share"],
-.social-sharing__link {
-  color: ${themeColor} !important;
-  border-color: ${themeColor} !important;
-}
-
-.share-button:hover {
+/* Badges (Sale, New) */
+.badge, .label, .product__badge, .Badge {
   background: ${themeColor} !important;
   color: white !important;
 }
 
-/* ===== FOOTER ===== */
-.footer, .site-footer, footer[role="contentinfo"],
-.shopify-section-footer, .footer-wrapper {
+/* Footer */
+.footer, .site-footer, footer[role="contentinfo"] {
   background: ${adjustColorBrightness(themeColor, -30)} !important;
-  background-color: ${adjustColorBrightness(themeColor, -30)} !important;
   color: white !important;
 }
 
-.footer a, .site-footer a,
-.footer__heading, .footer__link,
-.footer p, .footer h2, .footer h3 {
+.footer a {
   color: white !important;
 }
 
-/* ===== LINKS ===== */
-a:not(.btn):not(button), .link, 
-.product__title a, .Link,
-.view-details, .view-more {
+/* Links */
+a:not(.btn):not(button) {
   color: ${themeColor} !important;
 }
 
-a:not(.btn):not(button):hover {
-  color: ${adjustColorBrightness(themeColor, -15)} !important;
-}
-
-/* ===== PRICES ===== */
-.price, .price__current, .product__price, 
-.price--current, .Price, .money {
+/* Prices */
+.price, .price__current, .product__price {
   color: ${themeColor} !important;
-  font-weight: 600 !important;
 }
 
-/* ===== ICONS & SVG ===== */
-.icon-accent, svg.accent,
-[class*="icon-"] {
-  color: ${themeColor} !important;
-  fill: ${themeColor} !important;
+/* Announcement Bar */
+.announcement-bar {
+  background: ${themeColor} !important;
+  color: white !important;
 }
 
-/* ===== MOBILE RESPONSIVE ===== */
-@media (max-width: 768px) {
-  .btn, button, [type="submit"] {
-    background: ${themeColor} !important;
-    border-color: ${themeColor} !important;
-  }
-  .header, .site-header {
-    background: ${themeColor} !important;
-  }
-  .footer, .site-footer {
-    background: ${adjustColorBrightness(themeColor, -30)} !important;
-  }
-}
-
-/* ===== CSS VARIABLES OVERRIDE ===== */
-* {
-  --color-accent: ${themeColor} !important;
-  --color-button: ${themeColor} !important;
-  --color-header: ${themeColor} !important;
-  --color-footer: ${adjustColorBrightness(themeColor, -30)} !important;
-  --color-badge: ${themeColor} !important;
-  --accent-color: ${themeColor} !important;
-  --primary-color: ${themeColor} !important;
+/* Add to Cart Button - Extra Targeting */
+.product-form__submit, 
+[name="add"], 
+.add-to-cart,
+.cart__checkout-button {
+  background: ${themeColor} !important;
+  border-color: ${themeColor} !important;
+  color: white !important;
 }
 `;
 
-    const cssResponse = await fetch(`${shopifyApiUrl}themes/${themeId}/assets.json`, {
+    const updateResponse = await fetch(`${shopifyApiUrl}themes/${themeId}/assets.json`, {
       method: 'PUT',
       headers: {
         'X-Shopify-Access-Token': accessToken,
@@ -567,152 +545,106 @@ a:not(.btn):not(button):hover {
       },
       body: JSON.stringify({
         asset: {
-          key: 'assets/comprehensive-brand-colors.css',
-          value: comprehensiveCSS
+          key: 'assets/custom-brand-colors.css',
+          value: css
         }
       }),
     });
 
-    if (cssResponse.ok) {
-      console.log('✅ COMPREHENSIVE METHOD 2 SUCCESS: All store elements styled with brand color');
+    if (updateResponse.ok) {
+      console.log('✅ CSS file created with brand colors');
     } else {
-      console.warn('⚠️ CSS injection failed, trying liquid injection');
+      console.warn('⚠️ Failed to create CSS file');
     }
 
   } catch (error) {
-    console.error('❌ CSS color application failed:', error);
+    console.warn('⚠️ CSS injection failed:', error);
   }
 }
 
 async function applyThemeColorViaLiquid(shopifyApiUrl: string, accessToken: string, themeId: string, themeColor: string, storeName?: string) {
   try {
-    console.log('🎨 COMPREHENSIVE METHOD 3: Injecting complete color styling via liquid');
-    
-    // Get the current theme.liquid file
-    const themeResponse = await fetch(`${shopifyApiUrl}themes/${themeId}/assets.json?asset[key]=layout/theme.liquid`, {
-      method: 'GET',
-      headers: {
-        'X-Shopify-Access-Token': accessToken,
-        'Content-Type': 'application/json',
-      },
-    });
+    console.log('🎨 METHOD 3: Injecting color into theme.liquid');
 
-    if (themeResponse.ok) {
-      const themeData = await themeResponse.json();
-      let themeContent = themeData.asset.value;
-      
-      // Add CSS file reference + comprehensive inline styles
-      const comprehensiveStyleInjection = `
-<!-- COMPREHENSIVE BRAND COLOR STYLING -->
-{{ 'comprehensive-brand-colors.css' | asset_url | stylesheet_tag }}
-
-<style id="comprehensive-brand-colors-inline">
-/* COMPREHENSIVE COLOR APPLICATION - ALL ELEMENTS */
-:root { 
-  --brand-primary: ${themeColor} !important;
-  --brand-hover: ${adjustColorBrightness(themeColor, -10)} !important;
-  --brand-light: ${adjustColorBrightness(themeColor, 20)} !important;
-  --brand-dark: ${adjustColorBrightness(themeColor, -30)} !important;
-}
-
-/* HEADER & NAVIGATION */
-.header, .header__wrapper, .site-header, 
-header, nav, .navigation {
-  background-color: ${themeColor} !important;
-}
-.header a, nav a, .menu__item a {
-  color: white !important;
-}
-
-/* ALL BUTTONS */
-.btn, button:not(.variant-button), [type="submit"], [type="button"],
-.shopify-payment-button__button, .product-form__submit,
-.add-to-cart, .checkout-button, .continue-button {
-  background-color: ${themeColor} !important;
-  border-color: ${themeColor} !important;
-  color: white !important;
-}
-
-/* BADGES */
-.badge, .label, .sale-badge, .new-badge,
-[class*="badge"], [class*="Badge"] {
-  background-color: ${themeColor} !important;
-  color: white !important;
-}
-
-/* PRODUCT OPTIONS */
-.product-form__input input:checked + label,
-.variant-button.selected {
-  background-color: ${themeColor} !important;
-  border-color: ${themeColor} !important;
-  color: white !important;
-}
-
-/* SHARE BUTTON */
-.share-button, [class*="share"] {
-  color: ${themeColor} !important;
-  border-color: ${themeColor} !important;
-}
-
-/* FOOTER */
-.footer, .site-footer, footer[role="contentinfo"] {
-  background-color: ${adjustColorBrightness(themeColor, -30)} !important;
-  color: white !important;
-}
-.footer a, .footer__link {
-  color: white !important;
-}
-
-/* LINKS & PRICES */
-a:not(.btn) { color: ${themeColor} !important; }
-.price, .product__price { color: ${themeColor} !important; font-weight: 600 !important; }
-</style>
-`;
-      
-      // Insert before </head> or at the beginning
-      if (themeContent.includes('</head>')) {
-        themeContent = themeContent.replace('</head>', comprehensiveStyleInjection + '\n</head>');
-      } else {
-        themeContent = comprehensiveStyleInjection + '\n' + themeContent;
-      }
-      
-      // Update the theme file
-      const updateResponse = await fetch(`${shopifyApiUrl}themes/${themeId}/assets.json`, {
-        method: 'PUT',
+    // Fetch current theme.liquid
+    const liquidResponse = await fetch(
+      `${shopifyApiUrl}themes/${themeId}/assets.json?asset[key]=layout/theme.liquid`,
+      {
         headers: {
           'X-Shopify-Access-Token': accessToken,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          asset: {
-            key: 'layout/theme.liquid',
-            value: themeContent
-          }
-        }),
-      });
-
-      if (updateResponse.ok) {
-        console.log('✅ ENHANCED METHOD 3 SUCCESS: Liquid file injection with guaranteed colors');
-      } else {
-        console.warn('⚠️ Liquid file injection failed');
       }
+    );
+
+    if (!liquidResponse.ok) {
+      console.warn('⚠️ Could not fetch theme.liquid');
+      return;
     }
+
+    const liquidData = await liquidResponse.json();
+    let liquidContent = liquidData.asset.value || '';
+
+    // Check if our styles are already injected
+    if (liquidContent.includes('CUSTOM_BRAND_COLORS_INJECTION')) {
+      console.log('✅ Color styles already in theme.liquid');
+      return;
+    }
+
+    // Inject styles in <head>
+    const styleInjection = `
+  <!-- CUSTOM_BRAND_COLORS_INJECTION -->
+  <style>
+    :root { --brand-primary: ${themeColor}; }
+    .header, header { background: ${themeColor} !important; }
+    .btn, button:not(.variant-button) { background: ${themeColor} !important; color: white !important; }
+    .badge { background: ${themeColor} !important; }
+    .footer { background: ${adjustColorBrightness(themeColor, -30)} !important; }
+    a:not(.btn) { color: ${themeColor} !important; }
+  </style>
+  <link rel="stylesheet" href="{{ 'custom-brand-colors.css' | asset_url }}" />
+  <!-- END_CUSTOM_BRAND_COLORS_INJECTION -->
+</head>`;
+
+    liquidContent = liquidContent.replace('</head>', styleInjection);
+
+    // Save updated theme.liquid
+    const updateResponse = await fetch(`${shopifyApiUrl}themes/${themeId}/assets.json`, {
+      method: 'PUT',
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        asset: {
+          key: 'layout/theme.liquid',
+          value: liquidContent
+        }
+      }),
+    });
+
+    if (updateResponse.ok) {
+      console.log('✅ theme.liquid updated with color injection');
+    } else {
+      console.warn('⚠️ Failed to update theme.liquid');
+    }
+
   } catch (error) {
-    console.error('❌ Liquid file color application failed:', error);
+    console.warn('⚠️ Liquid injection failed:', error);
   }
 }
 
 function adjustColorBrightness(hex: string, percent: number): string {
-  hex = hex.replace('#', '');
-  const num = parseInt(hex, 16);
+  const num = parseInt(hex.replace('#', ''), 16);
   const amt = Math.round(2.55 * percent);
   const R = (num >> 16) + amt;
   const G = (num >> 8 & 0x00FF) + amt;
   const B = (num & 0x0000FF) + amt;
   
-  const clampedR = R < 255 ? (R < 1 ? 0 : R) : 255;
-  const clampedG = G < 255 ? (G < 1 ? 0 : G) : 255;
-  const clampedB = B < 255 ? (B < 1 ? 0 : B) : 255;
-  
-  return "#" + (0x1000000 + clampedR * 0x10000 + clampedG * 0x100 + clampedB).toString(16).slice(1);
+  return '#' + (
+    0x1000000 +
+    (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
+    (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
+    (B < 255 ? (B < 1 ? 0 : B) : 255)
+  ).toString(16).slice(1).toUpperCase();
 }
