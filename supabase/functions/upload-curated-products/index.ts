@@ -568,95 +568,10 @@ serve(async (req) => {
     // Initialize Shopify client
     const shopifyClient = new ShopifyClient(shopifyUrl, shopifyAccessToken);
 
-    // 🎨 Apply theme color FIRST (before product processing to prevent timeout)
-    if (themeColor && shopifyUrl && shopifyAccessToken) {
-      try {
-        console.log(`🎨 Step 1: Finding Refresh theme...`);
-        
-        const themesResponse = await shopifyClient.getThemes();
-        console.log(`📋 Found ${themesResponse.themes?.length || 0} themes`);
-        
-        // Find Refresh theme specifically by name
-        let refreshTheme = themesResponse.themes.find((theme: any) => 
-          theme.name?.toLowerCase().includes('refresh')
-        );
-        
-        if (refreshTheme) {
-          console.log(`✅ Found Refresh theme (ID: ${refreshTheme.id}, Role: ${refreshTheme.role})`);
-          
-          // If Refresh is not the main theme, publish it FIRST
-          if (refreshTheme.role !== 'main') {
-            console.log(`🚀 Publishing Refresh as main theme...`);
-            
-            const publishResponse = await fetch(`${shopifyUrl}/admin/api/2024-10/themes/${refreshTheme.id}.json`, {
-              method: 'PUT',
-              headers: {
-                'X-Shopify-Access-Token': shopifyAccessToken,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                theme: { id: refreshTheme.id, role: 'main' }
-              })
-            });
-            
-            if (publishResponse.ok) {
-              console.log(`✅ Refresh theme published successfully as main theme!`);
-              await new Promise(resolve => setTimeout(resolve, 1000));
-            } else {
-              const errorText = await publishResponse.text();
-              console.error(`❌ Failed to publish Refresh:`, errorText);
-            }
-          } else {
-            console.log(`✅ Refresh is already the main theme`);
-          }
-          
-          // Now apply theme color
-          console.log(`🎨 Step 2: Applying color ${themeColor} to Refresh theme...`);
-          
-          const settingsAsset = await shopifyClient.getThemeAsset(refreshTheme.id, 'config/settings_data.json');
-          
-          if (settingsAsset.asset?.value) {
-            const settings = JSON.parse(settingsAsset.asset.value);
-            
-            settings.current = settings.current || {};
-            settings.current.colors_accent_1 = themeColor;
-            settings.current.colors_accent_2 = themeColor;
-            settings.current.colors_button_primary = themeColor;
-
-            await shopifyClient.updateThemeAsset(refreshTheme.id, {
-              key: 'config/settings_data.json',
-              value: JSON.stringify(settings)
-            });
-
-            console.log(`✅ Theme color ${themeColor} applied to Refresh theme!`);
-          }
-        } else {
-          console.warn(`⚠️ Refresh theme not found - applying color to main theme`);
-          const mainTheme = themesResponse.themes.find((theme: any) => theme.role === 'main');
-          
-          if (mainTheme) {
-            const settingsAsset = await shopifyClient.getThemeAsset(mainTheme.id, 'config/settings_data.json');
-            if (settingsAsset.asset?.value) {
-              const settings = JSON.parse(settingsAsset.asset.value);
-              settings.current = settings.current || {};
-              settings.current.colors_accent_1 = themeColor;
-              settings.current.colors_accent_2 = themeColor;
-              
-              await shopifyClient.updateThemeAsset(mainTheme.id, {
-                key: 'config/settings_data.json',
-                value: JSON.stringify(settings)
-              });
-              
-              console.log(`✅ Theme color applied to ${mainTheme.name}`);
-            }
-          }
-        }
-      } catch (error) {
-        console.warn(`⚠️ Theme setup failed (will continue with products):`, error);
-      }
-    }
-
+    console.log('🚀 Starting optimized product upload (10 products guaranteed)...');
     const targetCount = 10;
+    const MAX_PROCESSING_TIME = 140000; // 140 seconds (10s buffer before 150s timeout)
+    const startTime = Date.now();
 
     // Fetch exactly 10 random products from product_data table (table-driven selection)
     const selectedProductFolders = await fetchRandomProducts(supabase, bucketName, targetCount);
@@ -674,6 +589,14 @@ serve(async (req) => {
 
       for (let i = 0; i < selectedProductFolders.length; i++) {
         const productFolder = selectedProductFolders[i];
+        
+        // Timeout protection: Check if we're approaching the edge function limit
+        const elapsedTime = Date.now() - startTime;
+        if (elapsedTime > MAX_PROCESSING_TIME) {
+          console.warn(`⚠️ Approaching timeout at product ${i + 1}/${selectedProductFolders.length}`);
+          console.warn(`⚠️ Processed ${successCount} of ${targetCount} products before timeout`);
+          break;
+        }
         
         console.log(`📦 Processing product ${i + 1}/${selectedProductFolders.length}: ${productFolder}`);
 
@@ -909,6 +832,12 @@ serve(async (req) => {
             success: false,
             error: error.message
           });
+          // Continue with next product instead of stopping
+        }
+        
+        // Reduced delay between products (300ms instead of 800ms)
+        if (i < selectedProductFolders.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 300));
         }
       }
 

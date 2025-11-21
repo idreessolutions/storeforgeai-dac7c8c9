@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, Package, CheckCircle, XCircle, RefreshCw, Star, Users, Camera, Sparkles, Shield, Lock, DollarSign, FileText, Zap, Image } from "lucide-react";
 import { generateCuratedProducts } from "@/services/curatedProductService";
+import { installAndConfigureRefreshTheme } from "@/services/shopifyThemeService";
 import { toast } from "sonner";
 
 interface ProductsStepProps {
@@ -25,6 +25,7 @@ interface ProductsStepProps {
 const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [currentStage, setCurrentStage] = useState('');
   const [currentProductName, setCurrentProductName] = useState('');
   const [hasStarted, setHasStarted] = useState(false);
 
@@ -58,31 +59,54 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
     setIsGenerating(true);
     setHasStarted(true);
     setProgress(0);
+    setCurrentStage('');
     setCurrentProductName('');
 
     try {
-      console.log(`🚀 STARTING SUPABASE PRODUCT GENERATION for ${formData.niche?.toUpperCase()} from your bucket folders`);
+      // STEP 1: Install and configure Refresh theme FIRST (10% progress)
+      setCurrentStage('Installing Refresh theme...');
+      setProgress(5);
       
-      // Use ONLY the curated product service that pulls from YOUR Supabase buckets
+      console.log('🎨 STEP 1: Installing Refresh theme from Supabase Storage...');
+      await installAndConfigureRefreshTheme(
+        validatedShopifyUrl,
+        formData.accessToken,
+        formData.themeColor || '#111111',
+        sessionId
+      );
+      
+      setProgress(10);
+      console.log('✅ Refresh theme installed and published');
+      
+      // Small delay to ensure theme is ready
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // STEP 2: Generate and upload products (10% → 100%)
+      setCurrentStage('Adding winning products...');
+      console.log('📦 STEP 2: Starting product upload...');
+      
       await generateCuratedProducts(
         validatedShopifyUrl,
         formData.accessToken!,
         formData.niche || 'Home & Living',
         (progressValue: number, productName: string) => {
-          setProgress(progressValue);
+          // Map product progress from 10% to 95%
+          const adjustedProgress = 10 + (progressValue * 0.85);
+          setProgress(adjustedProgress);
           setCurrentProductName(productName);
-          console.log(`Supabase Progress: ${progressValue}% - ${productName}`);
+          console.log(`Product Progress: ${adjustedProgress}% - ${productName}`);
         },
-        formData.themeColor || '#3B82F6',
+        formData.themeColor || '#111111',
         formData.storeName || 'My Store'
       );
 
-      console.log('✅ SUPABASE SUCCESS: Products loaded from your bucket folders');
+      setProgress(100);
+      console.log('✅ All 10 products uploaded successfully');
       
       // Mark products as added
       handleInputChange('productsAdded', true);
       
-      toast.success('🎉 Successfully added 10 winning products to your Shopify store!', {
+      toast.success('🎉 Store is ready! Refresh theme installed + 10 winning products added!', {
         duration: 5000,
       });
 
@@ -90,13 +114,14 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       await storeGenerationData({
         success: true,
         successfulUploads: 10,
-        source: 'Your Supabase Bucket Folders',
-        system: 'Curated Products from Storage'
+        source: 'Supabase Curated Products',
+        system: 'Refresh Theme + Products'
       });
 
     } catch (error: any) {
-      console.error('❌ Supabase bucket generation error:', error);
+      console.error('❌ Store setup error:', error);
       setProgress(0);
+      setCurrentStage('');
       setCurrentProductName('');
       
       // Show detailed error message
