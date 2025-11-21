@@ -44,70 +44,51 @@ const extractShopifyDomain = (shopifyUrl: string): string => {
   return finalDomain;
 };
 
-export const installAndConfigureSenseTheme = async (config: ThemeConfiguration): Promise<boolean> => {
+/**
+ * Install and configure Refresh theme from Supabase Storage
+ * This MUST be called BEFORE uploading products to avoid timeout issues
+ */
+export async function installAndConfigureRefreshTheme(
+  shopifyUrl: string,
+  accessToken: string,
+  themeColor: string,
+  sessionId: string
+) {
+  console.log('🎨 Starting Refresh theme installation...');
+  
+  const validatedShopifyUrl = `https://${extractShopifyDomain(shopifyUrl)}`;
+  
   try {
-    console.log('🎨 Installing and configuring theme for personalized store...');
-    console.log('Store Details:', {
-      name: config.storeName,
-      niche: config.niche,
-      targetAudience: config.targetAudience,
-      businessType: config.businessType,
-      storeStyle: config.storeStyle,
-      themeColor: config.themeColor
-    });
-
-    // FIXED: Get the actual Shopify domain from the form data
-    const actualShopifyDomain = extractShopifyDomain(config.storeName);
-    const shopifyUrl = `https://${actualShopifyDomain}`;
-
-    console.log('🔗 Using Shopify URL:', shopifyUrl);
-
-    // Step 1: Update store name in Shopify admin settings
-    await updateShopifyStoreName(config.storeName, config.accessToken, shopifyUrl);
-
-    // Step 2: Use Supabase edge function to install and configure theme with COMPREHENSIVE color application
-    console.log('🎨 APPLYING THEME COLOR TO ALL SHOPIFY ELEMENTS:', config.themeColor);
-    
+    // Call the edge function to install and configure theme
     const { data, error } = await supabase.functions.invoke('install-shopify-theme', {
       body: {
-        shopifyUrl: shopifyUrl,
-        accessToken: config.accessToken,
-        themeColor: config.themeColor,
-        niche: config.niche,
-        storeName: config.storeName,
-        targetAudience: config.targetAudience,
-        businessType: config.businessType,
-        storeStyle: config.storeStyle,
-        customInfo: config.customInfo,
-        applyColorToAllElements: true, // NEW: Force comprehensive color application
-        storePersonalization: {
-          store_name: config.storeName,
-          niche: config.niche,
-          target_audience: config.targetAudience,
-          business_type: config.businessType,
-          store_style: config.storeStyle,
-          custom_info: config.customInfo
-        }
-      }
+        shopifyUrl: validatedShopifyUrl,
+        accessToken,
+        themeColor,
+        sessionId,
+      },
     });
 
     if (error) {
       console.error('❌ Theme installation failed:', error);
-      throw new Error(error.message || 'Failed to install theme');
+      throw error;
     }
 
-    if (data?.success) {
-      console.log(`✅ Theme installed and configured for ${config.storeName} with ${config.storeStyle} styling`);
-      return true;
-    } else {
+    if (!data?.success) {
       throw new Error(data?.error || 'Theme installation failed');
     }
 
-  } catch (error) {
-    console.error('💥 Theme installation process failed:', error);
-    throw error;
+    console.log('✅ Refresh theme installed and configured:', data);
+    return {
+      success: true,
+      themeId: data.themeId,
+      themeName: data.themeName,
+    };
+  } catch (error: any) {
+    console.error('❌ Error installing Refresh theme:', error);
+    throw new Error(`Failed to install Refresh theme: ${error.message}`);
   }
-};
+}
 
 const updateShopifyStoreName = async (storeName: string, accessToken: string, shopifyUrl: string): Promise<boolean> => {
   try {
