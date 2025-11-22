@@ -13,6 +13,7 @@ interface ProductsStepProps {
     accessToken?: string;
     niche?: string;
     themeColor?: string;
+    selectedColor?: string;
     targetAudience?: string;
     businessType?: string;
     storeStyle?: string;
@@ -67,11 +68,15 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
       setCurrentStage('Installing Refresh theme...');
       setProgress(5);
       
+      // Get the selected color - check both themeColor and selectedColor fields
+      const selectedBrandColor = formData.themeColor || formData.selectedColor || '#111111';
       console.log('🎨 STEP 1: Installing Refresh theme from Supabase Storage...');
+      console.log('🎨 Selected brand color:', selectedBrandColor);
+      
       await installAndConfigureRefreshTheme(
         validatedShopifyUrl,
         formData.accessToken,
-        formData.themeColor || '#111111',
+        selectedBrandColor,
         sessionId
       );
       
@@ -96,7 +101,7 @@ const ProductsStep = ({ formData, handleInputChange }: ProductsStepProps) => {
           setCurrentProductName(productName);
           console.log(`Product Progress: ${adjustedProgress}% - ${productName}`);
         },
-        formData.themeColor || '#111111',
+        selectedBrandColor,
         formData.storeName || 'My Store'
       );
 
