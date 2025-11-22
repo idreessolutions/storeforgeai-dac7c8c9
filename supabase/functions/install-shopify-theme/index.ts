@@ -29,6 +29,7 @@ Deno.serve(async (req) => {
     console.log('🎨 Installing Refresh theme from Supabase Storage...');
     console.log(`📍 Store: ${shopifyUrl}`);
     console.log(`🎨 Brand color: ${themeColor || 'Not provided'}`);
+    console.log(`🆔 Session: ${sessionId}`);
 
     // Initialize Supabase client
     const supabase = createClient(

@@ -19,19 +19,16 @@ interface StoreSummaryStepProps {
 const StoreSummaryStep = ({ formData }: StoreSummaryStepProps) => {
   const getColorName = (colorValue: string): string => {
     const colorMap: Record<string, string> = {
-      '#3B82F6': 'Ocean Blue',
-      '#1E40AF': 'Deep Blue',
-      '#DC2626': 'Crimson Red',
-      '#059669': 'Emerald Green',
-      '#7C3AED': 'Royal Purple',
-      '#EA580C': 'Sunset Orange',
-      '#DB2777': 'Rose Pink',
-      '#0891B2': 'Sky Blue',
-      '#65A30D': 'Lime Green',
-      '#F59E0B': 'Golden Yellow',
-      '#10B981': 'Fresh Green'
+      '#111111': 'Black',
+      '#2EB052': 'Shopify Green',
+      '#1F4ED8': 'Royal Blue',
+      '#E11D48': 'Red',
+      '#10B981': 'Emerald',
+      '#6D28D9': 'Purple',
+      '#EA580C': 'Orange',
+      '#334155': 'Slate'
     };
-    return colorMap[colorValue] || colorValue || 'Ocean Blue';
+    return colorMap[colorValue] || colorValue || 'Black';
   };
 
   const handleViewStore = () => {
