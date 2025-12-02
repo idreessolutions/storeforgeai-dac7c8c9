@@ -1411,7 +1411,13 @@ const Index = () => {
             />
           </Button>
           <p className="text-white/80 mt-6 text-lg">
-            <Shield className="inline h-5 w-5 mr-2" />
+            <lord-icon
+              src="https://cdn.lordicon.com/qppasjda.json"
+              trigger="hover"
+              stroke="bold"
+              style={{ width: '20px', height: '20px' }}
+              className="inline mr-2"
+            />
             No credit card required. Works with all Shopify plans.
           </p>
         </div>
