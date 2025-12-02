@@ -1401,7 +1401,13 @@ const Index = () => {
               className="mr-3"
             />
             Create My Store Now – It's Free
-            <ArrowRight className="ml-3 h-7 w-7" />
+            <lord-icon
+              src="https://cdn.lordicon.com/ajmdjaee.json"
+              trigger="hover"
+              state="hover-slide"
+              style={{ width: '28px', height: '28px' }}
+              className="ml-3"
+            />
           </Button>
           <p className="text-white/80 mt-6 text-lg">
             <Shield className="inline h-5 w-5 mr-2" />
