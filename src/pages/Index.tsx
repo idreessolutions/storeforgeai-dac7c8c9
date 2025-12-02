@@ -1402,8 +1402,9 @@ const Index = () => {
             />
             Create My Store Now – It's Free
             <lord-icon
-              src="https://cdn.lordicon.com/ajmdjaee.json"
+              src="https://cdn.lordicon.com/sfwdicbq.json"
               trigger="hover"
+              stroke="bold"
               state="hover-slide"
               style={{ width: '28px', height: '28px' }}
               className="ml-3"
