@@ -1393,7 +1393,13 @@ const Index = () => {
             className="bg-white text-purple-600 hover:bg-gray-100 text-xl px-12 py-8 shadow-2xl transform hover:scale-105 transition-all"
             onClick={() => setShowBuilder(true)}
           >
-            <Store className="mr-3 h-7 w-7" />
+            <lord-icon
+              src="https://cdn.lordicon.com/zquqhgki.json"
+              trigger="morph"
+              state="morph-growth"
+              style={{ width: '28px', height: '28px' }}
+              className="mr-3"
+            />
             Create My Store Now – It's Free
             <ArrowRight className="ml-3 h-7 w-7" />
           </Button>
